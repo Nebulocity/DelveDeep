@@ -1,5 +1,16 @@
 node_modules/
 dist/
+
+.env
+.env.local
+
 .vscode/
-.DS_Store
+
 *.log
+
+android/.gradle/
+android/app/build/
+android/build/
+
+.DS_Store
+Thumbs.db

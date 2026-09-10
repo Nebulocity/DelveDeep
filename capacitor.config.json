@@ -1,0 +1,8 @@
+{
+  "appId": "com.waywardkobold.app",
+  "appName": "Delve Deep",
+  "webDir": "dist/",
+  "android": {
+    "adjustMarginsForEdgeToEdge": "force"
+  }
+}

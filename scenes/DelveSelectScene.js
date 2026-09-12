@@ -1,115 +1,54 @@
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
-import delves from '../data/delves.js';
 import HapticsService from '../services/HapticsService.js';
-import { formatDuration } from '../game/ExpeditionProgression.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
 
 export default class DelveSelectScene extends Phaser.Scene {
-  constructor() {
-    super('DelveSelectScene');
-  }
+  constructor() { super('DelveSelectScene'); }
 
   create() {
     const { width, height } = this.scale;
-    this.cameras.main.setBackgroundColor('#171717');
-    this.createBackButton();
+    const delve = GameState.currentDelve;
+    if (!delve) {
+      this.scene.start('TitleScene');
+      return;
+    }
 
-    this.add.text(width / 2, UI_SAFE_TOP + 20, 'CHOOSE A DELVE', {
-      fontFamily: 'Arial',
-      fontSize: '46px',
-      fontStyle: 'bold',
-      color: '#f5f5f4'
+    this.cameras.main.setBackgroundColor(delve.type === 'void' ? '#160b24' : '#171717');
+    this.createWorldMapButton();
+
+    this.add.text(width / 2, UI_SAFE_TOP + 24, delve.type === 'void' ? 'VOID PORTAL' : 'DELVE OVERVIEW', {
+      fontFamily: 'Arial', fontSize: '56px', fontStyle: 'bold', color: delve.type === 'void' ? '#d8b4fe' : '#f5f5f4'
+    }).setOrigin(0.5);
+    this.add.text(width / 2, UI_SAFE_TOP + 86, delve.name, {
+      fontFamily: 'Arial', fontSize: '72px', fontStyle: 'bold', color: '#ffffff'
+    }).setOrigin(0.5);
+    this.add.text(width / 2, UI_SAFE_TOP + 145, delve.subtitle, {
+      fontFamily: 'Arial', fontSize: '32px', color: '#a8a29e', align: 'center', wordWrap: { width: width * 0.72 }
     }).setOrigin(0.5);
 
-    this.add.text(width / 2, UI_SAFE_TOP + 70, 'Every expedition begins with a bad idea.', {
-      fontFamily: 'Arial',
-      fontSize: '21px',
-      color: '#a8a29e'
-    }).setOrigin(0.5);
+    const panelY = height * 0.54;
+    this.add.rectangle(width / 2, panelY, width * 0.64, 390, 0x292524).setStrokeStyle(4, delve.type === 'void' ? 0xa855f7 : 0x57534e);
+    this.add.text(width * 0.28, panelY - 120, 'DIFFICULTY', { fontFamily: 'Arial', fontSize: '30px', fontStyle: 'bold', color: '#94a3b8' }).setOrigin(0.5);
+    this.add.text(width * 0.28, panelY - 68, delve.difficulty, { fontFamily: 'Arial', fontSize: '48px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
+    this.add.text(width * 0.28, panelY + 10, `Recommended Level ${delve.recommendedLevel}`, { fontFamily: 'Arial', fontSize: '30px', color: '#d6d3d1' }).setOrigin(0.5);
+    this.add.text(width * 0.28, panelY + 60, `${delve.rooms} waves expected`, { fontFamily: 'Arial', fontSize: '30px', color: '#d6d3d1' }).setOrigin(0.5);
 
-    const columns = Math.min(3, Math.max(1, delves.length));
-    const cardWidth = Math.min(720, (width - 300) / columns - 50);
-    const startX = width / 2 - ((columns - 1) * (cardWidth + 55)) / 2;
+    this.add.text(width * 0.66, panelY - 120, 'POSSIBLE DROPS', { fontFamily: 'Arial', fontSize: '30px', fontStyle: 'bold', color: '#94a3b8' }).setOrigin(0.5);
+    this.add.text(width * 0.66, panelY - 45, (delve.possibleDrops ?? ['Gold', 'Adventurer XP']).map((drop) => `• ${drop}`).join('\n'), {
+      fontFamily: 'Arial', fontSize: '32px', color: '#fbbf24', lineSpacing: 14
+    }).setOrigin(0.5, 0);
 
-    delves.forEach((delve, index) => {
-      const column = index % columns;
-      const row = Math.floor(index / columns);
-      this.createDelveCard(delve, startX + column * (cardWidth + 55), height * 0.56 + row * 360, cardWidth);
-    });
-  }
-
-  createBackButton() {
-    const y = UI_SAFE_TOP + 18;
-    const button = this.add.rectangle(172, y, 270, 64, 0x3f3f46)
+    const continueButton = this.add.rectangle(width / 2, height * 0.88, 650, 96, delve.type === 'void' ? 0x6b21a8 : 0x7c2d12)
       .setInteractive({ useHandCursor: true });
-    this.add.text(172, y, '< GUILD HALL', {
-      fontFamily: 'Arial',
-      fontSize: '22px',
-      fontStyle: 'bold',
-      color: '#ffffff'
-    }).setOrigin(0.5);
-    button.on('pointerdown', () => {
-      HapticsService.tap();
-      this.scene.start('TownScene');
-    });
+    this.add.text(width / 2, height * 0.88, 'CONTINUE', { fontFamily: 'Arial', fontSize: '42px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
+    continueButton.on('pointerdown', () => { HapticsService.confirm(); this.scene.start('PartySelectScene'); });
   }
 
-  createDelveCard(delve, x, y, cardWidth) {
-    const record = GameState.records[delve.id] ?? { clears: 0, bestTimeMs: null };
-    const card = this.add.rectangle(x, y, cardWidth, 365, 0x292524)
-      .setStrokeStyle(4, delve.unlocked ? 0x57534e : 0x3f3f46);
-
-    const left = x - cardWidth * 0.42;
-    this.add.text(left, y - 135, delve.name, {
-      fontFamily: 'Arial',
-      fontSize: '34px',
-      fontStyle: 'bold',
-      color: delve.unlocked ? '#ffffff' : '#71717a'
-    });
-
-    this.add.text(left, y - 84, delve.subtitle, {
-      fontFamily: 'Arial',
-      fontSize: '20px',
-      color: '#a8a29e',
-      wordWrap: { width: cardWidth * 0.84 }
-    });
-
-    this.add.text(left, y + 22, `Difficulty: ${delve.difficulty} • Depth: ${delve.depth ?? 1}`, {
-      fontFamily: 'Arial',
-      fontSize: '19px',
-      color: '#d6d3d1'
-    });
-
-    this.add.text(left, y + 59, `Rooms: ${delve.rooms} • Recommended: Lv ${delve.recommendedLevel}`, {
-      fontFamily: 'Arial',
-      fontSize: '19px',
-      color: '#d6d3d1'
-    });
-
-    this.add.text(left, y + 102, `Clears: ${record.clears} • Best: ${formatDuration(record.bestTimeMs)}`, {
-      fontFamily: 'Arial',
-      fontSize: '19px',
-      fontStyle: 'bold',
-      color: record.clears > 0 ? '#bef264' : '#78716c'
-    });
-
-    this.add.text(left, y + 139, 'Reward: Gold + Adventurer XP + Happiness', {
-      fontFamily: 'Arial',
-      fontSize: '18px',
-      color: '#fbbf24'
-    });
-
-    if (!delve.unlocked) return;
-
-    card.setInteractive({ useHandCursor: true });
-    card.on('pointerover', () => card.setFillStyle(0x3f3a37));
-    card.on('pointerout', () => card.setFillStyle(0x292524));
-    card.on('pointerdown', () => {
-      HapticsService.tap();
-      GameState.currentDelve = { ...delve };
-      GameState.currentRoom = 0;
-      this.scene.start('PartySelectScene');
-    });
+  createWorldMapButton() {
+    const y = UI_SAFE_TOP + 18;
+    const button = this.add.rectangle(180, y, 300, 64, 0x3f3f46).setInteractive({ useHandCursor: true });
+    this.add.text(180, y, '< WORLD MAP', { fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
+    button.on('pointerdown', () => { HapticsService.tap(); this.scene.start('TitleScene'); });
   }
 }

@@ -40,31 +40,36 @@ export default class BattleUnit {
     this.body = scene.add.circle(0, 0, this.isEnemy ? 45 : 36, this.color)
       .setStrokeStyle(4, this.isEnemy ? 0x365314 : 0x1c1917);
 
-    this.label = scene.add.text(0, this.isEnemy ? -70 : -58, this.name, {
+    this.label = scene.add.text(0, this.isEnemy ? -70 : -82, this.name, {
       fontFamily: 'Arial',
-      fontSize: this.isEnemy ? '23px' : '19px',
+      fontSize: this.isEnemy ? '34px' : '30px',
       fontStyle: 'bold',
       color: '#ffffff',
       stroke: '#000000',
       strokeThickness: 4
     }).setOrigin(0.5);
 
-    this.actionLabel = scene.add.text(0, this.isEnemy ? -102 : -88, '', {
+    this.actionLabel = scene.add.text(0, this.isEnemy ? -102 : -112, '', {
       fontFamily: 'Arial',
-      fontSize: this.isEnemy ? '18px' : '15px',
+      fontSize: this.isEnemy ? '27px' : '22px',
       fontStyle: 'bold',
       color: '#fde68a',
       stroke: '#000000',
       strokeThickness: 3
     }).setOrigin(0.5);
 
-    const barWidth = this.isEnemy ? 100 : 76;
-    const barY = this.isEnemy ? 64 : 50;
+    const barWidth = this.isEnemy ? 100 : 92;
+    // Party health lives where the class label used to be: under the name,
+    // but above the character body so it never overlaps the unit itself.
+    const barY = this.isEnemy ? 64 : -50;
+    this.hpGlow = scene.add.rectangle(0, barY, barWidth + 8, 18, 0x000000, 0)
+      .setStrokeStyle(5, 0xf97316, 0)
+      .setVisible(!this.isEnemy);
     this.hpBack = scene.add.rectangle(0, barY, barWidth, 12, 0x1c1917);
     this.hpFill = scene.add.rectangle(-barWidth / 2, barY, barWidth, 12, 0x22c55e).setOrigin(0, 0.5);
 
-    this.castBack = scene.add.rectangle(0, barY + 18, barWidth, 7, 0x0c0a09).setVisible(false);
-    this.castFill = scene.add.rectangle(-barWidth / 2, barY + 18, barWidth, 7, 0xfbbf24)
+    this.castBack = scene.add.rectangle(0, this.isEnemy ? barY + 18 : 54, barWidth, 7, 0x0c0a09).setVisible(false);
+    this.castFill = scene.add.rectangle(-barWidth / 2, this.isEnemy ? barY + 18 : 54, barWidth, 7, 0xfbbf24)
       .setOrigin(0, 0.5)
       .setVisible(false);
 
@@ -73,6 +78,7 @@ export default class BattleUnit {
       this.body,
       this.label,
       this.actionLabel,
+      this.hpGlow,
       this.hpBack,
       this.hpFill,
       this.castBack,
@@ -245,12 +251,18 @@ export default class BattleUnit {
     const ratio = this.maxHp > 0 ? this.hp / this.maxHp : 0;
     this.hpFill.setScale(ratio, 1);
 
-    if (ratio > 0.55) {
-      this.hpFill.setFillStyle(0x22c55e);
-    } else if (ratio > 0.25) {
-      this.hpFill.setFillStyle(0xeab308);
-    } else {
-      this.hpFill.setFillStyle(0xef4444);
+    let healthColor = 0x22c55e;
+    if (ratio <= 0.25) {
+      healthColor = 0xef4444;
+    } else if (ratio <= 0.5) {
+      healthColor = 0xf97316;
+    } else if (ratio <= 0.75) {
+      healthColor = 0xeab308;
+    }
+
+    this.hpFill.setFillStyle(healthColor);
+    if (!this.isEnemy && this.hpGlow) {
+      this.hpGlow.setStrokeStyle(5, healthColor, 0);
     }
   }
 

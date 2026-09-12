@@ -16,23 +16,33 @@ export default class RosterScene extends Phaser.Scene {
 
     this.add.text(width / 2, UI_SAFE_TOP + 20, 'ADVENTURERS', {
       fontFamily: 'Arial',
-      fontSize: '46px',
+      fontSize: '69px',
       fontStyle: 'bold',
       color: '#f8fafc'
     }).setOrigin(0.5);
 
     this.add.text(width / 2, UI_SAFE_TOP + 72, 'Experience and happiness persist between delves.', {
       fontFamily: 'Arial',
-      fontSize: '20px',
+      fontSize: '30px',
       color: '#94a3b8'
     }).setOrigin(0.5);
 
-    const cardWidth = width * 0.39;
-    const xs = [width * 0.285, width * 0.715];
-    const ys = [height * 0.43, height * 0.72];
+    const cardWidth = Math.min(650, width * 0.27);
+    const maxColumns = 3;
+    const rowGap = 270;
+    const firstY = height * 0.43;
+    const horizontalGap = Math.min(cardWidth + 78, width * 0.31);
 
     GameState.roster.forEach((adventurer, index) => {
-      this.createCard(adventurer, xs[index % 2], ys[Math.floor(index / 2)], cardWidth);
+      const row = Math.floor(index / maxColumns);
+      const rowStart = row * maxColumns;
+      const remaining = GameState.roster.length - rowStart;
+      const itemsInRow = Math.min(maxColumns, remaining);
+      const indexInRow = index - rowStart;
+      const rowWidth = (itemsInRow - 1) * horizontalGap;
+      const x = (width / 2) - (rowWidth / 2) + (indexInRow * horizontalGap);
+      const y = firstY + row * rowGap;
+      this.createCard(adventurer, x, y, cardWidth);
     });
   }
 
@@ -40,9 +50,9 @@ export default class RosterScene extends Phaser.Scene {
     const y = UI_SAFE_TOP + 18;
     const button = this.add.rectangle(172, y, 270, 64, 0x334155)
       .setInteractive({ useHandCursor: true });
-    this.add.text(172, y, '< GUILD HALL', {
+    this.add.text(172, y, '< TOWN', {
       fontFamily: 'Arial',
-      fontSize: '22px',
+      fontSize: '33px',
       fontStyle: 'bold',
       color: '#ffffff'
     }).setOrigin(0.5);
@@ -62,14 +72,14 @@ export default class RosterScene extends Phaser.Scene {
 
     this.add.text(x - cardWidth * 0.31, y - 85, adventurer.name, {
       fontFamily: 'Arial',
-      fontSize: '29px',
+      fontSize: '44px',
       fontStyle: 'bold',
       color: '#ffffff'
     });
 
     this.add.text(x - cardWidth * 0.31, y - 45, `${adventurer.className} • ${adventurer.role}`, {
       fontFamily: 'Arial',
-      fontSize: '19px',
+      fontSize: '28px',
       color: '#cbd5e1'
     });
 
@@ -77,7 +87,7 @@ export default class RosterScene extends Phaser.Scene {
     const xp = adventurer.xp ?? 0;
     this.add.text(x - cardWidth * 0.31, y - 7, `Level ${adventurer.level} • XP ${xp}/${needed}`, {
       fontFamily: 'Arial',
-      fontSize: '18px',
+      fontSize: '27px',
       color: '#94a3b8'
     });
 
@@ -90,13 +100,13 @@ export default class RosterScene extends Phaser.Scene {
     const happy = adventurer.happiness ?? 70;
     this.add.text(x - cardWidth * 0.31, y + 62, `Happiness: ${happy}% • ${happinessLabel(happy)}`, {
       fontFamily: 'Arial',
-      fontSize: '18px',
+      fontSize: '27px',
       color: happy >= 65 ? '#86efac' : '#fca5a5'
     });
 
     this.add.text(x - cardWidth * 0.31, y + 93, `Delves completed: ${adventurer.delvesCompleted ?? 0}`, {
       fontFamily: 'Arial',
-      fontSize: '17px',
+      fontSize: '26px',
       color: '#94a3b8'
     });
   }

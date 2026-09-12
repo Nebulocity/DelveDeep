@@ -10,6 +10,9 @@ import PartySelectScene from '../scenes/PartySelectScene.js';
 import DungeonScene from '../scenes/DungeonScene.js';
 import BattleScene from '../scenes/BattleScene.js';
 import RewardScene from '../scenes/RewardScene.js';
+import FacilityScene from '../scenes/FacilityScene.js';
+import AdventurersHallScene from '../scenes/AdventurersHallScene.js';
+import EncounterSummaryScene from '../scenes/EncounterSummaryScene.js';
 
 const gameConfig = {
   type: Phaser.AUTO,
@@ -25,6 +28,8 @@ const gameConfig = {
     BootScene,
     TitleScene,
     TownScene,
+    FacilityScene,
+    AdventurersHallScene,
     RosterScene,
     RaidLeaderScene,
     ShopScene,
@@ -32,7 +37,8 @@ const gameConfig = {
     PartySelectScene,
     DungeonScene,
     BattleScene,
-    RewardScene
+    RewardScene,
+    EncounterSummaryScene
   ]
 };
 

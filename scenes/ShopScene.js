@@ -19,14 +19,14 @@ export default class ShopScene extends Phaser.Scene {
 
     this.add.text(width / 2, UI_SAFE_TOP + 20, 'QUARTERMASTER', {
       fontFamily: 'Arial',
-      fontSize: '46px',
+      fontSize: '69px',
       fontStyle: 'bold',
       color: '#f5f5f4'
     }).setOrigin(0.5);
 
     this.goldText = this.add.text(width - 72, UI_SAFE_TOP + 20, '', {
       fontFamily: 'Arial',
-      fontSize: '24px',
+      fontSize: '36px',
       color: '#fbbf24'
     }).setOrigin(1, 0.5);
 
@@ -38,14 +38,14 @@ export default class ShopScene extends Phaser.Scene {
     this.add.circle(cardX - cardWidth * 0.39, cardY - 60, 52, 0xdc2626);
     this.add.text(cardX - cardWidth * 0.39, cardY - 60, '+', {
       fontFamily: 'Arial',
-      fontSize: '48px',
+      fontSize: '72px',
       fontStyle: 'bold',
       color: '#ffffff'
     }).setOrigin(0.5);
 
     this.add.text(cardX - cardWidth * 0.29, cardY - 112, 'HEALING TONIC', {
       fontFamily: 'Arial',
-      fontSize: '31px',
+      fontSize: '46px',
       fontStyle: 'bold',
       color: '#ffffff'
     });
@@ -53,14 +53,14 @@ export default class ShopScene extends Phaser.Scene {
     this.add.text(cardX - cardWidth * 0.29, cardY - 62,
       'Automatically consumed when an adventurer falls below 35% HP. Restores 35% max HP.', {
         fontFamily: 'Arial',
-        fontSize: '19px',
+        fontSize: '28px',
         color: '#d6d3d1',
         wordWrap: { width: cardWidth * 0.58 }
       });
 
     this.stockText = this.add.text(cardX - cardWidth * 0.29, cardY + 34, '', {
       fontFamily: 'Arial',
-      fontSize: '20px',
+      fontSize: '30px',
       color: '#a8a29e'
     });
 
@@ -68,14 +68,14 @@ export default class ShopScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
     this.add.text(cardX + cardWidth * 0.22, cardY + 105, 'BUY • 25 GOLD', {
       fontFamily: 'Arial',
-      fontSize: '22px',
+      fontSize: '33px',
       fontStyle: 'bold',
       color: '#ffffff'
     }).setOrigin(0.5);
 
     this.messageText = this.add.text(width / 2, height * 0.82, '', {
       fontFamily: 'Arial',
-      fontSize: '20px',
+      fontSize: '30px',
       color: '#fbbf24'
     }).setOrigin(0.5);
 
@@ -87,9 +87,9 @@ export default class ShopScene extends Phaser.Scene {
     const y = UI_SAFE_TOP + 18;
     const button = this.add.rectangle(172, y, 270, 64, 0x44403c)
       .setInteractive({ useHandCursor: true });
-    this.add.text(172, y, '< GUILD HALL', {
+    this.add.text(172, y, '< TOWN', {
       fontFamily: 'Arial',
-      fontSize: '22px',
+      fontSize: '33px',
       fontStyle: 'bold',
       color: '#ffffff'
     }).setOrigin(0.5);

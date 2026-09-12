@@ -16,9 +16,19 @@ export function loadProfile(baseRoster) {
 
   GameState.gold = Number.isFinite(saved?.gold) ? saved.gold : 0;
   GameState.inventory = {
-    healingTonic: Math.max(0, saved?.inventory?.healingTonic ?? 0)
+    healingTonic: Math.max(0, saved?.inventory?.healingTonic ?? 0),
+    voidKeys: Math.max(0, saved?.inventory?.voidKeys ?? 0)
   };
   GameState.records = saved?.records ?? {};
+  GameState.development = {
+    unlockAll: saved?.development?.unlockAll === true,
+    replayCleared: saved?.development?.replayCleared === true
+  };
+  GameState.world = {
+    currentLocation: saved?.world?.currentLocation ?? 'pineshire',
+    discoveredLocations: Array.from(new Set(['pineshire', 'slime-cave', ...(saved?.world?.discoveredLocations ?? [])])),
+    clearedDelves: Array.from(new Set(saved?.world?.clearedDelves ?? []))
+  };
 
   GameState.roster = baseRoster.map((base) => {
     const prior = savedRoster.get(base.id) ?? {};
@@ -40,6 +50,8 @@ export function saveProfile() {
     gold: GameState.gold,
     inventory: GameState.inventory,
     records: GameState.records,
+    development: GameState.development,
+    world: GameState.world,
     roster: GameState.roster.map((adventurer) => ({
       id: adventurer.id,
       level: adventurer.level,
@@ -56,5 +68,13 @@ export function saveProfile() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
   } catch (error) {
     console.warn('Could not save Delve Deep profile.', error);
+  }
+}
+
+export function clearSavedProfile() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (error) {
+    console.warn('Could not clear Delve Deep profile.', error);
   }
 }

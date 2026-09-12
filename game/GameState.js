@@ -7,13 +7,25 @@ const GameState = {
   rewards: [],
   leader: null,
   inventory: {
-    healingTonic: 0
+    healingTonic: 0,
+    voidKeys: 0
   },
   records: {},
+  development: {
+    unlockAll: false,
+    replayCleared: false
+  },
+  world: {
+    currentLocation: 'pineshire',
+    discoveredLocations: ['pineshire', 'slime-cave'],
+    clearedDelves: []
+  },
   run: {
     startedAt: 0,
     elapsedMs: 0,
-    summary: null
+    summary: null,
+    startingGold: 0,
+    startingInventory: null
   },
   tactics: {
     tankPosition: 'center',

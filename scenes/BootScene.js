@@ -4,6 +4,7 @@ import adventurers from '../data/adventurers.js';
 import OrientationService from '../services/OrientationService.js';
 import { loadLeaderProgression } from '../game/LeaderProgression.js';
 import { loadProfile } from '../game/GameStorage.js';
+import worldMapUrl from '../assets/map.png?url';
 
 export default class BootScene extends Phaser.Scene {
   constructor() {
@@ -11,7 +12,7 @@ export default class BootScene extends Phaser.Scene {
   }
 
   preload() {
-    // Shared game assets will be loaded here later.
+    this.load.image('world-map', worldMapUrl);
   }
 
   create() {
@@ -30,7 +31,9 @@ export default class BootScene extends Phaser.Scene {
     GameState.run = {
       startedAt: 0,
       elapsedMs: 0,
-      summary: null
+      summary: null,
+      startingGold: GameState.gold,
+      startingInventory: { ...GameState.inventory }
     };
   }
 }

@@ -109,7 +109,34 @@ const adventurers = [
         threatMultiplier: 1.1
       }
     }
+  }  ,
+  {
+    id: 'garrick',
+    name: 'Garrick',
+    className: 'Fighter',
+    role: 'Melee DPS',
+    level: 1,
+    color: 0xdc2626,
+    maxHp: 118,
+    moveSpeed: 175,
+    attackPower: 12,
+    attackRange: 76,
+    attackCooldown: 920,
+    attackWindup: 220,
+    threatMultiplier: 0.9,
+    critChance: 0.14,
+    critMultiplier: 1.75,
+    abilities: {
+      primary: {
+        name: 'Cleave',
+        cooldown: 4400,
+        windup: 320,
+        power: 28,
+        threatMultiplier: 0.9
+      }
+    }
   }
+
 ];
 
 export default adventurers;

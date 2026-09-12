@@ -1,7 +1,7 @@
 const STORAGE_KEY = 'delveDeep.leaderProgression.v1';
 
 export const leaderAbilities = [
-  { id: 'focusFire', name: 'Focus Fire', branch: 'Command', description: 'Mark one enemy as the raid priority target.', cost: 0, unlockedByDefault: true },
+  { id: 'focusFire', name: 'Focus Fire', branch: 'Command', description: 'Mark one enemy as the party priority target.', cost: 0, unlockedByDefault: true },
   { id: 'rally', name: 'Rally', branch: 'Command', description: 'Call the party back toward a rally point during battle.', cost: 1 },
   { id: 'coordinatedAssault', name: 'Coordinated Assault', branch: 'Command', description: 'Future: improve the payoff for sustained focus fire.', cost: 1 },
   { id: 'encouragement', name: 'Encouragement', branch: 'Morale', description: 'Future: soften morale loss after a difficult expedition.', cost: 1 },
@@ -14,7 +14,8 @@ const defaultLeader = () => ({
   highestClearedDepth: 0,
   inspirationPoints: 0,
   spentInspiration: 0,
-  unlockedAbilities: ['focusFire']
+  unlockedAbilities: ['focusFire'],
+  battleLoadout: ['focusFire']
 });
 
 export function loadLeaderProgression() {
@@ -26,10 +27,11 @@ export function loadLeaderProgression() {
     return {
       ...fallback,
       ...saved,
-      unlockedAbilities: Array.from(new Set(['focusFire', ...(saved.unlockedAbilities ?? [])]))
+      unlockedAbilities: Array.from(new Set(['focusFire', ...(saved.unlockedAbilities ?? [])])),
+      battleLoadout: (saved.battleLoadout ?? ['focusFire']).filter((id) => ['focusFire', ...(saved.unlockedAbilities ?? [])].includes(id)).slice(0, 5)
     };
   } catch (error) {
-    console.warn('Could not load Raid Leader progression.', error);
+    console.warn('Could not load Battle Tactics progression.', error);
     return fallback;
   }
 }
@@ -38,7 +40,7 @@ export function saveLeaderProgression(leader) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(leader));
   } catch (error) {
-    console.warn('Could not save Raid Leader progression.', error);
+    console.warn('Could not save Battle Tactics progression.', error);
   }
 }
 
@@ -70,4 +72,26 @@ export function recordDepthClear(leader, depth) {
   leader.inspirationPoints += inspirationEarned;
   saveLeaderProgression(leader);
   return { leveledUp: leader.level > previousLevel, inspirationEarned };
+}
+
+
+export function toggleLeaderLoadoutAbility(leader, abilityId) {
+  if (!hasLeaderAbility(leader, abilityId)) return false;
+  leader.battleLoadout = Array.isArray(leader.battleLoadout) ? leader.battleLoadout : [];
+  if (leader.battleLoadout.includes(abilityId)) {
+    leader.battleLoadout = leader.battleLoadout.filter((id) => id !== abilityId);
+  } else {
+    if (leader.battleLoadout.length >= 5) return false;
+    leader.battleLoadout.push(abilityId);
+  }
+  saveLeaderProgression(leader);
+  return true;
+}
+
+export function clearLeaderProgression() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (error) {
+    console.warn('Could not clear Battle Tactics progression.', error);
+  }
 }

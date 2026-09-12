@@ -2,111 +2,43 @@ import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
 import HapticsService from '../services/HapticsService.js';
 import { beginExpedition } from '../game/ExpeditionProgression.js';
+import { leaderAbilities } from '../game/LeaderProgression.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
 
 export default class DungeonScene extends Phaser.Scene {
-  constructor() {
-    super('DungeonScene');
-  }
+  constructor() { super('DungeonScene'); }
 
   create() {
     const { width, height } = this.scale;
     this.cameras.main.setBackgroundColor('#15120f');
 
-    this.add.text(width / 2, UI_SAFE_TOP + 18, GameState.currentDelve?.name ?? 'THE DELVE', {
-      fontFamily: 'Arial',
-      fontSize: '48px',
-      fontStyle: 'bold',
-      color: '#f5f5f4'
-    }).setOrigin(0.5);
+    this.add.text(70, UI_SAFE_TOP + 14, '< PARTY SELECT', { fontFamily: 'Arial', fontSize: '34px', color: '#d6d3d1' })
+      .setInteractive({ useHandCursor: true }).on('pointerdown', () => { HapticsService.tap(); this.scene.start('PartySelectScene'); });
+    this.add.text(width - 70, UI_SAFE_TOP + 14, 'WORLD MAP', { fontFamily: 'Arial', fontSize: '34px', color: '#d6d3d1' }).setOrigin(1, 0)
+      .setInteractive({ useHandCursor: true }).on('pointerdown', () => { HapticsService.tap(); this.scene.start('TitleScene'); });
 
-    this.add.text(width / 2, UI_SAFE_TOP + 66, 'Your party descends into the dark...', {
-      fontFamily: 'Arial',
-      fontSize: '25px',
-      color: '#a8a29e'
-    }).setOrigin(0.5);
+    this.add.text(width / 2, UI_SAFE_TOP + 18, 'BATTLE OVERVIEW', { fontFamily: 'Arial', fontSize: '68px', fontStyle: 'bold', color: '#f5f5f4' }).setOrigin(0.5);
+    this.add.text(width / 2, UI_SAFE_TOP + 75, GameState.currentDelve?.name ?? 'The Delve', { fontFamily: 'Arial', fontSize: '38px', color: '#a8a29e' }).setOrigin(0.5);
 
-    this.drawRoute(width, height);
-    this.drawParty(width, height);
-
-    const encounterButton = this.add.rectangle(width / 2, height * 0.79, Math.min(860, width * 0.42), 108, 0x7c2d12)
-      .setInteractive({ useHandCursor: true });
-
-    this.add.text(width / 2, height * 0.79, 'ENTER ENCOUNTER', {
-      fontFamily: 'Arial',
-      fontSize: '32px',
-      fontStyle: 'bold',
-      color: '#ffffff'
-    }).setOrigin(0.5);
-
-    encounterButton.on('pointerdown', () => {
-      HapticsService.confirm();
-      beginExpedition();
-      this.scene.start('BattleScene');
-    });
-
-    this.add.text(width / 2, height * 0.9, 'Return to Guild Hall', {
-      fontFamily: 'Arial',
-      fontSize: '24px',
-      color: '#a8a29e'
-    })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true })
-      .on('pointerdown', () => { HapticsService.tap(); this.scene.start('TownScene'); });
-  }
-
-  drawRoute(width, height) {
-    const graphics = this.add.graphics();
-    graphics.lineStyle(10, 0x57534e, 1);
-    graphics.beginPath();
-    graphics.moveTo(width * 0.22, height * 0.39);
-    graphics.lineTo(width * 0.5, height * 0.39);
-    graphics.lineTo(width * 0.78, height * 0.39);
-    graphics.strokePath();
-
-    this.add.circle(width * 0.22, height * 0.39, 38, 0x78716c);
-    this.add.circle(width * 0.5, height * 0.39, 42, 0x9a3412);
-    this.add.circle(width * 0.78, height * 0.39, 38, 0x292524);
-
-    this.add.text(width * 0.22, height * 0.45, 'Entrance', {
-      fontFamily: 'Arial',
-      fontSize: '21px',
-      color: '#d6d3d1'
-    }).setOrigin(0.5);
-
-    this.add.text(width * 0.5, height * 0.45, 'Encounter', {
-      fontFamily: 'Arial',
-      fontSize: '21px',
-      color: '#fdba74'
-    }).setOrigin(0.5);
-
-    this.add.text(width * 0.78, height * 0.45, '???', {
-      fontFamily: 'Arial',
-      fontSize: '21px',
-      color: '#78716c'
-    }).setOrigin(0.5);
-  }
-
-  drawParty(width, height) {
-    this.add.text(width / 2, height * 0.56, 'PARTY', {
-      fontFamily: 'Arial',
-      fontSize: '25px',
-      fontStyle: 'bold',
-      color: '#a8a29e'
-    }).setOrigin(0.5);
-
-    const spacing = Math.min(260, width * 0.12);
-    const startX = width / 2 - spacing * 1.5;
-
+    this.add.text(width * 0.28, height * 0.30, 'PARTY', { fontFamily: 'Arial', fontSize: '38px', fontStyle: 'bold', color: '#94a3b8' }).setOrigin(0.5);
     GameState.activeParty.forEach((adventurer, index) => {
-      const x = startX + spacing * index;
-      this.add.circle(x, height * 0.64, 46, adventurer.color);
-      this.add.text(x, height * 0.695, adventurer.name, {
-        fontFamily: 'Arial',
-        fontSize: '20px',
-        color: '#e7e5e4'
-      }).setOrigin(0.5);
+      const y = height * 0.38 + index * 92;
+      this.add.circle(width * 0.15, y, 30, adventurer.color);
+      this.add.text(width * 0.18, y - 18, adventurer.name, { fontFamily: 'Arial', fontSize: '34px', fontStyle: 'bold', color: '#ffffff' });
+      this.add.text(width * 0.18, y + 19, `${adventurer.className} • ${adventurer.role} • Lv ${adventurer.level}`, { fontFamily: 'Arial', fontSize: '26px', color: '#cbd5e1' });
     });
-  }
 
+    const equipped = GameState.leader?.battleLoadout ?? [];
+    this.add.text(width * 0.70, height * 0.30, `BATTLE TACTICS ${equipped.length}/5`, { fontFamily: 'Arial', fontSize: '38px', fontStyle: 'bold', color: '#94a3b8' }).setOrigin(0.5);
+    equipped.forEach((id, index) => {
+      const ability = leaderAbilities.find((entry) => entry.id === id);
+      const y = height * 0.39 + index * 88;
+      this.add.rectangle(width * 0.70, y, 700, 64, 0x292524).setStrokeStyle(2, 0x84cc16);
+      this.add.text(width * 0.70, y, ability?.name ?? id, { fontFamily: 'Arial', fontSize: '30px', fontStyle: 'bold', color: '#bef264' }).setOrigin(0.5);
+    });
+
+    const button = this.add.rectangle(width / 2, height * 0.89, 760, 104, 0x7c2d12).setInteractive({ useHandCursor: true });
+    this.add.text(width / 2, height * 0.89, 'DELVE DEEP!', { fontFamily: 'Arial', fontSize: '46px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
+    button.on('pointerdown', () => { HapticsService.confirm(); beginExpedition(); this.scene.start('BattleScene'); });
+  }
 }

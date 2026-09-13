@@ -14,8 +14,8 @@ export default class AdventurersHallScene extends Phaser.Scene {
 
     const entries = [
       ['BATTLE TACTICS', 'Choose and equip tactics', () => this.scene.start('RaidLeaderScene')],
-      ['EQUIPMENT', 'Weapons and armor management', () => this.scene.start('FacilityScene', { title: 'Equipment' })],
-      ['ITEMS', 'Consumables and carried items', () => this.scene.start('FacilityScene', { title: 'Items' })]
+      ['EQUIPMENT', 'Weapons and armor management', () => this.scene.start('FacilityScene', { title: 'Equipment', returnScene: 'AdventurersHallScene', returnLabel: "ADVENTURER'S HALL" })],
+      ['ITEMS', 'Consumables and carried items', () => this.scene.start('FacilityScene', { title: 'Items', returnScene: 'AdventurersHallScene', returnLabel: "ADVENTURER'S HALL" })]
     ];
     entries.forEach(([label, subtitle, callback], index) => {
       const x = width * (0.25 + index * 0.25);

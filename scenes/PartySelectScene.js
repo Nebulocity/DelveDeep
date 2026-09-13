@@ -3,6 +3,14 @@ import GameState from '../game/GameState.js';
 import HapticsService from '../services/HapticsService.js';
 import { happinessLabel } from '../game/AdventurerProgression.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
+import { saveProfile } from '../game/GameStorage.js';
+
+const MAX_PARTY_SIZE = 5;
+const ROLE_LIMITS = {
+  Tank: 1,
+  Healer: 2,
+  DPS: 4
+};
 
 const ROLE_COLUMNS = [
   { title: 'TANKS', roles: ['Tank'] },
@@ -21,13 +29,15 @@ export default class PartySelectScene extends Phaser.Scene {
   }
 
   init() {
-    const existingParty = GameState.activeParty.length > 0 ? GameState.activeParty : GameState.roster.slice(0, 5);
-    this.selectedIds = new Set(existingParty.map((adventurer) => adventurer.id).slice(0, 5));
+    this.selectedIds = this.buildInitialSelection();
   }
 
   create() {
     const { width, height } = this.scale;
     this.cameras.main.setBackgroundColor('#111827');
+    this.cards.clear();
+    this.columns = [];
+
     this.createBackButton();
 
     this.add.text(width / 2, UI_SAFE_TOP + 14, 'PARTY SELECT', { fontFamily: 'Arial', fontSize: '68px', fontStyle: 'bold', color: '#f8fafc' }).setOrigin(0.5);
@@ -55,6 +65,18 @@ export default class PartySelectScene extends Phaser.Scene {
       if (column) this.scrollColumn(column, deltaY > 0 ? 1 : -1);
     });
 
+    this.input.on('drag', (pointer, gameObject, dragX, dragY) => {
+      const column = this.columns.find((entry) => entry.thumb === gameObject);
+      if (!column || column.maxOffset <= 0) return;
+
+      const minY = column.trackTop + column.thumbHeight / 2;
+      const maxY = column.trackTop + column.trackHeight - column.thumbHeight / 2;
+      const clampedY = Phaser.Math.Clamp(dragY, minY, maxY);
+      const usableHeight = Math.max(1, column.trackHeight - column.thumbHeight);
+      const ratio = (clampedY - minY) / usableHeight;
+      this.setColumnOffset(column, ratio * column.maxOffset, false);
+    });
+
     this.refreshSelectionUi();
   }
 
@@ -62,7 +84,25 @@ export default class PartySelectScene extends Phaser.Scene {
     const y = UI_SAFE_TOP + 18;
     const button = this.add.rectangle(180, y, 300, 64, 0x334155).setInteractive({ useHandCursor: true });
     this.add.text(180, y, '< OVERVIEW', { fontFamily: 'Arial', fontSize: '33px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
-    button.on('pointerdown', () => { HapticsService.tap(); this.scene.start('DelveSelectScene'); });
+    button.on('pointerdown', () => {
+      HapticsService.tap();
+      this.scene.start('DelveSelectScene');
+    });
+  }
+
+  buildInitialSelection() {
+    const initialIds = new Set();
+    const preferredIds = GameState.activeParty.length > 0
+      ? GameState.activeParty.map((adventurer) => adventurer.id)
+      : (GameState.lastPartyIds ?? []);
+
+    preferredIds.forEach((id) => {
+      if (initialIds.size >= MAX_PARTY_SIZE) return;
+      const adventurer = GameState.roster.find((entry) => entry.id === id);
+      if (adventurer && this.canAddToSelection(adventurer, initialIds)) initialIds.add(id);
+    });
+
+    return initialIds;
   }
 
   createRoleColumn(definition, x, top, width, height) {
@@ -71,50 +111,79 @@ export default class PartySelectScene extends Phaser.Scene {
 
     const roster = GameState.roster.filter((adventurer) => definition.roles.includes(adventurer.role));
     const itemHeight = 150;
+    const scrollTop = top + 18;
+    const scrollHeight = height - 36;
     const content = this.add.container(0, 0);
     const maskShape = this.make.graphics({ x: 0, y: 0, add: false });
-    maskShape.fillStyle(0xffffff).fillRect(x - width / 2 + 10, top, width - 20, height);
+    maskShape.fillStyle(0xffffff).fillRect(x - width / 2 + 10, scrollTop, width - 40, scrollHeight);
     const mask = maskShape.createGeometryMask();
     content.setMask(mask);
 
+    const contentCenterX = x - 8;
+    const cardWidth = width - 58;
     roster.forEach((adventurer, index) => {
-      const cardY = top + 70 + index * itemHeight;
-      const card = this.add.rectangle(x, cardY, width - 34, 126, 0x1f2937).setStrokeStyle(3, 0x475569).setInteractive({ useHandCursor: true });
-      const portrait = this.add.circle(x - width * 0.34, cardY, 36, adventurer.color).setStrokeStyle(3, 0xffffff, 0.18);
-      const name = this.add.text(x - width * 0.24, cardY - 42, adventurer.name, { fontFamily: 'Arial', fontSize: '31px', fontStyle: 'bold', color: '#ffffff' });
-      const cls = this.add.text(x - width * 0.24, cardY - 5, adventurer.className, { fontFamily: 'Arial', fontSize: '25px', color: '#cbd5e1' });
-      const level = this.add.text(x - width * 0.24, cardY + 28, `Lv ${adventurer.level} • ${adventurer.happiness ?? 70}%`, { fontFamily: 'Arial', fontSize: '22px', color: '#94a3b8' });
+      const cardY = scrollTop + 64 + index * itemHeight;
+      const card = this.add.rectangle(contentCenterX, cardY, cardWidth, 126, 0x1f2937)
+        .setStrokeStyle(3, 0x475569)
+        .setInteractive({ useHandCursor: true });
+      const portrait = this.add.circle(contentCenterX - width * 0.31, cardY, 36, adventurer.color).setStrokeStyle(3, 0xffffff, 0.18);
+      const name = this.add.text(contentCenterX - width * 0.22, cardY - 42, adventurer.name, { fontFamily: 'Arial', fontSize: '31px', fontStyle: 'bold', color: '#ffffff' });
+      const cls = this.add.text(contentCenterX - width * 0.22, cardY - 5, adventurer.className, { fontFamily: 'Arial', fontSize: '25px', color: '#cbd5e1' });
+      const level = this.add.text(contentCenterX - width * 0.22, cardY + 28, `Lv ${adventurer.level} • ${adventurer.happiness ?? 70}%`, { fontFamily: 'Arial', fontSize: '22px', color: '#94a3b8' });
       content.add([card, portrait, name, cls, level]);
-      this.cards.set(adventurer.id, { card, portrait, name, cls, level });
+      this.cards.set(adventurer.id, { card, portrait, name, cls, level, adventurer });
       this.bindCardInput(card, adventurer);
     });
 
     if (roster.length === 0) {
-      const empty = this.add.text(x, top + height / 2, 'No adventurers yet', { fontFamily: 'Arial', fontSize: '26px', color: '#64748b' }).setOrigin(0.5);
+      const empty = this.add.text(x, scrollTop + scrollHeight / 2, 'No adventurers yet', { fontFamily: 'Arial', fontSize: '26px', color: '#64748b' }).setOrigin(0.5);
       content.add(empty);
     }
+
+    const trackHeight = scrollHeight;
+    const trackTop = scrollTop;
+    const trackX = x + width / 2 - 18;
+    const upButton = this.add.rectangle(trackX, scrollTop + 20, 24, 24, 0x334155).setInteractive({ useHandCursor: true });
+    const upIcon = this.add.text(trackX, scrollTop + 20, '^', { fontFamily: 'Arial', fontSize: '20px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
+    const downButton = this.add.rectangle(trackX, scrollTop + scrollHeight - 20, 24, 24, 0x334155).setInteractive({ useHandCursor: true });
+    const downIcon = this.add.text(trackX, scrollTop + scrollHeight - 20, 'v', { fontFamily: 'Arial', fontSize: '20px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
+    const track = this.add.rectangle(trackX, trackTop + trackHeight / 2, 10, trackHeight - 56, 0x0f172a, 0.95).setStrokeStyle(2, 0x475569);
+
+    const contentHeight = roster.length > 0 ? (128 + (roster.length - 1) * itemHeight) : scrollHeight;
+    const maxOffset = Math.max(0, contentHeight - scrollHeight);
+    const visibleRatio = Phaser.Math.Clamp(scrollHeight / Math.max(contentHeight, scrollHeight), 0.15, 1);
+    const thumbHeight = Math.max(48, (trackHeight - 56) * visibleRatio);
+    const thumb = this.add.rectangle(trackX, trackTop + thumbHeight / 2, 18, thumbHeight, 0x64748b)
+      .setStrokeStyle(2, 0x93c5fd)
+      .setInteractive({ draggable: true, useHandCursor: true });
+    this.input.setDraggable(thumb);
 
     const column = {
       bounds: new Phaser.Geom.Rectangle(x - width / 2, top, width, height),
       container: content,
       offset: 0,
-      maxOffset: Math.max(0, roster.length * itemHeight - height + 40),
-      dragging: false,
-      dragStartY: 0,
-      offsetStart: 0
+      maxOffset,
+      thumbHeight,
+      thumb,
+      track,
+      trackTop: trackTop + 28,
+      trackHeight: trackHeight - 56,
+      upButton,
+      downButton,
+      upIcon,
+      downIcon
     };
     this.columns.push(column);
 
-    const inputZone = this.add.zone(x, top + height / 2, width, height).setInteractive().setDepth(5);
-    inputZone.on('pointerdown', (pointer) => { column.dragging = true; column.dragStartY = pointer.y; column.offsetStart = column.offset; });
-    inputZone.on('pointermove', (pointer) => {
-      if (!column.dragging || !pointer.isDown) return;
-      column.offset = Phaser.Math.Clamp(column.offsetStart + (column.dragStartY - pointer.y), 0, column.maxOffset);
-      column.container.y = -column.offset;
+    upButton.on('pointerdown', () => this.scrollColumn(column, -1));
+    downButton.on('pointerdown', () => this.scrollColumn(column, 1));
+    track.setInteractive({ useHandCursor: true });
+    track.on('pointerdown', (pointer) => {
+      if (column.maxOffset <= 0) return;
+      this.setColumnOffsetFromPointer(column, pointer.y);
     });
-    inputZone.on('pointerup', () => { column.dragging = false; });
-    inputZone.on('pointerout', () => { if (!this.input.activePointer.isDown) column.dragging = false; });
-    inputZone.setDepth(-1);
+
+    this.updateColumnScrollUi(column);
   }
 
   bindCardInput(card, adventurer) {
@@ -143,76 +212,268 @@ export default class PartySelectScene extends Phaser.Scene {
         this.showAdventurerDetails(adventurer);
         return;
       }
+
       this.toggleAdventurer(adventurer.id);
     });
   }
 
-  scrollColumn(column, direction) {
-    column.offset = Phaser.Math.Clamp(column.offset + direction * 130, 0, column.maxOffset);
-    this.tweens.add({ targets: column.container, y: -column.offset, duration: 140, ease: 'Quad.Out' });
+  getSelectionCounts(selectedIds = this.selectedIds) {
+    const counts = { Tank: 0, Healer: 0, DPS: 0, total: 0 };
+    GameState.roster.forEach((adventurer) => {
+      if (!selectedIds.has(adventurer.id)) return;
+      const group = this.getRoleGroup(adventurer.role);
+      counts[group] += 1;
+      counts.total += 1;
+    });
+    return counts;
+  }
+
+  getRoleGroup(role) {
+    if (role === 'Tank') return 'Tank';
+    if (role === 'Healer') return 'Healer';
+    return 'DPS';
+  }
+
+  canAddToSelection(adventurer, selectedIds = this.selectedIds) {
+    const counts = this.getSelectionCounts(selectedIds);
+    const roleGroup = this.getRoleGroup(adventurer.role);
+    if (counts.total >= MAX_PARTY_SIZE) return false;
+    return counts[roleGroup] < ROLE_LIMITS[roleGroup];
+  }
+
+  getSelectionBlockReason(adventurer) {
+    const counts = this.getSelectionCounts();
+    const roleGroup = this.getRoleGroup(adventurer.role);
+
+    if (counts.total >= MAX_PARTY_SIZE) return 'Party is limited to five adventurers.';
+    if (roleGroup === 'Tank' && counts.Tank >= ROLE_LIMITS.Tank) return 'Only one tank can be selected.';
+    if (roleGroup === 'Healer' && counts.Healer >= ROLE_LIMITS.Healer) return 'Only two healers can be selected.';
+    if (roleGroup === 'DPS' && counts.DPS >= ROLE_LIMITS.DPS) return 'Only four DPS can be selected.';
+    return '';
   }
 
   toggleAdventurer(id) {
     HapticsService.tap();
-    if (this.selectedIds.has(id)) this.selectedIds.delete(id);
-    else if (this.selectedIds.size < 5) this.selectedIds.add(id);
-    else this.showToast('Party is limited to five adventurers.');
+    if (this.selectedIds.has(id)) {
+      this.selectedIds.delete(id);
+      this.refreshSelectionUi();
+      return;
+    }
+
+    const adventurer = GameState.roster.find((entry) => entry.id === id);
+    if (!adventurer) return;
+
+    const reason = this.getSelectionBlockReason(adventurer);
+    if (reason) {
+      this.showToast(reason);
+      return;
+    }
+
+    this.selectedIds.add(id);
     this.refreshSelectionUi();
   }
 
+  scrollColumn(column, direction) {
+    this.setColumnOffset(column, column.offset + direction * 130, true);
+  }
+
+  setColumnOffset(column, offset, animate = false) {
+    column.offset = Phaser.Math.Clamp(offset, 0, column.maxOffset);
+    if (animate) {
+      this.tweens.add({ targets: column.container, y: -column.offset, duration: 140, ease: 'Quad.Out' });
+    } else {
+      column.container.y = -column.offset;
+    }
+    this.updateColumnScrollUi(column);
+  }
+
+  setColumnOffsetFromPointer(column, pointerY) {
+    const minY = column.trackTop + column.thumbHeight / 2;
+    const maxY = column.trackTop + column.trackHeight - column.thumbHeight / 2;
+    const clampedY = Phaser.Math.Clamp(pointerY, minY, maxY);
+    const usableHeight = Math.max(1, column.trackHeight - column.thumbHeight);
+    const ratio = (clampedY - minY) / usableHeight;
+    this.setColumnOffset(column, ratio * column.maxOffset, false);
+  }
+
+  updateColumnScrollUi(column) {
+    const scrollable = column.maxOffset > 0;
+    const alpha = scrollable ? 1 : 0.28;
+    column.track.setAlpha(alpha);
+    column.thumb.setAlpha(alpha);
+    column.upButton.setAlpha(alpha);
+    column.downButton.setAlpha(alpha);
+    column.upIcon.setAlpha(alpha);
+    column.downIcon.setAlpha(alpha);
+
+    if (!scrollable) {
+      column.thumb.y = column.trackTop + column.trackHeight / 2;
+      return;
+    }
+
+    const ratio = column.offset / column.maxOffset;
+    const minY = column.trackTop + column.thumbHeight / 2;
+    const maxY = column.trackTop + column.trackHeight - column.thumbHeight / 2;
+    column.thumb.y = Phaser.Math.Linear(minY, maxY, ratio);
+  }
+
   refreshSelectionUi() {
-    this.partyCountText.setText(`${this.selectedIds.size} / 5 selected`);
+    const counts = this.getSelectionCounts();
+    this.partyCountText.setText(
+      `${counts.total} / ${MAX_PARTY_SIZE} selected  |  Tanks ${counts.Tank}/${ROLE_LIMITS.Tank}  |  Healers ${counts.Healer}/${ROLE_LIMITS.Healer}  |  DPS ${counts.DPS}/${ROLE_LIMITS.DPS}`
+    );
+
     this.cards.forEach((objects, id) => {
       const selected = this.selectedIds.has(id);
-      objects.card.setFillStyle(selected ? 0x29415f : 0x1f2937).setStrokeStyle(4, selected ? 0x93c5fd : 0x374151).setAlpha(selected ? 1 : 0.48);
-      objects.portrait.setAlpha(selected ? 1 : 0.45);
-      objects.name.setAlpha(selected ? 1 : 0.55);
-      objects.cls.setAlpha(selected ? 1 : 0.50);
-      objects.level.setAlpha(selected ? 1 : 0.50);
+      const disabled = !selected && !this.canAddToSelection(objects.adventurer);
+
+      if (selected) {
+        objects.card.setFillStyle(0x29415f).setStrokeStyle(4, 0x93c5fd).setAlpha(1);
+        objects.portrait.setAlpha(1);
+        objects.name.setAlpha(1);
+        objects.cls.setAlpha(1);
+        objects.level.setAlpha(1);
+      } else if (disabled) {
+        objects.card.setFillStyle(0x1f2937).setStrokeStyle(3, 0x293241).setAlpha(0.30);
+        objects.portrait.setAlpha(0.30);
+        objects.name.setAlpha(0.34);
+        objects.cls.setAlpha(0.30);
+        objects.level.setAlpha(0.28);
+      } else {
+        objects.card.setFillStyle(0x1f2937).setStrokeStyle(3, 0x374151).setAlpha(0.75);
+        objects.portrait.setAlpha(0.78);
+        objects.name.setAlpha(0.82);
+        objects.cls.setAlpha(0.72);
+        objects.level.setAlpha(0.68);
+      }
     });
-    const ready = this.selectedIds.size === 5;
+
+    const ready = counts.total === MAX_PARTY_SIZE;
     this.beginButton.setFillStyle(ready ? 0x475569 : 0x1f2937);
     this.beginButtonText.setColor(ready ? '#ffffff' : '#64748b');
   }
 
   begin() {
-    if (this.selectedIds.size !== 5) {
+    if (this.selectedIds.size !== MAX_PARTY_SIZE) {
       this.showToast('Choose five adventurers before continuing.');
       return;
     }
+
     HapticsService.confirm();
-    GameState.activeParty = GameState.roster.filter((adventurer) => this.selectedIds.has(adventurer.id)).map((adventurer) => ({ ...adventurer }));
+    GameState.activeParty = GameState.roster
+      .filter((adventurer) => this.selectedIds.has(adventurer.id))
+      .map((adventurer) => ({ ...adventurer }));
+    GameState.lastPartyIds = GameState.activeParty.map((adventurer) => adventurer.id);
+    saveProfile();
     this.scene.start('DungeonScene');
   }
 
   showAdventurerDetails(adventurer) {
     HapticsService.tap();
     const { width, height } = this.scale;
-    const blocker = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.55).setDepth(5000).setInteractive();
-    const panel = this.add.rectangle(width / 2, height / 2, 900, 570, 0x111827, 0.98).setStrokeStyle(5, 0x64748b).setDepth(5001);
-    this.add.text(width / 2, height * 0.31, adventurer.name, { fontFamily: 'Arial', fontSize: '58px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5).setDepth(5002);
-    this.add.text(width / 2, height * 0.38, `${adventurer.className} • ${adventurer.role}`, { fontFamily: 'Arial', fontSize: '34px', color: '#cbd5e1' }).setOrigin(0.5).setDepth(5002);
-    const stats = [
-      `Level: ${adventurer.level}`,
-      `HP: ${adventurer.maxHp}`,
-      `Attack: ${adventurer.attackPower}`,
-      `Move Speed: ${adventurer.moveSpeed}`,
-      `Crit: ${Math.round((adventurer.critChance ?? 0) * 100)}%`,
-      `Happiness: ${adventurer.happiness ?? 70}% (${happinessLabel(adventurer.happiness ?? 70)})`
+
+    const depth = 5000;
+    const panelWidth = Math.min(980, width * 0.64);
+    const panelHeight = Math.min(760, height * 0.84);
+    const panelX = width / 2;
+    const panelY = height / 2;
+    const modalElements = [];
+
+    const addElement = (element) => {
+      modalElements.push(element);
+      return element;
+    };
+
+    const blocker = addElement(this.add.rectangle(panelX, panelY, width, height, 0x000000, 0.58).setDepth(depth).setInteractive());
+    addElement(this.add.rectangle(panelX, panelY, panelWidth, panelHeight, 0x111827, 0.99).setStrokeStyle(5, 0x64748b).setDepth(depth + 1));
+
+    const top = panelY - panelHeight / 2;
+    const bottom = panelY + panelHeight / 2;
+
+    addElement(this.add.text(panelX, top + 78, adventurer.name, {
+      fontFamily: 'Arial', fontSize: '56px', fontStyle: 'bold', color: '#ffffff'
+    }).setOrigin(0.5).setDepth(depth + 2));
+    addElement(this.add.text(panelX, top + 142, adventurer.className, {
+      fontFamily: 'Arial', fontSize: '36px', fontStyle: 'bold', color: '#e2e8f0'
+    }).setOrigin(0.5).setDepth(depth + 2));
+    addElement(this.add.text(panelX, top + 190, `Role: ${adventurer.role}`, {
+      fontFamily: 'Arial', fontSize: '30px', color: '#cbd5e1'
+    }).setOrigin(0.5).setDepth(depth + 2));
+
+    const statRows = [
+      ['Level', `${adventurer.level}`],
+      ['HP', `${adventurer.maxHp}`],
+      ['Attack', `${adventurer.attackPower}`]
     ];
-    this.add.text(width / 2, height * 0.49, stats.join('\n'), { fontFamily: 'Arial', fontSize: '31px', color: '#e2e8f0', align: 'center', lineSpacing: 14 }).setOrigin(0.5).setDepth(5002);
-    const close = this.add.rectangle(width / 2, height * 0.70, 300, 72, 0x334155).setInteractive({ useHandCursor: true }).setDepth(5002);
-    const closeText = this.add.text(width / 2, height * 0.70, 'CLOSE', { fontFamily: 'Arial', fontSize: '30px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5).setDepth(5003);
-    close.on('pointerdown', () => {
-      GameState.activeParty = GameState.roster.filter((entry) => this.selectedIds.has(entry.id)).map((entry) => ({ ...entry }));
-      blocker.destroy(); panel.destroy(); close.destroy(); closeText.destroy();
-      this.scene.restart();
+
+    if (typeof adventurer.healPower === 'number' && adventurer.healPower > 0) {
+      statRows.push(['Heal Power', `${adventurer.healPower}`]);
+    }
+    if ((adventurer.maxMana ?? 0) > 0) {
+      statRows.push(['Mana', `${adventurer.maxMana}`]);
+    }
+
+    statRows.push(
+      ['Move Speed', `${adventurer.moveSpeed}`],
+      ['Crit', `${Math.round((adventurer.critChance ?? 0) * 100)}%`],
+      ['Happiness', `${adventurer.happiness ?? 70}% (${happinessLabel(adventurer.happiness ?? 70)})`]
+    );
+
+    const labelX = panelX - panelWidth * 0.28;
+    const valueX = panelX + panelWidth * 0.04;
+    const startY = top + 250;
+    const lineGap = 43;
+
+    statRows.forEach((row, index) => {
+      const y = startY + index * lineGap;
+      addElement(this.add.text(labelX, y, `${row[0]}:`, {
+        fontFamily: 'Arial', fontSize: '29px', fontStyle: 'bold', color: '#94a3b8'
+      }).setOrigin(0, 0.5).setDepth(depth + 2));
+      addElement(this.add.text(valueX, y, row[1], {
+        fontFamily: 'Arial', fontSize: '29px', color: '#e2e8f0'
+      }).setOrigin(0, 0.5).setDepth(depth + 2));
     });
+
+    const closeY = bottom - 58;
+    const descriptionY = closeY - 94;
+    addElement(this.add.text(panelX, descriptionY, adventurer.description, {
+      fontFamily: 'Arial',
+      fontSize: '21px',
+      color: '#94a3b8',
+      align: 'center',
+      wordWrap: { width: panelWidth - 130, useAdvancedWrap: true }
+    }).setOrigin(0.5).setDepth(depth + 2));
+
+    const close = addElement(this.add.rectangle(panelX, closeY, 300, 72, 0x334155)
+      .setInteractive({ useHandCursor: true }).setDepth(depth + 2));
+    addElement(this.add.text(panelX, closeY, 'CLOSE', {
+      fontFamily: 'Arial', fontSize: '30px', fontStyle: 'bold', color: '#ffffff'
+    }).setOrigin(0.5).setDepth(depth + 3));
+
+    const destroyModal = () => modalElements.forEach((element) => element.destroy());
+    blocker.on('pointerdown', destroyModal);
+    close.on('pointerdown', destroyModal);
   }
 
   showToast(message) {
     const { width, height } = this.scale;
-    const label = this.add.text(width / 2, height * 0.18, message, { fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#fca5a5', stroke: '#000000', strokeThickness: 5 }).setOrigin(0.5).setDepth(6000);
-    this.tweens.add({ targets: label, alpha: 0, delay: 900, duration: 350, onComplete: () => label.destroy() });
+    const label = this.add.text(width / 2, height * 0.18, message, {
+      fontFamily: 'Arial',
+      fontSize: '32px',
+      fontStyle: 'bold',
+      color: '#fca5a5',
+      stroke: '#000000',
+      strokeThickness: 5,
+      align: 'center',
+      wordWrap: { width: width * 0.78 }
+    }).setOrigin(0.5).setDepth(6000);
+
+    this.tweens.add({
+      targets: label,
+      alpha: 0,
+      delay: 1000,
+      duration: 350,
+      onComplete: () => label.destroy()
+    });
   }
 }

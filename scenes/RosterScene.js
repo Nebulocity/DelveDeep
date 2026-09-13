@@ -27,11 +27,11 @@ export default class RosterScene extends Phaser.Scene {
       color: '#94a3b8'
     }).setOrigin(0.5);
 
-    const cardWidth = Math.min(650, width * 0.27);
-    const maxColumns = 3;
-    const rowGap = 270;
-    const firstY = height * 0.43;
-    const horizontalGap = Math.min(cardWidth + 78, width * 0.31);
+    const cardWidth = Math.min(520, width * 0.205);
+    const maxColumns = 4;
+    const rowGap = 205;
+    const firstY = height * 0.29;
+    const horizontalGap = Math.min(cardWidth + 42, width * 0.235);
 
     GameState.roster.forEach((adventurer, index) => {
       const row = Math.floor(index / maxColumns);
@@ -63,50 +63,50 @@ export default class RosterScene extends Phaser.Scene {
   }
 
   createCard(adventurer, x, y, cardWidth) {
-    const cardHeight = 230;
+    const cardHeight = 178;
     this.add.rectangle(x, y, cardWidth, cardHeight, 0x1f2937)
       .setStrokeStyle(3, 0x374151);
 
-    this.add.circle(x - cardWidth * 0.40, y - 42, 45, adventurer.color)
+    this.add.circle(x - cardWidth * 0.40, y - 30, 35, adventurer.color)
       .setStrokeStyle(3, 0xffffff, 0.2);
 
-    this.add.text(x - cardWidth * 0.31, y - 85, adventurer.name, {
+    this.add.text(x - cardWidth * 0.31, y - 70, adventurer.name, {
       fontFamily: 'Arial',
-      fontSize: '44px',
+      fontSize: '34px',
       fontStyle: 'bold',
       color: '#ffffff'
     });
 
-    this.add.text(x - cardWidth * 0.31, y - 45, `${adventurer.className} • ${adventurer.role}`, {
+    this.add.text(x - cardWidth * 0.31, y - 35, `${adventurer.className} • ${adventurer.role}`, {
       fontFamily: 'Arial',
-      fontSize: '28px',
+      fontSize: '23px',
       color: '#cbd5e1'
     });
 
     const needed = xpRequired(adventurer.level);
     const xp = adventurer.xp ?? 0;
-    this.add.text(x - cardWidth * 0.31, y - 7, `Level ${adventurer.level} • XP ${xp}/${needed}`, {
+    this.add.text(x - cardWidth * 0.31, y - 4, `Level ${adventurer.level} • XP ${xp}/${needed}`, {
       fontFamily: 'Arial',
-      fontSize: '27px',
+      fontSize: '22px',
       color: '#94a3b8'
     });
 
     const barX = x - cardWidth * 0.31;
-    const barY = y + 31;
+    const barY = y + 26;
     const barWidth = cardWidth * 0.55;
     this.add.rectangle(barX, barY, barWidth, 15, 0x0f172a).setOrigin(0, 0.5);
     this.add.rectangle(barX, barY, barWidth * Math.min(1, xp / needed), 15, 0x64748b).setOrigin(0, 0.5);
 
     const happy = adventurer.happiness ?? 70;
-    this.add.text(x - cardWidth * 0.31, y + 62, `Happiness: ${happy}% • ${happinessLabel(happy)}`, {
+    this.add.text(x - cardWidth * 0.31, y + 48, `Happiness: ${happy}% • ${happinessLabel(happy)}`, {
       fontFamily: 'Arial',
-      fontSize: '27px',
+      fontSize: '22px',
       color: happy >= 65 ? '#86efac' : '#fca5a5'
     });
 
-    this.add.text(x - cardWidth * 0.31, y + 93, `Delves completed: ${adventurer.delvesCompleted ?? 0}`, {
+    this.add.text(x - cardWidth * 0.31, y + 73, `Delves completed: ${adventurer.delvesCompleted ?? 0}`, {
       fontFamily: 'Arial',
-      fontSize: '26px',
+      fontSize: '21px',
       color: '#94a3b8'
     });
   }

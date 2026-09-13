@@ -193,29 +193,37 @@ export default class TitleScene extends Phaser.Scene {
         fontFamily: 'Arial', fontSize: '29px', color: '#cbd5e1', align: 'center', wordWrap: { width: Math.min(900, panelWidth - 140), useAdvancedWrap: true }
       }).setOrigin(0.5).setDepth(depth + 2);
 
-    const toggle = this.add.rectangle(width / 2, height * 0.50, 650, 86, enabled ? 0x9a3412 : 0x334155)
+    const toggle = this.add.rectangle(width / 2, height * 0.48, 650, 78, enabled ? 0x9a3412 : 0x334155)
       .setInteractive({ useHandCursor: true })
       .setDepth(depth + 2);
-    const toggleText = this.add.text(width / 2, height * 0.50, enabled ? 'DISABLE TESTING MODE' : 'UNLOCK ALL + ENABLE REPLAYS', {
+    const toggleText = this.add.text(width / 2, height * 0.48, enabled ? 'DISABLE TESTING MODE' : 'UNLOCK ALL + ENABLE REPLAYS', {
       fontFamily: 'Arial', fontSize: '30px', fontStyle: 'bold', color: '#ffffff'
     }).setOrigin(0.5).setDepth(depth + 3);
 
-    const reset = this.add.rectangle(width / 2, height * 0.62, 650, 86, 0x7f1d1d)
+    const addVoidKey = this.add.rectangle(width / 2, height * 0.58, 650, 78, 0x312e81)
+      .setStrokeStyle(3, 0x818cf8)
+      .setInteractive({ useHandCursor: true })
+      .setDepth(depth + 2);
+    const addVoidKeyText = this.add.text(width / 2, height * 0.58, `ADD VOID KEY  (${GameState.inventory.voidKeys ?? 0} owned)`, {
+      fontFamily: 'Arial', fontSize: '30px', fontStyle: 'bold', color: '#ffffff'
+    }).setOrigin(0.5).setDepth(depth + 3);
+
+    const reset = this.add.rectangle(width / 2, height * 0.68, 650, 78, 0x7f1d1d)
       .setStrokeStyle(3, 0xf87171)
       .setInteractive({ useHandCursor: true })
       .setDepth(depth + 2);
-    const resetText = this.add.text(width / 2, height * 0.62, 'RESET ALL PROGRESS', {
+    const resetText = this.add.text(width / 2, height * 0.68, 'RESET ALL PROGRESS', {
       fontFamily: 'Arial', fontSize: '30px', fontStyle: 'bold', color: '#ffffff'
     }).setOrigin(0.5).setDepth(depth + 3);
 
-    const close = this.add.rectangle(width / 2, height * 0.73, 360, 72, 0x334155)
+    const close = this.add.rectangle(width / 2, height * 0.77, 360, 68, 0x334155)
       .setInteractive({ useHandCursor: true })
       .setDepth(depth + 2);
-    const closeText = this.add.text(width / 2, height * 0.73, 'CLOSE', {
+    const closeText = this.add.text(width / 2, height * 0.77, 'CLOSE', {
       fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: '#ffffff'
     }).setOrigin(0.5).setDepth(depth + 3);
 
-    const objects = [shade, panel, title, description, toggle, toggleText, reset, resetText, close, closeText];
+    const objects = [shade, panel, title, description, toggle, toggleText, addVoidKey, addVoidKeyText, reset, resetText, close, closeText];
     const destroy = () => objects.forEach((object) => object?.destroy());
 
     toggle.on('pointerdown', () => {
@@ -226,6 +234,15 @@ export default class TitleScene extends Phaser.Scene {
       saveProfile();
       destroy();
       this.scene.restart();
+    });
+
+
+    addVoidKey.on('pointerdown', () => {
+      HapticsService.confirm();
+      GameState.inventory.voidKeys = (GameState.inventory.voidKeys ?? 0) + 1;
+      saveProfile();
+      addVoidKeyText.setText(`ADD VOID KEY  (${GameState.inventory.voidKeys} owned)`);
+      this.showToast('Added 1 Void Key.');
     });
 
     reset.on('pointerdown', () => {

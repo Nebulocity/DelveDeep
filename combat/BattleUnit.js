@@ -11,6 +11,10 @@ export default class BattleUnit {
     this.color = config.color;
     this.maxHp = config.maxHp;
     this.hp = config.maxHp;
+    this.maxMana = Math.max(0, config.maxMana ?? 0);
+    this.mana = this.maxMana;
+    this.manaRegen = Math.max(0, config.manaRegen ?? 0);
+    this.basicHealManaCost = Math.max(0, config.basicHealManaCost ?? 0);
     this.moveSpeed = config.moveSpeed;
     this.attackPower = config.attackPower;
     this.critChance = config.critChance ?? 0.1;
@@ -23,10 +27,38 @@ export default class BattleUnit {
     this.healCooldown = config.healCooldown ?? 0;
     this.healWindup = config.healWindup ?? 400;
     this.threatMultiplier = config.threatMultiplier ?? 1;
+    this.armor = config.armor ?? 0;
+    this.damageTakenMultiplier = config.damageTakenMultiplier ?? 1;
+    this.description = config.description ?? '';
+    this.startsStealthed = config.startsStealthed === true;
+    this.stealthed = this.startsStealthed;
     this.abilities = config.abilities ?? {};
+    this.status = {
+      blindUntil: 0,
+      blindChance: 0,
+      stunnedUntil: 0,
+      damageReductionUntil: 0,
+      damageReduction: 0,
+      outgoingDamageReductionUntil: 0,
+      outgoingDamageReduction: 0,
+      damageTakenBoostUntil: 0,
+      damageTakenBoost: 0,
+      armorExposeUntil: 0,
+      armorReduction: 0,
+      damageBoostUntil: 0,
+      damageBoost: 0,
+      shieldUntil: 0,
+      arcaneShieldUntil: 0,
+      spellLockUntil: 0
+    };
+    this.delvesUsed = {};
     this.lastAttackAt = -Infinity;
     this.lastHealAt = -Infinity;
     this.lastAbilityAt = {};
+    this.lastCombatActionAt = -Infinity;
+    this.lastDealtDamageAt = -Infinity;
+    this.lastTakenDamageAt = -Infinity;
+    this.seekingRestealth = false;
     this.isEnemy = config.isEnemy ?? false;
     this.alive = true;
     this.busyUntil = 0;
@@ -39,6 +71,9 @@ export default class BattleUnit {
     this.shadow = scene.add.ellipse(0, 30, this.isEnemy ? 84 : 64, this.isEnemy ? 28 : 22, 0x000000, 0.28);
     this.body = scene.add.circle(0, 0, this.isEnemy ? 45 : 36, this.color)
       .setStrokeStyle(4, this.isEnemy ? 0x365314 : 0x1c1917);
+
+    // A larger invisible touch target makes crowded melee units much easier to tap on phones.
+    this.hitZone = scene.add.circle(0, 0, this.isEnemy ? 68 : 58, 0xffffff, 0.001);
 
     this.label = scene.add.text(0, this.isEnemy ? -70 : -82, this.name, {
       fontFamily: 'Arial',
@@ -58,10 +93,10 @@ export default class BattleUnit {
       strokeThickness: 3
     }).setOrigin(0.5);
 
-    const barWidth = this.isEnemy ? 100 : 92;
+    const barWidth = this.isEnemy ? 116 : 92;
     // Party health lives where the class label used to be: under the name,
     // but above the character body so it never overlaps the unit itself.
-    const barY = this.isEnemy ? 64 : -50;
+    const barY = -50;
     this.hpGlow = scene.add.rectangle(0, barY, barWidth + 8, 18, 0x000000, 0)
       .setStrokeStyle(5, 0xf97316, 0)
       .setVisible(!this.isEnemy);
@@ -75,6 +110,7 @@ export default class BattleUnit {
 
     this.container.add([
       this.shadow,
+      this.hitZone,
       this.body,
       this.label,
       this.actionLabel,
@@ -85,6 +121,7 @@ export default class BattleUnit {
       this.castFill
     ]);
 
+    this.setStealthed(this.stealthed);
     this.syncPresentation();
   }
 
@@ -109,7 +146,18 @@ export default class BattleUnit {
   }
 
   canStartAction(time) {
-    return this.alive && !this.isBusy(time) && this.pendingAction === null;
+    return this.alive
+      && time >= (this.status.stunnedUntil ?? 0)
+      && !this.isBusy(time)
+      && this.pendingAction === null;
+  }
+
+  canCast(time) {
+    return time >= (this.status.spellLockUntil ?? 0);
+  }
+
+  hasStatus(key, time) {
+    return time < (this.status[key] ?? 0);
   }
 
   startAction(name, time, duration) {
@@ -211,20 +259,74 @@ export default class BattleUnit {
     if (!ability || !this.canStartAction(time)) {
       return false;
     }
+    if ((ability.manaCost ?? 0) > this.mana) return false;
 
     return time - (this.lastAbilityAt[key] ?? -Infinity) >= ability.cooldown;
   }
 
   markAbilityUsed(key, time) {
+    const ability = this.abilities[key];
     this.lastAbilityAt[key] = time;
+    if (ability?.manaCost) this.spendMana(ability.manaCost);
   }
 
-  takeDamage(amount) {
+  spendMana(amount) {
+    if (this.maxMana <= 0) return true;
+    const cost = Math.max(0, amount ?? 0);
+    if (this.mana < cost) return false;
+    this.mana = Math.max(0, this.mana - cost);
+    return true;
+  }
+
+  regenMana(deltaSeconds) {
+    if (!this.alive || this.maxMana <= 0 || this.mana >= this.maxMana || this.manaRegen <= 0) return;
+    this.mana = Math.min(this.maxMana, this.mana + this.manaRegen * deltaSeconds);
+  }
+
+  setStealthed(value) {
+    this.stealthed = value === true;
+    if (this.body?.active) this.body.setAlpha(this.stealthed ? 0.55 : 1);
+  }
+
+  takeDamage(amount, options = {}) {
     if (!this.alive) {
       return false;
     }
 
-    this.hp = Math.max(0, this.hp - amount);
+    const now = options.time ?? this.scene.time.now;
+    let adjusted = Math.max(0, amount);
+
+    if (!this.isEnemy) {
+      adjusted *= Math.max(0, 1 - this.armor);
+    }
+    adjusted *= this.damageTakenMultiplier;
+
+    if (now < (this.status.damageReductionUntil ?? 0)) {
+      adjusted *= Math.max(0, 1 - (this.status.damageReduction ?? 0));
+    }
+    if (now < (this.status.damageTakenBoostUntil ?? 0)) {
+      adjusted *= 1 + (this.status.damageTakenBoost ?? 0);
+    }
+    if (now < (this.status.shieldUntil ?? 0)) {
+      adjusted *= 0.35;
+    }
+    if (now < (this.status.arcaneShieldUntil ?? 0)) {
+      adjusted *= options.ranged ? 0 : 0.55;
+    }
+
+    adjusted = Math.max(adjusted > 0 ? 1 : 0, Math.round(adjusted));
+    this.hp = Math.max(0, this.hp - adjusted);
+
+    // Barbarians have one chance per delve to refuse a mortal wound.
+    if (this.hp <= 0 && this.className === 'Barbarian' && !this.delvesUsed.shrugDeath) {
+      const chance = Math.min(0.8, 0.02 * Math.max(1, this.level ?? 1));
+      if (Math.random() < chance) {
+        this.delvesUsed.shrugDeath = true;
+        this.hp = Math.max(1, Math.round(this.maxHp * 0.10));
+        this.scene.createFloatingText?.(this.x, this.y - 110, 'SHRUG IT OFF!', '#fb923c', true);
+      }
+    }
+
     this.updateHealthBar();
 
     if (this.hp <= 0) {

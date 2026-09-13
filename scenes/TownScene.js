@@ -15,14 +15,15 @@ export default class TownScene extends Phaser.Scene {
   create() {
     const { width, height } = this.scale;
     this.cameras.main.setBackgroundColor('#1c1917');
-    this.add.rectangle(width / 2, UI_SAFE_TOP + 18, width, 94, 0x292524);
+    this.headerY = UI_SAFE_TOP + 48;
+    this.add.rectangle(width / 2, this.headerY, width, 94, 0x292524);
     this.createBackButton();
     this.createHeader(width);
 
-    this.add.text(width / 2, UI_SAFE_TOP + 98, this.townName.toUpperCase(), {
+    this.add.text(width / 2, UI_SAFE_TOP + 154, this.townName.toUpperCase(), {
       fontFamily: 'Arial', fontSize: '72px', fontStyle: 'bold', color: '#f5f5f4'
     }).setOrigin(0.5);
-    this.add.text(width / 2, UI_SAFE_TOP + 151, 'Rest, prepare, and decide who is going underground next.', {
+    this.add.text(width / 2, UI_SAFE_TOP + 211, 'Rest, prepare, and decide who is going underground next.', {
       fontFamily: 'Arial', fontSize: '32px', color: '#a8a29e'
     }).setOrigin(0.5);
 
@@ -39,13 +40,13 @@ export default class TownScene extends Phaser.Scene {
   }
 
   createHeader(width) {
-    this.add.text(width - 72, UI_SAFE_TOP + 18, `Gold: ${GameState.gold}   Keys: ${GameState.inventory.voidKeys ?? 0}`, {
+    this.add.text(width - 72, this.headerY, `Gold: ${GameState.gold}   Void Keys: ${GameState.inventory.voidKeys ?? 0}`, {
       fontFamily: 'Arial', fontSize: '34px', color: '#fbbf24'
     }).setOrigin(1, 0.5);
   }
 
   createBackButton() {
-    const y = UI_SAFE_TOP + 18;
+    const y = this.headerY;
     const button = this.add.rectangle(176, y, 276, 64, 0x44403c).setInteractive({ useHandCursor: true });
     this.add.text(176, y, '< WORLD MAP', { fontFamily: 'Arial', fontSize: '33px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
     button.on('pointerdown', () => { HapticsService.tap(); this.scene.start('TitleScene'); });

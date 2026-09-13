@@ -20,6 +20,7 @@ export function loadProfile(baseRoster) {
     voidKeys: Math.max(0, saved?.inventory?.voidKeys ?? 0)
   };
   GameState.records = saved?.records ?? {};
+  GameState.lastPartyIds = Array.isArray(saved?.lastPartyIds) ? saved.lastPartyIds : [];
   GameState.development = {
     unlockAll: saved?.development?.unlockAll === true,
     replayCleared: saved?.development?.replayCleared === true
@@ -32,17 +33,21 @@ export function loadProfile(baseRoster) {
 
   GameState.roster = baseRoster.map((base) => {
     const prior = savedRoster.get(base.id) ?? {};
+    const level = Math.max(1, prior.level ?? base.level ?? 1);
+    const levelBonus = Math.max(0, level - 1);
     return {
       ...base,
-      level: Math.max(1, prior.level ?? base.level ?? 1),
+      level,
       xp: Math.max(0, prior.xp ?? 0),
-      happiness: Math.min(100, Math.max(0, prior.happiness ?? 70)),
+      happiness: Math.min(100, Math.max(0, prior.happiness ?? base.happiness ?? 70)),
       delvesCompleted: Math.max(0, prior.delvesCompleted ?? 0),
-      maxHp: prior.maxHp ?? base.maxHp,
-      attackPower: prior.attackPower ?? base.attackPower,
-      healPower: prior.healPower ?? base.healPower
+      maxHp: base.maxHp + levelBonus * 6,
+      attackPower: base.attackPower + levelBonus * 2,
+      healPower: Number.isFinite(base.healPower) ? base.healPower + levelBonus * 2 : base.healPower
     };
   });
+
+  GameState.lastPartyIds = GameState.lastPartyIds.filter((id) => GameState.roster.some((adventurer) => adventurer.id === id));
 }
 
 export function saveProfile() {
@@ -50,6 +55,7 @@ export function saveProfile() {
     gold: GameState.gold,
     inventory: GameState.inventory,
     records: GameState.records,
+    lastPartyIds: GameState.lastPartyIds,
     development: GameState.development,
     world: GameState.world,
     roster: GameState.roster.map((adventurer) => ({

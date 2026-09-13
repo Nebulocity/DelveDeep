@@ -24,7 +24,10 @@ export default class BootScene extends Phaser.Scene {
   initializeGameState() {
     loadProfile(adventurers);
     GameState.leader = loadLeaderProgression();
-    GameState.activeParty = [];
+    GameState.activeParty = GameState.roster
+      .filter((adventurer) => GameState.lastPartyIds.includes(adventurer.id))
+      .sort((a, b) => GameState.lastPartyIds.indexOf(a.id) - GameState.lastPartyIds.indexOf(b.id))
+      .map((adventurer) => ({ ...adventurer }));
     GameState.currentDelve = null;
     GameState.currentRoom = 0;
     GameState.rewards = [];

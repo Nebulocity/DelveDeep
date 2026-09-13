@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
-import enemies, { forgottenCavernWaves } from '../data/enemies.js';
+import enemies, { forgottenCavernWaves, voidPortalWaves } from '../data/enemies.js';
 import BattleUnit from '../combat/BattleUnit.js';
 import BattlefieldGeometry from '../combat/BattlefieldGeometry.js';
 import TacticsController from '../combat/TacticsController.js';
@@ -70,7 +70,8 @@ export default class BattleScene extends Phaser.Scene {
 
 
   buildEncounterWaves() {
-    const waves = forgottenCavernWaves.map((wave) => ({
+    const sourceWaves = GameState.currentDelve?.type === 'void' ? voidPortalWaves : forgottenCavernWaves;
+    const waves = sourceWaves.map((wave) => ({
       ...wave,
       enemies: wave.enemies.map((enemy) => ({ ...enemy }))
     }));
@@ -100,6 +101,15 @@ export default class BattleScene extends Phaser.Scene {
       fontStyle: 'bold',
       color: '#f5f5f4'
     }).setOrigin(0.5);
+
+    this.battleMessageText = this.add.text(width / 2, UI_SAFE_TOP - 42, '', {
+      fontFamily: 'Arial',
+      fontSize: '36px',
+      fontStyle: 'bold',
+      color: '#d6a85f',
+      stroke: '#000000',
+      strokeThickness: 5
+    }).setOrigin(0.5).setDepth(5000);
 
     this.encounterStatusText = this.add.text(width / 2, UI_SAFE_TOP + 66, '', {
       fontFamily: 'Arial',
@@ -134,17 +144,15 @@ export default class BattleScene extends Phaser.Scene {
     });
 
     this.partyUnits.forEach((unit) => {
-      unit.body.setInteractive({ useHandCursor: true });
-      unit.body.on('pointerdown', (pointer, localX, localY, event) => {
+      unit.hitZone.setInteractive({ useHandCursor: true });
+      unit.hitZone.on('pointerdown', (pointer, localX, localY, event) => {
         event?.stopPropagation?.();
-        this.selectOnlyUnit(unit);
+        this.toggleUnitSelection(unit);
       });
     });
 
     this.tank = this.partyUnits.find((unit) => unit.role === 'Tank') ?? this.partyUnits[0];
     this.healer = this.partyUnits.find((unit) => unit.role === 'Healer');
-    this.rogue = this.partyUnits.find((unit) => unit.className === 'Rogue');
-    this.wizard = this.partyUnits.find((unit) => unit.className === 'Wizard');
   }
 
   createHud(width, height) {
@@ -178,12 +186,25 @@ export default class BattleScene extends Phaser.Scene {
       const hpFill = this.add.rectangle(hudBarX, hudBarY, hudBarWidth, 16, 0x22c55e)
         .setOrigin(0, 0.5)
         .setDepth(4502);
-      const hpText=this.add.text(hudBarX,hudTop+137,'',{fontFamily:'Arial',fontSize:'26px',color:'#d6d3d1'}).setOrigin(0,0.5).setDepth(4501);
-      const threatText=this.add.text(hudBarX,hudTop+166,'',{fontFamily:'Arial',fontSize:'24px',color:'#a8a29e'})
+      const manaBarY = hudTop + 132;
+      const manaBack = this.add.rectangle(hudBarX, manaBarY, hudBarWidth, 12, 0x111827)
+        .setOrigin(0, 0.5)
+        .setDepth(4501)
+        .setVisible(unit.maxMana > 0);
+      const manaFill = this.add.rectangle(hudBarX, manaBarY, hudBarWidth, 12, 0x3b82f6)
+        .setOrigin(0, 0.5)
+        .setDepth(4502)
+        .setVisible(unit.maxMana > 0);
+      const hpText=this.add.text(hudBarX,hudTop+158,'',{fontFamily:'Arial',fontSize:'24px',color:'#d6d3d1'}).setOrigin(0,0.5).setDepth(4501);
+      const manaText=this.add.text(hudBarX,hudTop+184,'',{fontFamily:'Arial',fontSize:'22px',color:'#93c5fd'})
+        .setOrigin(0,0.5)
+        .setDepth(4501)
+        .setVisible(unit.maxMana > 0);
+      const threatText=this.add.text(hudBarX,hudTop+208,'',{fontFamily:'Arial',fontSize:'22px',color:'#a8a29e'})
         .setOrigin(0,0.5)
         .setDepth(4501)
         .setVisible(false);
-      this.partyHud.push({unit,nameText,hpText,threatText,hpFill,hpGlow,hudBarWidth});
+      this.partyHud.push({unit,nameText,hpText,manaText,threatText,hpFill,hpGlow,manaBack,manaFill,hudBarWidth});
     });
   }
 
@@ -206,7 +227,7 @@ export default class BattleScene extends Phaser.Scene {
     const left = [
       ['RANGED', 'Ranged DPS'], ['MELEE', 'Melee DPS'], ['HEALERS', 'Healer'], ['TANKS', 'Tank']
     ];
-    const right = ['MOVE', 'HOLD', 'SPREAD / STACK', 'FOCUS', 'INTERRUPT'];
+    const right = ['MOVE', 'HOLD', 'SPREAD', 'STACK', 'FOCUS', 'INTERRUPT'];
     const firstY = height * 0.31;
     const gap = 76;
     this.roleButtons = [];
@@ -261,10 +282,29 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
-  selectOnlyUnit(unit) {
-    this.selectedUnitIds = new Set([unit.id]);
-    this.showBattleMessage(`${unit.name} selected`, '#93c5fd');
-    this.refreshTacticsMenus();
+  toggleUnitSelection(unit) {
+    if (!unit?.alive) return;
+
+    if (this.selectedUnitIds.has(unit.id)) {
+      this.selectedUnitIds.delete(unit.id);
+      this.commandMode = null;
+      this.refreshTacticsMenus();
+      this.setTargetingInputState(false);
+
+      const remaining = this.getSelectedUnits();
+      if (remaining.length === 0) {
+        this.clearBattleMessage();
+      } else {
+        this.showBattleMessage(`${remaining.length} adventurers selected - choose an action`, '#93c5fd', true);
+      }
+    } else {
+      this.selectedUnitIds = new Set([unit.id]);
+      this.commandMode = null;
+      this.refreshTacticsMenus();
+      this.setTargetingInputState(false);
+      this.showBattleMessage(`${unit.name} selected - choose an action`, '#93c5fd', true);
+    }
+
     HapticsService.tap();
   }
 
@@ -273,8 +313,9 @@ export default class BattleScene extends Phaser.Scene {
     this.selectedUnitIds = new Set(matching.map((unit) => unit.id));
 
     this.showBattleMessage(
-      matching.length > 0 ? `${role} selected` : `No living ${role}`,
-      matching.length > 0 ? '#93c5fd' : '#fca5a5'
+      matching.length > 0 ? `${role} selected - choose an action` : `No living ${role}`,
+      matching.length > 0 ? '#93c5fd' : '#fca5a5',
+      matching.length > 0
     );
 
     this.refreshTacticsMenus();
@@ -291,10 +332,10 @@ export default class BattleScene extends Phaser.Scene {
 
   armCommand(label) {
     const selected = this.getSelectedUnits();
-    const needsSelection = ['MOVE', 'HOLD', 'SPREAD / STACK'].includes(label);
+    const needsSelection = ['MOVE', 'HOLD', 'SPREAD', 'STACK'].includes(label);
 
     if (needsSelection && selected.length === 0) {
-      this.showBattleMessage('SELECT AN ADVENTURER OR ROLE FIRST', '#fca5a5');
+      this.showBattleMessage('SELECT AN ADVENTURER OR ROLE FIRST', '#fca5a5', true);
       HapticsService.tap();
       return;
     }
@@ -304,25 +345,35 @@ export default class BattleScene extends Phaser.Scene {
         this.manualTargets.set(unit.id, { x: unit.arenaX, y: unit.arenaY });
         this.heldUnitIds.add(unit.id);
       });
-      this.commandMode = 'HOLD';
+      this.commandMode = null;
       this.refreshTacticsMenus();
-      this.showBattleMessage('HOLDING POSITION • tap a square to relocate the hold', '#93c5fd');
+      this.showBattleMessage('HOLD ORDER SET', '#93c5fd');
       HapticsService.tap();
       return;
     }
 
     this.commandMode = label;
-
-    if (label === 'SPREAD / STACK') {
-      this.stackMode = this.stackMode === 'spread' ? 'stack' : 'spread';
-    }
-
+    this.setTargetingInputState(label === 'FOCUS' || label === 'INTERRUPT');
     this.refreshTacticsMenus();
-    this.showBattleMessage(
-      `${label}${label === 'SPREAD / STACK' ? `: ${this.stackMode.toUpperCase()}` : ''} • tap a grid square`,
-      '#fbbf24'
-    );
+
+    const prompt = label === 'FOCUS' ? 'FOCUS - tap the enemy you want the party to prioritize'
+      : label === 'INTERRUPT' ? 'INTERRUPT - tap the enemy you want to interrupt'
+        : `${label} - tap a destination`;
+    this.showBattleMessage(prompt, '#fbbf24', true);
     HapticsService.tap();
+  }
+
+  setTargetingInputState(targetingEnemies) {
+    this.partyUnits?.forEach((unit) => {
+      if (targetingEnemies) unit.hitZone.disableInteractive();
+      else if (unit.alive) unit.hitZone.setInteractive({ useHandCursor: true });
+    });
+
+    this.enemies?.forEach((enemy) => {
+      if (!enemy.alive) return;
+      if (targetingEnemies) enemy.hitZone.setInteractive({ useHandCursor: true });
+      else enemy.hitZone.disableInteractive();
+    });
   }
 
   refreshTacticsMenus() {
@@ -358,7 +409,7 @@ export default class BattleScene extends Phaser.Scene {
       });
 
       if (!enemy) {
-        this.showBattleMessage('No enemy in that square', '#fca5a5');
+        this.showBattleMessage('No enemy there - tap the enemy you want', '#fca5a5', true);
         return;
       }
 
@@ -374,6 +425,7 @@ export default class BattleScene extends Phaser.Scene {
       }
 
       this.commandMode = null;
+      this.setTargetingInputState(false);
       this.refreshTacticsMenus();
       return;
     }
@@ -386,8 +438,9 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    if (this.commandMode === 'SPREAD / STACK') {
-      const radius = this.stackMode === 'stack' ? 34 : 135;
+    if (this.commandMode === 'SPREAD' || this.commandMode === 'STACK') {
+      const formationMode = this.commandMode;
+      const radius = formationMode === 'STACK' ? 34 : 135;
 
       units.forEach((unit, index) => {
         const angle = (Math.PI * 2 * index) / Math.max(1, units.length);
@@ -402,8 +455,9 @@ export default class BattleScene extends Phaser.Scene {
         this.heldUnitIds.add(unit.id);
       });
 
-      this.showBattleMessage(`${this.stackMode.toUpperCase()} FORMATION SET`, '#93c5fd');
+      this.showBattleMessage(`${formationMode} FORMATION SET`, '#93c5fd');
       this.commandMode = null;
+      this.setTargetingInputState(false);
       this.refreshTacticsMenus();
       return;
     }
@@ -421,6 +475,28 @@ export default class BattleScene extends Phaser.Scene {
 
     this.showBattleMessage('MOVE + HOLD ORDER', '#93c5fd');
     this.commandMode = null;
+    this.setTargetingInputState(false);
+    this.refreshTacticsMenus();
+  }
+
+  handleEnemyTap(enemy) {
+    if (!enemy?.alive) return;
+
+    if (this.commandMode === 'FOCUS') {
+      this.focusTargetId = enemy.id;
+      this.showBattleMessage(`FOCUS SET: ${enemy.name}`, '#fb923c');
+    } else if (this.commandMode === 'INTERRUPT') {
+      if (enemy.pendingAction) {
+        enemy.finishAction();
+        this.showBattleMessage(`INTERRUPTED: ${enemy.name}`, '#fde68a');
+        HapticsService.heavy();
+      } else {
+        this.showBattleMessage(`${enemy.name} is not casting`, '#a8a29e');
+      }
+    }
+
+    this.commandMode = null;
+    this.setTargetingInputState(false);
     this.refreshTacticsMenus();
   }
 
@@ -464,8 +540,8 @@ export default class BattleScene extends Phaser.Scene {
     const last=this.leaderAbilityCooldowns.get(id) ?? -Infinity;
     if (now-last<10000) { this.showBattleMessage('Ability recharging', '#a8a29e'); return; }
     this.leaderAbilityCooldowns.set(id,now);
-    if (id==='focusFire') { this.commandMode='FOCUS'; this.refreshTacticsMenus(); this.showBattleMessage('FOCUS FIRE • tap an enemy square','#bef264'); return; }
-    if (id==='rally') { this.commandMode='SPREAD / STACK'; this.stackMode='stack'; this.selectedUnitIds=new Set(this.partyUnits.filter((u)=>u.alive).map((u)=>u.id)); this.refreshTacticsMenus(); this.showBattleMessage('RALLY • tap a grid square','#bef264'); return; }
+    if (id==='focusFire') { this.commandMode='FOCUS'; this.setTargetingInputState(true); this.refreshTacticsMenus(); this.showBattleMessage('FOCUS FIRE - tap an enemy','#bef264', true); return; }
+    if (id==='rally') { this.commandMode='STACK'; this.selectedUnitIds=new Set(this.partyUnits.filter((u)=>u.alive).map((u)=>u.id)); this.refreshTacticsMenus(); this.showBattleMessage('RALLY - tap a destination','#bef264', true); return; }
     if (id==='coordinatedAssault') { this.assaultUntil=now+8000; this.showBattleMessage('COORDINATED ASSAULT • +20% damage','#bef264'); return; }
     if (id==='encouragement') { this.partyUnits.filter((u)=>u.alive).forEach((u)=>{const amount=Math.round(u.maxHp*0.12);u.heal(amount);this.createFloatingText(u.x,u.y-80,`+${amount}`,'#86efac');}); this.showBattleMessage('ENCOURAGEMENT','#bef264'); return; }
     if (id==='brace') { this.braceUntil=now+8000; this.showBattleMessage('BRACE • 30% damage reduction','#bef264'); return; }
@@ -507,6 +583,12 @@ export default class BattleScene extends Phaser.Scene {
     enemy.enemyType = type;
     enemy.definition = definition;
     enemy.rewarded = false;
+    enemy.hitZone.disableInteractive();
+    enemy.hitZone.on('pointerdown', (pointer, localX, localY, event) => {
+      if (this.commandMode !== 'FOCUS' && this.commandMode !== 'INTERRUPT') return;
+      event?.stopPropagation?.();
+      this.handleEnemyTap(enemy);
+    });
     this.enemyThreat.set(enemy.id, new Map(this.partyUnits.map((unit) => [unit.id, 0])));
     return enemy;
   }
@@ -518,7 +600,10 @@ export default class BattleScene extends Phaser.Scene {
 
     const deltaSeconds = Math.min(delta / 1000, 0.05);
 
-    this.partyUnits.forEach((unit) => unit.updateActionBar(time));
+    this.partyUnits.forEach((unit) => {
+      unit.updateActionBar(time);
+      unit.regenMana(deltaSeconds);
+    });
     this.enemies.forEach((enemy) => enemy.updateActionBar(time));
 
     const livingEnemies = this.getLivingEnemies();
@@ -527,11 +612,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    this.updateTank(time, deltaSeconds);
-    this.updateRogue(time, deltaSeconds);
-    this.updateWizard(time, deltaSeconds);
-    this.updateHealer(time, deltaSeconds);
-    this.updateOtherPartyMembers(time, deltaSeconds);
+    this.partyUnits.forEach((unit) => this.updatePartyUnit(unit, time, deltaSeconds));
     this.applySeparation(this.partyUnits, deltaSeconds, 62);
     this.applySeparation(livingEnemies, deltaSeconds, 78);
     this.updateEnemies(time, deltaSeconds);
@@ -586,7 +667,7 @@ export default class BattleScene extends Phaser.Scene {
     if (focused) return focused;
 
     return living.sort((a, b) => {
-      const bossPriority = Number(b.enemyType === 'elderSlime') - Number(a.enemyType === 'elderSlime');
+      const bossPriority = Number(['elderSlime', 'abyssalMaw'].includes(b.enemyType)) - Number(['elderSlime', 'abyssalMaw'].includes(a.enemyType));
       if (bossPriority !== 0) {
         return bossPriority;
       }
@@ -594,165 +675,324 @@ export default class BattleScene extends Phaser.Scene {
     })[0];
   }
 
-  updateTank(time, deltaSeconds) {
-    if (!this.tank?.alive) {
+  updatePartyUnit(unit, time, deltaSeconds) {
+    if (!unit?.alive) return;
+
+    this.runClassPassive(unit, time);
+
+    if (this.applyManualMovement(unit, deltaSeconds)) return;
+    if (!this.isPositionLocked(unit) && this.tryEvadeTelegraph(unit, deltaSeconds)) return;
+
+    if (unit.role === 'Healer') {
+      this.updateHealerUnit(unit, time, deltaSeconds);
       return;
     }
 
-    const target = this.getPrimaryTarget(this.tank);
-    if (!target) {
-      return;
-    }
+    const target = this.getPrimaryTarget(unit);
+    if (!target) return;
 
-    if (this.tank.abilityReady('utility', time)) {
-      const ability = this.tank.abilities.utility;
-      this.tank.markAbilityUsed('utility', time);
-      this.getLivingEnemies().forEach((enemy) => this.addThreat(enemy, this.tank, ability.threat));
-      this.createFloatingText(this.tank.x, this.tank.y - 82, 'CHALLENGE!', '#60a5fa', false, 'buff');
-    }
+    this.tryClassUtility(unit, target, time);
 
-    if (this.applyManualMovement(this.tank, deltaSeconds)) return;
-
-    const desired = this.tactics.getTankPosition(this.tank, target);
-    if (!this.isPositionLocked(this.tank) && !this.tank.isBusy(time) && this.tank.distanceToPoint(desired.x, desired.y) > 26) {
-      this.tank.moveToward(desired.x, desired.y, deltaSeconds, 18);
-    }
-
-    if (this.tank.distanceTo(target) <= this.tank.attackRange + 20) {
-      if (this.tank.abilityReady('primary', time)) {
-        this.beginDamageAbility(this.tank, target, 'primary', time, 'melee');
-      } else if (this.tank.canAttack(time)) {
-        this.beginBasicAttack(this.tank, target, time, 'melee');
-      }
+    if (unit.role === 'Tank') {
+      this.updateTankUnit(unit, target, time, deltaSeconds);
+    } else if (unit.role === 'Melee DPS') {
+      this.updateMeleeUnit(unit, target, time, deltaSeconds);
+    } else {
+      this.updateRangedUnit(unit, target, time, deltaSeconds);
     }
   }
 
-  updateRogue(time, deltaSeconds) {
-    if (!this.rogue?.alive) {
+  runClassPassive(unit, time) {
+    if (unit.className !== 'Naturalist') return;
+    const passive = unit.abilities?.passive;
+    if (!passive || time - (unit.lastAbilityAt.natureAura ?? -Infinity) < passive.interval) return;
+
+    unit.lastAbilityAt.natureAura = time;
+    this.announceAbility(unit, passive.name, '#86efac');
+    this.partyUnits.filter((ally) => ally.alive).forEach((ally) => {
+      ally.heal(passive.power);
+      this.createFloatingText(ally.x, ally.y - 74, `+${passive.power}`, '#86efac');
+    });
+  }
+
+  tryClassUtility(unit, target, time) {
+    const utility = unit.abilities?.utility;
+    if (!utility || !unit.abilityReady('utility', time)) return;
+
+    if (unit.className === 'Paladin') {
+      const ally = this.partyUnits
+        .filter((candidate) => candidate.alive && !candidate.delvesUsed?.protectiveShield)
+        .sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp))[0];
+      if (!ally || ally.hp / ally.maxHp > 0.42 || unit.delvesUsed.protectiveShield) return;
+      unit.delvesUsed.protectiveShield = true;
+      this.announceAbility(unit, utility.name, '#fde68a');
+      unit.markAbilityUsed('utility', time);
+      ally.status.shieldUntil = time + utility.duration;
+      this.createFloatingText(ally.x, ally.y - 100, 'PROTECTED', '#fde68a', true);
       return;
     }
-    const target = this.getPrimaryTarget(this.rogue);
-    if (!target) {
+
+    if (unit.className === 'Gladiator') {
+      this.announceAbility(unit, utility.name, '#fde68a');
+      unit.markAbilityUsed('utility', time);
+      target.status.blindUntil = time + utility.duration;
+      target.status.blindChance = utility.missChance;
+      this.createFloatingText(target.x, target.y - 96, 'BLINDED', '#fde68a');
       return;
     }
 
-    if (!this.isPositionLocked(this.rogue) && this.tryEvadeTelegraph(this.rogue, deltaSeconds)) {
+    if (unit.className === 'Guardian') {
+      this.announceAbility(unit, utility.name, '#86efac');
+      unit.markAbilityUsed('utility', time);
+      target.status.outgoingDamageReductionUntil = time + utility.duration;
+      target.status.outgoingDamageReduction = utility.damageReduction;
+      this.createFloatingText(target.x, target.y - 96, 'WITHERED', '#86efac');
       return;
     }
 
-    if (this.applyManualMovement(this.rogue, deltaSeconds)) return;
-
-    const desired = this.tactics.getMeleePosition(this.rogue, target);
-    if (!this.isPositionLocked(this.rogue) && !this.rogue.isBusy(time) && this.rogue.distanceToPoint(desired.x, desired.y) > 25) {
-      this.rogue.moveToward(desired.x, desired.y, deltaSeconds, 16);
+    if (unit.className === 'Barbarian') {
+      const nearbyAllies = this.partyUnits.filter((ally) => ally.alive && unit.distanceTo(ally) <= utility.radius);
+      if (nearbyAllies.length < 2) return;
+      this.announceAbility(unit, utility.name, '#fb923c');
+      unit.markAbilityUsed('utility', time);
+      nearbyAllies.forEach((ally) => {
+        ally.status.damageBoostUntil = time + utility.duration;
+        ally.status.damageBoost = utility.damageBoost;
+      });
+      this.createFloatingText(unit.x, unit.y - 105, 'WAR ROAR!', '#fb923c', true);
+      return;
     }
 
-    if (this.rogue.distanceTo(target) <= this.rogue.attackRange + 28) {
-      if (this.rogue.abilityReady('primary', time)) {
-        this.beginDamageAbility(this.rogue, target, 'primary', time, 'melee');
-      } else if (this.rogue.canAttack(time)) {
-        this.beginBasicAttack(this.rogue, target, time, 'melee');
-      }
+    if (unit.className === 'Wizard') {
+      if (unit.hp / unit.maxHp > 0.35) return;
+      this.announceAbility(unit, utility.name, '#93c5fd');
+      unit.markAbilityUsed('utility', time);
+      unit.status.arcaneShieldUntil = time + utility.duration;
+      unit.status.spellLockUntil = time + utility.silenceDuration;
+      this.createFloatingText(unit.x, unit.y - 105, 'ARCANE SHIELD', '#93c5fd', true);
+      return;
+    }
+
+    if (unit.className === 'Ranger') {
+      this.announceAbility(unit, utility.name, '#fbbf24');
+      unit.markAbilityUsed('utility', time);
+      target.status.damageTakenBoostUntil = time + utility.duration;
+      target.status.damageTakenBoost = utility.damageTakenBoost;
+      this.createFloatingText(target.x, target.y - 96, "HUNTER'S MARK", '#fbbf24');
+      return;
+    }
+
+    if (unit.className === 'Bloodwarder') {
+      this.announceAbility(unit, utility.name, '#f87171');
+      unit.markAbilityUsed('utility', time);
+      target.status.damageTakenBoostUntil = time + utility.duration;
+      target.status.damageTakenBoost = utility.damageTakenBoost;
+      target.status.outgoingDamageReductionUntil = time + utility.duration;
+      target.status.outgoingDamageReduction = utility.damageReduction;
+      this.createFloatingText(target.x, target.y - 96, 'BLOOD CURSE', '#f87171');
     }
   }
 
-  updateWizard(time, deltaSeconds) {
-    if (!this.wizard?.alive) {
-      return;
-    }
-    const target = this.getPrimaryTarget(this.wizard);
-    if (!target) {
-      return;
+  updateTankUnit(unit, target, time, deltaSeconds) {
+    const desired = this.tactics.getTankPosition(unit, target);
+    if (!this.isPositionLocked(unit) && !unit.isBusy(time) && unit.distanceToPoint(desired.x, desired.y) > 26) {
+      unit.moveToward(desired.x, desired.y, deltaSeconds, 18);
     }
 
-    if (!this.isPositionLocked(this.wizard) && this.tryEvadeTelegraph(this.wizard, deltaSeconds)) {
-      return;
-    }
+    if (unit.distanceTo(target) > unit.attackRange + 24) return;
 
-    if (this.applyManualMovement(this.wizard, deltaSeconds)) return;
-
-    const desired = this.tactics.getRangedPosition(this.wizard, target);
-    if (!this.isPositionLocked(this.wizard) && !this.wizard.isBusy(time) && this.wizard.distanceToPoint(desired.x, desired.y) > 42) {
-      this.wizard.moveToward(desired.x, desired.y, deltaSeconds, 34);
-    }
-
-    if (this.wizard.distanceTo(target) <= this.wizard.attackRange) {
-      if (this.wizard.abilityReady('primary', time)) {
-        this.beginDamageAbility(this.wizard, target, 'primary', time, 'spell');
-      } else if (this.wizard.canAttack(time)) {
-        this.beginBasicAttack(this.wizard, target, time, 'spell');
-      }
+    const primary = unit.abilities?.primary;
+    if (primary && unit.abilityReady('primary', time)) {
+      if (primary.aoe) this.beginAoeDamageAbility(unit, target, 'primary', time, 'melee');
+      else this.beginDamageAbility(unit, target, 'primary', time, 'melee');
+    } else if (unit.canAttack(time)) {
+      this.beginBasicAttack(unit, target, time, 'melee');
     }
   }
 
-  updateHealer(time, deltaSeconds) {
-    if (!this.healer?.alive) {
-      return;
+  updateMeleeUnit(unit, target, time, deltaSeconds) {
+    if (unit.className === 'Rogue' && !unit.stealthed && unit.seekingRestealth) {
+      const quietFor = time - Math.max(unit.lastDealtDamageAt ?? -Infinity, unit.lastTakenDamageAt ?? -Infinity);
+      if (quietFor >= 5000) {
+        unit.setStealthed(true);
+        unit.seekingRestealth = false;
+        this.announceAbility(unit, 'STEALTH', '#c4b5fd');
+      } else if (!this.isPositionLocked(unit) && !unit.isBusy(time)) {
+        const nearest = this.getLivingEnemies().sort((a, b) => unit.distanceTo(a) - unit.distanceTo(b))[0];
+        if (nearest) unit.moveAwayFrom(nearest.arenaX, nearest.arenaY, deltaSeconds, 320);
+        return;
+      }
     }
 
-    if (this.applyManualMovement(this.healer, deltaSeconds)) return;
-
-    if (!this.isPositionLocked(this.healer) && this.tryEvadeTelegraph(this.healer, deltaSeconds)) {
-      return;
+    const desired = this.tactics.getMeleePosition(unit, target);
+    if (!this.isPositionLocked(unit) && !unit.isBusy(time) && unit.distanceToPoint(desired.x, desired.y) > 25) {
+      unit.moveToward(desired.x, desired.y, deltaSeconds, 16);
     }
 
+    if (unit.distanceTo(target) > unit.attackRange + 28) return;
+
+    const primary = unit.abilities?.primary;
+    if (primary && unit.abilityReady('primary', time)) {
+      if (primary.aoe) this.beginAoeDamageAbility(unit, target, 'primary', time, 'melee');
+      else this.beginDamageAbility(unit, target, 'primary', time, 'melee');
+    } else if (unit.canAttack(time)) {
+      this.beginBasicAttack(unit, target, time, 'melee');
+    }
+  }
+
+  updateRangedUnit(unit, target, time, deltaSeconds) {
+    const desired = this.tactics.getRangedPosition(unit, target);
+    if (!this.isPositionLocked(unit) && !unit.isBusy(time) && unit.distanceToPoint(desired.x, desired.y) > 42) {
+      unit.moveToward(desired.x, desired.y, deltaSeconds, 34);
+    }
+
+    if (unit.className === 'Ranger') this.tryRangerTrap(unit, target, time);
+    if (unit.distanceTo(target) > unit.attackRange) return;
+    if (!unit.canCast(time) && unit.className === 'Wizard') return;
+
+    if (unit.className === 'Wizard') {
+      const close = unit.distanceTo(target) <= 145;
+      if (close && unit.abilityReady('close', time)) {
+        this.beginAoeDamageAbility(unit, target, 'close', time, 'spell');
+        return;
+      }
+      if (unit.abilityReady('primary', time)) {
+        this.beginAoeDamageAbility(unit, target, 'primary', time, 'spell');
+        return;
+      }
+      if (unit.abilityReady('secondary', time)) {
+        this.beginDamageAbility(unit, target, 'secondary', time, 'spell');
+        return;
+      }
+    } else {
+      const primary = unit.abilities?.primary;
+      if (primary && unit.abilityReady('primary', time)) {
+        if (primary.aoe) this.beginAoeDamageAbility(unit, target, 'primary', time, 'ranged');
+        else this.beginDamageAbility(unit, target, 'primary', time, 'ranged');
+        return;
+      }
+    }
+
+    if (unit.canAttack(time)) this.beginBasicAttack(unit, target, time, 'ranged');
+  }
+
+  updateHealerUnit(unit, time, deltaSeconds) {
     const injured = this.getMostInjuredPartyMember();
+
     if (injured && injured.hp / injured.maxHp < 0.84) {
-      if (
-        !this.isPositionLocked(this.healer)
-        && !this.healer.isBusy(time)
-        && this.healer.distanceTo(injured) > this.healer.healRange * 0.9
-      ) {
-        this.healer.moveToward(injured.arenaX, injured.arenaY, deltaSeconds, this.healer.healRange * 0.72);
+      if (!this.isPositionLocked(unit) && !unit.isBusy(time) && unit.distanceTo(injured) > unit.healRange * 0.9) {
+        unit.moveToward(injured.arenaX, injured.arenaY, deltaSeconds, unit.healRange * 0.72);
       }
 
-      if (this.healer.distanceTo(injured) <= this.healer.healRange) {
-        if (injured.hp / injured.maxHp < 0.55 && this.healer.abilityReady('primary', time)) {
-          this.beginHealAbility(this.healer, injured, 'primary', time);
-        } else if (this.healer.canHeal(time)) {
-          this.beginBasicHeal(this.healer, injured, time);
+      if (unit.distanceTo(injured) <= unit.healRange) {
+        const primary = unit.abilities?.primary;
+        if (primary && injured.hp / injured.maxHp < 0.62 && unit.abilityReady('primary', time)) {
+          if (unit.className === 'Naturalist') this.beginMultiHeal(unit, time, primary);
+          else this.beginHealAbility(unit, injured, 'primary', time);
+        } else if (unit.canHeal(time)) {
+          this.beginBasicHeal(unit, injured, time);
         }
       }
       return;
     }
 
-    const anchor = this.tank?.alive ? this.tank : this.partyUnits.find((unit) => unit.alive);
-    if (anchor && !this.isPositionLocked(this.healer) && !this.healer.isBusy(time)) {
-      const desired = this.tactics.getHealerPosition(this.healer, anchor);
-      if (this.healer.distanceToPoint(desired.x, desired.y) > 45) {
-        this.healer.moveToward(desired.x, desired.y, deltaSeconds, 30);
-      }
+    const anchor = this.tank?.alive ? this.tank : this.partyUnits.find((candidate) => candidate.alive && candidate !== unit);
+    if (anchor && !this.isPositionLocked(unit) && !unit.isBusy(time)) {
+      const desired = this.tactics.getHealerPosition(unit, anchor);
+      if (unit.distanceToPoint(desired.x, desired.y) > 45) unit.moveToward(desired.x, desired.y, deltaSeconds, 30);
     }
 
-    const target = this.getPrimaryTarget(this.healer);
-    if (target && this.healer.distanceTo(target) <= this.healer.attackRange && this.healer.canAttack(time)) {
-      this.beginBasicAttack(this.healer, target, time, 'holy');
+    const target = this.getPrimaryTarget(unit);
+    if (!target) return;
+
+    this.tryClassUtility(unit, target, time);
+    if (unit.className === 'Priest' && unit.abilityReady('utility', time) && unit.canCast(time)) {
+      unit.markAbilityUsed('utility', time);
+      const burst = unit.abilities.utility;
+      this.beginInstantDamage(unit, target, burst.power, 'holy', burst.name);
+      return;
+    }
+
+    if (unit.distanceTo(target) <= unit.attackRange && unit.canAttack(time)) {
+      this.beginBasicAttack(unit, target, time, unit.className === 'Bloodwarder' ? 'spell' : 'holy');
     }
   }
 
-  updateOtherPartyMembers(time, deltaSeconds) {
-    this.partyUnits.forEach((unit) => {
-      if (!unit.alive || [this.tank, this.healer, this.rogue, this.wizard].includes(unit)) {
-        return;
-      }
-      const target = this.getPrimaryTarget(unit);
-      if (!target) {
-        return;
-      }
-      if (this.applyManualMovement(unit, deltaSeconds)) return;
-      if (!this.isPositionLocked(unit) && this.tryEvadeTelegraph(unit, deltaSeconds)) return;
-      if (!this.isPositionLocked(unit) && !unit.isBusy(time)) {
-        const desired = unit.role === 'Ranged DPS' ? this.tactics.getRangedPosition(unit, target) : this.tactics.getMeleePosition(unit, target);
-        unit.moveToward(desired.x, desired.y, deltaSeconds, unit.role === 'Ranged DPS' ? 34 : 16);
-      }
-      if (unit.distanceTo(target) <= unit.attackRange && unit.canAttack(time)) {
-        this.beginBasicAttack(unit, target, time, unit.role === 'Ranged DPS' ? 'spell' : 'melee');
-      }
+  tryRangerTrap(unit, target, time) {
+    const trap = unit.abilities?.trap;
+    if (!trap || time - (unit.lastAbilityAt.trap ?? -Infinity) < trap.cooldown || unit.isBusy(time)) return;
+    if (!unit.spendMana(trap.manaCost ?? 0)) return;
+    unit.lastAbilityAt.trap = time;
+    unit.trapCycle = ((unit.trapCycle ?? -1) + 1) % 3;
+
+    if (unit.trapCycle === 0) {
+      this.announceAbility(unit, 'Freezing Trap', '#93c5fd');
+      target.status.stunnedUntil = time + 15000;
+      this.createFloatingText(target.x, target.y - 96, 'FROZEN', '#93c5fd');
+    } else if (unit.trapCycle === 1) {
+      this.announceAbility(unit, 'Explosive Trap', '#fb923c');
+      this.getLivingEnemies().filter((enemy) => enemy.distanceTo(target) <= 145).forEach((enemy) => {
+        this.resolveDamage(unit, enemy, 18, 'ranged', 0.6, 'Explosive Trap', false);
+      });
+    } else {
+      this.announceAbility(unit, 'Smoke Trap', '#cbd5e1');
+      this.getLivingEnemies().filter((enemy) => enemy.distanceTo(target) <= 145).forEach((enemy) => {
+        enemy.status.blindUntil = time + 15000;
+        enemy.status.blindChance = 0.5;
+      });
+      this.createFloatingText(target.x, target.y - 96, 'SMOKE TRAP', '#cbd5e1');
+    }
+  }
+
+  beginAoeDamageAbility(attacker, target, key, time, attackType) {
+    const ability = attacker.abilities[key];
+    if (!ability || !attacker.startAction(ability.name, time, ability.windup)) return;
+
+    this.announceAbility(attacker, ability.name, attackType === 'spell' ? '#93c5fd' : '#fbbf24');
+    attacker.markAbilityUsed(key, time);
+    if (ability.healthCost) {
+      const cost = Math.max(1, Math.round(attacker.maxHp * ability.healthCost));
+      attacker.hp = Math.max(1, attacker.hp - cost);
+      attacker.updateHealthBar();
+      this.createFloatingText(attacker.x, attacker.y - 80, `-${cost}`, '#f87171');
+    }
+
+    this.time.delayedCall(ability.windup, () => {
+      if (!attacker.alive || this.battleOver || attacker.pendingAction?.name !== ability.name) return;
+      const victims = this.getLivingEnemies().filter((enemy) => enemy.distanceToPoint(target.arenaX, target.arenaY) <= ability.radius);
+      let total = 0;
+      victims.forEach((enemy) => {
+        this.resolveDamage(attacker, enemy, ability.power, attackType, ability.threatMultiplier ?? attacker.threatMultiplier, ability.name);
+        total += ability.power;
+      });
+      if (ability.lifeSteal && total > 0) attacker.heal(Math.max(1, Math.round(total * ability.lifeSteal)));
+      attacker.finishAction();
     });
+  }
+
+  beginMultiHeal(healer, time, ability) {
+    if (!healer.startAction(ability.name, time, ability.windup)) return;
+    this.announceAbility(healer, ability.name, '#86efac');
+    healer.markAbilityUsed('primary', time);
+    this.time.delayedCall(ability.windup, () => {
+      if (!healer.alive || this.battleOver || healer.pendingAction?.name !== ability.name) return;
+      const targets = this.partyUnits
+        .filter((unit) => unit.alive && unit.hp < unit.maxHp)
+        .sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp))
+        .slice(0, ability.targets ?? 3);
+      targets.forEach((target) => this.resolveHeal(healer, target, ability.power, ability.name));
+      healer.finishAction();
+    });
+  }
+
+  beginInstantDamage(attacker, target, power, attackType, abilityName) {
+    this.announceAbility(attacker, abilityName, attackType === 'holy' ? '#fde68a' : '#93c5fd');
+    this.resolveDamage(attacker, target, power, attackType, attacker.threatMultiplier, abilityName);
   }
 
   updateEnemies(time, deltaSeconds) {
     this.getLivingEnemies().forEach((enemy) => {
+      if (time < (enemy.status.stunnedUntil ?? 0)) return;
       const target = this.getHighestThreatTarget(enemy);
       if (!target) {
         return;
@@ -806,7 +1046,14 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
+    this.announceAbility(attacker, ability.name, attackType === 'spell' ? '#93c5fd' : attackType === 'ranged' ? '#86efac' : '#fbbf24');
     attacker.markAbilityUsed(key, time);
+    if (ability.healthCost) {
+      const cost = Math.max(1, Math.round(attacker.maxHp * ability.healthCost));
+      attacker.hp = Math.max(1, attacker.hp - cost);
+      attacker.updateHealthBar();
+      this.createFloatingText(attacker.x, attacker.y - 80, `-${cost}`, '#f87171');
+    }
 
     this.time.delayedCall(ability.windup, () => {
       if (!attacker.alive || !target.alive || this.battleOver || attacker.pendingAction?.name !== ability.name) {
@@ -822,9 +1069,20 @@ export default class BattleScene extends Phaser.Scene {
           ability.threatMultiplier ?? attacker.threatMultiplier,
           ability.name
         );
+        if (ability.lifeSteal) attacker.heal(Math.max(1, Math.round(ability.power * ability.lifeSteal)));
+        if (ability.bleedPower && target.alive) this.applyBleed(attacker, target, ability);
       }
       attacker.finishAction();
     });
+  }
+
+  applyBleed(attacker, target, ability) {
+    for (let tick = 1; tick <= ability.bleedTicks; tick += 1) {
+      this.time.delayedCall(ability.bleedInterval * tick, () => {
+        if (!attacker.alive || !target.alive || this.battleOver) return;
+        this.resolveDamage(attacker, target, ability.bleedPower, 'melee', 0.35, 'Bleed', false);
+      });
+    }
   }
 
   beginEnemyAbility(attacker, target, key, time) {
@@ -832,6 +1090,7 @@ export default class BattleScene extends Phaser.Scene {
     if (!ability || !attacker.startAction(ability.name, time, ability.windup)) {
       return;
     }
+    this.announceAbility(attacker, ability.name, '#c084fc');
     attacker.markAbilityUsed(key, time);
 
     this.time.delayedCall(ability.windup, () => {
@@ -845,9 +1104,12 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   beginBasicHeal(healer, target, time) {
+    if (healer.maxMana > 0 && healer.mana < healer.basicHealManaCost) return;
     if (!healer.startAction('Mend', time, healer.healWindup)) {
       return;
     }
+    if (!healer.spendMana(healer.basicHealManaCost)) { healer.finishAction(); return; }
+    this.announceAbility(healer, 'Mend', '#86efac');
     healer.lastHealAt = time;
     this.time.delayedCall(healer.healWindup, () => {
       if (!healer.alive || !target.alive || this.battleOver || healer.pendingAction?.name !== 'Mend') {
@@ -865,7 +1127,14 @@ export default class BattleScene extends Phaser.Scene {
     if (!ability || !healer.startAction(ability.name, time, ability.windup)) {
       return;
     }
+    this.announceAbility(healer, ability.name, '#86efac');
     healer.markAbilityUsed(key, time);
+    if (ability.healthCost) {
+      const cost = Math.max(1, Math.round(healer.maxHp * ability.healthCost));
+      healer.hp = Math.max(1, healer.hp - cost);
+      healer.updateHealthBar();
+      this.createFloatingText(healer.x, healer.y - 80, `-${cost}`, '#f87171');
+    }
     this.time.delayedCall(ability.windup, () => {
       if (!healer.alive || !target.alive || this.battleOver || healer.pendingAction?.name !== ability.name) {
         return;
@@ -881,6 +1150,7 @@ export default class BattleScene extends Phaser.Scene {
     if (!attacker.startAction(ability.name, time, ability.telegraph)) {
       return;
     }
+    this.announceAbility(attacker, ability.name, '#f87171');
     attacker.markAbilityUsed('primary', time);
 
     const center = { arenaX: target.arenaX, arenaY: target.arenaY };
@@ -968,11 +1238,53 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   resolveDamage(attacker, target, baseAmount, attackType, threatMultiplier = 1, abilityName = 'Attack', allowCrit = true) {
+    const now = this.time.now;
+    if (now < (attacker.status.blindUntil ?? 0) && Math.random() < (attacker.status.blindChance ?? 0)) {
+      this.createFloatingText(target.x, target.y - 82, 'MISS', '#cbd5e1', false, 'miss');
+      return;
+    }
+
     const critical = this.rollCritical(attacker, allowCrit);
     let amount = Math.round(baseAmount * (critical ? attacker.critMultiplier : 1));
-    if (!attacker.isEnemy && this.time.now < this.assaultUntil) amount = Math.round(amount * 1.2);
-    if (attacker.isEnemy && !target.isEnemy && this.time.now < this.braceUntil) amount = Math.max(1, Math.round(amount * 0.7));
-    target.takeDamage(amount);
+
+    if (!attacker.isEnemy && now < (attacker.status.damageBoostUntil ?? 0)) {
+      amount = Math.round(amount * (1 + (attacker.status.damageBoost ?? 0)));
+    }
+    if (attacker.isEnemy && now < (attacker.status.outgoingDamageReductionUntil ?? 0)) {
+      amount = Math.round(amount * Math.max(0, 1 - (attacker.status.outgoingDamageReduction ?? 0)));
+    }
+    if (!attacker.isEnemy && attackType === 'melee' && now < (target.status.armorExposeUntil ?? 0)) {
+      amount = Math.round(amount * (1 + (target.status.armorReduction ?? 0)));
+    }
+
+    if (!attacker.isEnemy && attacker.className === 'Rogue' && attacker.stealthed) {
+      const opener = attacker.abilities?.opener;
+      if (opener) {
+        amount = Math.round(amount * opener.multiplier);
+        target.status.armorExposeUntil = now + opener.duration;
+        target.status.armorReduction = opener.armorReduction;
+        attacker.setStealthed(false);
+        attacker.seekingRestealth = true;
+        this.createFloatingText(attacker.x, attacker.y - 110, 'AMBUSH!', '#c4b5fd', true);
+      }
+    }
+
+    if (!attacker.isEnemy && now < this.assaultUntil) amount = Math.round(amount * 1.2);
+    if (attacker.isEnemy && !target.isEnemy && now < this.braceUntil) amount = Math.max(1, Math.round(amount * 0.7));
+
+    const ranged = attackType === 'spell' || attackType === 'ranged' || attacker.attackRange > 180;
+    target.takeDamage(amount, { time: now, ranged });
+    if (amount > 0) {
+      attacker.lastCombatActionAt = now;
+      target.lastCombatActionAt = now;
+      attacker.lastDealtDamageAt = now;
+      target.lastTakenDamageAt = now;
+    }
+
+    if (target.isEnemy && now < (target.status.stunnedUntil ?? 0) && amount > 0) {
+      target.status.stunnedUntil = 0;
+      this.createFloatingText(target.x, target.y - 96, 'UNFROZEN', '#cbd5e1');
+    }
     if (attacker.isEnemy && !target.isEnemy) {
       this.flashPartyHudName(target);
     }
@@ -1147,6 +1459,11 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
+  announceAbility(unit, name, color = '#f8fafc') {
+    if (!unit?.alive || !name) return;
+    this.createFloatingText(unit.x, unit.y - 122, name.toUpperCase(), color, false);
+  }
+
   createFloatingText(x, y, text, color, critical = false) {
     const label = this.add.text(x, y, text, {
       fontFamily: 'Arial',
@@ -1172,27 +1489,29 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
-  showBattleMessage(text, color = '#d6a85f') {
-    const { width } = this.scale;
-    const messageY = UI_SAFE_TOP - 48;
-    const label = this.add.text(width / 2, messageY - 10, text, {
-      fontFamily: 'Arial',
-      fontSize: '40px',
-      fontStyle: 'bold',
-      color,
-      stroke: '#000000',
-      strokeThickness: 5
-    }).setOrigin(0.5).setDepth(5000).setAlpha(0);
+  showBattleMessage(text, color = '#d6a85f', persistent = false) {
+    if (!this.battleMessageText) return;
 
-    this.tweens.add({
-      targets: label,
-      alpha: 1,
-      y: messageY,
-      duration: 150,
-      yoyo: true,
-      hold: 650,
-      onComplete: () => label.destroy()
-    });
+    this.tweens.killTweensOf(this.battleMessageText);
+    this.battleMessageText.setText(text).setColor(color).setAlpha(1);
+
+    if (!persistent) {
+      this.tweens.add({
+        targets: this.battleMessageText,
+        alpha: 0,
+        delay: 900,
+        duration: 260,
+        onComplete: () => {
+          if (this.battleMessageText?.active) this.battleMessageText.setText('').setAlpha(1);
+        }
+      });
+    }
+  }
+
+  clearBattleMessage() {
+    if (!this.battleMessageText) return;
+    this.tweens.killTweensOf(this.battleMessageText);
+    this.battleMessageText.setText('').setAlpha(1);
   }
 
   completeWave() {
@@ -1220,8 +1539,9 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   updateHud() {
-    this.partyHud?.forEach(({ unit, hpText, threatText, hpFill, hpGlow, hudBarWidth }) => {
+    this.partyHud?.forEach(({ unit, hpText, manaText, threatText, hpFill, hpGlow, manaBack, manaFill, hudBarWidth }) => {
       const ratio = unit.maxHp > 0 ? Phaser.Math.Clamp(unit.hp / unit.maxHp, 0, 1) : 0;
+      const manaRatio = unit.maxMana > 0 ? Phaser.Math.Clamp(unit.mana / unit.maxMana, 0, 1) : 0;
       const healthColor = this.getHealthBarColor(ratio);
       hpText.setText(unit.alive ? `${Math.ceil(unit.hp)} / ${unit.maxHp} HP` : 'DOWN');
       threatText.setText(unit.alive ? `Threat ${Math.round(this.getCombinedThreat(unit))}` : '');
@@ -1229,6 +1549,17 @@ export default class BattleScene extends Phaser.Scene {
       hpFill.setFillStyle(healthColor);
       hpFill.setVisible(unit.alive && ratio > 0);
       hpGlow.setStrokeStyle(5, healthColor, 0);
+
+      if (unit.maxMana > 0) {
+        manaBack.setVisible(true);
+        manaFill.setVisible(unit.alive && manaRatio > 0);
+        manaFill.setDisplaySize(hudBarWidth * manaRatio, 12);
+        manaText.setVisible(true).setText(unit.alive ? `${Math.floor(unit.mana)} / ${unit.maxMana} Mana` : '');
+      } else {
+        manaBack.setVisible(false);
+        manaFill.setVisible(false);
+        manaText.setVisible(false);
+      }
     });
 
     this.updateEncounterStatus();

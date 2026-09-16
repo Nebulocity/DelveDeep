@@ -11,11 +11,15 @@ import { saveProfile } from '../game/GameStorage.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
 
 export default class BattleScene extends Phaser.Scene {
+  // I register BattleScene so the game can navigate to this screen.
   constructor() {
+
     super('BattleScene');
   }
 
+  // I prepare the arena, party, controls, and first wave for a new fight.
   create() {
+
     const { width, height } = this.scale;
 
     this.battleOver = false;
@@ -71,7 +75,9 @@ export default class BattleScene extends Phaser.Scene {
   }
 
 
+  // I choose the encounter waves and add the depth milestone guardian.
   buildEncounterWaves() {
+
     const sourceWaves = GameState.currentDelve?.type === 'void' ? voidPortalWaves : forgottenCavernWaves;
     const waves = sourceWaves.map((wave) => ({
       ...wave,
@@ -96,7 +102,9 @@ export default class BattleScene extends Phaser.Scene {
     return waves;
   }
 
+  // I show the delve title, tactical guidance, and encounter status.
   createHeader(width) {
+
     this.add.text(width / 2, UI_SAFE_TOP + 14, GameState.currentDelve?.name ?? 'THE DELVE', {
       fontFamily: 'Arial',
       fontSize: '57px',
@@ -121,12 +129,16 @@ export default class BattleScene extends Phaser.Scene {
     }).setOrigin(0.5);
   }
 
+  // I draw the battlefield beneath its units and tactical controls.
   createArena() {
+
     this.battlefield.drawPerspectiveFloor();
   }
 
 
+  // I bring the chosen adventurers into combat and bind unit selection.
   createParty() {
+
     const party = GameState.activeParty.length > 0
       ? GameState.activeParty
       : GameState.roster.slice(0, 5);
@@ -141,13 +153,16 @@ export default class BattleScene extends Phaser.Scene {
 
     this.tactics.registerParty(this.partyUnits);
     this.partyUnits.forEach((unit, index) => {
+
       const spawn = this.tactics.getSpawnPosition(unit, index);
       unit.setArenaPosition(spawn.x, spawn.y);
     });
 
     this.partyUnits.forEach((unit) => {
+
       unit.hitZone.setInteractive({ useHandCursor: true });
       unit.hitZone.on('pointerdown', (pointer, localX, localY, event) => {
+
         event?.stopPropagation?.();
         this.toggleUnitSelection(unit);
       });
@@ -157,7 +172,9 @@ export default class BattleScene extends Phaser.Scene {
     this.healer = this.partyUnits.find((unit) => unit.role === 'Healer');
   }
 
+  // I give each party member a readable health and mana panel.
   createHud(width, height) {
+
     const hudTop = height * 0.78;
     this.add.rectangle(width / 2, (hudTop + height) / 2, width, height - hudTop, 0x0c0a09).setDepth(4500);
     this.partyHud = [];
@@ -170,6 +187,7 @@ export default class BattleScene extends Phaser.Scene {
     const startX = this.battlefield.bottomLeftX + contentOffset;
 
     this.partyUnits.forEach((unit, index) => {
+
       const x = startX + index * sectionWidth;
       this.add.circle(x, hudTop + 72, 25, unit.color).setDepth(4501);
       const nameText = this.add.text(x + 42, hudTop + 38, unit.name, {
@@ -213,7 +231,9 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
+  // I make the perspective tiles usable as touch destinations.
   createGridInteraction() {
+
     for (let row = 0; row < this.battlefield.rows; row += 1) {
       for (let column = 0; column < this.battlefield.columns; column += 1) {
         const points = this.battlefield.getCellPolygon(column, row);
@@ -228,7 +248,9 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
+  // I place role selection and tactical orders beside the battlefield.
   createTacticsMenus(width, height) {
+
     const left = [
       ['RANGED', 'Ranged DPS'], ['MELEE', 'Melee DPS'], ['HEALERS', 'Healer'], ['TANKS', 'Tank']
     ];
@@ -240,6 +262,7 @@ export default class BattleScene extends Phaser.Scene {
 
     this.add.text(155, firstY - 70, 'SELECT', {fontFamily:'Arial',fontSize:'33px',fontStyle:'bold',color:'#94a3b8'}).setOrigin(0.5);
     left.forEach(([label, role], index) => {
+
       const y = firstY + index * gap;
       const box = this.add.rectangle(155, y, 250, 68, 0x1f2937).setStrokeStyle(3,0x475569).setInteractive({useHandCursor:true}).setDepth(4600);
       const text = this.add.text(155,y,label,{fontFamily:'Arial',fontSize:'33px',fontStyle:'bold',color:'#e5e7eb'}).setOrigin(0.5).setDepth(4601);
@@ -259,6 +282,7 @@ export default class BattleScene extends Phaser.Scene {
 
     this.add.text(width-155, firstY - 70, 'ORDERS', {fontFamily:'Arial',fontSize:'33px',fontStyle:'bold',color:'#94a3b8'}).setOrigin(0.5);
     right.forEach((label,index)=>{
+
       const y=firstY+index*gap;
       const box=this.add.rectangle(width-155,y,270,68,0x1f2937).setStrokeStyle(3,0x475569).setInteractive({useHandCursor:true}).setDepth(4600);
       const text=this.add.text(width-155,y,label,{fontFamily:'Arial',fontSize:label.length>10?'27px':'33px',fontStyle:'bold',color:'#e5e7eb'}).setOrigin(0.5).setDepth(4601);
@@ -268,7 +292,9 @@ export default class BattleScene extends Phaser.Scene {
     this.refreshTacticsMenus();
   }
 
+  // I expose the equipped leadership abilities above the arena.
   createLeaderLoadoutBar(width) {
+
     const equipped=(GameState.leader?.battleLoadout ?? ['focusFire']).slice(0,5);
     const abilityNames={focusFire:'FOCUS FIRE',rally:'RALLY',coordinatedAssault:'ASSAULT',encouragement:'ENCOURAGE',brace:'BRACE',preparedSupplies:'SUPPLIES'};
     const gridTop = this.battlefield.topY;
@@ -280,6 +306,7 @@ export default class BattleScene extends Phaser.Scene {
     const gap = Math.min(280, availableWidth / Math.max(1, equipped.length));
     const start=width/2-((equipped.length-1)*gap)/2;
     equipped.forEach((id,index)=>{
+
       const x=start+index*gap;
       const box=this.add.rectangle(x,buttonY,Math.min(240, gap - 18),52,0x292524).setStrokeStyle(2,0x84cc16).setInteractive({useHandCursor:true}).setDepth(4700);
       this.add.text(x,buttonY,abilityNames[id]??id.toUpperCase(),{fontFamily:'Arial',fontSize:'24px',fontStyle:'bold',color:'#bef264'}).setOrigin(0.5).setDepth(4701);
@@ -287,7 +314,9 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
+  // I select a tapped adventurer or deselect it on a second tap.
   toggleUnitSelection(unit) {
+
     if (!unit?.alive) return;
 
     if (this.selectedUnitIds.has(unit.id)) {
@@ -313,7 +342,9 @@ export default class BattleScene extends Phaser.Scene {
     HapticsService.tap();
   }
 
+  // I select the living members of a role for a shared command.
   selectRole(role) {
+
     const matching = this.partyUnits.filter((unit) => unit.alive && unit.role === role);
     this.selectedUnitIds = new Set(matching.map((unit) => unit.id));
 
@@ -327,15 +358,21 @@ export default class BattleScene extends Phaser.Scene {
     HapticsService.tap();
   }
 
+  // I restrict commands to selected adventurers who are still alive.
   getSelectedUnits() {
+
     return this.partyUnits.filter((unit) => unit.alive && this.selectedUnitIds.has(unit.id));
   }
 
+  // I check whether a player order should prevent automatic repositioning.
   isPositionLocked(unit) {
+
     return this.heldUnitIds.has(unit.id);
   }
 
+  // I prepare an order for targeting or apply Hold to the current selection.
   armCommand(label) {
+
     const selected = this.getSelectedUnits();
     const needsSelection = ['MOVE', 'HOLD', 'SPREAD', 'STACK'].includes(label);
 
@@ -347,6 +384,7 @@ export default class BattleScene extends Phaser.Scene {
 
     if (label === 'HOLD') {
       selected.forEach((unit) => {
+
         this.manualTargets.set(unit.id, { x: unit.arenaX, y: unit.arenaY });
         this.heldUnitIds.add(unit.id);
       });
@@ -368,32 +406,42 @@ export default class BattleScene extends Phaser.Scene {
     HapticsService.tap();
   }
 
+  // I route taps to enemies when an order needs an enemy target.
   setTargetingInputState(targetingEnemies) {
+
     this.partyUnits?.forEach((unit) => {
+
       if (targetingEnemies) unit.hitZone.disableInteractive();
       else if (unit.alive) unit.hitZone.setInteractive({ useHandCursor: true });
     });
 
     this.enemies?.forEach((enemy) => {
+
       if (!enemy.alive) return;
       if (targetingEnemies) enemy.hitZone.setInteractive({ useHandCursor: true });
       else enemy.hitZone.disableInteractive();
     });
   }
 
+  // I show the selected units and the currently armed order.
   refreshTacticsMenus() {
+
     this.roleButtons?.forEach(({box,role})=>{
+
       const selected=this.partyUnits?.some((u)=>u.role===role && this.selectedUnitIds.has(u.id));
       box.setFillStyle(selected?0x243b53:0x1f2937).setStrokeStyle(3,selected?0x60a5fa:0x475569);
     });
     this.commandButtons?.forEach(({box,label})=>{
+
       const active=this.commandMode===label;
       box.setFillStyle(active?0x3b321d:0x1f2937).setStrokeStyle(3,active?0xfbbf24:0x475569);
     });
     this.partyUnits?.forEach((u)=>u.body.setStrokeStyle(this.selectedUnitIds.has(u.id)?7:4,this.selectedUnitIds.has(u.id)?0x60a5fa:(u.isEnemy?0x365314:0x1c1917)));
   }
 
+  // I turn a tile tap into the armed order for its intended recipients.
   handleGridCellTap(column, row) {
+
     const center = this.battlefield.getCellCenter(column, row);
     this.highlightGridCell(column, row);
 
@@ -409,6 +457,7 @@ export default class BattleScene extends Phaser.Scene {
 
     if (this.commandMode === 'FOCUS' || this.commandMode === 'INTERRUPT') {
       const enemy = this.getLivingEnemies().find((candidate) => {
+
         const cell = this.battlefield.arenaPointToCell(candidate.arenaX, candidate.arenaY);
         return cell.column === column && cell.row === row;
       });
@@ -448,6 +497,7 @@ export default class BattleScene extends Phaser.Scene {
       const radius = formationMode === 'STACK' ? 34 : 135;
 
       units.forEach((unit, index) => {
+
         const angle = (Math.PI * 2 * index) / Math.max(1, units.length);
         const point = this.battlefield.clampPoint(
           center.x + Math.cos(angle) * radius,
@@ -468,13 +518,13 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     units.forEach((unit, index) => {
+
       const offset = (index - (units.length - 1) / 2) * 38;
       const point = this.battlefield.clampPoint(center.x + offset, center.y, 45, 35);
       this.manualTargets.set(unit.id, point);
 
-      // Any direct tile movement becomes a persistent hold order as soon as it is issued.
-      // This prevents AI movement, mechanic dodging, or formation logic from overriding
-      // the player's destination while the unit is travelling or after it arrives.
+      // I make direct movement a persistent Hold immediately so AI,
+      // dodging, and separation cannot override the player's destination.
       this.heldUnitIds.add(unit.id);
     });
 
@@ -484,7 +534,9 @@ export default class BattleScene extends Phaser.Scene {
     this.refreshTacticsMenus();
   }
 
+  // I apply Focus or clear a pending enemy action for Interrupt.
   handleEnemyTap(enemy) {
+
     if (!enemy?.alive) return;
 
     if (this.commandMode === 'FOCUS') {
@@ -505,7 +557,9 @@ export default class BattleScene extends Phaser.Scene {
     this.refreshTacticsMenus();
   }
 
+  // I briefly mark the tile the player tapped.
   highlightGridCell(column, row) {
+
     this.gridHighlight?.destroy();
 
     const points = this.battlefield.getCellPolygon(column, row);
@@ -515,6 +569,7 @@ export default class BattleScene extends Phaser.Scene {
       .setDepth(35);
 
     this.time.delayedCall(650, () => {
+
       if (this.gridHighlight?.active) {
         this.gridHighlight.destroy();
         this.gridHighlight = null;
@@ -522,7 +577,9 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
+  // I advance toward player destinations while retaining held positions.
   applyManualMovement(unit, deltaSeconds) {
+
     const target = this.manualTargets.get(unit.id);
     if (!target || unit.isBusy(this.time.now)) {
       return false;
@@ -540,7 +597,9 @@ export default class BattleScene extends Phaser.Scene {
     return false;
   }
 
+  // I trigger the chosen leadership effect under its battle cooldown.
   useLeaderAbility(id) {
+
     const now=this.time.now;
     const last=this.leaderAbilityCooldowns.get(id) ?? -Infinity;
     if (now-last<10000) { this.showBattleMessage('Ability recharging', '#a8a29e'); return; }
@@ -548,12 +607,17 @@ export default class BattleScene extends Phaser.Scene {
     if (id==='focusFire') { this.commandMode='FOCUS'; this.setTargetingInputState(true); this.refreshTacticsMenus(); this.showBattleMessage('FOCUS FIRE - tap an enemy','#bef264', true); return; }
     if (id==='rally') { this.commandMode='STACK'; this.selectedUnitIds=new Set(this.partyUnits.filter((u)=>u.alive).map((u)=>u.id)); this.refreshTacticsMenus(); this.showBattleMessage('RALLY - tap a destination','#bef264', true); return; }
     if (id==='coordinatedAssault') { this.assaultUntil=now+8000; this.showBattleMessage('COORDINATED ASSAULT • +20% damage','#bef264'); return; }
-    if (id==='encouragement') { this.partyUnits.filter((u)=>u.alive).forEach((u)=>{const amount=Math.round(u.maxHp*0.12);u.heal(amount);this.createFloatingText(u.x,u.y-80,`+${amount}`,'#86efac');}); this.showBattleMessage('ENCOURAGEMENT','#bef264'); return; }
+    if (id==='encouragement') { this.partyUnits.filter((u)=>u.alive).forEach((u)=>{
+
+      const amount=Math.round(u.maxHp*0.12);u.heal(amount);this.createFloatingText(u.x,u.y-80,`+${amount}`,'#86efac');
+    }); this.showBattleMessage('ENCOURAGEMENT','#bef264'); return; }
     if (id==='brace') { this.braceUntil=now+8000; this.showBattleMessage('BRACE • 30% damage reduction','#bef264'); return; }
     if (id==='preparedSupplies') { if (!this.preparedSuppliesUsed){GameState.inventory.healingTonic+=1;this.preparedSuppliesUsed=true;this.showBattleMessage('+1 HEALING TONIC','#bef264');} }
   }
 
+  // I introduce the next enemy group or finish a fully cleared encounter.
   startWave(index) {
+
     if (index >= this.waves.length) {
       this.finishVictory();
       return;
@@ -575,7 +639,9 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
+  // I build an enemy from its definition and register its combat targeting.
   createEnemy(type, spawn, spawnIndex) {
+
     const definition = enemies[type];
     const serial = this.enemySerial++;
     const enemy = new BattleUnit(this, {
@@ -591,6 +657,7 @@ export default class BattleScene extends Phaser.Scene {
     enemy.rewarded = false;
     enemy.hitZone.disableInteractive();
     enemy.hitZone.on('pointerdown', (pointer, localX, localY, event) => {
+
       if (this.commandMode !== 'FOCUS' && this.commandMode !== 'INTERRUPT') return;
       event?.stopPropagation?.();
       this.handleEnemyTap(enemy);
@@ -599,7 +666,9 @@ export default class BattleScene extends Phaser.Scene {
     return enemy;
   }
 
+  // I advance combat, check the outcome, and keep the battle display current.
   update(time, delta) {
+
     if (this.battleOver || this.waveTransitioning || this.combatPaused) {
       return;
     }
@@ -607,6 +676,7 @@ export default class BattleScene extends Phaser.Scene {
     const deltaSeconds = Math.min(delta / 1000, 0.05);
 
     this.partyUnits.forEach((unit) => {
+
       unit.updateActionBar(time);
       unit.regenMana(deltaSeconds);
     });
@@ -635,7 +705,9 @@ export default class BattleScene extends Phaser.Scene {
   }
 
 
+  // I automatically spend a tonic on a critically injured party member.
   tryUseHealingTonic(time) {
+
     if (GameState.inventory.healingTonic <= 0 || time - this.lastTonicUseAt < 1500) {
       return;
     }
@@ -659,11 +731,15 @@ export default class BattleScene extends Phaser.Scene {
     saveProfile();
   }
 
+  // I exclude defeated enemies from active combat decisions.
   getLivingEnemies() {
+
     return this.enemies.filter((enemy) => enemy.alive);
   }
 
+  // I honor Focus first, then favor bosses and nearby enemies.
   getPrimaryTarget(unit) {
+
     const living = this.getLivingEnemies();
     if (living.length === 0) {
       return null;
@@ -673,6 +749,7 @@ export default class BattleScene extends Phaser.Scene {
     if (focused) return focused;
 
     return living.sort((a, b) => {
+
       const bossPriority = Number(['elderSlime', 'abyssalMaw'].includes(b.enemyType)) - Number(['elderSlime', 'abyssalMaw'].includes(a.enemyType));
       if (bossPriority !== 0) {
         return bossPriority;
@@ -681,7 +758,9 @@ export default class BattleScene extends Phaser.Scene {
     })[0];
   }
 
+  // I resolve player movement and hazards before choosing role behavior.
   updatePartyUnit(unit, time, deltaSeconds) {
+
     if (!unit?.alive) return;
 
     this.runClassPassive(unit, time);
@@ -708,7 +787,9 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
+  // I apply the Naturalist aura when its healing interval comes around.
   runClassPassive(unit, time) {
+
     if (unit.className !== 'Naturalist') return;
     const passive = unit.abilities?.passive;
     if (!passive || time - (unit.lastAbilityAt.natureAura ?? -Infinity) < passive.interval) return;
@@ -716,12 +797,15 @@ export default class BattleScene extends Phaser.Scene {
     unit.lastAbilityAt.natureAura = time;
     this.announceAbility(unit, passive.name, '#86efac');
     this.partyUnits.filter((ally) => ally.alive).forEach((ally) => {
+
       ally.heal(passive.power);
       this.createFloatingText(ally.x, ally.y - 74, `+${passive.power}`, '#86efac');
     });
   }
 
+  // I use class-specific support effects when their conditions are met.
   tryClassUtility(unit, target, time) {
+
     const utility = unit.abilities?.utility;
     if (!utility || !unit.abilityReady('utility', time)) return;
 
@@ -762,6 +846,7 @@ export default class BattleScene extends Phaser.Scene {
       this.announceAbility(unit, utility.name, '#fb923c');
       unit.markAbilityUsed('utility', time);
       nearbyAllies.forEach((ally) => {
+
         ally.status.damageBoostUntil = time + utility.duration;
         ally.status.damageBoost = utility.damageBoost;
       });
@@ -799,7 +884,9 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
+  // I let tanks approach and attack while respecting held positions.
   updateTankUnit(unit, target, time, deltaSeconds) {
+
     const desired = this.tactics.getTankPosition(unit, target);
     if (!this.isPositionLocked(unit) && !unit.isBusy(time) && unit.distanceToPoint(desired.x, desired.y) > 26) {
       unit.moveToward(desired.x, desired.y, deltaSeconds, 18);
@@ -816,7 +903,9 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
+  // I manage melee attacks and Rogue retreat windows for re-stealth.
   updateMeleeUnit(unit, target, time, deltaSeconds) {
+
     if (unit.className === 'Rogue' && !unit.stealthed && unit.seekingRestealth) {
       const quietFor = time - Math.max(unit.lastDealtDamageAt ?? -Infinity, unit.lastTakenDamageAt ?? -Infinity);
       if (quietFor >= 5000) {
@@ -846,7 +935,9 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
+  // I manage ranged positioning and choose available attacks or spells.
   updateRangedUnit(unit, target, time, deltaSeconds) {
+
     const desired = this.tactics.getRangedPosition(unit, target);
     if (!this.isPositionLocked(unit) && !unit.isBusy(time) && unit.distanceToPoint(desired.x, desired.y) > 42) {
       unit.moveToward(desired.x, desired.y, deltaSeconds, 34);
@@ -882,7 +973,9 @@ export default class BattleScene extends Phaser.Scene {
     if (unit.canAttack(time)) this.beginBasicAttack(unit, target, time, 'ranged');
   }
 
+  // I prioritize wounded allies while keeping healers in supporting range.
   updateHealerUnit(unit, time, deltaSeconds) {
+
     const injured = this.getMostInjuredPartyMember();
 
     if (injured && injured.hp / injured.maxHp < 0.84) {
@@ -924,7 +1017,9 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
+  // I let Rangers control nearby enemies with their configured trap.
   tryRangerTrap(unit, target, time) {
+
     const trap = unit.abilities?.trap;
     if (!trap || time - (unit.lastAbilityAt.trap ?? -Infinity) < trap.cooldown || unit.isBusy(time)) return;
     if (!unit.spendMana(trap.manaCost ?? 0)) return;
@@ -938,11 +1033,13 @@ export default class BattleScene extends Phaser.Scene {
     } else if (unit.trapCycle === 1) {
       this.announceAbility(unit, 'Explosive Trap', '#fb923c');
       this.getLivingEnemies().filter((enemy) => enemy.distanceTo(target) <= 145).forEach((enemy) => {
+
         this.resolveDamage(unit, enemy, 18, 'ranged', 0.6, 'Explosive Trap', false);
       });
     } else {
       this.announceAbility(unit, 'Smoke Trap', '#cbd5e1');
       this.getLivingEnemies().filter((enemy) => enemy.distanceTo(target) <= 145).forEach((enemy) => {
+
         enemy.status.blindUntil = time + 15000;
         enemy.status.blindChance = 0.5;
       });
@@ -950,7 +1047,9 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
+  // I wind up an area attack before resolving nearby victims.
   beginAoeDamageAbility(attacker, target, key, time, attackType) {
+
     const ability = attacker.abilities[key];
     if (!ability || !attacker.startAction(ability.name, time, ability.windup)) return;
 
@@ -965,10 +1064,12 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     this.time.delayedCall(ability.windup, () => {
+
       if (!attacker.alive || this.battleOver || attacker.pendingAction?.name !== ability.name) return;
       const victims = this.getLivingEnemies().filter((enemy) => enemy.distanceToPoint(target.arenaX, target.arenaY) <= ability.radius);
       let total = 0;
       victims.forEach((enemy) => {
+
         this.resolveDamage(attacker, enemy, ability.power, attackType, ability.threatMultiplier ?? attacker.threatMultiplier, ability.name);
         total += ability.power;
       });
@@ -977,12 +1078,15 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
+  // I wind up a group heal and choose injured allies when it resolves.
   beginMultiHeal(healer, time, ability) {
+
     if (!healer.startAction(ability.name, time, ability.windup)) return;
     this.announceAbility(healer, ability.name, '#86efac');
     this.logActionStart(healer, null, ability.name);
     healer.markAbilityUsed('primary', time);
     this.time.delayedCall(ability.windup, () => {
+
       if (!healer.alive || this.battleOver || healer.pendingAction?.name !== ability.name) return;
       const targets = this.partyUnits
         .filter((unit) => unit.alive && unit.hp < unit.maxHp)
@@ -993,14 +1097,19 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
+  // I announce and resolve an attack that does not need a windup.
   beginInstantDamage(attacker, target, power, attackType, abilityName) {
+
     this.announceAbility(attacker, abilityName, attackType === 'holy' ? '#fde68a' : '#93c5fd');
     this.logActionStart(attacker, target, abilityName);
     this.resolveDamage(attacker, target, power, attackType, attacker.threatMultiplier, abilityName);
   }
 
+  // I drive enemy targeting, abilities, movement, and basic attacks.
   updateEnemies(time, deltaSeconds) {
+
     this.getLivingEnemies().forEach((enemy) => {
+
       if (time < (enemy.status.stunnedUntil ?? 0)) return;
       const target = this.getHighestThreatTarget(enemy);
       if (!target) {
@@ -1036,7 +1145,9 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
+  // I wind up a basic attack and recheck its target before the hit.
   beginBasicAttack(attacker, target, time, attackType) {
+
     if (!attacker.startAction('Attack', time, attacker.attackWindup)) {
       return;
     }
@@ -1045,6 +1156,7 @@ export default class BattleScene extends Phaser.Scene {
     if (attacker.isEnemy) this.setEnemyTarget(attacker, target, 'highest threat');
     this.logActionStart(attacker, target, 'Attack');
     this.time.delayedCall(attacker.attackWindup, () => {
+
       if (!attacker.alive || !target.alive || this.battleOver || attacker.pendingAction?.name !== 'Attack') {
         return;
       }
@@ -1055,7 +1167,9 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
+  // I commit a damage ability and resolve its hit after the windup.
   beginDamageAbility(attacker, target, key, time, attackType) {
+
     const ability = attacker.abilities[key];
     if (!ability || !attacker.startAction(ability.name, time, ability.windup)) {
       return;
@@ -1072,6 +1186,7 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     this.time.delayedCall(ability.windup, () => {
+
       if (!attacker.alive || !target.alive || this.battleOver || attacker.pendingAction?.name !== ability.name) {
         return;
       }
@@ -1092,16 +1207,21 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
+  // I spread bleed damage across timed ticks that cannot critically hit.
   applyBleed(attacker, target, ability) {
+
     for (let tick = 1; tick <= ability.bleedTicks; tick += 1) {
       this.time.delayedCall(ability.bleedInterval * tick, () => {
+
         if (!attacker.alive || !target.alive || this.battleOver) return;
         this.resolveDamage(attacker, target, ability.bleedPower, 'melee', 0.35, 'Bleed', false);
       });
     }
   }
 
+  // I announce an enemy cast and resolve it if the action remains valid.
   beginEnemyAbility(attacker, target, key, time) {
+
     const ability = attacker.abilities[key];
     if (!ability || !attacker.startAction(ability.name, time, ability.windup)) {
       return;
@@ -1112,6 +1232,7 @@ export default class BattleScene extends Phaser.Scene {
     attacker.markAbilityUsed(key, time);
 
     this.time.delayedCall(ability.windup, () => {
+
       if (!attacker.alive || !target.alive || this.battleOver || attacker.pendingAction?.name !== ability.name) {
         return;
       }
@@ -1121,7 +1242,9 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
+  // I pay for a basic heal and resolve it after its casting time.
   beginBasicHeal(healer, target, time) {
+
     if (healer.maxMana > 0 && healer.mana < healer.basicHealManaCost) return;
     if (!healer.startAction('Mend', time, healer.healWindup)) {
       return;
@@ -1131,6 +1254,7 @@ export default class BattleScene extends Phaser.Scene {
     this.logActionStart(healer, target, 'Mend');
     healer.lastHealAt = time;
     this.time.delayedCall(healer.healWindup, () => {
+
       if (!healer.alive || !target.alive || this.battleOver || healer.pendingAction?.name !== 'Mend') {
         return;
       }
@@ -1141,7 +1265,9 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
+  // I commit a healing ability and check its target after the windup.
   beginHealAbility(healer, target, key, time) {
+
     const ability = healer.abilities[key];
     if (!ability || !healer.startAction(ability.name, time, ability.windup)) {
       return;
@@ -1156,6 +1282,7 @@ export default class BattleScene extends Phaser.Scene {
       this.createFloatingText(healer.x, healer.y - 80, `-${cost}`, '#f87171');
     }
     this.time.delayedCall(ability.windup, () => {
+
       if (!healer.alive || !target.alive || this.battleOver || healer.pendingAction?.name !== ability.name) {
         return;
       }
@@ -1166,7 +1293,9 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
+  // I warn the party about a fixed ground area before the enemy strikes.
   beginGroundSlam(attacker, target, time, ability) {
+
     if (!attacker.startAction(ability.name, time, ability.telegraph)) {
       return;
     }
@@ -1205,6 +1334,7 @@ export default class BattleScene extends Phaser.Scene {
     });
 
     this.time.delayedCall(ability.telegraph, () => {
+
       if (!attacker.alive || this.battleOver) {
         this.removeTelegraph(telegraph);
         attacker.finishAction();
@@ -1213,6 +1343,7 @@ export default class BattleScene extends Phaser.Scene {
 
       HapticsService.heavy();
       this.partyUnits.filter((unit) => unit.alive).forEach((unit) => {
+
         if (unit.distanceToPoint(center.arenaX, center.arenaY) <= ability.radius) {
           this.resolveDamage(attacker, unit, ability.power, 'enemy', 1, ability.name, false);
         }
@@ -1234,7 +1365,9 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
+  // I let eligible units abandon their action to escape a ground warning.
   tryEvadeTelegraph(unit, deltaSeconds) {
+
     if (!this.tactics.shouldAvoidMechanics(unit) || !unit.alive || this.activeTelegraphs.length === 0) {
       return false;
     }
@@ -1249,17 +1382,24 @@ export default class BattleScene extends Phaser.Scene {
     return true;
   }
 
+  // I retire a ground warning from both the display and hazard tracking.
   removeTelegraph(telegraph) {
+
     this.activeTelegraphs = this.activeTelegraphs.filter((item) => item !== telegraph);
     telegraph.warning?.destroy();
     telegraph.inner?.destroy();
   }
 
+  // I roll the attacker critical chance when the action allows it.
   rollCritical(attacker, allowCrit = true) {
+
     return allowCrit && Math.random() < (attacker.critChance ?? 0);
   }
 
+  // I resolve hit modifiers, damage, threat, feedback, and defeat
+  // consequences.
   resolveDamage(attacker, target, baseAmount, attackType, threatMultiplier = 1, abilityName = 'Attack', allowCrit = true) {
+
     const now = this.time.now;
     if (now < (attacker.status.blindUntil ?? 0) && Math.random() < (attacker.status.blindChance ?? 0)) {
       this.createFloatingText(target.x, target.y - 82, 'MISS', '#cbd5e1', false, 'miss');
@@ -1330,6 +1470,7 @@ export default class BattleScene extends Phaser.Scene {
 
     if (!attacker.isEnemy) {
       this.getLivingEnemies().forEach((enemy) => {
+
         if (enemy === target) {
           this.addThreat(enemy, attacker, amount * threatMultiplier);
         }
@@ -1370,7 +1511,9 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
+  // I resolve healing and generate threat from the health actually restored.
   resolveHeal(healer, target, baseAmount, abilityName) {
+
     const critical = this.rollCritical(healer, true);
     const amount = Math.round(baseAmount * (critical ? healer.critMultiplier : 1));
     const before = target.hp;
@@ -1395,7 +1538,9 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
+  // I award each defeated enemy gold only once.
   handleEnemyDeath(enemy) {
+
     if (enemy.rewarded) {
       return;
     }
@@ -1404,7 +1549,9 @@ export default class BattleScene extends Phaser.Scene {
     this.earnedGold += Phaser.Math.Between(definition.goldMin ?? 0, definition.goldMax ?? 0);
   }
 
+  // I accumulate an adventurer threat on the affected enemy.
   addThreat(enemy, unit, amount) {
+
     if (!enemy?.isEnemy || !unit || unit.isEnemy) {
       return;
     }
@@ -1415,7 +1562,9 @@ export default class BattleScene extends Phaser.Scene {
     table.set(unit.id, (table.get(unit.id) ?? 0) + Math.max(0, amount));
   }
 
+  // I choose the living threat leader, using distance to break ties.
   getHighestThreatTarget(enemy) {
+
     const living = this.partyUnits.filter((unit) => unit.alive);
     if (living.length === 0) {
       return null;
@@ -1423,6 +1572,7 @@ export default class BattleScene extends Phaser.Scene {
     const table = this.enemyThreat.get(enemy.id) ?? new Map();
 
     return living.sort((a, b) => {
+
       const diff = (table.get(b.id) ?? 0) - (table.get(a.id) ?? 0);
       if (Math.abs(diff) > 0.01) {
         return diff;
@@ -1431,14 +1581,18 @@ export default class BattleScene extends Phaser.Scene {
     })[0];
   }
 
+  // I capture a ranked threat table for reviewing enemy decisions.
   getThreatSnapshot(enemy) {
+
     const table = this.enemyThreat.get(enemy.id) ?? new Map();
     return this.partyUnits
       .map((unit) => ({ name: unit.name, role: unit.role, threat: Math.round(table.get(unit.id) ?? 0), alive: unit.alive }))
       .sort((a, b) => b.threat - a.threat);
   }
 
+  // I display the enemy target and log meaningful targeting changes.
   setEnemyTarget(enemy, target, reason = '') {
+
     const targetId = target?.id ?? null;
     enemy.setTargetName(target?.name ?? '');
     if (enemy.currentTargetId === targetId && enemy.currentTargetReason === reason) return;
@@ -1455,7 +1609,9 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
+  // I record the actor intent before an attack or heal resolves.
   logActionStart(actor, target, ability) {
+
     this.combatLog?.add('action', `${actor.name} begins ${ability}${target ? ` on ${target.name}` : ''}`, {
       wave: this.currentWaveIndex + 1,
       actor: actor.name,
@@ -1464,15 +1620,20 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
+  // I total an adventurer threat across the remaining enemies.
   getCombinedThreat(unit) {
+
     let total = 0;
     this.getLivingEnemies().forEach((enemy) => {
+
       total += this.enemyThreat.get(enemy.id)?.get(unit.id) ?? 0;
     });
     return total;
   }
 
+  // I ease crowded units apart without displacing held adventurers.
   applySeparation(units, deltaSeconds, minimumDistance) {
+
     const living = units.filter((unit) => unit.alive);
 
     for (let i = 0; i < living.length; i += 1) {
@@ -1523,13 +1684,17 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
+  // I prioritize living allies by the fraction of health missing.
   getMostInjuredPartyMember() {
+
     return this.partyUnits
       .filter((unit) => unit.alive && unit.hp < unit.maxHp)
       .sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp))[0] ?? null;
   }
 
+  // I connect attacker and target with a brief traveling effect.
   createProjectile(attacker, target, color) {
+
     const projectile = this.add.circle(attacker.x, attacker.y, 9, color).setDepth(4000);
     this.tweens.add({
       targets: projectile,
@@ -1541,7 +1706,9 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
+  // I mark a close combat impact with a short visual pulse.
   createMeleePulse(target, color = 0xffffff) {
+
     const pulse = this.add.ellipse(target.x, target.y + 8, 48, 24, color, 0.25).setDepth(4000);
     this.tweens.add({
       targets: pulse,
@@ -1553,12 +1720,16 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
+  // I show a living unit ability name above the action.
   announceAbility(unit, name, color = '#f8fafc') {
+
     if (!unit?.alive || !name) return;
     this.createFloatingText(unit.x, unit.y - 122, name.toUpperCase(), color, false);
   }
 
+  // I animate combat feedback with extra emphasis for critical results.
   createFloatingText(x, y, text, color, critical = false) {
+
     const label = this.add.text(x, y, text, {
       fontFamily: 'Arial',
       fontSize: critical ? '78px' : '51px',
@@ -1583,7 +1754,9 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
+  // I display battle guidance until it fades or is explicitly replaced.
   showBattleMessage(text, color = '#d6a85f', persistent = false) {
+
     if (!this.battleMessageText) return;
 
     this.tweens.killTweensOf(this.battleMessageText);
@@ -1596,19 +1769,24 @@ export default class BattleScene extends Phaser.Scene {
         delay: 900,
         duration: 260,
         onComplete: () => {
+
           if (this.battleMessageText?.active) this.battleMessageText.setText('').setAlpha(1);
         }
       });
     }
   }
 
+  // I dismiss guidance when the current interaction no longer needs it.
   clearBattleMessage() {
+
     if (!this.battleMessageText) return;
     this.tweens.killTweensOf(this.battleMessageText);
     this.battleMessageText.setText('').setAlpha(1);
   }
 
+  // I clear wave visuals and pace the transition to the next result.
   completeWave() {
+
     if (this.waveTransitioning || this.battleOver) {
       return;
     }
@@ -1619,6 +1797,7 @@ export default class BattleScene extends Phaser.Scene {
     this.combatLog?.persist();
 
     this.enemies.forEach((enemy) => {
+
       this.tweens.add({
         targets: enemy.container,
         alpha: 0,
@@ -1634,8 +1813,11 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
+  // I refresh party resources and encounter progress as combat changes.
   updateHud() {
+
     this.partyHud?.forEach(({ unit, hpText, manaText, threatText, hpFill, hpGlow, manaBack, manaFill, hudBarWidth }) => {
+
       const ratio = unit.maxHp > 0 ? Phaser.Math.Clamp(unit.hp / unit.maxHp, 0, 1) : 0;
       const manaRatio = unit.maxMana > 0 ? Phaser.Math.Clamp(unit.mana / unit.maxMana, 0, 1) : 0;
       const healthColor = this.getHealthBarColor(ratio);
@@ -1661,14 +1843,18 @@ export default class BattleScene extends Phaser.Scene {
     this.updateEncounterStatus();
   }
 
+  // I use warmer health colors to make injured allies easier to spot.
   getHealthBarColor(ratio) {
+
     if (ratio <= 0.25) return 0xef4444;
     if (ratio <= 0.5) return 0xf97316;
     if (ratio <= 0.75) return 0xeab308;
     return 0x22c55e;
   }
 
+  // I show the run timer beside the current wave and enemy group.
   updateEncounterStatus() {
+
     if (!this.encounterStatusText || this.currentWaveIndex < 0) return;
     const elapsed = formatDuration(Date.now() - (GameState.run.startedAt || Date.now()));
     const wave = this.waves?.[this.currentWaveIndex];
@@ -1676,7 +1862,9 @@ export default class BattleScene extends Phaser.Scene {
     this.encounterStatusText.setText(`(${elapsed}) Wave ${this.currentWaveIndex + 1}/${this.waves.length} - ${waveName}`);
   }
 
+  // I draw attention to the party member taking enemy damage.
   flashPartyHudName(unit) {
+
     const entry = this.partyHud?.find((item) => item.unit === unit);
     if (!entry?.nameText) return;
 
@@ -1689,12 +1877,15 @@ export default class BattleScene extends Phaser.Scene {
       yoyo: true,
       repeat: 2,
       onComplete: () => {
+
         if (entry.nameText?.active) entry.nameText.setAlpha(1).setColor('#f5f5f4');
       }
     });
   }
 
+  // I commit the victory rewards and lead the player to the reward screen.
   finishVictory() {
+
     if (this.battleOver) {
       return;
     }
@@ -1708,23 +1899,29 @@ export default class BattleScene extends Phaser.Scene {
     saveProfile();
     HapticsService.success();
     this.showResultOverlay('VICTORY', `${GameState.currentDelve?.name ?? 'The Delve'} has been cleared.`, 'COLLECT REWARDS', () => {
+
       HapticsService.confirm();
       this.scene.start('RewardScene');
     });
   }
 
+  // I record the loss and offer the encounter summary.
   finishDefeat() {
+
     if (this.battleOver) return;
     this.battleOver = true;
     this.combatLog?.finish('defeat');
     failExpedition();
     this.showResultOverlay('DEFEAT', 'The party was driven back.', 'ENCOUNTER SUMMARY', () => {
+
       HapticsService.confirm();
       this.scene.start('EncounterSummaryScene');
     });
   }
 
+  // I pause or resume combat updates and the scene clock.
   togglePause() {
+
     if (this.battleOver) return;
     this.combatPaused = !this.combatPaused;
     this.time.paused = this.combatPaused;
@@ -1734,7 +1931,9 @@ export default class BattleScene extends Phaser.Scene {
     HapticsService.tap();
   }
 
+  // I end combat as a retreat and send the player to its summary.
   fleeBattle() {
+
     if (this.battleOver) return;
     if (this.combatPaused) {
       this.combatPaused = false;
@@ -1747,7 +1946,9 @@ export default class BattleScene extends Phaser.Scene {
     this.scene.start('EncounterSummaryScene');
   }
 
+  // I present the encounter outcome and block further battlefield taps.
   showResultOverlay(title, subtitle, buttonLabel, callback) {
+
     const { width, height } = this.scale;
     const centerY = height * 0.5;
 

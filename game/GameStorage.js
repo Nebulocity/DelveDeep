@@ -2,7 +2,9 @@ import GameState from './GameState.js';
 
 const STORAGE_KEY = 'delveDeep.profile.v2';
 
+// I restore saved progress while rebuilding stats from current roster data.
 export function loadProfile(baseRoster) {
+
   let saved = null;
 
   try {
@@ -32,6 +34,7 @@ export function loadProfile(baseRoster) {
   };
 
   GameState.roster = baseRoster.map((base) => {
+
     const prior = savedRoster.get(base.id) ?? {};
     const level = Math.max(1, prior.level ?? base.level ?? 1);
     const levelBonus = Math.max(0, level - 1);
@@ -50,7 +53,10 @@ export function loadProfile(baseRoster) {
   GameState.lastPartyIds = GameState.lastPartyIds.filter((id) => GameState.roster.some((adventurer) => adventurer.id === id));
 }
 
+// I preserve roster, supplies, party choice, and world progress between
+// visits.
 export function saveProfile() {
+
   const profile = {
     gold: GameState.gold,
     inventory: GameState.inventory,
@@ -77,7 +83,9 @@ export function saveProfile() {
   }
 }
 
+// I remove the main profile when the player resets progress.
 export function clearSavedProfile() {
+
   try {
     localStorage.removeItem(STORAGE_KEY);
   } catch (error) {

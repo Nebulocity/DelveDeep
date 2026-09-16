@@ -3,7 +3,9 @@ import { grantAdventurerXp, adjustHappiness } from './AdventurerProgression.js';
 import { recordDepthClear, saveLeaderProgression } from './LeaderProgression.js';
 import { saveProfile } from './GameStorage.js';
 
+// I snapshot the run start so timing and retreat costs stay consistent.
 export function beginExpedition() {
+
   GameState.run.startedAt = Date.now();
   GameState.run.elapsedMs = 0;
   GameState.run.summary = null;
@@ -11,13 +13,16 @@ export function beginExpedition() {
   GameState.run.startingInventory = { ...GameState.inventory };
 }
 
+// I award victory progress, reveal locations, and save the run summary.
 export function completeExpedition() {
+
   const elapsedMs = GameState.run.startedAt > 0 ? Date.now() - GameState.run.startedAt : 0;
   GameState.run.elapsedMs = elapsedMs;
 
   const partyIds = new Set(GameState.activeParty.map((entry) => entry.id));
   const adventurerResults = [];
   GameState.roster.forEach((adventurer) => {
+
     if (!partyIds.has(adventurer.id)) return;
     const xpResult = grantAdventurerXp(adventurer, 35);
     adjustHappiness(adventurer, 5);
@@ -66,6 +71,7 @@ export function completeExpedition() {
     'murmuring-abyss': []
   };
   (revealMap[delveId] ?? []).forEach((id) => {
+
     if (!GameState.world.discoveredLocations.includes(id)) GameState.world.discoveredLocations.push(id);
   });
 
@@ -82,9 +88,12 @@ export function completeExpedition() {
   return GameState.run.summary;
 }
 
+// I apply defeat morale loss and save the unsuccessful run.
 export function failExpedition() {
+
   const partyIds = new Set(GameState.activeParty.map((entry) => entry.id));
   GameState.roster.forEach((adventurer) => {
+
     if (partyIds.has(adventurer.id)) adjustHappiness(adventurer, -3);
   });
   GameState.run.summary = {
@@ -96,7 +105,9 @@ export function failExpedition() {
   saveProfile();
 }
 
+// I abandon run rewards and charge Inspiration when the party retreats.
 export function fleeExpedition() {
+
   GameState.gold = GameState.run.startingGold ?? GameState.gold;
   if (GameState.run.startingInventory) GameState.inventory = { ...GameState.run.startingInventory };
   GameState.rewards = [];
@@ -117,7 +128,9 @@ export function fleeExpedition() {
   return GameState.run.summary;
 }
 
+// I present run times in minutes and seconds for easy comparison.
 export function formatDuration(ms) {
+
   if (!Number.isFinite(ms) || ms <= 0) return '--:--';
   const totalSeconds = Math.max(0, Math.round(ms / 1000));
   const minutes = Math.floor(totalSeconds / 60);

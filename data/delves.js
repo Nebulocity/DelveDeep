@@ -60,7 +60,9 @@ const delves = [
   }
 ];
 
+// I look up a delve definition by its persistent identifier.
 export function getDelveById(id) {
+
   return delves.find((delve) => delve.id === id) ?? null;
 }
 

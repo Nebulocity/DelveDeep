@@ -1,7 +1,9 @@
 const STORAGE_KEY = 'delveDeep.lastCombatLog.v1';
 
 export default class CombatLog {
+  // I start a reviewable record of this encounter and its party.
   constructor(delveName, party) {
+
     this.startedAt = Date.now();
     this.entries = [];
     this.record = {
@@ -17,7 +19,9 @@ export default class CombatLog {
     this.persist();
   }
 
+  // I record a combat event so I can review how the encounter unfolded.
   add(type, message, details = {}) {
+
     const entry = {
       time: Number(((Date.now() - this.startedAt) / 1000).toFixed(2)),
       wave: details.wave,
@@ -32,14 +36,18 @@ export default class CombatLog {
     return entry;
   }
 
+  // I close the combat record with the encounter outcome.
   finish(result) {
+
     this.record.result = result;
     this.record.finishedAt = new Date().toISOString();
     this.add('encounter', `Encounter ended: ${result}`);
     this.persist();
   }
 
+  // I save the latest combat record for later inspection.
   persist() {
+
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.record));
     } catch (error) {
@@ -48,14 +56,18 @@ export default class CombatLog {
     this.publish();
   }
 
+  // I expose the current combat record for debugging on either platform.
   publish() {
-    // These helpers make the latest encounter easy to inspect from desktop or Android remote devtools.
+
     globalThis.delveCombatLog = this.record;
+    // I provide a readable export for inspecting the encounter in devtools.
     globalThis.getDelveCombatLog = () => JSON.stringify(this.record, null, 2);
   }
 }
 
+// I recover the previous combat record when reviewing a run.
 export function loadLastCombatLog() {
+
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null');
   } catch (error) {

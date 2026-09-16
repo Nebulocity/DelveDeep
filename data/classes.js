@@ -214,7 +214,9 @@ export const CLASS_DEFINITIONS = {
   }
 };
 
+// I build an adventurer from class defaults and individual overrides.
 export function createAdventurer(id, name, className, overrides = {}) {
+
   const definition = CLASS_DEFINITIONS[className];
   if (!definition) throw new Error(`Unknown class: ${className}`);
 

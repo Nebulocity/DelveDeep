@@ -1,2 +1,169 @@
-# DelveDeep
-A game about delving deep into the dungeons for loot and glory.
+# Delve Deep
+
+Delve Deep is a 2D pixel-art tactical RPG for Android. The player acts as
+the Raid Leader, selects five adventurers, and issues tactical orders
+during real-time battles. Delve victories advance the roster, leader,
+and world map.
+
+The game uses JavaScript, Phaser 3.90, Vite, and Capacitor 8. Development
+targets Windows with VS Code and Android Studio. The mobile interface is
+landscape only, with large text and touch targets for phone displays.
+
+## Development and builds
+
+Install the locked dependencies and start the development server:
+
+```bash
+npm ci
+npm run dev
+```
+
+Run the normal production validation and optionally preview its output:
+
+```bash
+npm run build
+npm run preview
+```
+
+To package updated web assets for Android, build first, then sync:
+
+```bash
+npm run build
+npx cap sync android
+```
+
+Build a debug APK from PowerShell:
+
+```powershell
+cd android
+.\gradlew.bat assembleDebug
+```
+
+`npm run deploy` builds the web game, syncs Android, and opens Android
+Studio. It does not publish a release to a store.
+
+## Project directories
+
+The repository root is the source root. There is no `src/` directory.
+
+- `scenes/`: Phaser screens, navigation, and the battle scene. This is
+  where most screen-specific UI and combat orchestration live.
+- `combat/`: Combatant state and presentation, battlefield perspective,
+  formation positioning, and encounter logging.
+- `game/`: Shared session state, profile persistence, adventurer growth,
+  Raid Leader progression, and expedition outcomes.
+- `data/`: Class and ability definitions, the starting adventurers,
+  enemies and wave groups, and delve access metadata.
+- `config/`: Phaser configuration, logical resolution, scaling, and
+  scene registration.
+- `services/`: Device haptics and browser orientation requests.
+- `ui/`: Shared layout offsets and header positioning helpers.
+- `assets/`: Source artwork, currently including the world map image.
+- `docs/`: Local design, architecture, combat, UI, world map, and task
+  notes. These files are currently ignored by Git and may be absent
+  from a fresh checkout.
+- `entities/`, `systems/`, `utils/`: Reserved folders containing
+  `.gitkeep` placeholders; current gameplay lives in the folders above.
+- `dist/`: Generated Vite production output used by Capacitor.
+- `android/`: Capacitor Android project, Gradle wrapper, and native build
+  output. Update bundled web assets through the build and sync commands.
+- `node_modules/`: Installed dependencies managed by npm.
+
+Do not manually edit generated output or dependency files in `dist/`,
+`android/`, or `node_modules/` during ordinary source work.
+
+## Important entry points and configuration
+
+- `index.html`: Browser entry page and the game mount element.
+- `main.js`: Imports global styles and creates the Phaser game.
+- `style.css`: Full-screen page layout, canvas sizing, touch behavior,
+  and safe-area insets for the game container.
+- `config/gameConfig.js`: The 2400 by 1080 logical game area, FIT scaling,
+  background, and ordered scene list.
+- `capacitor.config.json`: Android app identity, bundled `dist` assets,
+  and native edge-to-edge margin adjustment.
+- `package.json`: Runtime dependencies and development/build scripts.
+- `package-lock.json`: Locked dependency versions for repeatable installs.
+- `.gitignore`: Generated output, dependencies, and local-only files.
+- `AGENTS.md`: Local coding and validation instructions, ignored by Git.
+- `ABILITY_EDITING.md`: Guide to editing class and enemy abilities,
+  including which behavior requires changes in the battle scene.
+
+## Screens and navigation
+
+- `scenes/BootScene.js`: Loads the map, restores progression, and prepares
+  the session before entering the world map.
+- `scenes/TitleScene.js`: World map locations, access checks, cleared
+  delve reviews, party location marker, and development tools.
+- `scenes/TownScene.js`: Town facility destinations.
+- `scenes/AdventurersHallScene.js`: Battle tactics and equipment/item
+  destinations; equipment and items use the facility placeholder.
+- `scenes/FacilityScene.js`: Shared placeholder for future town systems.
+- `scenes/RosterScene.js`: Adventurer stats, experience, and happiness.
+- `scenes/RaidLeaderScene.js`: Leadership unlocks and battle loadout.
+- `scenes/ShopScene.js`: Healing Tonic purchases and owned supplies.
+- `scenes/DelveSelectScene.js`: Selected delve overview.
+- `scenes/PartySelectScene.js`: Party selection, role limits, scrollable
+  roster columns, and adventurer detail panels.
+- `scenes/DungeonScene.js`: Party and tactics review before starting a run.
+- `scenes/BattleScene.js`: Real-time battle loop, tactical commands,
+  class AI, attacks, healing, enemy waves, effects, and battle outcomes.
+- `scenes/RewardScene.js`: Victory loot and progression summary.
+- `scenes/EncounterSummaryScene.js`: Defeat or retreat summary.
+
+## Combat, data, and progression
+
+- `combat/BattleUnit.js`: Unit resources, action timing, movement,
+  defenses, status effects, and battlefield presentation.
+- `combat/BattlefieldGeometry.js`: Arena-to-screen projection, grid
+  geometry, bounds, and perspective floor drawing.
+- `combat/TacticsController.js`: Role-based positions and formation
+  preferences used by automatic movement.
+- `combat/CombatLog.js`: Encounter events and the latest saved combat log.
+  During play, `globalThis.delveCombatLog` exposes the record and
+  `globalThis.getDelveCombatLog()` returns formatted JSON for inspection.
+- `data/classes.js`: Class stats, abilities, and the adventurer factory.
+- `data/adventurers.js`: Starting roster and individual stat overrides.
+- `data/enemies.js`: Enemy definitions and normal/void wave groups.
+- `data/delves.js`: Delve metadata, prerequisites, key requirements,
+  and map positions. Town positions are defined in `TitleScene.js`.
+- `game/GameState.js`: Shared world, roster, party, inventory, tactics,
+  and current-run state.
+- `game/GameStorage.js`: Main profile save/load and stat reconstruction
+  from current class/roster data plus saved progression.
+- `game/AdventurerProgression.js`: Experience thresholds, level gains,
+  and happiness adjustments.
+- `game/LeaderProgression.js`: Leader unlocks, Inspiration, depth records,
+  and the equipped ability list, with separate persistence.
+- `game/ExpeditionProgression.js`: Run snapshots, victory rewards,
+  defeat morale, retreat rollback, map reveals, and duration formatting.
+- `services/HapticsService.js`: Shared tactile feedback for interactions.
+- `services/OrientationService.js`: Browser landscape-lock request with
+  a fallback when locking is unavailable.
+- `ui/Layout.js`: Shared safe-layout constants and header helper.
+
+Persistence currently uses local storage keys `delveDeep.profile.v2`,
+`delveDeep.leaderProgression.v1`, and `delveDeep.lastCombatLog.v1`.
+Changing these keys or stored structures requires attention to existing
+player progress.
+
+## Documentation and commenting conventions
+
+Consult the local `docs/PROJECT_CONTEXT.md`, `docs/GAME_DESIGN.md`,
+`docs/ARCHITECTURE.md`, `docs/UI_RULES.md`, `docs/COMBAT_SYSTEM.md`,
+`docs/WORLD_MAP.md`, and `docs/TODO.md` before substantial changes.
+These notes include future design direction; inspect the implementation
+before treating a described feature as complete.
+
+For example, current tile movement immediately creates a persistent Hold
+order. Current Interrupt handling clears a pending enemy action without
+checking the selected class, while the combat notes call for class-aware
+interrupts. Several leader ability descriptions still say "Future" even
+though `BattleScene.js` implements effects for them. The documentation
+pass preserves these existing behaviors.
+
+Use short ASCII `//` comments in JavaScript, written in the designer's
+first-person voice. Put overall purpose above named functions and keep
+internal notes for behavior that is not obvious from the code. Leave a
+blank line after the opening brace of each function body. Preserve
+JavaScript, existing architecture, gameplay rules, and mobile readability.

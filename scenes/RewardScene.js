@@ -5,8 +5,14 @@ import { formatDuration } from '../game/ExpeditionProgression.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
 
 export default class RewardScene extends Phaser.Scene {
-  constructor() { super('RewardScene'); }
+  // I register RewardScene so the game can navigate to this screen.
+  constructor() {
+
+    super('RewardScene');
+  }
+  // I review victory loot and progression before returning to the map.
   create() {
+
     const { width, height } = this.scale;
     const goldReward = GameState.rewards.find((reward) => reward.type === 'gold');
     const gold = goldReward?.amount ?? 0;
@@ -30,6 +36,7 @@ export default class RewardScene extends Phaser.Scene {
     this.add.rectangle(rightX, panelY, panelWidth, 430, 0x1f2937).setStrokeStyle(4, 0x374151);
     this.add.text(rightX, panelY - 165, 'PARTY PROGRESS', { fontFamily: 'Arial', fontSize: '36px', fontStyle: 'bold', color: '#f5f5f4' }).setOrigin(0.5);
     (summary?.adventurers ?? []).forEach((entry, index) => {
+
       const y = panelY - 98 + index * 66;
       const levelText = entry.levelsGained > 0 ? ` • LEVEL UP! -> ${entry.level}` : ` • Lv ${entry.level}`;
       this.add.text(rightX - panelWidth * 0.41, y, `${entry.name}: +${entry.xpGained} XP${levelText}`, { fontFamily: 'Arial', fontSize: '28px', color: entry.levelsGained > 0 ? '#bef264' : '#ffffff' });
@@ -39,6 +46,7 @@ export default class RewardScene extends Phaser.Scene {
     const returnButton = this.add.rectangle(width / 2, height * 0.87, 760, 94, 0x44403c).setInteractive({ useHandCursor: true });
     this.add.text(width / 2, height * 0.87, 'RETURN TO WORLD MAP', { fontFamily: 'Arial', fontSize: '39px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
     returnButton.on('pointerdown', () => {
+
       HapticsService.confirm();
       GameState.activeParty = [];
       GameState.currentRoom = 0;

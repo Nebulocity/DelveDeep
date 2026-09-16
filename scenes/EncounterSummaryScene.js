@@ -5,8 +5,14 @@ import { formatDuration } from '../game/ExpeditionProgression.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
 
 export default class EncounterSummaryScene extends Phaser.Scene {
-  constructor() { super('EncounterSummaryScene'); }
+  // I register EncounterSummaryScene so the game can navigate to this screen.
+  constructor() {
+
+    super('EncounterSummaryScene');
+  }
+  // I explain the unsuccessful run and offer a return to the map.
   create() {
+
     const { width, height } = this.scale;
     const summary = GameState.run.summary ?? { title: 'ENCOUNTER ENDED', message: '' };
     const fled = summary.result === 'fled';
@@ -20,6 +26,7 @@ export default class EncounterSummaryScene extends Phaser.Scene {
     const button = this.add.rectangle(width / 2, height * 0.80, 650, 94, 0x334155).setInteractive({ useHandCursor: true });
     this.add.text(width / 2, height * 0.80, 'RETURN TO WORLD MAP', { fontFamily: 'Arial', fontSize: '37px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
     button.on('pointerdown', () => {
+
       HapticsService.confirm();
       GameState.activeParty = [];
       GameState.currentRoom = 0;

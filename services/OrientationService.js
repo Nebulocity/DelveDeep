@@ -1,5 +1,7 @@
 export default class OrientationService {
+  // I request landscape orientation when the browser supports locking it.
   static async lockLandscape() {
+
     try {
       if (screen?.orientation?.lock) {
         await screen.orientation.lock('landscape');

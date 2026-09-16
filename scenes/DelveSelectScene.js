@@ -4,9 +4,15 @@ import HapticsService from '../services/HapticsService.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
 
 export default class DelveSelectScene extends Phaser.Scene {
-  constructor() { super('DelveSelectScene'); }
+  // I register DelveSelectScene so the game can navigate to this screen.
+  constructor() {
 
+    super('DelveSelectScene');
+  }
+
+  // I present the chosen delve before the player selects a party.
   create() {
+
     const { width, height } = this.scale;
     const delve = GameState.currentDelve;
     if (!delve) {
@@ -42,13 +48,21 @@ export default class DelveSelectScene extends Phaser.Scene {
     const continueButton = this.add.rectangle(width / 2, height * 0.88, 650, 96, delve.type === 'void' ? 0x6b21a8 : 0x7c2d12)
       .setInteractive({ useHandCursor: true });
     this.add.text(width / 2, height * 0.88, 'CONTINUE', { fontFamily: 'Arial', fontSize: '42px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
-    continueButton.on('pointerdown', () => { HapticsService.confirm(); this.scene.start('PartySelectScene'); });
+    continueButton.on('pointerdown', () => {
+
+      HapticsService.confirm(); this.scene.start('PartySelectScene');
+    });
   }
 
+  // I give the player a way back to the world map.
   createWorldMapButton() {
+
     const y = UI_SAFE_TOP + 18;
     const button = this.add.rectangle(180, y, 300, 64, 0x3f3f46).setInteractive({ useHandCursor: true });
     this.add.text(180, y, '< WORLD MAP', { fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
-    button.on('pointerdown', () => { HapticsService.tap(); this.scene.start('TitleScene'); });
+    button.on('pointerdown', () => {
+
+      HapticsService.tap(); this.scene.start('TitleScene');
+    });
   }
 }

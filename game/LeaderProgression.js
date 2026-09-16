@@ -9,7 +9,9 @@ export const leaderAbilities = [
   { id: 'preparedSupplies', name: 'Prepared Supplies', branch: 'Logistics', description: 'Future: expand expedition consumable options.', cost: 1 }
 ];
 
+// I start a new Raid Leader with Focus Fire available and equipped.
 const defaultLeader = () => ({
+
   level: 1,
   highestClearedDepth: 0,
   inspirationPoints: 0,
@@ -18,7 +20,9 @@ const defaultLeader = () => ({
   battleLoadout: ['focusFire']
 });
 
+// I restore Raid Leader progress with valid defaults and loadout entries.
 export function loadLeaderProgression() {
+
   const fallback = defaultLeader();
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -36,7 +40,9 @@ export function loadLeaderProgression() {
   }
 }
 
+// I save Raid Leader advancement separately from the main profile.
 export function saveLeaderProgression(leader) {
+
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(leader));
   } catch (error) {
@@ -44,11 +50,15 @@ export function saveLeaderProgression(leader) {
   }
 }
 
+// I check which leadership abilities the player has unlocked.
 export function hasLeaderAbility(leader, abilityId) {
+
   return leader.unlockedAbilities.includes(abilityId);
 }
 
+// I spend available Inspiration to unlock a leadership ability once.
 export function purchaseLeaderAbility(leader, abilityId) {
+
   const ability = leaderAbilities.find((entry) => entry.id === abilityId);
   if (!ability || hasLeaderAbility(leader, abilityId) || leader.inspirationPoints < ability.cost) return false;
   leader.inspirationPoints -= ability.cost;
@@ -58,7 +68,9 @@ export function purchaseLeaderAbility(leader, abilityId) {
   return true;
 }
 
+// I reward new depth records with leader levels and milestone Inspiration.
 export function recordDepthClear(leader, depth) {
+
   if (!Number.isFinite(depth) || depth <= leader.highestClearedDepth) {
     return { leveledUp: false, inspirationEarned: 0 };
   }
@@ -75,7 +87,9 @@ export function recordDepthClear(leader, depth) {
 }
 
 
+// I let the player equip up to five unlocked leadership abilities.
 export function toggleLeaderLoadoutAbility(leader, abilityId) {
+
   if (!hasLeaderAbility(leader, abilityId)) return false;
   leader.battleLoadout = Array.isArray(leader.battleLoadout) ? leader.battleLoadout : [];
   if (leader.battleLoadout.includes(abilityId)) {
@@ -88,7 +102,9 @@ export function toggleLeaderLoadoutAbility(leader, abilityId) {
   return true;
 }
 
+// I remove Raid Leader progress as part of a fresh start.
 export function clearLeaderProgression() {
+
   try {
     localStorage.removeItem(STORAGE_KEY);
   } catch (error) {

@@ -5,14 +5,18 @@ import { saveProfile } from '../game/GameStorage.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
 
 export default class ShopScene extends Phaser.Scene {
+  // I register ShopScene so the game can navigate to this screen.
   constructor() {
+
     super('ShopScene');
     this.goldText = null;
     this.stockText = null;
     this.messageText = null;
   }
 
+  // I present tonic supplies, their price, and the purchase controls.
   create() {
+
     const { width, height } = this.scale;
     this.cameras.main.setBackgroundColor('#1b1713');
     this.createBackButton();
@@ -83,7 +87,9 @@ export default class ShopScene extends Phaser.Scene {
     this.refresh();
   }
 
+  // I provide a return to town with touch feedback.
   createBackButton() {
+
     const y = UI_SAFE_TOP + 18;
     const button = this.add.rectangle(172, y, 270, 64, 0x44403c)
       .setInteractive({ useHandCursor: true });
@@ -94,12 +100,15 @@ export default class ShopScene extends Phaser.Scene {
       color: '#ffffff'
     }).setOrigin(0.5);
     button.on('pointerdown', () => {
+
       HapticsService.tap();
       this.scene.start('TownScene');
     });
   }
 
+  // I exchange enough gold for one tonic and save the updated supplies.
   buyTonic() {
+
     if (GameState.gold < 25) {
       HapticsService.tap();
       this.messageText.setText('Not enough gold.');
@@ -114,7 +123,9 @@ export default class ShopScene extends Phaser.Scene {
     this.refresh();
   }
 
+  // I keep shop gold and owned stock in sync after a purchase.
   refresh() {
+
     this.goldText.setText(`Gold: ${GameState.gold}`);
     this.stockText.setText(`Owned: ${GameState.inventory.healingTonic}`);
   }

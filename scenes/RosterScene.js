@@ -5,11 +5,15 @@ import { happinessLabel, xpRequired } from '../game/AdventurerProgression.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
 
 export default class RosterScene extends Phaser.Scene {
+  // I register RosterScene so the game can navigate to this screen.
   constructor() {
+
     super('RosterScene');
   }
 
+  // I lay out the roster so the player can compare adventurers.
   create() {
+
     const { width, height } = this.scale;
     this.cameras.main.setBackgroundColor('#111827');
     this.createBackButton();
@@ -34,6 +38,7 @@ export default class RosterScene extends Phaser.Scene {
     const horizontalGap = Math.min(cardWidth + 42, width * 0.235);
 
     GameState.roster.forEach((adventurer, index) => {
+
       const row = Math.floor(index / maxColumns);
       const rowStart = row * maxColumns;
       const remaining = GameState.roster.length - rowStart;
@@ -46,7 +51,9 @@ export default class RosterScene extends Phaser.Scene {
     });
   }
 
+  // I provide a return to town with touch feedback.
   createBackButton() {
+
     const y = UI_SAFE_TOP + 18;
     const button = this.add.rectangle(172, y, 270, 64, 0x334155)
       .setInteractive({ useHandCursor: true });
@@ -57,12 +64,15 @@ export default class RosterScene extends Phaser.Scene {
       color: '#ffffff'
     }).setOrigin(0.5);
     button.on('pointerdown', () => {
+
       HapticsService.tap();
       this.scene.start('TownScene');
     });
   }
 
+  // I present an adventurer identity and stats for roster browsing.
   createCard(adventurer, x, y, cardWidth) {
+
     const cardHeight = 178;
     this.add.rectangle(x, y, cardWidth, cardHeight, 0x1f2937)
       .setStrokeStyle(3, 0x374151);

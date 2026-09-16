@@ -19,11 +19,15 @@ const LOCATION_STATUS_Y = {
 };
 
 export default class TitleScene extends Phaser.Scene {
+  // I register TitleScene so the game can navigate to this screen.
   constructor() {
+
     super('TitleScene');
   }
 
+  // I present world progress and the locations the party can visit.
   create() {
+
     const { width, height } = this.scale;
     this.cameras.main.setBackgroundColor('#080b10');
 
@@ -52,20 +56,28 @@ export default class TitleScene extends Phaser.Scene {
     this.createDevelopmentButton(width, height);
   }
 
+  // I place map interactions using positions relative to the game area.
   mapPosition(relativeX, relativeY) {
+
     const { width, height } = this.scale;
     return { x: width * relativeX, y: height * relativeY };
   }
 
+  // I check whether the party has reached a map location.
   isDiscovered(id) {
+
     return GameState.world.discoveredLocations.includes(id);
   }
 
+  // I recognize cleared delves from world progress or recorded victories.
   isCleared(id) {
+
     return GameState.world.clearedDelves.includes(id) || (GameState.records[id]?.clears ?? 0) > 0;
   }
 
+  // I make reachable towns enterable and show locked towns on the map.
   createTownHotspot(town, unlocked) {
+
     const { x, y } = this.mapPosition(town.x, town.y);
     const statusY = this.mapPosition(town.x, town.statusY ?? town.y + 0.08).y;
     const hit = this.add.circle(x, y, 105, 0xffffff, 0.001).setDepth(900);
@@ -77,11 +89,13 @@ export default class TitleScene extends Phaser.Scene {
     }
 
     hit.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
+
       HapticsService.tap();
       GameState.world.currentLocation = town.id;
       if (!GameState.world.discoveredLocations.includes(town.id)) GameState.world.discoveredLocations.push(town.id);
       if (town.id === 'duskfall') {
         ['dolmark-den', 'murmuring-abyss'].forEach((id) => {
+
           if (!GameState.world.discoveredLocations.includes(id)) GameState.world.discoveredLocations.push(id);
         });
       }
@@ -90,7 +104,9 @@ export default class TitleScene extends Phaser.Scene {
     });
   }
 
+  // I show delve access and route taps through discovery and key rules.
   createDelveHotspot(delve) {
+
     const { x, y } = this.mapPosition(delve.map.x, delve.map.y);
     const statusY = this.mapPosition(delve.map.x, LOCATION_STATUS_Y[delve.id] ?? delve.map.y + 0.08).y;
     const devUnlock = GameState.development.unlockAll;
@@ -104,6 +120,7 @@ export default class TitleScene extends Phaser.Scene {
 
     const hit = this.add.circle(x, y, Math.max(75, this.scale.width * delve.map.radius), 0xffffff, 0.001).setDepth(900);
     hit.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
+
       HapticsService.tap();
       if (!available) {
         this.showToast('This location has not been reached yet.');
@@ -137,7 +154,9 @@ export default class TitleScene extends Phaser.Scene {
     }
   }
 
+  // I mark the party current location on the world map.
   createPartyIndicator() {
+
     const lookup = {
       pineshire: TOWNS.pineshire,
       duskfall: TOWNS.duskfall,
@@ -152,7 +171,9 @@ export default class TitleScene extends Phaser.Scene {
       .setOrigin(0.5).setDepth(921);
   }
 
+  // I expose testing controls and show whether testing mode is active.
   createDevelopmentButton(width, height) {
+
     const enabled = GameState.development.unlockAll && GameState.development.replayCleared;
     const x = 190;
     const y = height - 52;
@@ -164,12 +185,15 @@ export default class TitleScene extends Phaser.Scene {
       fontFamily: 'Arial', fontSize: '26px', fontStyle: 'bold', color: '#ffffff'
     }).setOrigin(0.5).setDepth(1001);
     button.on('pointerdown', () => {
+
       HapticsService.tap();
       this.showDevelopmentTools();
     });
   }
 
+  // I offer map testing, key grants, and access to the progress reset.
   showDevelopmentTools() {
+
     const { width, height } = this.scale;
     const depth = 4000;
     const shade = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.72)
@@ -224,9 +248,11 @@ export default class TitleScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(depth + 3);
 
     const objects = [shade, panel, title, description, toggle, toggleText, addVoidKey, addVoidKeyText, reset, resetText, close, closeText];
+    // I remove all objects belonging to this development dialog.
     const destroy = () => objects.forEach((object) => object?.destroy());
 
     toggle.on('pointerdown', () => {
+
       HapticsService.confirm();
       const next = !enabled;
       GameState.development.unlockAll = next;
@@ -238,6 +264,7 @@ export default class TitleScene extends Phaser.Scene {
 
 
     addVoidKey.on('pointerdown', () => {
+
       HapticsService.confirm();
       GameState.inventory.voidKeys = (GameState.inventory.voidKeys ?? 0) + 1;
       saveProfile();
@@ -246,18 +273,22 @@ export default class TitleScene extends Phaser.Scene {
     });
 
     reset.on('pointerdown', () => {
+
       HapticsService.tap();
       destroy();
       this.showResetConfirmation();
     });
 
     close.on('pointerdown', () => {
+
       HapticsService.tap();
       destroy();
     });
   }
 
+  // I ask the player to confirm before clearing saved progression.
   showResetConfirmation() {
+
     const { width, height } = this.scale;
     const depth = 4100;
     const shade = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.78).setInteractive().setDepth(depth);
@@ -283,9 +314,11 @@ export default class TitleScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(depth + 3);
 
     const objects = [shade, panel, title, body, yes, yesText, no, noText];
+    // I remove all objects belonging to this development dialog.
     const destroy = () => objects.forEach((object) => object?.destroy());
 
     yes.on('pointerdown', () => {
+
       HapticsService.confirm();
       clearSavedProfile();
       clearLeaderProgression();
@@ -293,22 +326,30 @@ export default class TitleScene extends Phaser.Scene {
       this.scene.start('BootScene');
     });
     no.on('pointerdown', () => {
+
       HapticsService.tap();
       destroy();
       this.showDevelopmentTools();
     });
   }
 
+  // I give brief feedback about an unavailable choice or completed action.
   showToast(message) {
+
     const { width, height } = this.scale;
     const panel = this.add.rectangle(width / 2, height * 0.17, Math.min(1200, width * 0.65), 82, 0x0f172a, 0.96)
       .setStrokeStyle(3, 0x64748b).setDepth(2000);
     const text = this.add.text(width / 2, height * 0.17, message, { fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#f8fafc' })
       .setOrigin(0.5).setDepth(2001);
-    this.tweens.add({ targets: [panel, text], alpha: 0, delay: 1200, duration: 450, onComplete: () => { panel.destroy(); text.destroy(); } });
+    this.tweens.add({ targets: [panel, text], alpha: 0, delay: 1200, duration: 450, onComplete: () => {
+
+      panel.destroy(); text.destroy();
+    } });
   }
 
+  // I let the player review a cleared delve best time and latest loot.
   showClearedReview(delve) {
+
     const { width, height } = this.scale;
     const record = GameState.records[delve.id] ?? {};
     const loot = (record.lastRewards ?? []).map((reward) => reward.type === 'gold' ? `${reward.amount} Gold` : reward.label ?? reward.type).join(', ') || 'No recorded loot';

@@ -1,7 +1,7 @@
 # Delve Deep
 
-Delve Deep is a 2D pixel-art tactical RPG for Android. The player acts as
-the Raid Leader, selects five adventurers, and issues tactical orders
+Delve Deep is a 2D tactical RPG for Android. The player acts as
+the Leader, selects five adventurers, and issues tactical orders
 during real-time battles. Delve victories advance the roster, leader,
 and world map.
 
@@ -67,7 +67,7 @@ does not automatically transfer between localhost, Pages, and Android.
 
 ## Project directories
 
-The repository root is the source root. There is no `src/` directory.
+The repository root is the source root. 
 
 - `scenes/`: Phaser screens, navigation, and the battle scene. This is
   where most screen-specific UI and combat orchestration live.
@@ -92,9 +92,6 @@ The repository root is the source root. There is no `src/` directory.
   output. Update bundled web assets through the build and sync commands.
 - `node_modules/`: Installed dependencies managed by npm.
 
-Do not manually edit generated output or dependency files in `dist/`,
-`android/`, or `node_modules/` during ordinary source work.
-
 ## Important entry points and configuration
 
 - `index.html`: Browser entry page and the game mount element.
@@ -108,7 +105,6 @@ Do not manually edit generated output or dependency files in `dist/`,
 - `package.json`: Runtime dependencies and development/build scripts.
 - `package-lock.json`: Locked dependency versions for repeatable installs.
 - `.gitignore`: Generated output, dependencies, and local-only files.
-- `AGENTS.md`: Local coding and validation instructions, ignored by Git.
 - `ABILITY_EDITING.md`: Guide to editing class and enemy abilities,
   including which behavior requires changes in the battle scene.
 
@@ -120,13 +116,7 @@ Do not manually edit generated output or dependency files in `dist/`,
   delve reviews, party location marker, and development tools.
 - `scenes/TownScene.js`: Town facility destinations.
 - `scenes/AdventurersHallScene.js`: Battle tactics and equipment/item
-  destinations.
-- `scenes/BlacksmithScene.js`: Equipment and material purchases, sales, and
-  starter crafting recipes with class and rarity filters.
-- `scenes/EquipmentScene.js`: Role-filtered roster, one weapon and armor
-  slot per adventurer, and compatible owned equipment.
-- `scenes/ItemsScene.js`: Battle supplies, crafting materials, and every
-  owned equipment copy with its current wearer.
+  destinations; equipment and items use the facility placeholder.
 - `scenes/FacilityScene.js`: Shared placeholder for future town systems.
 - `scenes/RosterScene.js`: Adventurer stats, experience, and happiness.
 - `scenes/RaidLeaderScene.js`: Leadership unlocks and battle loadout.
@@ -171,48 +161,6 @@ Do not manually edit generated output or dependency files in `dist/`,
   a fallback when locking is unavailable.
 - `ui/Layout.js`: Shared safe-layout constants and header helper.
 
-## Equipment and crafting
-
-`data/items.js` defines rarity colors, the class equipment catalog, crafting
-materials, prices, bonuses, and starter recipes. Every implemented class
-(including Guardian) has three uncommon items at 100g and two rare items
-at 350g. Uncommon gear includes two alternative weapons and one armor;
-rare gear includes one weapon and one armor. Epic and legendary rarity
-colors and sell values are supported for future equipment definitions.
-
-Blacksmith sales pay 50g per rarity level: uncommon 50g, rare 100g, epic
-150g, legendary 200g. Equipped gear cannot be sold or consumed by a recipe.
-Purchases, sales, crafts, and tactic unlocks show a confirmation dialog with
-the cost or ingredients before committing. Cancel leaves resources unchanged.
-Purchases and crafts create
-individual item copies. Items can be replaced or unequipped in the Hall.
-
-Iron Ingots, Cured Leather, and Runic Cloth cost 50g each at the Blacksmith.
-Uncommon recipes consume two materials. Rare recipes consume the matching
-uncommon weapon or armor, four materials, and 50g. Alternative uncommon
-weapons are not substitutes for the recipe's named weapon. The Craft list
-shows owned/required ingredients. Material drops from delves remain future
-work; all starter recipes can be completed with merchant supplies.
-
-`game/Equipment.js` validates purchases, sales, crafting, and ownership.
-Equipment bonuses are added to a copy of the adventurer when creating a
-battle unit or displaying stats. Base roster stats and class ability powers
-remain unchanged: Attack and Healing bonuses improve basic attacks and
-basic heals; armor bonuses add percentage points of damage mitigation.
-Gear therefore increases combat power without compounding on reload or
-level-up. Health bonuses also affect percentage-based heals and health costs.
-
-Old profiles receive empty equipment slots, an empty owned-equipment list,
-and empty material counts. The existing save key is retained; owned copies,
-equipped instance IDs, and materials persist on the next save. Invalid or
-duplicate equipment references are discarded during loading. Saves do not
-transfer between browser origins or between the browser and Android.
-
-Run `node tests/equipment.test.js` for catalog, economy, crafting, ownership,
-stat, migration, and retreat checks. `node tests/inventory-scenes.test.js`
-exercises the screen callbacks and combat setup with a display adapter;
-it does not replace a visual phone check. Run `npm run build` for validation.
-
 Persistence currently uses local storage keys `delveDeep.profile.v2`,
 `delveDeep.leaderProgression.v1`, and `delveDeep.lastCombatLog.v1`.
 Changing these keys or stored structures requires attention to existing
@@ -244,22 +192,3 @@ Without a living tank, the remaining party can fight immediately.
 Run `node tests/battle-behavior.test.js` for combat behavior checks alongside
 the normal production build. These checks exercise combat decisions and
 delayed actions without rendering; touch layout still needs device review.
-
-Current Interrupt handling clears a pending enemy action without
-checking the selected class, while the combat notes call for class-aware
-interrupts. Several leader ability descriptions still say "Future" even
-though `BattleScene.js` implements effects for them. The documentation
-pass preserves these existing behaviors.
-
-Use short ASCII `//` comments in JavaScript with plain, descriptive wording.
-Start function summaries with "This function..." and explain what the
-function does, including its main responsibilities and relevant results.
-Inside longer functions, explain the distinct sections, such as screen
-setup, controls, input handling, and state changes. Add details where a
-gameplay rule or implementation choice needs explanation.
-
-Keep a blank line between every comment block and any code above it. A
-comment can sit directly above the code it describes, and consecutive
-lines of the same comment block stay together. Also leave a blank line
-after the opening brace of each function body. Preserve JavaScript,
-existing architecture, gameplay rules, and mobile readability.

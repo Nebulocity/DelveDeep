@@ -30,7 +30,7 @@ export default class RewardScene extends Phaser.Scene {
     this.add.rectangle(rightX, panelY, panelWidth, 430, 0x1f2937).setStrokeStyle(4, 0x374151);
     this.add.text(rightX, panelY - 165, 'PARTY PROGRESS', { fontFamily: 'Arial', fontSize: '36px', fontStyle: 'bold', color: '#f5f5f4' }).setOrigin(0.5);
     (summary?.adventurers ?? []).forEach((entry, index) => {
-      const y = panelY - 98 + index * 70;
+      const y = panelY - 98 + index * 66;
       const levelText = entry.levelsGained > 0 ? ` • LEVEL UP! -> ${entry.level}` : ` • Lv ${entry.level}`;
       this.add.text(rightX - panelWidth * 0.41, y, `${entry.name}: +${entry.xpGained} XP${levelText}`, { fontFamily: 'Arial', fontSize: '28px', color: entry.levelsGained > 0 ? '#bef264' : '#ffffff' });
       this.add.text(rightX + panelWidth * 0.41, y, `${entry.happiness}% happy`, { fontFamily: 'Arial', fontSize: '27px', color: '#86efac' }).setOrigin(1, 0);

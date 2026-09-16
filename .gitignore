@@ -1,6 +1,12 @@
 node_modules/
 dist/
 
+# Local Codex/ChatGPT guidance and project documentation
+AGENTS.md
+docs/
+.agents/
+.codex/
+
 .env
 .env.local
 

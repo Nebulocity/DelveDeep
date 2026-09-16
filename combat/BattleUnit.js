@@ -84,7 +84,16 @@ export default class BattleUnit {
       strokeThickness: 4
     }).setOrigin(0.5);
 
-    this.actionLabel = scene.add.text(0, this.isEnemy ? -102 : -112, '', {
+    this.targetLabel = scene.add.text(0, -106, '', {
+      fontFamily: 'Arial',
+      fontSize: '25px',
+      fontStyle: 'bold',
+      color: '#fca5a5',
+      stroke: '#000000',
+      strokeThickness: 3
+    }).setOrigin(0.5).setVisible(this.isEnemy);
+
+    this.actionLabel = scene.add.text(0, this.isEnemy ? -138 : -112, '', {
       fontFamily: 'Arial',
       fontSize: this.isEnemy ? '27px' : '22px',
       fontStyle: 'bold',
@@ -113,6 +122,7 @@ export default class BattleUnit {
       this.hitZone,
       this.body,
       this.label,
+      this.targetLabel,
       this.actionLabel,
       this.hpGlow,
       this.hpBack,
@@ -123,6 +133,11 @@ export default class BattleUnit {
 
     this.setStealthed(this.stealthed);
     this.syncPresentation();
+  }
+
+  setTargetName(name) {
+    if (!this.isEnemy || !this.targetLabel?.active) return;
+    this.targetLabel.setText(name ? `(${name})` : '');
   }
 
   get x() {

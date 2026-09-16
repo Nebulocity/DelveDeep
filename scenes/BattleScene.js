@@ -4,6 +4,7 @@ import enemies, { forgottenCavernWaves, voidPortalWaves } from '../data/enemies.
 import BattleUnit from '../combat/BattleUnit.js';
 import BattlefieldGeometry from '../combat/BattlefieldGeometry.js';
 import TacticsController from '../combat/TacticsController.js';
+import CombatLog from '../combat/CombatLog.js';
 import HapticsService from '../services/HapticsService.js';
 import { completeExpedition, failExpedition, fleeExpedition, formatDuration } from '../game/ExpeditionProgression.js';
 import { saveProfile } from '../game/GameStorage.js';
@@ -61,6 +62,7 @@ export default class BattleScene extends Phaser.Scene {
     this.createHeader(width);
     this.createArena(width, height);
     this.createParty();
+    this.combatLog = new CombatLog(GameState.currentDelve?.name ?? 'The Delve', this.partyUnits);
     this.createGridInteraction();
     this.createTacticsMenus(width, height);
     this.createLeaderLoadoutBar(width);
@@ -159,9 +161,13 @@ export default class BattleScene extends Phaser.Scene {
     const hudTop = height * 0.78;
     this.add.rectangle(width / 2, (hudTop + height) / 2, width, height - hudTop, 0x0c0a09).setDepth(4500);
     this.partyHud = [];
-    const usableWidth = width * 0.76;
+    const usableWidth = this.battlefield.bottomRightX - this.battlefield.bottomLeftX;
     const sectionWidth = usableWidth / 5;
-    const startX = width * 0.055;
+    const hudBarWidth = Math.max(120, sectionWidth - 60);
+    const contentLeft = -25;
+    const contentRight = 42 + hudBarWidth;
+    const contentOffset = sectionWidth / 2 - (contentLeft + contentRight) / 2;
+    const startX = this.battlefield.bottomLeftX + contentOffset;
 
     this.partyUnits.forEach((unit, index) => {
       const x = startX + index * sectionWidth;
@@ -173,7 +179,6 @@ export default class BattleScene extends Phaser.Scene {
         fontFamily:'Arial', fontSize:'30px', color:'#cbd5e1'
       }).setOrigin(0,0.5).setDepth(4501);
 
-      const hudBarWidth = Math.max(120, sectionWidth - 60);
       const hudBarX = x + 42;
       const hudBarY = hudTop + 108;
       const hpGlow = this.add.rectangle(hudBarX - 4, hudBarY, hudBarWidth + 8, 24, 0x000000, 0)
@@ -559,6 +564,7 @@ export default class BattleScene extends Phaser.Scene {
     const wave = this.waves[index];
     this.updateEncounterStatus();
     this.showBattleMessage(`WAVE ${index + 1}: ${wave.name}`, '#fb923c');
+    this.combatLog?.add('wave', `Wave ${index + 1} started: ${wave.name}`, { wave: index + 1 });
 
     this.enemies = wave.enemies.map((spawn, spawnIndex) => this.createEnemy(spawn.type, spawn, spawnIndex));
     this.waveTransitioning = false;
@@ -949,6 +955,7 @@ export default class BattleScene extends Phaser.Scene {
     if (!ability || !attacker.startAction(ability.name, time, ability.windup)) return;
 
     this.announceAbility(attacker, ability.name, attackType === 'spell' ? '#93c5fd' : '#fbbf24');
+    this.logActionStart(attacker, target, ability.name);
     attacker.markAbilityUsed(key, time);
     if (ability.healthCost) {
       const cost = Math.max(1, Math.round(attacker.maxHp * ability.healthCost));
@@ -973,6 +980,7 @@ export default class BattleScene extends Phaser.Scene {
   beginMultiHeal(healer, time, ability) {
     if (!healer.startAction(ability.name, time, ability.windup)) return;
     this.announceAbility(healer, ability.name, '#86efac');
+    this.logActionStart(healer, null, ability.name);
     healer.markAbilityUsed('primary', time);
     this.time.delayedCall(ability.windup, () => {
       if (!healer.alive || this.battleOver || healer.pendingAction?.name !== ability.name) return;
@@ -987,6 +995,7 @@ export default class BattleScene extends Phaser.Scene {
 
   beginInstantDamage(attacker, target, power, attackType, abilityName) {
     this.announceAbility(attacker, abilityName, attackType === 'holy' ? '#fde68a' : '#93c5fd');
+    this.logActionStart(attacker, target, abilityName);
     this.resolveDamage(attacker, target, power, attackType, attacker.threatMultiplier, abilityName);
   }
 
@@ -995,20 +1004,24 @@ export default class BattleScene extends Phaser.Scene {
       if (time < (enemy.status.stunnedUntil ?? 0)) return;
       const target = this.getHighestThreatTarget(enemy);
       if (!target) {
+        this.setEnemyTarget(enemy, null);
         return;
       }
+      if (!enemy.isBusy(time)) this.setEnemyTarget(enemy, target, 'highest threat');
 
       const primary = enemy.abilities?.primary;
       if (primary?.telegraph && enemy.abilityReady('primary', time) && enemy.distanceTo(target) <= 220) {
+        this.setEnemyTarget(enemy, target, 'highest threat');
         this.beginGroundSlam(enemy, target, time, primary);
         return;
       }
 
       const secondary = enemy.abilities?.secondary;
-      if (secondary && enemy.abilityReady('secondary', time)) {
+      if (secondary && !enemy.isBusy(time) && enemy.abilityReady('secondary', time)) {
         const rangedTarget = this.partyUnits.find((unit) => unit.alive && unit.role === 'Ranged DPS')
           ?? this.partyUnits.find((unit) => unit.alive && unit.role === 'Healer')
           ?? target;
+        this.setEnemyTarget(enemy, rangedTarget, 'secondary ability priority');
         this.beginEnemyAbility(enemy, rangedTarget, 'secondary', time);
         return;
       }
@@ -1029,6 +1042,8 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     attacker.lastAttackAt = time;
+    if (attacker.isEnemy) this.setEnemyTarget(attacker, target, 'highest threat');
+    this.logActionStart(attacker, target, 'Attack');
     this.time.delayedCall(attacker.attackWindup, () => {
       if (!attacker.alive || !target.alive || this.battleOver || attacker.pendingAction?.name !== 'Attack') {
         return;
@@ -1047,6 +1062,7 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     this.announceAbility(attacker, ability.name, attackType === 'spell' ? '#93c5fd' : attackType === 'ranged' ? '#86efac' : '#fbbf24');
+    this.logActionStart(attacker, target, ability.name);
     attacker.markAbilityUsed(key, time);
     if (ability.healthCost) {
       const cost = Math.max(1, Math.round(attacker.maxHp * ability.healthCost));
@@ -1091,6 +1107,8 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
     this.announceAbility(attacker, ability.name, '#c084fc');
+    this.setEnemyTarget(attacker, target, 'secondary ability priority');
+    this.logActionStart(attacker, target, ability.name);
     attacker.markAbilityUsed(key, time);
 
     this.time.delayedCall(ability.windup, () => {
@@ -1110,6 +1128,7 @@ export default class BattleScene extends Phaser.Scene {
     }
     if (!healer.spendMana(healer.basicHealManaCost)) { healer.finishAction(); return; }
     this.announceAbility(healer, 'Mend', '#86efac');
+    this.logActionStart(healer, target, 'Mend');
     healer.lastHealAt = time;
     this.time.delayedCall(healer.healWindup, () => {
       if (!healer.alive || !target.alive || this.battleOver || healer.pendingAction?.name !== 'Mend') {
@@ -1128,6 +1147,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
     this.announceAbility(healer, ability.name, '#86efac');
+    this.logActionStart(healer, target, ability.name);
     healer.markAbilityUsed(key, time);
     if (ability.healthCost) {
       const cost = Math.max(1, Math.round(healer.maxHp * ability.healthCost));
@@ -1151,6 +1171,8 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
     this.announceAbility(attacker, ability.name, '#f87171');
+    this.setEnemyTarget(attacker, target, 'highest threat');
+    this.logActionStart(attacker, target, ability.name);
     attacker.markAbilityUsed('primary', time);
 
     const center = { arenaX: target.arenaX, arenaY: target.arenaY };
@@ -1241,6 +1263,12 @@ export default class BattleScene extends Phaser.Scene {
     const now = this.time.now;
     if (now < (attacker.status.blindUntil ?? 0) && Math.random() < (attacker.status.blindChance ?? 0)) {
       this.createFloatingText(target.x, target.y - 82, 'MISS', '#cbd5e1', false, 'miss');
+      this.combatLog?.add('miss', `${attacker.name}'s ${abilityName} missed ${target.name}`, {
+        wave: this.currentWaveIndex + 1,
+        actor: attacker.name,
+        target: target.name,
+        ability: abilityName
+      });
       return;
     }
 
@@ -1273,7 +1301,9 @@ export default class BattleScene extends Phaser.Scene {
     if (attacker.isEnemy && !target.isEnemy && now < this.braceUntil) amount = Math.max(1, Math.round(amount * 0.7));
 
     const ranged = attackType === 'spell' || attackType === 'ranged' || attacker.attackRange > 180;
+    const hpBefore = target.hp;
     target.takeDamage(amount, { time: now, ranged });
+    const actualDamage = hpBefore - target.hp;
     if (amount > 0) {
       attacker.lastCombatActionAt = now;
       target.lastCombatActionAt = now;
@@ -1306,6 +1336,18 @@ export default class BattleScene extends Phaser.Scene {
       });
     }
 
+    this.combatLog?.add('damage', `${attacker.name} used ${abilityName} on ${target.name} for ${actualDamage}${critical ? ' critical' : ''} damage`, {
+      wave: this.currentWaveIndex + 1,
+      actor: attacker.name,
+      target: target.name,
+      ability: abilityName,
+      amount: actualDamage,
+      critical,
+      targetHp: target.hp,
+      targetMaxHp: target.maxHp,
+      threat: target.isEnemy ? this.getThreatSnapshot(target) : undefined
+    });
+
     if (attackType === 'spell' || attackType === 'holy') {
       this.createProjectile(attacker, target, attackType === 'holy' ? 0xfde68a : 0x60a5fa);
     } else {
@@ -1317,6 +1359,14 @@ export default class BattleScene extends Phaser.Scene {
 
     if (!target.alive && target.isEnemy) {
       this.handleEnemyDeath(target);
+    }
+    if (!target.alive) {
+      this.combatLog?.add('death', `${target.name} was defeated by ${attacker.name}'s ${abilityName}`, {
+        wave: this.currentWaveIndex + 1,
+        actor: attacker.name,
+        target: target.name,
+        ability: abilityName
+      });
     }
   }
 
@@ -1332,6 +1382,17 @@ export default class BattleScene extends Phaser.Scene {
     this.createFloatingText(target.x, target.y - 82, `+${effectiveHealing}${critical ? '!' : ''}`, '#22c55e', critical, 'healing');
 
     this.getLivingEnemies().forEach((enemy) => this.addThreat(enemy, healer, effectiveHealing * 0.45));
+    this.combatLog?.add('healing', `${healer.name} used ${abilityName} on ${target.name} for ${effectiveHealing}${critical ? ' critical' : ''} healing`, {
+      wave: this.currentWaveIndex + 1,
+      actor: healer.name,
+      target: target.name,
+      ability: abilityName,
+      amount: effectiveHealing,
+      critical,
+      targetHp: target.hp,
+      targetMaxHp: target.maxHp,
+      generatedThreat: Math.round(effectiveHealing * 0.45)
+    });
   }
 
   handleEnemyDeath(enemy) {
@@ -1368,6 +1429,39 @@ export default class BattleScene extends Phaser.Scene {
       }
       return enemy.distanceTo(a) - enemy.distanceTo(b);
     })[0];
+  }
+
+  getThreatSnapshot(enemy) {
+    const table = this.enemyThreat.get(enemy.id) ?? new Map();
+    return this.partyUnits
+      .map((unit) => ({ name: unit.name, role: unit.role, threat: Math.round(table.get(unit.id) ?? 0), alive: unit.alive }))
+      .sort((a, b) => b.threat - a.threat);
+  }
+
+  setEnemyTarget(enemy, target, reason = '') {
+    const targetId = target?.id ?? null;
+    enemy.setTargetName(target?.name ?? '');
+    if (enemy.currentTargetId === targetId && enemy.currentTargetReason === reason) return;
+
+    enemy.currentTargetId = targetId;
+    enemy.currentTargetReason = reason;
+    if (!target) return;
+    this.combatLog?.add('target', `${enemy.name} targets ${target.name}${reason ? ` (${reason})` : ''}`, {
+      wave: this.currentWaveIndex + 1,
+      actor: enemy.name,
+      target: target.name,
+      reason,
+      threat: this.getThreatSnapshot(enemy)
+    });
+  }
+
+  logActionStart(actor, target, ability) {
+    this.combatLog?.add('action', `${actor.name} begins ${ability}${target ? ` on ${target.name}` : ''}`, {
+      wave: this.currentWaveIndex + 1,
+      actor: actor.name,
+      target: target?.name,
+      ability
+    });
   }
 
   getCombinedThreat(unit) {
@@ -1521,6 +1615,8 @@ export default class BattleScene extends Phaser.Scene {
     this.waveTransitioning = true;
     this.activeTelegraphs.forEach((telegraph) => this.removeTelegraph(telegraph));
     this.showBattleMessage('WAVE CLEARED', '#bef264');
+    this.combatLog?.add('wave', `Wave ${this.currentWaveIndex + 1} cleared`, { wave: this.currentWaveIndex + 1 });
+    this.combatLog?.persist();
 
     this.enemies.forEach((enemy) => {
       this.tweens.add({
@@ -1603,6 +1699,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
     this.battleOver = true;
+    this.combatLog?.finish('victory');
     const gold = Math.max(1, this.earnedGold);
     GameState.gold += gold;
     GameState.currentRoom = this.waves.length;
@@ -1619,6 +1716,7 @@ export default class BattleScene extends Phaser.Scene {
   finishDefeat() {
     if (this.battleOver) return;
     this.battleOver = true;
+    this.combatLog?.finish('defeat');
     failExpedition();
     this.showResultOverlay('DEFEAT', 'The party was driven back.', 'ENCOUNTER SUMMARY', () => {
       HapticsService.confirm();
@@ -1643,6 +1741,7 @@ export default class BattleScene extends Phaser.Scene {
       this.time.paused = false;
     }
     this.battleOver = true;
+    this.combatLog?.finish('fled');
     fleeExpedition();
     HapticsService.heavy();
     this.scene.start('EncounterSummaryScene');

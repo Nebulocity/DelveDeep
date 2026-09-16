@@ -1,7 +1,11 @@
 import Phaser from 'phaser';
 
 export default class BattlefieldGeometry {
+
+  // This function defines the arena dimensions and perspective used by
+  // combat.
   constructor(scene, config) {
+
     this.scene = scene;
     this.bottomLeftX = config.bottomLeftX;
     this.bottomRightX = config.bottomRightX;
@@ -18,9 +22,15 @@ export default class BattlefieldGeometry {
     this.rows = config.rows ?? 6;
   }
 
-  getDepthRatio(arenaY) { return Phaser.Math.Clamp(arenaY / this.logicalHeight, 0, 1); }
+  // This function measures arena depth so perspective stays consistent.
+  getDepthRatio(arenaY) {
 
+    return Phaser.Math.Clamp(arenaY / this.logicalHeight, 0, 1);
+  }
+
+  // This function finds the visible floor width and height at this depth.
   getSpanAt(arenaY) {
+
     const depthRatio = this.getDepthRatio(arenaY);
     const leftX = Phaser.Math.Linear(this.bottomLeftX, this.topLeftX, depthRatio);
     const rightX = Phaser.Math.Linear(this.bottomRightX, this.topRightX, depthRatio);
@@ -28,7 +38,14 @@ export default class BattlefieldGeometry {
     return { leftX, rightX, y, width: rightX - leftX, depthRatio };
   }
 
+  // This function converts a logical arena position into a display position
+  // on the trapezoid-shaped battlefield. The horizontal span narrows with
+  // depth, while the returned depth and width can also be used by visual
+  // effects.
   arenaToScreen(arenaX, arenaY) {
+
+    // Clamp arena coordinates first so the projection stays inside the
+    // battlefield.
     const clampedX = Phaser.Math.Clamp(arenaX, 0, this.logicalWidth);
     const clampedY = Phaser.Math.Clamp(arenaY, 0, this.logicalHeight);
     const span = this.getSpanAt(clampedY);
@@ -40,16 +57,24 @@ export default class BattlefieldGeometry {
     };
   }
 
+  // This function keeps destinations inside the arena with room at the edges.
   clampPoint(arenaX, arenaY, paddingX = 0, paddingY = 0) {
+
     return {
       x: Phaser.Math.Clamp(arenaX, paddingX, this.logicalWidth - paddingX),
       y: Phaser.Math.Clamp(arenaY, paddingY, this.logicalHeight - paddingY)
     };
   }
 
-  getUnitScale(arenaY) { return Phaser.Math.Linear(this.nearScale, this.farScale, this.getDepthRatio(arenaY)); }
+  // This function makes distant units smaller to match the floor perspective.
+  getUnitScale(arenaY) {
 
+    return Phaser.Math.Linear(this.nearScale, this.farScale, this.getDepthRatio(arenaY));
+  }
+
+  // This function sizes ground warnings to match their depth in the arena.
   getGroundEllipseRadii(radius, arenaY) {
+
     const span = this.getSpanAt(arenaY);
     return {
       width: Math.max(18, radius * (span.width / this.logicalWidth)),
@@ -57,7 +82,9 @@ export default class BattlefieldGeometry {
     };
   }
 
+  // This function finds the arena bounds of a tactical destination tile.
   getCellBounds(column, row) {
+
     const cellWidth = this.logicalWidth / this.columns;
     const cellHeight = this.logicalHeight / this.rows;
     return {
@@ -68,12 +95,16 @@ export default class BattlefieldGeometry {
     };
   }
 
+  // This function uses the tile center as the anchor for movement orders.
   getCellCenter(column, row) {
+
     const b = this.getCellBounds(column, row);
     return { x: (b.left + b.right) / 2, y: (b.bottom + b.top) / 2 };
   }
 
+  // This function matches each touch target to its visible floor tile.
   getCellPolygon(column, row) {
+
     const b = this.getCellBounds(column, row);
     return [
       this.arenaToScreen(b.left, b.bottom),
@@ -83,14 +114,18 @@ export default class BattlefieldGeometry {
     ].map((p) => new Phaser.Geom.Point(p.x, p.y));
   }
 
+  // This function locates the tile containing a unit or destination.
   arenaPointToCell(arenaX, arenaY) {
+
     return {
       column: Phaser.Math.Clamp(Math.floor(arenaX / (this.logicalWidth / this.columns)), 0, this.columns - 1),
       row: Phaser.Math.Clamp(Math.floor(arenaY / (this.logicalHeight / this.rows)), 0, this.rows - 1)
     };
   }
 
+  // This function draws the arena grid that players use to issue orders.
   drawPerspectiveFloor() {
+
     const graphics = this.scene.add.graphics();
     const floor = [
       new Phaser.Geom.Point(this.bottomLeftX, this.bottomY),
@@ -104,10 +139,14 @@ export default class BattlefieldGeometry {
     graphics.strokePoints(floor, true);
     graphics.lineStyle(2, 0x8b6f1c, 0.72);
 
+    // Draw horizontal grid lines using the floor span at each arena depth.
     for (let row = 1; row < this.rows; row += 1) {
       const span = this.getSpanAt((this.logicalHeight / this.rows) * row);
       graphics.beginPath(); graphics.moveTo(span.leftX, span.y); graphics.lineTo(span.rightX, span.y); graphics.strokePath();
     }
+
+    // Connect matching near and far positions to draw the perspective column
+    // lines.
     for (let col = 1; col < this.columns; col += 1) {
       const x = (this.logicalWidth / this.columns) * col;
       const near = this.arenaToScreen(x, 0); const far = this.arenaToScreen(x, this.logicalHeight);

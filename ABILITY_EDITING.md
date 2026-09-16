@@ -129,6 +129,29 @@ primary: {
 
 Void Portal encounter groups are in `voidPortalWaves` in the same file.
 
+## Tank taunts and engagement
+
+`TANK_TAUNTS` in `data/classes.js` supplies both taunts to Paladin,
+Gladiator, and Guardian:
+
+- `taunt`: one enemy within 600 arena units, with an 8000 ms cooldown.
+- `areaTaunt`: up to the closest three enemies within 450 arena units,
+  with a 16000 ms cooldown. Enemies already targeting the tank are skipped.
+
+`BattleScene.tryTankTaunts()` chooses eligible enemies automatically.
+`applyTankTaunt()` raises the tank above their highest existing threat,
+cancels their old attacks, and redirects them to the tank. Taunts cost no
+mana, and cooldowns carry across waves within the encounter.
+
+A tank hit or taunt establishes engagement separately for each enemy.
+DPS wait for that engagement, including area-damage splash hits. Healing
+adds threat only to engaged enemies. After engagement, damage and healing
+use their normal threat amounts, so allies can still pull aggro. Without
+a living tank, the party fights normally without the engagement gate.
+
+Enemy ranged abilities follow threat rather than automatically choosing
+ranged DPS. When a new enemy has no threat yet, it prefers a living tank.
+
 ## Adding a brand-new class
 
 1. Add a new entry to `CLASS_DEFINITIONS` in `data/classes.js`.

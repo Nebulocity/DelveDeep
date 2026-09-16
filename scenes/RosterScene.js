@@ -1,3 +1,4 @@
+import { bindSelectionDetails, characterDetails } from '../ui/SelectionDetails.js';
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
 import HapticsService from '../services/HapticsService.js';
@@ -5,11 +6,17 @@ import { happinessLabel, xpRequired } from '../game/AdventurerProgression.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
 
 export default class RosterScene extends Phaser.Scene {
+
+  // This function registers RosterScene so the game can navigate to this
+  // screen.
   constructor() {
+
     super('RosterScene');
   }
 
+  // This function lays out the roster so the player can compare adventurers.
   create() {
+
     const { width, height } = this.scale;
     this.cameras.main.setBackgroundColor('#111827');
     this.createBackButton();
@@ -21,19 +28,23 @@ export default class RosterScene extends Phaser.Scene {
       color: '#f8fafc'
     }).setOrigin(0.5);
 
-    this.add.text(width / 2, UI_SAFE_TOP + 72, 'Experience and happiness persist between delves.', {
+    this.add.text(width / 2, UI_SAFE_TOP + 72, 'Long-press or hold-click an adventurer for details.', {
       fontFamily: 'Arial',
       fontSize: '30px',
       color: '#94a3b8'
     }).setOrigin(0.5);
 
+    // Size the roster cards and calculate a four-column layout for this
+    // display.
     const cardWidth = Math.min(520, width * 0.205);
     const maxColumns = 4;
     const rowGap = 205;
     const firstY = height * 0.29;
     const horizontalGap = Math.min(cardWidth + 42, width * 0.235);
 
+    // Center each row independently, including a partially filled final row.
     GameState.roster.forEach((adventurer, index) => {
+
       const row = Math.floor(index / maxColumns);
       const rowStart = row * maxColumns;
       const remaining = GameState.roster.length - rowStart;
@@ -46,7 +57,9 @@ export default class RosterScene extends Phaser.Scene {
     });
   }
 
+  // This function provides a return to town with touch feedback.
   createBackButton() {
+
     const y = UI_SAFE_TOP + 18;
     const button = this.add.rectangle(172, y, 270, 64, 0x334155)
       .setInteractive({ useHandCursor: true });
@@ -57,15 +70,20 @@ export default class RosterScene extends Phaser.Scene {
       color: '#ffffff'
     }).setOrigin(0.5);
     button.on('pointerdown', () => {
+
       HapticsService.tap();
       this.scene.start('TownScene');
     });
   }
 
+  // This function presents an adventurer identity and stats for roster
+  // browsing.
   createCard(adventurer, x, y, cardWidth) {
+
     const cardHeight = 178;
-    this.add.rectangle(x, y, cardWidth, cardHeight, 0x1f2937)
+    const card = this.add.rectangle(x, y, cardWidth, cardHeight, 0x1f2937)
       .setStrokeStyle(3, 0x374151);
+    bindSelectionDetails(this, card, () => characterDetails(adventurer));
 
     this.add.circle(x - cardWidth * 0.40, y - 30, 35, adventurer.color)
       .setStrokeStyle(3, 0xffffff, 0.2);

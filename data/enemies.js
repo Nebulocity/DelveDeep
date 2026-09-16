@@ -141,6 +141,44 @@ const enemies = {
   }
 };
 
+// These final bosses extend the existing encounters with long fights.
+// Their health provides endurance without making each hit overwhelming.
+enemies.slimeSovereign = {
+  ...enemies.elderSlime,
+  id: 'slime-sovereign', name: 'Slime Sovereign', boss: true,
+  maxHp: 2600, bodyRadius: 68, moveSpeed: 80,
+  attackPower: 15, attackCooldown: 1500, color: 0x84cc16,
+  goldMin: 65, goldMax: 85
+};
+enemies.denColossus = {
+  ...enemies.elderSlime,
+  id: 'den-colossus', name: 'Den Colossus', boss: true,
+  maxHp: 3400, bodyRadius: 72, moveSpeed: 78,
+  attackPower: 17, attackCooldown: 1450, color: 0xa16207,
+  goldMin: 90, goldMax: 120
+};
+enemies.abyssalSovereign = {
+  ...enemies.abyssalMaw,
+  id: 'abyssal-sovereign', name: 'Abyssal Sovereign', boss: true,
+  maxHp: 4400, bodyRadius: 76, moveSpeed: 85,
+  attackPower: 19, attackCooldown: 1450, color: 0xa855f7,
+  goldMin: 130, goldMax: 170
+};
+
+// These escorts sit between ordinary creatures and the existing bosses.
+enemies.denGuard = {
+  ...enemies.stoneCrawler,
+  id: 'den-guard', name: 'Den Guard', maxHp: 330,
+  attackPower: 12, attackCooldown: 1400, color: 0x92400e,
+  goldMin: 14, goldMax: 20
+};
+enemies.riftSentinel = {
+  ...enemies.voidStalker,
+  id: 'rift-sentinel', name: 'Rift Sentinel', maxHp: 360,
+  attackPower: 13, attackCooldown: 1400, color: 0x7e22ce,
+  goldMin: 18, goldMax: 25
+};
+
 export const forgottenCavernWaves = [
   {
     name: 'Cavern Vermin',

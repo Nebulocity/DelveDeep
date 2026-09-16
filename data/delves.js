@@ -1,3 +1,5 @@
+import { createEncounterWaves } from './encounters.js';
+
 const delves = [
   {
     id: 'slime-cave',
@@ -7,7 +9,6 @@ const delves = [
     difficulty: 'Easy',
     recommendedLevel: 1,
     depth: 1,
-    rooms: 3,
     type: 'delve',
     possibleDrops: ['Gold', 'Healing Tonic', 'Adventurer XP'],
     prerequisites: [],
@@ -21,7 +22,6 @@ const delves = [
     difficulty: 'Easy',
     recommendedLevel: 1,
     depth: 2,
-    rooms: 3,
     type: 'delve',
     possibleDrops: ['Gold', 'Healing Tonic', 'Adventurer XP'],
     prerequisites: ['slime-cave'],
@@ -35,7 +35,6 @@ const delves = [
     difficulty: 'Moderate',
     recommendedLevel: 2,
     depth: 3,
-    rooms: 3,
     type: 'delve',
     possibleDrops: ['Gold', 'Healing Tonic', 'Adventurer XP'],
     prerequisites: ['thornbriar-hollow'],
@@ -50,7 +49,6 @@ const delves = [
     difficulty: 'Void',
     recommendedLevel: 2,
     depth: 4,
-    rooms: 3,
     type: 'void',
     possibleDrops: ['Void-touched loot', 'Gold', 'Adventurer XP'],
     prerequisites: ['thornbriar-hollow'],
@@ -60,8 +58,15 @@ const delves = [
   }
 ];
 
+// This function looks up a delve definition by its persistent identifier.
 export function getDelveById(id) {
+
   return delves.find((delve) => delve.id === id) ?? null;
+}
+
+// Keep overview wave counts aligned with the actual encounter builder.
+for (const delve of delves) {
+  delve.rooms = createEncounterWaves(delve).length;
 }
 
 export default delves;

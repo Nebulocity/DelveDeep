@@ -7,44 +7,51 @@ import { loadProfile } from '../game/GameStorage.js';
 import worldMapUrl from '../assets/map.png?url';
 
 export default class BootScene extends Phaser.Scene {
+
+  // This function registers BootScene so the game can navigate to this
+  // screen.
   constructor() {
+
     super('BootScene');
   }
 
+  // This function loads the world map before the player enters the game.
   preload() {
+
     this.load.image('world-map', worldMapUrl);
   }
 
+  // This function restores the session and enters the world map in landscape.
   create() {
+
     this.initializeGameState();
     OrientationService.lockLandscape();
     this.scene.start('TitleScene');
   }
 
-  // I use this setup to restore the player's persistent progress while making sure
-  // every new play session begins with clean encounter data and a ready party.
+  // This function restores persistent progress and prepares clean encounter
+  // state.
   initializeGameState() {
 
-    // The current adventurer definitions stay authoritative for base stats and classes.
-    // Saved levels, experience, and other player progress are merged into that roster.
+    // Rebuild base stats from current definitions, then merge saved growth.
     loadProfile(adventurers);
 
-    // Raid Leader progression has its own save record, separate from the main profile.
+    // Restore the leader from its separate save record.
     GameState.leader = loadLeaderProgression();
 
-    // Saved IDs preserve the player's previous party order. Copies keep temporary
-    // combat changes from modifying the permanent roster entries by reference.
+    // Preserve saved party order and copy roster entries so temporary changes
+    // to top-level party stats do not alter the permanent roster.
     GameState.activeParty = GameState.roster
       .filter((adventurer) => GameState.lastPartyIds.includes(adventurer.id))
       .sort((a, b) => GameState.lastPartyIds.indexOf(a.id) - GameState.lastPartyIds.indexOf(b.id))
       .map((adventurer) => ({ ...adventurer }));
 
-    // Delve details belong to one expedition and must never carry into a new session.
+    // Clear expedition details so a new session cannot resume a stale run.
     GameState.currentDelve = null;
     GameState.currentRoom = 0;
     GameState.rewards = [];
 
-    // These snapshots let the expedition summary measure what changed during the run.
+    // Seed the snapshots used to compare and roll back run resources.
     GameState.run = {
       startedAt: 0,
       elapsedMs: 0,

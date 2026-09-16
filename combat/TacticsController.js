@@ -9,7 +9,9 @@ const DEFAULT_TACTICS = {
 };
 
 export default class TacticsController {
-  // I combine formation settings with the battlefield they operate in.
+
+  // This function combines formation settings with the battlefield they
+  // operate in.
   constructor(battlefield, tactics = {}) {
 
     this.battlefield = battlefield;
@@ -17,7 +19,10 @@ export default class TacticsController {
     this.preferences = new Map();
   }
 
-  // I give each adventurer stable positioning preferences for this fight.
+  // This function assigns each party member stable random position offsets
+  // and a preferred side for the encounter. Formation calculations reuse
+  // those preferences so units keep individual positions instead of choosing
+  // new ones every frame.
   registerParty(units) {
 
     units.forEach((unit, index) => {
@@ -35,7 +40,8 @@ export default class TacticsController {
     });
   }
 
-  // I start each role in formation with a little individual variation.
+  // This function starts each role in formation with a little individual
+  // variation.
   getSpawnPosition(unit, index) {
 
     const preference = this.preferences.get(unit.id) ?? { jitterX: 0, jitterY: 0, side: 1 };
@@ -49,7 +55,8 @@ export default class TacticsController {
     return this.safePoint(base.x + preference.jitterX, base.y + preference.jitterY, 70);
   }
 
-  // I place the tank near the enemy while favoring the arena center.
+  // This function places the tank near the enemy while favoring the arena
+  // center.
   getTankPosition(tank, primaryEnemy) {
 
     const preference = this.preferences.get(tank.id) ?? { jitterX: 0 };
@@ -58,7 +65,7 @@ export default class TacticsController {
     return this.safePoint(desiredX, desiredY, 100);
   }
 
-  // I give melee attackers a flank that follows their tactics.
+  // This function gives melee attackers a flank that follows their tactics.
   getMeleePosition(unit, enemy) {
 
     const preference = this.preferences.get(unit.id) ?? { side: 1, jitterY: 0 };
@@ -71,7 +78,8 @@ export default class TacticsController {
     return this.safePoint(enemy.arenaX + side * 95, enemy.arenaY - 25 + preference.jitterY * 0.25, 80);
   }
 
-  // I keep ranged attackers back with spacing set by their formation.
+  // This function keeps ranged attackers back with spacing set by their
+  // formation.
   getRangedPosition(unit, enemy) {
 
     const preference = this.preferences.get(unit.id) ?? { side: 1, jitterX: 0, jitterY: 0 };
@@ -81,7 +89,7 @@ export default class TacticsController {
     return this.safePoint(x, y, 75);
   }
 
-  // I position healers behind the tank with some lateral space.
+  // This function positions healers behind the tank with some lateral space.
   getHealerPosition(unit, tank) {
 
     const preference = this.preferences.get(unit.id) ?? { side: -1, jitterX: 0, jitterY: 0 };
@@ -92,17 +100,20 @@ export default class TacticsController {
     );
   }
 
-  // I let non-tanks dodge ground hazards when avoidance is enabled.
+  // This function lets non-tanks dodge ground hazards when avoidance is
+  // enabled.
   shouldAvoidMechanics(unit) {
 
     return this.tactics.mechanicResponse === 'avoid' && unit.role !== 'Tank';
   }
 
-  // I keep formation positions clear of arena edges and lower corners.
+  // This function keeps formation positions clear of arena edges and lower
+  // corners.
   safePoint(x, y, padding = 60) {
 
     const safe = this.battlefield.clampPoint(x, y, padding, padding);
-    // I narrow the rear formation space to avoid the lower corners.
+
+    // Narrow the rear formation space to avoid the lower corners.
     if (safe.y < 160) {
       safe.x = Phaser.Math.Clamp(safe.x, 150, this.battlefield.logicalWidth - 150);
     }

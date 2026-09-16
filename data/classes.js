@@ -1,3 +1,8 @@
+export const TANK_TAUNTS = {
+  taunt: { name: 'Taunt', cooldown: 8000, range: 600, targets: 1 },
+  areaTaunt: { name: 'Challenging Shout', cooldown: 16000, range: 450, targets: 3 }
+};
+
 export const CLASS_DEFINITIONS = {
   Paladin: {
     role: 'Tank',
@@ -16,7 +21,8 @@ export const CLASS_DEFINITIONS = {
     armor: 0.22,
     description: 'Holy shield tank with strong mitigation, area threat, self-healing, and a once-per-delve protective shield.',
     abilities: {
-      primary: { name: 'Consecration', cooldown: 4300, windup: 300, power: 12, radius: 185, threatMultiplier: 5.2, aoe: true, lifeSteal: 0.18, manaCost: 18 },
+      ...TANK_TAUNTS,
+      primary: { name: 'Righteous Blast', cooldown: 4300, windup: 300, power: 12, radius: 185, threatMultiplier: 5.2, aoe: true, lifeSteal: 0.18, manaCost: 18 },
       utility: { name: 'Protective Shield', cooldown: 9999999, duration: 10000, oncePerDelve: true, manaCost: 22 }
     }
   },
@@ -35,6 +41,7 @@ export const CLASS_DEFINITIONS = {
     armor: 0.08,
     description: 'Aggressive two-handed tank with high single-target damage, health-for-damage attacks, and dirty tricks.',
     abilities: {
+      ...TANK_TAUNTS,
       primary: { name: 'Blood Price', cooldown: 3600, windup: 250, power: 34, healthCost: 0.07, threatMultiplier: 4.2 },
       utility: { name: 'Sand Kick', cooldown: 7200, windup: 180, duration: 4500, missChance: 0.5 }
     }
@@ -54,6 +61,7 @@ export const CLASS_DEFINITIONS = {
     armor: 0.18,
     description: 'Nature tank focused on one enemy, self-healing, and reducing incoming damage for the party.',
     abilities: {
+      ...TANK_TAUNTS,
       primary: { name: 'Heartwood Smash', cooldown: 3900, windup: 330, power: 28, threatMultiplier: 6.2, lifeSteal: 0.35 },
       utility: { name: 'Withering Mark', cooldown: 8200, windup: 220, duration: 6000, damageReduction: 0.2 }
     }
@@ -214,7 +222,8 @@ export const CLASS_DEFINITIONS = {
   }
 };
 
-// I build an adventurer from class defaults and individual overrides.
+// This function builds an adventurer from class defaults and individual
+// overrides.
 export function createAdventurer(id, name, className, overrides = {}) {
 
   const definition = CLASS_DEFINITIONS[className];

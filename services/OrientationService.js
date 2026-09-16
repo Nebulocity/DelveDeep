@@ -1,5 +1,7 @@
 export default class OrientationService {
-  // I request landscape orientation when the browser supports locking it.
+
+  // This function requests landscape orientation when the browser supports
+  // locking it.
   static async lockLandscape() {
 
     try {

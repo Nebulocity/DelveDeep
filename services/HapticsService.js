@@ -1,7 +1,8 @@
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 
 class HapticsService {
-  // I give ordinary presses a light tactile response.
+
+  // This function gives ordinary presses a light tactile response.
   static async tap() {
 
     try {
@@ -9,11 +10,12 @@ class HapticsService {
         style: ImpactStyle.Light
       });
     } catch {
-      // I let play continue on devices without haptic support.
+
+      // Let play continue on devices without haptic support.
     }
   }
 
-  // I give committed choices a stronger tactile response.
+  // This function gives committed choices a stronger tactile response.
   static async confirm() {
 
     try {
@@ -21,11 +23,13 @@ class HapticsService {
         style: ImpactStyle.Medium
       });
     } catch {
-      // I let play continue on devices without haptic support.
+
+      // Let play continue on devices without haptic support.
     }
   }
 
-  // I emphasize major combat events with a heavy tactile response.
+  // This function emphasizes major combat events with a heavy tactile
+  // response.
   static async heavy() {
 
     try {
@@ -33,11 +37,12 @@ class HapticsService {
         style: ImpactStyle.Heavy
       });
     } catch {
-      // I let play continue on devices without haptic support.
+
+      // Let play continue on devices without haptic support.
     }
   }
 
-  // I celebrate success with the device notification feedback.
+  // This function celebrates success with the device notification feedback.
   static async success() {
 
     try {
@@ -45,7 +50,8 @@ class HapticsService {
         type: NotificationType.Success
       });
     } catch {
-      // I let play continue on devices without haptic support.
+
+      // Let play continue on devices without haptic support.
     }
   }
 }

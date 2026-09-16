@@ -133,7 +133,7 @@ Do not manually edit generated output or dependency files in `dist/`,
   from current class/roster data plus saved progression.
 - `game/AdventurerProgression.js`: Experience thresholds, level gains,
   and happiness adjustments.
-- `game/LeaderProgression.js`: Leader unlocks, Inspiration, depth records,
+- `game/LeaderProgression.js`: Leader unlocks, Tactics Points, depth records,
   and the equipped ability list, with separate persistence.
 - `game/ExpeditionProgression.js`: Run snapshots, victory rewards,
   defeat morale, retreat rollback, map reveals, and duration formatting.
@@ -156,14 +156,39 @@ These notes include future design direction; inspect the implementation
 before treating a described feature as complete.
 
 For example, current tile movement immediately creates a persistent Hold
-order. Current Interrupt handling clears a pending enemy action without
+order. An Attack order releases Hold for the selected adventurers and
+makes them pursue the chosen enemy. Select a character and tap a tile to
+Move, or tap a monster to Attack. The right menu has Attack; the top
+leadership bar retains Focus Fire. Explicitly ordering a healer to Attack
+uses basic attacks until that target dies or a movement order replaces it;
+ordinary Focus Fire leaves healers supporting the party.
+
+Tanks automatically use a single-target taunt every 8 seconds and an area
+taunt every 16 seconds when eligible enemies are in range. The area taunt
+selects at most the nearest three enemies not already targeting that tank.
+DPS wait for a tank hit or taunt on each enemy before attacking it. Healing
+adds threat only to engaged enemies; normal threat resumes after engagement.
+Without a living tank, the remaining party can fight immediately.
+
+Run `node tests/battle-behavior.test.js` for combat behavior checks alongside
+the normal production build. These checks exercise combat decisions and
+delayed actions without rendering; touch layout still needs device review.
+
+Current Interrupt handling clears a pending enemy action without
 checking the selected class, while the combat notes call for class-aware
 interrupts. Several leader ability descriptions still say "Future" even
 though `BattleScene.js` implements effects for them. The documentation
 pass preserves these existing behaviors.
 
-Use short ASCII `//` comments in JavaScript, written in the designer's
-first-person voice. Put overall purpose above named functions and keep
-internal notes for behavior that is not obvious from the code. Leave a
-blank line after the opening brace of each function body. Preserve
-JavaScript, existing architecture, gameplay rules, and mobile readability.
+Use short ASCII `//` comments in JavaScript with plain, descriptive wording.
+Start function summaries with "This function..." and explain what the
+function does, including its main responsibilities and relevant results.
+Inside longer functions, explain the distinct sections, such as screen
+setup, controls, input handling, and state changes. Add details where a
+gameplay rule or implementation choice needs explanation.
+
+Keep a blank line between every comment block and any code above it. A
+comment can sit directly above the code it describes, and consecutive
+lines of the same comment block stay together. Also leave a blank line
+after the opening brace of each function body. Preserve JavaScript,
+existing architecture, gameplay rules, and mobile readability.

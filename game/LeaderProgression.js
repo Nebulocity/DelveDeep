@@ -1,26 +1,29 @@
 const STORAGE_KEY = 'delveDeep.leaderProgression.v1';
 
 export const leaderAbilities = [
-  { id: 'focusFire', name: 'Focus Fire', branch: 'Command', description: 'Mark one enemy as the party priority target.', cost: 0, unlockedByDefault: true },
-  { id: 'rally', name: 'Rally', branch: 'Command', description: 'Call the party back toward a rally point during battle.', cost: 1 },
-  { id: 'coordinatedAssault', name: 'Coordinated Assault', branch: 'Command', description: 'Future: improve the payoff for sustained focus fire.', cost: 1 },
-  { id: 'encouragement', name: 'Encouragement', branch: 'Morale', description: 'Future: soften morale loss after a difficult expedition.', cost: 1 },
-  { id: 'brace', name: 'Brace!', branch: 'Survival', description: 'Future: trade offense for a short defensive response.', cost: 1 },
-  { id: 'preparedSupplies', name: 'Prepared Supplies', branch: 'Logistics', description: 'Future: expand expedition consumable options.', cost: 1 }
+  { id: 'focusFire', name: 'Focus Fire', shortName: 'FOCUS FIRE', branch: 'Command', description: 'Choose a shared enemy target. Healers keep healing.', cost: 0, cooldown: 10000, unlockedByDefault: true },
+  { id: 'rally', name: 'Rally', shortName: 'RALLY', branch: 'Command', description: 'Gather all living allies at a point and hold there.', cost: 1, cooldown: 12000 },
+  { id: 'coordinatedAssault', name: 'Coordinated Assault', shortName: 'ASSAULT', branch: 'Command', description: 'All allies deal 20% more damage for 8 seconds.', cost: 1, cooldown: 24000, duration: 8000, damageBonus: 0.2 },
+  { id: 'encouragement', name: 'Encouragement', shortName: 'ENCOURAGE', branch: 'Morale', description: 'Restore 25% maximum health to every living ally.', cost: 1, cooldown: 20000, healFraction: 0.25 },
+  { id: 'brace', name: 'Brace!', shortName: 'BRACE!', branch: 'Survival', description: 'All allies take 30% less damage for 8 seconds.', cost: 1, cooldown: 24000, duration: 8000, damageReduction: 0.3 },
+  { id: 'preparedSupplies', name: 'Prepared Supplies', shortName: 'SUPPLIES', branch: 'Logistics', description: 'Add one Healing Tonic. Once per encounter.', cost: 1, oncePerEncounter: true, tonicAmount: 1 },
+  { id: 'arise', name: 'Arise!', shortName: 'ARISE!', branch: 'Survival', description: 'Revive all fallen allies at 50% HP and mana. Once per encounter.', cost: 2, oncePerEncounter: true, healthFraction: 0.5, manaFraction: 0.5 }
 ];
 
-// I start a new Raid Leader with Focus Fire available and equipped.
+// This function starts a new Raid Leader with Focus Fire available and
+// equipped.
 const defaultLeader = () => ({
 
   level: 1,
   highestClearedDepth: 0,
-  inspirationPoints: 0,
-  spentInspiration: 0,
+  tacticsPoints: 0,
+  spentTacticsPoints: 0,
   unlockedAbilities: ['focusFire'],
   battleLoadout: ['focusFire']
 });
 
-// I restore Raid Leader progress with valid defaults and loadout entries.
+// This function restores Raid Leader progress with valid defaults and loadout
+// entries.
 export function loadLeaderProgression() {
 
   const fallback = defaultLeader();
@@ -28,11 +31,20 @@ export function loadLeaderProgression() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return fallback;
     const saved = JSON.parse(raw);
+
+    // Older saves used Inspiration names. Preserve those balances while
+    // writing only the new TP fields on the next save.
+    const { inspirationPoints, spentInspiration, ...progress } = saved;
+    const known = new Set(leaderAbilities.map((ability) => ability.id));
+    const unlocked = Array.from(new Set(['focusFire', ...(saved.unlockedAbilities ?? [])]))
+      .filter((id) => known.has(id));
     return {
       ...fallback,
-      ...saved,
-      unlockedAbilities: Array.from(new Set(['focusFire', ...(saved.unlockedAbilities ?? [])])),
-      battleLoadout: (saved.battleLoadout ?? ['focusFire']).filter((id) => ['focusFire', ...(saved.unlockedAbilities ?? [])].includes(id)).slice(0, 5)
+      ...progress,
+      tacticsPoints: Math.max(0, saved.tacticsPoints ?? inspirationPoints ?? 0),
+      spentTacticsPoints: Math.max(0, saved.spentTacticsPoints ?? spentInspiration ?? 0),
+      unlockedAbilities: unlocked,
+      battleLoadout: Array.from(new Set(saved.battleLoadout ?? ['focusFire'])).filter((id) => unlocked.includes(id)).slice(0, 5)
     };
   } catch (error) {
     console.warn('Could not load Battle Tactics progression.', error);
@@ -40,7 +52,8 @@ export function loadLeaderProgression() {
   }
 }
 
-// I save Raid Leader advancement separately from the main profile.
+// This function saves Raid Leader advancement separately from the main
+// profile.
 export function saveLeaderProgression(leader) {
 
   try {
@@ -50,47 +63,58 @@ export function saveLeaderProgression(leader) {
   }
 }
 
-// I check which leadership abilities the player has unlocked.
+// This function checks which leadership abilities the player has unlocked.
 export function hasLeaderAbility(leader, abilityId) {
 
   return leader.unlockedAbilities.includes(abilityId);
 }
 
-// I spend available Inspiration to unlock a leadership ability once.
+// This function spends available Tactics Points to unlock a leadership ability
+// once.
 export function purchaseLeaderAbility(leader, abilityId) {
 
   const ability = leaderAbilities.find((entry) => entry.id === abilityId);
-  if (!ability || hasLeaderAbility(leader, abilityId) || leader.inspirationPoints < ability.cost) return false;
-  leader.inspirationPoints -= ability.cost;
-  leader.spentInspiration += ability.cost;
+  if (!ability || hasLeaderAbility(leader, abilityId) || leader.tacticsPoints < ability.cost) return false;
+  leader.tacticsPoints -= ability.cost;
+  leader.spentTacticsPoints += ability.cost;
   leader.unlockedAbilities.push(abilityId);
   saveLeaderProgression(leader);
   return true;
 }
 
-// I reward new depth records with leader levels and milestone Inspiration.
+// This function grants leader levels and awards one TP for each five-level
+// milestone crossed. The Dev button and depth progression use the same rule.
+export function grantLeaderLevels(leader, amount = 1) {
+
+  const previousLevel = leader.level;
+  const gained = Number.isFinite(amount) ? Math.max(0, Math.floor(amount)) : 0;
+  leader.level += gained;
+  const tacticsPointsEarned = Math.floor(leader.level / 5) - Math.floor(previousLevel / 5);
+  leader.tacticsPoints += tacticsPointsEarned;
+  saveLeaderProgression(leader);
+  return { leveledUp: gained > 0, tacticsPointsEarned };
+}
+
+// This function records a new depth and grants any corresponding leader
+// levels. Developer-granted levels are never reduced by clearing a lower
+// depth, and repeated clears cannot award the same milestone twice.
 export function recordDepthClear(leader, depth) {
 
   if (!Number.isFinite(depth) || depth <= leader.highestClearedDepth) {
-    return { leveledUp: false, inspirationEarned: 0 };
+    return { leveledUp: false, tacticsPointsEarned: 0 };
   }
-
-  const previousLevel = leader.level;
   leader.highestClearedDepth = depth;
-  leader.level = Math.max(1, depth + 1);
-  const previousMilestones = Math.floor(previousLevel / 5);
-  const newMilestones = Math.floor(leader.level / 5);
-  const inspirationEarned = Math.max(0, newMilestones - previousMilestones);
-  leader.inspirationPoints += inspirationEarned;
-  saveLeaderProgression(leader);
-  return { leveledUp: leader.level > previousLevel, inspirationEarned };
+  return grantLeaderLevels(leader, Math.max(0, depth + 1 - leader.level));
 }
 
-
-// I let the player equip up to five unlocked leadership abilities.
+// This function lets the player equip up to five unlocked leadership
+// abilities.
 export function toggleLeaderLoadoutAbility(leader, abilityId) {
 
   if (!hasLeaderAbility(leader, abilityId)) return false;
+
+  // Normalize missing loadout data before toggling the ability; adding a
+  // sixth entry is rejected.
   leader.battleLoadout = Array.isArray(leader.battleLoadout) ? leader.battleLoadout : [];
   if (leader.battleLoadout.includes(abilityId)) {
     leader.battleLoadout = leader.battleLoadout.filter((id) => id !== abilityId);
@@ -102,7 +126,7 @@ export function toggleLeaderLoadoutAbility(leader, abilityId) {
   return true;
 }
 
-// I remove Raid Leader progress as part of a fresh start.
+// This function removes Raid Leader progress as part of a fresh start.
 export function clearLeaderProgression() {
 
   try {

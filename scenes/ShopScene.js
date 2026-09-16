@@ -1,3 +1,4 @@
+import { bindSelectionDetails, addDetailsHint, TONIC_DESCRIPTION } from '../ui/SelectionDetails.js';
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
 import HapticsService from '../services/HapticsService.js';
@@ -5,7 +6,9 @@ import { saveProfile } from '../game/GameStorage.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
 
 export default class ShopScene extends Phaser.Scene {
-  // I register ShopScene so the game can navigate to this screen.
+
+  // This function registers ShopScene so the game can navigate to this
+  // screen.
   constructor() {
 
     super('ShopScene');
@@ -14,7 +17,9 @@ export default class ShopScene extends Phaser.Scene {
     this.messageText = null;
   }
 
-  // I present tonic supplies, their price, and the purchase controls.
+  // This function builds the Quartermaster screen around the Healing Tonic
+  // offer. It displays the item description, price, current gold, owned
+  // quantity, and feedback from purchase attempts.
   create() {
 
     const { width, height } = this.scale;
@@ -34,11 +39,15 @@ export default class ShopScene extends Phaser.Scene {
       color: '#fbbf24'
     }).setOrigin(1, 0.5);
 
+    // Position the tonic offer and its description in a central product
+    // panel.
     const cardX = width / 2;
     const cardY = height * 0.53;
     const cardWidth = Math.min(1000, width * 0.48);
 
-    this.add.rectangle(cardX, cardY, cardWidth, 360, 0x292524).setStrokeStyle(4, 0x57534e);
+    const itemCard = this.add.rectangle(cardX, cardY, cardWidth, 360, 0x292524).setStrokeStyle(4, 0x57534e);
+    bindSelectionDetails(this, itemCard, { title: 'Healing Tonic', description: TONIC_DESCRIPTION });
+    addDetailsHint(this, height * 0.76);
     this.add.circle(cardX - cardWidth * 0.39, cardY - 60, 52, 0xdc2626);
     this.add.text(cardX - cardWidth * 0.39, cardY - 60, '+', {
       fontFamily: 'Arial',
@@ -55,7 +64,7 @@ export default class ShopScene extends Phaser.Scene {
     });
 
     this.add.text(cardX - cardWidth * 0.29, cardY - 62,
-      'Automatically consumed when an adventurer falls below 35% HP. Restores 35% max HP.', {
+      'Restores 35% max HP. Use on a character in combat, or auto-use at 35% HP. Shared cooldown: 1.5s.', {
         fontFamily: 'Arial',
         fontSize: '28px',
         color: '#d6d3d1',
@@ -68,6 +77,8 @@ export default class ShopScene extends Phaser.Scene {
       color: '#a8a29e'
     });
 
+    // Add the purchase control beneath the item details and reserve a label
+    // for purchase feedback.
     const buy = this.add.rectangle(cardX + cardWidth * 0.22, cardY + 105, 330, 76, 0x7c2d12)
       .setInteractive({ useHandCursor: true });
     this.add.text(cardX + cardWidth * 0.22, cardY + 105, 'BUY • 25 GOLD', {
@@ -84,10 +95,11 @@ export default class ShopScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     buy.on('pointerdown', () => this.buyTonic());
+    bindSelectionDetails(this, buy, { title: 'Healing Tonic - 25 Gold', description: TONIC_DESCRIPTION });
     this.refresh();
   }
 
-  // I provide a return to town with touch feedback.
+  // This function provides a return to town with touch feedback.
   createBackButton() {
 
     const y = UI_SAFE_TOP + 18;
@@ -106,7 +118,8 @@ export default class ShopScene extends Phaser.Scene {
     });
   }
 
-  // I exchange enough gold for one tonic and save the updated supplies.
+  // This function exchanges enough gold for one tonic and saves the updated
+  // supplies.
   buyTonic() {
 
     if (GameState.gold < 25) {
@@ -115,6 +128,8 @@ export default class ShopScene extends Phaser.Scene {
       return;
     }
 
+    // Commit the gold cost and added tonic together, then save before
+    // refreshing the displayed stock.
     GameState.gold -= 25;
     GameState.inventory.healingTonic += 1;
     saveProfile();
@@ -123,7 +138,7 @@ export default class ShopScene extends Phaser.Scene {
     this.refresh();
   }
 
-  // I keep shop gold and owned stock in sync after a purchase.
+  // This function keeps shop gold and owned stock in sync after a purchase.
   refresh() {
 
     this.goldText.setText(`Gold: ${GameState.gold}`);

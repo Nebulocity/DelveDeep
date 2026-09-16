@@ -1,3 +1,4 @@
+import { bindSelectionDetails, addDetailsHint } from '../ui/SelectionDetails.js';
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
 import HapticsService from '../services/HapticsService.js';
@@ -20,7 +21,9 @@ const ROLE_COLUMNS = [
 ];
 
 export default class PartySelectScene extends Phaser.Scene {
-  // I register PartySelectScene so the game can navigate to this screen.
+
+  // This function registers PartySelectScene so the game can navigate to this
+  // screen.
   constructor() {
 
     super('PartySelectScene');
@@ -30,13 +33,16 @@ export default class PartySelectScene extends Phaser.Scene {
     this.lastTap = new Map();
   }
 
-  // I restore the party selection whenever this screen opens.
+  // This function restores the party selection whenever this screen opens.
   init() {
 
     this.selectedIds = this.buildInitialSelection();
   }
 
-  // I build role lists and selection controls for a five-adventurer party.
+  // This function builds the party selection screen with separate scrolling
+  // columns for each role. It connects wheel and scrollbar input, adds the
+  // battle overview button, and displays the current selection against the
+  // party limits.
   create() {
 
     const { width, height } = this.scale;
@@ -45,11 +51,14 @@ export default class PartySelectScene extends Phaser.Scene {
     this.columns = [];
 
     this.createBackButton();
+    addDetailsHint(this, height * 0.82, 'Long-press or hold-click an adventurer for stats.');
 
     this.add.text(width / 2, UI_SAFE_TOP + 14, 'PARTY SELECT', { fontFamily: 'Arial', fontSize: '68px', fontStyle: 'bold', color: '#f8fafc' }).setOrigin(0.5);
     this.add.text(width / 2, UI_SAFE_TOP + 67, GameState.currentDelve?.name ?? 'Unknown Delve', { fontFamily: 'Arial', fontSize: '34px', color: '#cbd5e1' }).setOrigin(0.5);
     this.partyCountText = this.add.text(width / 2, UI_SAFE_TOP + 106, '', { fontFamily: 'Arial', fontSize: '30px', color: '#94a3b8' }).setOrigin(0.5);
 
+    // Divide the available width into four role columns with a shared viewing
+    // height.
     const columnWidth = width * 0.225;
     const gap = width * 0.012;
     const totalWidth = columnWidth * 4 + gap * 3;
@@ -63,16 +72,20 @@ export default class PartySelectScene extends Phaser.Scene {
       this.createRoleColumn(definition, x, viewTop, columnWidth, viewHeight);
     });
 
+    // Create the overview button. The begin handler still checks that exactly
+    // five adventurers are selected.
     this.beginButton = this.add.rectangle(width / 2, height * 0.90, 720, 96, 0x334155).setInteractive({ useHandCursor: true });
     this.beginButtonText = this.add.text(width / 2, height * 0.90, 'BATTLE OVERVIEW', { fontFamily: 'Arial', fontSize: '40px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
     this.beginButton.on('pointerdown', () => this.begin());
 
+    // Scroll only the role column under the pointer.
     this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY) => {
 
       const column = this.columns.find((entry) => Phaser.Geom.Rectangle.Contains(entry.bounds, pointer.x, pointer.y));
       if (column) this.scrollColumn(column, deltaY > 0 ? 1 : -1);
     });
 
+    // Convert scrollbar thumb movement into a bounded content offset.
     this.input.on('drag', (pointer, gameObject, dragX, dragY) => {
 
       const column = this.columns.find((entry) => entry.thumb === gameObject);
@@ -89,7 +102,8 @@ export default class PartySelectScene extends Phaser.Scene {
     this.refreshSelectionUi();
   }
 
-  // I let the player return to the delve overview with touch feedback.
+  // This function lets the player return to the delve overview with touch
+  // feedback.
   createBackButton() {
 
     const y = UI_SAFE_TOP + 18;
@@ -102,11 +116,14 @@ export default class PartySelectScene extends Phaser.Scene {
     });
   }
 
-  // I restore a valid previous party while leaving first-time selection
-  // empty.
+  // This function restores a valid previous party while leaving first-time
+  // selection empty.
   buildInitialSelection() {
 
     const initialIds = new Set();
+
+    // Prefer the active party, falling back to saved IDs. An empty history
+    // leaves the initial selection empty.
     const preferredIds = GameState.activeParty.length > 0
       ? GameState.activeParty.map((adventurer) => adventurer.id)
       : (GameState.lastPartyIds ?? []);
@@ -121,12 +138,16 @@ export default class PartySelectScene extends Phaser.Scene {
     return initialIds;
   }
 
-  // I arrange each role roster in a bounded, scrollable selection column.
+  // This function builds one role column, including its adventurer cards,
+  // clipped viewing area, and scrolling controls. The saved column state lets
+  // dragging, arrow buttons, and track taps share the same scrolling logic.
   createRoleColumn(definition, x, top, width, height) {
 
     this.add.rectangle(x, top + height / 2, width, height + 82, 0x172033).setStrokeStyle(3, 0x334155);
     this.add.text(x, top - 24, definition.title, { fontFamily: 'Arial', fontSize: '34px', fontStyle: 'bold', color: '#f8fafc' }).setOrigin(0.5);
 
+    // Choose the adventurers belonging to this column and clip the scrolling
+    // content to its visible area.
     const roster = GameState.roster.filter((adventurer) => definition.roles.includes(adventurer.role));
     const itemHeight = 150;
     const scrollTop = top + 18;
@@ -137,6 +158,8 @@ export default class PartySelectScene extends Phaser.Scene {
     const mask = maskShape.createGeometryMask();
     content.setMask(mask);
 
+    // Create an interactive card for every matching adventurer and retain its
+    // display objects for selection updates.
     const contentCenterX = x - 8;
     const cardWidth = width - 58;
     roster.forEach((adventurer, index) => {
@@ -159,6 +182,7 @@ export default class PartySelectScene extends Phaser.Scene {
       content.add(empty);
     }
 
+    // Build the arrow buttons and scroll track beside the card list.
     const trackHeight = scrollHeight;
     const trackTop = scrollTop;
     const trackX = x + width / 2 - 18;
@@ -168,6 +192,8 @@ export default class PartySelectScene extends Phaser.Scene {
     const downIcon = this.add.text(trackX, scrollTop + scrollHeight - 20, 'v', { fontFamily: 'Arial', fontSize: '20px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
     const track = this.add.rectangle(trackX, trackTop + trackHeight / 2, 10, trackHeight - 56, 0x0f172a, 0.95).setStrokeStyle(2, 0x475569);
 
+    // Calculate how far the list can scroll and size the thumb to the visible
+    // fraction of the content.
     const contentHeight = roster.length > 0 ? (128 + (roster.length - 1) * itemHeight) : scrollHeight;
     const maxOffset = Math.max(0, contentHeight - scrollHeight);
     const visibleRatio = Phaser.Math.Clamp(scrollHeight / Math.max(contentHeight, scrollHeight), 0.15, 1);
@@ -206,44 +232,20 @@ export default class PartySelectScene extends Phaser.Scene {
     this.updateColumnScrollUi(column);
   }
 
-  // I separate selection taps from long presses and double-tap detail
-  // requests.
+  // This function connects an adventurer card to selection and detail
+  // viewing. A short tap toggles selection, while a long press or closely
+  // repeated tap opens the stat panel.
   bindCardInput(card, adventurer) {
 
-    let downAt = 0;
-    let longPressTimer = null;
-    let longPressed = false;
-
-    card.on('pointerdown', (pointer, localX, localY, event) => {
-
-      event?.stopPropagation?.();
-      downAt = this.time.now;
-      longPressed = false;
-      longPressTimer = this.time.delayedCall(550, () => {
-
-        longPressed = true;
-        this.showAdventurerDetails(adventurer);
-      });
-    });
-
-    card.on('pointerup', (pointer, localX, localY, event) => {
-
-      event?.stopPropagation?.();
-      longPressTimer?.remove(false);
-      if (longPressed || this.time.now - downAt >= 520) return;
-
+    bindSelectionDetails(this, card, null, () => {
       const previous = this.lastTap.get(adventurer.id) ?? -Infinity;
       this.lastTap.set(adventurer.id, this.time.now);
-      if (this.time.now - previous < 320) {
-        this.showAdventurerDetails(adventurer);
-        return;
-      }
-
-      this.toggleAdventurer(adventurer.id);
-    });
+      if (this.time.now - previous < 320) this.showAdventurerDetails(adventurer);
+      else this.toggleAdventurer(adventurer.id);
+    }, () => this.showAdventurerDetails(adventurer));
   }
 
-  // I count the party by the role limits used during selection.
+  // This function counts the party by the role limits used during selection.
   getSelectionCounts(selectedIds = this.selectedIds) {
 
     const counts = { Tank: 0, Healer: 0, DPS: 0, total: 0 };
@@ -257,7 +259,8 @@ export default class PartySelectScene extends Phaser.Scene {
     return counts;
   }
 
-  // I combine melee and ranged damage dealers under the shared DPS limit.
+  // This function combines melee and ranged damage dealers under the shared
+  // DPS limit.
   getRoleGroup(role) {
 
     if (role === 'Tank') return 'Tank';
@@ -265,7 +268,8 @@ export default class PartySelectScene extends Phaser.Scene {
     return 'DPS';
   }
 
-  // I enforce both party size and role limits before adding an adventurer.
+  // This function enforces both party size and role limits before adding an
+  // adventurer.
   canAddToSelection(adventurer, selectedIds = this.selectedIds) {
 
     const counts = this.getSelectionCounts(selectedIds);
@@ -274,7 +278,7 @@ export default class PartySelectScene extends Phaser.Scene {
     return counts[roleGroup] < ROLE_LIMITS[roleGroup];
   }
 
-  // I explain which party limit prevents this selection.
+  // This function explains which party limit prevents this selection.
   getSelectionBlockReason(adventurer) {
 
     const counts = this.getSelectionCounts();
@@ -287,7 +291,8 @@ export default class PartySelectScene extends Phaser.Scene {
     return '';
   }
 
-  // I add or remove an adventurer and explain any selection limit.
+  // This function adds or removes an adventurer and explains any selection
+  // limit.
   toggleAdventurer(id) {
 
     HapticsService.tap();
@@ -310,13 +315,14 @@ export default class PartySelectScene extends Phaser.Scene {
     this.refreshSelectionUi();
   }
 
-  // I move the role list by one comfortable browsing step.
+  // This function moves the role list by one comfortable browsing step.
   scrollColumn(column, direction) {
 
     this.setColumnOffset(column, column.offset + direction * 130, true);
   }
 
-  // I keep list scrolling within bounds and update its controls.
+  // This function keeps list scrolling within bounds and updates its
+  // controls.
   setColumnOffset(column, offset, animate = false) {
 
     column.offset = Phaser.Math.Clamp(offset, 0, column.maxOffset);
@@ -328,7 +334,8 @@ export default class PartySelectScene extends Phaser.Scene {
     this.updateColumnScrollUi(column);
   }
 
-  // I translate a scrollbar tap into a position in the roster list.
+  // This function translates a scrollbar tap into a position in the roster
+  // list.
   setColumnOffsetFromPointer(column, pointerY) {
 
     const minY = column.trackTop + column.thumbHeight / 2;
@@ -339,7 +346,8 @@ export default class PartySelectScene extends Phaser.Scene {
     this.setColumnOffset(column, ratio * column.maxOffset, false);
   }
 
-  // I show the list position and dim scrolling controls when unnecessary.
+  // This function shows the list position and dims scrolling controls when
+  // unnecessary.
   updateColumnScrollUi(column) {
 
     const scrollable = column.maxOffset > 0;
@@ -362,7 +370,8 @@ export default class PartySelectScene extends Phaser.Scene {
     column.thumb.y = Phaser.Math.Linear(minY, maxY, ratio);
   }
 
-  // I show selected and unavailable adventurers alongside party readiness.
+  // This function shows selected and unavailable adventurers alongside party
+  // readiness.
   refreshSelectionUi() {
 
     const counts = this.getSelectionCounts();
@@ -396,12 +405,14 @@ export default class PartySelectScene extends Phaser.Scene {
       }
     });
 
+    // Use the overview button appearance to indicate whether the party is
+    // complete.
     const ready = counts.total === MAX_PARTY_SIZE;
     this.beginButton.setFillStyle(ready ? 0x475569 : 0x1f2937);
     this.beginButtonText.setColor(ready ? '#ffffff' : '#64748b');
   }
 
-  // I save a complete party and advance to the battle overview.
+  // This function saves a complete party and advances to the battle overview.
   begin() {
 
     if (this.selectedIds.size !== MAX_PARTY_SIZE) {
@@ -418,7 +429,9 @@ export default class PartySelectScene extends Phaser.Scene {
     this.scene.start('DungeonScene');
   }
 
-  // I open a readable stat panel for the adventurer being inspected.
+  // This function opens a modal panel showing the selected adventurer's
+  // identity, stats, happiness, and class description. It tracks every modal
+  // object so tapping the close button or backdrop removes the whole panel.
   showAdventurerDetails(adventurer) {
 
     HapticsService.tap();
@@ -431,7 +444,8 @@ export default class PartySelectScene extends Phaser.Scene {
     const panelY = height / 2;
     const modalElements = [];
 
-    // I track each detail panel object so closing the panel removes it all.
+    // This function tracks each detail panel object so closing the panel
+    // removes it all.
     const addElement = (element) => {
 
       modalElements.push(element);
@@ -454,6 +468,8 @@ export default class PartySelectScene extends Phaser.Scene {
       fontFamily: 'Arial', fontSize: '30px', color: '#cbd5e1'
     }).setOrigin(0.5).setDepth(depth + 2));
 
+    // Build the stat list, adding healing and mana only when those resources
+    // apply to this adventurer.
     const statRows = [
       ['Level', `${adventurer.level}`],
       ['HP', `${adventurer.maxHp}`],
@@ -489,6 +505,8 @@ export default class PartySelectScene extends Phaser.Scene {
       }).setOrigin(0, 0.5).setDepth(depth + 2));
     });
 
+    // Reserve the bottom of the detail panel for the description and close
+    // button.
     const closeY = bottom - 58;
     const descriptionY = closeY - 94;
     addElement(this.add.text(panelX, descriptionY, adventurer.description, {
@@ -505,13 +523,15 @@ export default class PartySelectScene extends Phaser.Scene {
       fontFamily: 'Arial', fontSize: '30px', fontStyle: 'bold', color: '#ffffff'
     }).setOrigin(0.5).setDepth(depth + 3));
 
-    // I remove the complete adventurer detail panel when it closes.
+    // This function removes the complete adventurer detail panel when it
+    // closes.
     const destroyModal = () => modalElements.forEach((element) => element.destroy());
     blocker.on('pointerdown', destroyModal);
     close.on('pointerdown', destroyModal);
   }
 
-  // I give brief feedback about an unavailable choice or completed action.
+  // This function gives brief feedback about an unavailable choice or
+  // completed action.
   showToast(message) {
 
     const { width, height } = this.scale;

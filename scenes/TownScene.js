@@ -1,26 +1,33 @@
+import { bindSelectionDetails, addDetailsHint } from '../ui/SelectionDetails.js';
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
 import HapticsService from '../services/HapticsService.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
 
 export default class TownScene extends Phaser.Scene {
-  // I register TownScene so the game can navigate to this screen.
+
+  // This function registers TownScene so the game can navigate to this
+  // screen.
   constructor() {
 
     super('TownScene');
   }
 
-  // I remember which town the player is visiting.
+  // This function remembers which town the player is visiting.
   init(data) {
 
     this.townName = data?.townName ?? (GameState.world.currentLocation === 'duskfall' ? 'Duskfall' : 'Pineshire');
   }
 
-  // I offer the facilities available from the current town.
+  // This function builds the current town screen with its name, currencies,
+  // and five facility cards. The Adventurers' Hall has its own screen; the
+  // other destinations currently use the shared facility placeholder.
   create() {
 
     const { width, height } = this.scale;
     this.cameras.main.setBackgroundColor('#1c1917');
+
+    // Build the top currency banner and the return link to the world map.
     this.headerY = UI_SAFE_TOP + 48;
     this.add.rectangle(width / 2, this.headerY, width, 94, 0x292524);
     this.createBackButton();
@@ -33,6 +40,9 @@ export default class TownScene extends Phaser.Scene {
       fontFamily: 'Arial', fontSize: '32px', color: '#a8a29e'
     }).setOrigin(0.5);
 
+    addDetailsHint(this, height * 0.78);
+
+    // List each facility with its card label, subtitle, and destination.
     const labels = [
       ['TAVERN', 'Stories and rest', 'Tavern'],
       ["ADVENTURER'S HALL", 'Tactics, equipment, items', 'AdventurersHallScene'],
@@ -40,12 +50,15 @@ export default class TownScene extends Phaser.Scene {
       ['BLACKSMITH', 'Weapons and armor', 'Blacksmith'],
       ['ENCHANTER', 'Arcane improvements', 'Enchanter']
     ];
+
+    // Arrange the five facility cards across a single horizontal row.
     const gap = 410;
     const startX = width / 2 - gap * 2;
     labels.forEach(([label, subtitle, target], index) => this.createButton(startX + gap * index, height * 0.58, label, subtitle, target));
   }
 
-  // I show the gold and Void Keys available during this town visit.
+  // This function shows the gold and Void Keys available during this town
+  // visit.
   createHeader(width) {
 
     this.add.text(width - 72, this.headerY, `Gold: ${GameState.gold}   Void Keys: ${GameState.inventory.voidKeys ?? 0}`, {
@@ -53,7 +66,7 @@ export default class TownScene extends Phaser.Scene {
     }).setOrigin(1, 0.5);
   }
 
-  // I provide a return to the world map with touch feedback.
+  // This function provides a return to the world map with touch feedback.
   createBackButton() {
 
     const y = this.headerY;
@@ -65,7 +78,8 @@ export default class TownScene extends Phaser.Scene {
     });
   }
 
-  // I connect a town destination card to its scene with touch feedback.
+  // This function connects a town destination card to its scene with touch
+  // feedback.
   createButton(x, y, label, subtitle, target) {
 
     const button = this.add.rectangle(x, y, 350, 210, 0x373330).setStrokeStyle(3, 0x57534e).setInteractive({ useHandCursor: true });
@@ -77,5 +91,6 @@ export default class TownScene extends Phaser.Scene {
       if (target === 'AdventurersHallScene') this.scene.start(target);
       else this.scene.start('FacilityScene', { title: target, townName: this.townName });
     });
+    bindSelectionDetails(this, button, { title: label, description: subtitle + (target === 'AdventurersHallScene' ? '. Choose leadership tactics and review preparation facilities.' : '. This facility is planned and is not yet available.') });
   }
 }

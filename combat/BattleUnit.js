@@ -1,10 +1,14 @@
 import Phaser from 'phaser';
 
 export default class BattleUnit {
-  // I prepare a combatant with its stats, action state, and touchable
-  // display.
+
+  // This function creates a combatant from its class or enemy configuration.
+  // It initializes resources, cooldowns, statuses, and arena position, then
+  // builds the unit body, touch target, labels, health bar, and cast bar.
   constructor(scene, config) {
 
+    // Copy identity, class stats, and ability data into this
+    // encounter-specific combatant.
     this.scene = scene;
     this.battlefield = config.battlefield;
     this.id = config.id;
@@ -12,6 +16,8 @@ export default class BattleUnit {
     this.className = config.className ?? '';
     this.role = config.role ?? '';
     this.color = config.color;
+    this.isBoss = config.boss === true;
+    this.bodyRadius = config.bodyRadius ?? (config.isEnemy ? 45 : 36);
     this.maxHp = config.maxHp;
     this.hp = config.maxHp;
     this.maxMana = Math.max(0, config.maxMana ?? 0);
@@ -36,6 +42,9 @@ export default class BattleUnit {
     this.startsStealthed = config.startsStealthed === true;
     this.stealthed = this.startsStealthed;
     this.abilities = config.abilities ?? {};
+
+    // Start timed effects inactive. Their expiration timestamps are checked
+    // against the battle clock.
     this.status = {
       blindUntil: 0,
       blindChance: 0,
@@ -54,6 +63,9 @@ export default class BattleUnit {
       arcaneShieldUntil: 0,
       spellLockUntil: 0
     };
+
+    // Track once-per-delve effects separately from cooldowns and recent
+    // combat timestamps.
     this.delvesUsed = {};
     this.lastAttackAt = -Infinity;
     this.lastHealAt = -Infinity;
@@ -69,16 +81,19 @@ export default class BattleUnit {
     this.arenaX = config.arenaX ?? config.x ?? 0;
     this.arenaY = config.arenaY ?? config.y ?? 0;
 
+    // Group the battlefield visuals so position, scale, depth, and defeat
+    // fading affect the whole unit.
     this.container = scene.add.container(0, 0);
 
     this.shadow = scene.add.ellipse(0, 30, this.isEnemy ? 84 : 64, this.isEnemy ? 28 : 22, 0x000000, 0.28);
-    this.body = scene.add.circle(0, 0, this.isEnemy ? 45 : 36, this.color)
+    this.body = scene.add.circle(0, 0, this.bodyRadius, this.color)
       .setStrokeStyle(4, this.isEnemy ? 0x365314 : 0x1c1917);
 
-    // I enlarge the invisible touch target to ease crowded melee taps.
-    this.hitZone = scene.add.circle(0, 0, this.isEnemy ? 68 : 58, 0xffffff, 0.001);
+    // Enlarge the invisible touch target to ease crowded melee taps.
+    this.hitZone = scene.add.circle(0, 0, Math.max(this.bodyRadius + 20, this.isEnemy ? 68 : 58), 0xffffff, 0.001);
 
-    this.label = scene.add.text(0, this.isEnemy ? -70 : -82, this.name, {
+    const bossOffset = this.isEnemy ? Math.max(0, this.bodyRadius - 45) : 0;
+    this.label = scene.add.text(0, (this.isEnemy ? -70 : -82) - bossOffset, this.name, {
       fontFamily: 'Arial',
       fontSize: this.isEnemy ? '34px' : '30px',
       fontStyle: 'bold',
@@ -87,7 +102,9 @@ export default class BattleUnit {
       strokeThickness: 4
     }).setOrigin(0.5);
 
-    this.targetLabel = scene.add.text(0, -106, '', {
+    // Show enemy target names separately from the unit name and current
+    // action.
+    this.targetLabel = scene.add.text(0, -106 - bossOffset, '', {
       fontFamily: 'Arial',
       fontSize: '25px',
       fontStyle: 'bold',
@@ -96,7 +113,7 @@ export default class BattleUnit {
       strokeThickness: 3
     }).setOrigin(0.5).setVisible(this.isEnemy);
 
-    this.actionLabel = scene.add.text(0, this.isEnemy ? -138 : -112, '', {
+    this.actionLabel = scene.add.text(0, (this.isEnemy ? -138 : -112) - bossOffset, '', {
       fontFamily: 'Arial',
       fontSize: this.isEnemy ? '27px' : '22px',
       fontStyle: 'bold',
@@ -106,14 +123,17 @@ export default class BattleUnit {
     }).setOrigin(0.5);
 
     const barWidth = this.isEnemy ? 116 : 92;
-    // I keep health below the name and above the body to avoid overlap.
-    const barY = -50;
+
+    // Keep health below the name and above the body to avoid overlap.
+    const barY = -50 - bossOffset;
     this.hpGlow = scene.add.rectangle(0, barY, barWidth + 8, 18, 0x000000, 0)
       .setStrokeStyle(5, 0xf97316, 0)
       .setVisible(!this.isEnemy);
     this.hpBack = scene.add.rectangle(0, barY, barWidth, 12, 0x1c1917);
     this.hpFill = scene.add.rectangle(-barWidth / 2, barY, barWidth, 12, 0x22c55e).setOrigin(0, 0.5);
 
+    // Create the cast bar hidden; starting an action reveals it until the
+    // action finishes.
     this.castBack = scene.add.rectangle(0, this.isEnemy ? barY + 18 : 54, barWidth, 7, 0x0c0a09).setVisible(false);
     this.castFill = scene.add.rectangle(-barWidth / 2, this.isEnemy ? barY + 18 : 54, barWidth, 7, 0xfbbf24)
       .setOrigin(0, 0.5)
@@ -137,44 +157,48 @@ export default class BattleUnit {
     this.syncPresentation();
   }
 
-  // I show who an enemy is targeting so its intent is readable.
+  // This function shows who an enemy is targeting so its intent is readable.
   setTargetName(name) {
 
     if (!this.isEnemy || !this.targetLabel?.active) return;
     this.targetLabel.setText(name ? `(${name})` : '');
   }
 
-  // I expose the displayed horizontal position for combat effects.
+  // This function exposes the displayed horizontal position for combat
+  // effects.
   get x() {
 
     return this.container.x;
   }
 
-  // I expose the displayed vertical position for combat effects.
+  // This function exposes the displayed vertical position for combat effects.
   get y() {
 
     return this.container.y;
   }
 
-  // I measure combat range in arena space, independent of perspective.
+  // This function measures combat range in arena space, independent of
+  // perspective.
   distanceTo(target) {
 
     return Phaser.Math.Distance.Between(this.arenaX, this.arenaY, target.arenaX, target.arenaY);
   }
 
-  // I measure how far the unit is from an arena destination.
+  // This function measures how far the unit is from an arena destination.
   distanceToPoint(arenaX, arenaY) {
 
     return Phaser.Math.Distance.Between(this.arenaX, this.arenaY, arenaX, arenaY);
   }
 
-  // I check whether the unit is still winding up its current action.
+  // This function checks whether the unit is still winding up its current
+  // action.
   isBusy(time) {
 
     return this.pendingAction !== null && time < this.busyUntil;
   }
 
-  // I require a living, unstunned unit with no unfinished action.
+  // This function requires a living, unstunned unit with no unfinished
+  // action.
   canStartAction(time) {
 
     return this.alive
@@ -183,19 +207,20 @@ export default class BattleUnit {
       && this.pendingAction === null;
   }
 
-  // I prevent spell use while the spell lock is active.
+  // This function prevents spell use while the spell lock is active.
   canCast(time) {
 
     return time >= (this.status.spellLockUntil ?? 0);
   }
 
-  // I check whether a timed combat effect is still active.
+  // This function checks whether a timed combat effect is still active.
   hasStatus(key, time) {
 
     return time < (this.status[key] ?? 0);
   }
 
-  // I begin an available action and show its windup to the player.
+  // This function begins an available action and shows its windup to the
+  // player.
   startAction(name, time, duration) {
 
     if (!this.canStartAction(time)) {
@@ -210,7 +235,7 @@ export default class BattleUnit {
     return true;
   }
 
-  // I release the current action and clear its cast display.
+  // This function releases the current action and clears its cast display.
   finishAction() {
 
     this.pendingAction = null;
@@ -220,7 +245,7 @@ export default class BattleUnit {
     this.castFill.setVisible(false).setScale(0, 1);
   }
 
-  // I show how close the current action is to resolving.
+  // This function shows how close the current action is to resolving.
   updateActionBar(time) {
 
     if (!this.pendingAction) {
@@ -232,7 +257,8 @@ export default class BattleUnit {
     this.castFill.setScale(ratio, 1);
   }
 
-  // I move the unit in combat space and refresh its presentation.
+  // This function moves the unit in combat space and refreshes its
+  // presentation.
   setArenaPosition(arenaX, arenaY) {
 
     this.arenaX = arenaX;
@@ -240,7 +266,8 @@ export default class BattleUnit {
     this.syncPresentation();
   }
 
-  // I keep unit placement, size, and draw order aligned with depth.
+  // This function keeps unit placement, size, and draw order aligned with
+  // depth.
   syncPresentation() {
 
     const screenPosition = this.battlefield.arenaToScreen(this.arenaX, this.arenaY);
@@ -251,7 +278,8 @@ export default class BattleUnit {
     this.container.setDepth(100 + screenPosition.y);
   }
 
-  // I advance toward a destination without overshooting the stop range.
+  // This function advances toward a destination without overshooting the stop
+  // range.
   moveToward(targetX, targetY, deltaSeconds, stopDistance = 0) {
 
     const distance = Phaser.Math.Distance.Between(this.arenaX, this.arenaY, targetX, targetY);
@@ -267,7 +295,7 @@ export default class BattleUnit {
     this.syncPresentation();
   }
 
-  // I retreat until the unit has the requested breathing room.
+  // This function retreats until the unit has the requested breathing room.
   moveAwayFrom(targetX, targetY, deltaSeconds, desiredDistance) {
 
     const distance = Phaser.Math.Distance.Between(this.arenaX, this.arenaY, targetX, targetY);
@@ -288,7 +316,7 @@ export default class BattleUnit {
     this.syncPresentation();
   }
 
-  // I bring the unit back inside the playable arena bounds.
+  // This function brings the unit back inside the playable arena bounds.
   clampToBattlefield(paddingX = 0, paddingY = 0) {
 
     const clamped = this.battlefield.clampPoint(this.arenaX, this.arenaY, paddingX, paddingY);
@@ -297,19 +325,21 @@ export default class BattleUnit {
     this.syncPresentation();
   }
 
-  // I check whether the unit can begin another basic attack.
+  // This function checks whether the unit can begin another basic attack.
   canAttack(time) {
 
     return this.canStartAction(time) && time - this.lastAttackAt >= this.attackCooldown;
   }
 
-  // I check whether a capable healer is ready for another basic heal.
+  // This function checks whether a capable healer is ready for another basic
+  // heal.
   canHeal(time) {
 
     return this.canStartAction(time) && this.healPower > 0 && time - this.lastHealAt >= this.healCooldown;
   }
 
-  // I require an available action, enough mana, and a ready cooldown.
+  // This function requires an available action, enough mana, and a ready
+  // cooldown.
   abilityReady(key, time) {
 
     const ability = this.abilities[key];
@@ -321,7 +351,7 @@ export default class BattleUnit {
     return time - (this.lastAbilityAt[key] ?? -Infinity) >= ability.cooldown;
   }
 
-  // I commit the ability cooldown and its configured mana cost.
+  // This function commits the ability cooldown and its configured mana cost.
   markAbilityUsed(key, time) {
 
     const ability = this.abilities[key];
@@ -329,7 +359,7 @@ export default class BattleUnit {
     if (ability?.manaCost) this.spendMana(ability.manaCost);
   }
 
-  // I pay a mana cost only when the unit can afford it.
+  // This function pays a mana cost only when the unit can afford it.
   spendMana(amount) {
 
     if (this.maxMana <= 0) return true;
@@ -339,27 +369,33 @@ export default class BattleUnit {
     return true;
   }
 
-  // I replenish living casters over time without exceeding their pool.
+  // This function replenishes living casters over time without exceeding
+  // their pool.
   regenMana(deltaSeconds) {
 
     if (!this.alive || this.maxMana <= 0 || this.mana >= this.maxMana || this.manaRegen <= 0) return;
     this.mana = Math.min(this.maxMana, this.mana + this.manaRegen * deltaSeconds);
   }
 
-  // I keep stealth state and the unit transparency in agreement.
+  // This function keeps stealth state and the unit transparency in agreement.
   setStealthed(value) {
 
     this.stealthed = value === true;
     if (this.body?.active) this.body.setAlpha(this.stealthed ? 0.55 : 1);
   }
 
-  // I apply defenses and survival effects before marking a unit defeated.
+  // This function reduces incoming damage using armor and active defensive
+  // effects, then subtracts it from health. It checks the Barbarian survival
+  // roll before marking a defeated unit inactive and clearing its current
+  // action.
   takeDamage(amount, options = {}) {
 
     if (!this.alive) {
       return false;
     }
 
+    // Apply armor and active damage modifiers before rounding and subtracting
+    // health.
     const now = options.time ?? this.scene.time.now;
     let adjusted = Math.max(0, amount);
 
@@ -384,8 +420,8 @@ export default class BattleUnit {
     adjusted = Math.max(adjusted > 0 ? 1 : 0, Math.round(adjusted));
     this.hp = Math.max(0, this.hp - adjusted);
 
-    // I allow one successful death escape per delve; failed rolls
-    // leave the escape unused.
+    // Allow one successful death escape per delve; failed rolls leave the
+    // escape unused.
     if (this.hp <= 0 && this.className === 'Barbarian' && !this.delvesUsed.shrugDeath) {
       const chance = Math.min(0.8, 0.02 * Math.max(1, this.level ?? 1));
       if (Math.random() < chance) {
@@ -397,6 +433,8 @@ export default class BattleUnit {
 
     this.updateHealthBar();
 
+    // Mark an actual defeat only after the survival roll, then cancel the
+    // action and fade the unit.
     if (this.hp <= 0) {
       this.alive = false;
       this.finishAction();
@@ -408,7 +446,30 @@ export default class BattleUnit {
     return false;
   }
 
-  // I restore a living unit up to its maximum health.
+  // This function revives a fallen ally with partial health and mana while
+  // preserving encounter cooldowns and once-per-delve ability usage. Old
+  // statuses and orders must not leave the revived unit disabled or frozen.
+  revive(healthFraction = 0.5, manaFraction = 0.5) {
+
+    if (this.alive || this.isEnemy) return false;
+    this.alive = true;
+    this.hp = Math.max(1, Math.round(this.maxHp * healthFraction));
+    this.mana = Math.round(this.maxMana * manaFraction);
+    this.finishAction();
+    Object.keys(this.status).forEach((key) => {
+
+      this.status[key] = 0;
+    });
+    this.seekingRestealth = false;
+    this.setStealthed(false);
+    this.body.setFillStyle(this.color);
+    this.container.setAlpha(1);
+    this.hitZone.setInteractive({ useHandCursor: true });
+    this.updateHealthBar();
+    return true;
+  }
+
+  // This function restores a living unit up to its maximum health.
   heal(amount) {
 
     if (!this.alive) {
@@ -419,12 +480,14 @@ export default class BattleUnit {
     this.updateHealthBar();
   }
 
-  // I make the unit health bar reflect its remaining health.
+  // This function makes the unit health bar reflect its remaining health.
   updateHealthBar() {
 
     const ratio = this.maxHp > 0 ? this.hp / this.maxHp : 0;
     this.hpFill.setScale(ratio, 1);
 
+    // Shift the health bar from green toward red as health crosses its
+    // warning thresholds.
     let healthColor = 0x22c55e;
     if (ratio <= 0.25) {
       healthColor = 0xef4444;
@@ -440,7 +503,7 @@ export default class BattleUnit {
     }
   }
 
-  // I briefly emphasize a unit when combat affects it.
+  // This function brieflies emphasize a unit when combat affects it.
   flash(color = 0xffffff) {
 
     this.body.setStrokeStyle(6, color);

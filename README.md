@@ -1,7 +1,7 @@
 # Delve Deep
 
-Delve Deep is a 2D pixel-art tactical RPG for Android. The player acts as
-the Raid Leader, selects five adventurers, and issues tactical orders
+Delve Deep is a 2D tactical RPG for Android. The player acts as
+the Leader, selects five adventurers, and issues tactical orders
 during real-time battles. Delve victories advance the roster, leader,
 and world map.
 
@@ -67,7 +67,7 @@ does not automatically transfer between localhost, Pages, and Android.
 
 ## Project directories
 
-The repository root is the source root. There is no `src/` directory.
+The repository root is the source root. 
 
 - `scenes/`: Phaser screens, navigation, and the battle scene. This is
   where most screen-specific UI and combat orchestration live.
@@ -92,9 +92,6 @@ The repository root is the source root. There is no `src/` directory.
   output. Update bundled web assets through the build and sync commands.
 - `node_modules/`: Installed dependencies managed by npm.
 
-Do not manually edit generated output or dependency files in `dist/`,
-`android/`, or `node_modules/` during ordinary source work.
-
 ## Important entry points and configuration
 
 - `index.html`: Browser entry page and the game mount element.
@@ -108,7 +105,6 @@ Do not manually edit generated output or dependency files in `dist/`,
 - `package.json`: Runtime dependencies and development/build scripts.
 - `package-lock.json`: Locked dependency versions for repeatable installs.
 - `.gitignore`: Generated output, dependencies, and local-only files.
-- `AGENTS.md`: Local coding and validation instructions, ignored by Git.
 - `ABILITY_EDITING.md`: Guide to editing class and enemy abilities,
   including which behavior requires changes in the battle scene.
 
@@ -196,22 +192,3 @@ Without a living tank, the remaining party can fight immediately.
 Run `node tests/battle-behavior.test.js` for combat behavior checks alongside
 the normal production build. These checks exercise combat decisions and
 delayed actions without rendering; touch layout still needs device review.
-
-Current Interrupt handling clears a pending enemy action without
-checking the selected class, while the combat notes call for class-aware
-interrupts. Several leader ability descriptions still say "Future" even
-though `BattleScene.js` implements effects for them. The documentation
-pass preserves these existing behaviors.
-
-Use short ASCII `//` comments in JavaScript with plain, descriptive wording.
-Start function summaries with "This function..." and explain what the
-function does, including its main responsibilities and relevant results.
-Inside longer functions, explain the distinct sections, such as screen
-setup, controls, input handling, and state changes. Add details where a
-gameplay rule or implementation choice needs explanation.
-
-Keep a blank line between every comment block and any code above it. A
-comment can sit directly above the code it describes, and consecutive
-lines of the same comment block stay together. Also leave a blank line
-after the opening brace of each function body. Preserve JavaScript,
-existing architecture, gameplay rules, and mobile readability.

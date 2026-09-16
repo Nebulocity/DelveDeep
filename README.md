@@ -42,6 +42,29 @@ cd android
 `npm run deploy` builds the web game, syncs Android, and opens Android
 Studio. It does not publish a release to a store.
 
+### GitHub Pages
+
+The `.github/workflows/pages.yml` workflow builds and publishes `dist`
+when changes reach the repository's default branch. In GitHub, set
+**Settings > Pages > Build and deployment > Source** to **GitHub Actions**.
+Push the workflow to the default branch, or run **Deploy game to GitHub
+Pages** manually from the Actions tab on that branch.
+
+Pages needs the built game, not the repository's source `index.html`.
+The workflow uses `npm run build -- --base=/DelveDeep/` so JavaScript,
+styles, and imported artwork load under
+`https://nebulocity.github.io/DelveDeep/`.
+
+Local development and Android commands above remain unchanged; the
+Pages base path is applied only in that workflow. To preview the Pages
+build locally, run the same build command followed by
+`npm run preview -- --base=/DelveDeep/`, then visit
+`http://localhost:4173/DelveDeep/`. Run the normal `npm run build` again
+before syncing Android.
+
+Saves remain local to each browser origin or installed app; progress
+does not automatically transfer between localhost, Pages, and Android.
+
 ## Project directories
 
 The repository root is the source root. There is no `src/` directory.

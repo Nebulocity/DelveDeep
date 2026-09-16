@@ -1,5 +1,6 @@
 import { bindSelectionDetails, addDetailsHint, TONIC_DESCRIPTION } from '../ui/SelectionDetails.js';
 import Phaser from 'phaser';
+import { showConfirmation } from '../ui/ConfirmationDialog.js';
 import GameState from '../game/GameState.js';
 import HapticsService from '../services/HapticsService.js';
 import { saveProfile } from '../game/GameStorage.js';
@@ -121,6 +122,15 @@ export default class ShopScene extends Phaser.Scene {
   // This function exchanges enough gold for one tonic and saves the updated
   // supplies.
   buyTonic() {
+    showConfirmation(this, {
+      title: 'Confirm purchase',
+      description: `Buy 1 Healing Tonic for 25 gold?\n\nCurrent gold: ${GameState.gold}`,
+      onConfirm: () => this.confirmBuyTonic()
+    });
+  }
+
+  // Recheck the balance at confirmation, then commit and save together.
+  confirmBuyTonic() {
 
     if (GameState.gold < 25) {
       HapticsService.tap();

@@ -14,8 +14,7 @@ export default class AdventurersHallScene extends Phaser.Scene {
 
   // This function builds the Adventurers' Hall screen, including the town
   // return link and three destination cards. Battle Tactics opens the leader
-  // loadout screen; Equipment and Items open placeholder facilities that
-  // return here.
+  // loadout screen; Equipment and Items open roster gear and inventory.
   create() {
 
     // Read the screen dimensions and set the background for the hall.
@@ -36,12 +35,11 @@ export default class AdventurersHallScene extends Phaser.Scene {
 
     addDetailsHint(this, height * 0.78);
 
-    // Define the three cards and their destinations. Placeholder facilities
-    // receive a return scene and label so their back links lead here.
+    // Define the three preparation screens; each returns to the hall.
     const entries = [
       ['BATTLE TACTICS', 'Choose and equip tactics', () => this.scene.start('RaidLeaderScene')],
-      ['EQUIPMENT', 'Weapons and armor management', () => this.scene.start('FacilityScene', { title: 'Equipment', returnScene: 'AdventurersHallScene', returnLabel: "ADVENTURER'S HALL" })],
-      ['ITEMS', 'Consumables and carried items', () => this.scene.start('FacilityScene', { title: 'Items', returnScene: 'AdventurersHallScene', returnLabel: "ADVENTURER'S HALL" })]
+      ['EQUIPMENT', 'Weapons and armor management', () => this.scene.start('EquipmentScene')],
+      ['ITEMS', 'Consumables, materials, and gear', () => this.scene.start('ItemsScene')]
     ];
 
     // Build the cards across the middle of the screen using the same size,
@@ -59,7 +57,7 @@ export default class AdventurersHallScene extends Phaser.Scene {
 
         HapticsService.tap(); callback();
       });
-      bindSelectionDetails(this, box, { title: label, description: subtitle + (label === 'BATTLE TACTICS' ? '. Spend TP to unlock tactics, then equip up to five for combat.' : '. This facility is planned and is not yet available.') });
+      bindSelectionDetails(this, box, { title: label, description: subtitle + (label === 'BATTLE TACTICS' ? '. Spend TP to unlock tactics, then equip up to five for combat.' : label === 'EQUIPMENT' ? '. Browse by role and equip one class weapon and one armor per adventurer.' : '. View all owned supplies and see who is using each piece of equipment.') });
     });
   }
 }

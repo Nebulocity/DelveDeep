@@ -9,7 +9,10 @@ const GameState = {
   leader: null,
   inventory: {
     healingTonic: 0,
-    voidKeys: 0
+    voidKeys: 0,
+    equipment: [],
+    nextEquipmentId: 1,
+    materials: {}
   },
   records: {},
   development: {

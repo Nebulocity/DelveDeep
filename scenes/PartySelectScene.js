@@ -1,6 +1,7 @@
 import { bindSelectionDetails, addDetailsHint } from '../ui/SelectionDetails.js';
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
+import { getEquippedAdventurer } from '../game/Equipment.js';
 import HapticsService from '../services/HapticsService.js';
 import { happinessLabel } from '../game/AdventurerProgression.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
@@ -433,6 +434,7 @@ export default class PartySelectScene extends Phaser.Scene {
   // identity, stats, happiness, and class description. It tracks every modal
   // object so tapping the close button or backdrop removes the whole panel.
   showAdventurerDetails(adventurer) {
+    adventurer = getEquippedAdventurer(adventurer);
 
     HapticsService.tap();
     const { width, height } = this.scale;

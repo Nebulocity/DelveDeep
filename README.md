@@ -120,7 +120,13 @@ Do not manually edit generated output or dependency files in `dist/`,
   delve reviews, party location marker, and development tools.
 - `scenes/TownScene.js`: Town facility destinations.
 - `scenes/AdventurersHallScene.js`: Battle tactics and equipment/item
-  destinations; equipment and items use the facility placeholder.
+  destinations.
+- `scenes/BlacksmithScene.js`: Equipment and material purchases, sales, and
+  starter crafting recipes with class and rarity filters.
+- `scenes/EquipmentScene.js`: Role-filtered roster, one weapon and armor
+  slot per adventurer, and compatible owned equipment.
+- `scenes/ItemsScene.js`: Battle supplies, crafting materials, and every
+  owned equipment copy with its current wearer.
 - `scenes/FacilityScene.js`: Shared placeholder for future town systems.
 - `scenes/RosterScene.js`: Adventurer stats, experience, and happiness.
 - `scenes/RaidLeaderScene.js`: Leadership unlocks and battle loadout.
@@ -164,6 +170,48 @@ Do not manually edit generated output or dependency files in `dist/`,
 - `services/OrientationService.js`: Browser landscape-lock request with
   a fallback when locking is unavailable.
 - `ui/Layout.js`: Shared safe-layout constants and header helper.
+
+## Equipment and crafting
+
+`data/items.js` defines rarity colors, the class equipment catalog, crafting
+materials, prices, bonuses, and starter recipes. Every implemented class
+(including Guardian) has three uncommon items at 100g and two rare items
+at 350g. Uncommon gear includes two alternative weapons and one armor;
+rare gear includes one weapon and one armor. Epic and legendary rarity
+colors and sell values are supported for future equipment definitions.
+
+Blacksmith sales pay 50g per rarity level: uncommon 50g, rare 100g, epic
+150g, legendary 200g. Equipped gear cannot be sold or consumed by a recipe.
+Purchases, sales, crafts, and tactic unlocks show a confirmation dialog with
+the cost or ingredients before committing. Cancel leaves resources unchanged.
+Purchases and crafts create
+individual item copies. Items can be replaced or unequipped in the Hall.
+
+Iron Ingots, Cured Leather, and Runic Cloth cost 50g each at the Blacksmith.
+Uncommon recipes consume two materials. Rare recipes consume the matching
+uncommon weapon or armor, four materials, and 50g. Alternative uncommon
+weapons are not substitutes for the recipe's named weapon. The Craft list
+shows owned/required ingredients. Material drops from delves remain future
+work; all starter recipes can be completed with merchant supplies.
+
+`game/Equipment.js` validates purchases, sales, crafting, and ownership.
+Equipment bonuses are added to a copy of the adventurer when creating a
+battle unit or displaying stats. Base roster stats and class ability powers
+remain unchanged: Attack and Healing bonuses improve basic attacks and
+basic heals; armor bonuses add percentage points of damage mitigation.
+Gear therefore increases combat power without compounding on reload or
+level-up. Health bonuses also affect percentage-based heals and health costs.
+
+Old profiles receive empty equipment slots, an empty owned-equipment list,
+and empty material counts. The existing save key is retained; owned copies,
+equipped instance IDs, and materials persist on the next save. Invalid or
+duplicate equipment references are discarded during loading. Saves do not
+transfer between browser origins or between the browser and Android.
+
+Run `node tests/equipment.test.js` for catalog, economy, crafting, ownership,
+stat, migration, and retreat checks. `node tests/inventory-scenes.test.js`
+exercises the screen callbacks and combat setup with a display adapter;
+it does not replace a visual phone check. Run `npm run build` for validation.
 
 Persistence currently uses local storage keys `delveDeep.profile.v2`,
 `delveDeep.leaderProgression.v1`, and `delveDeep.lastCombatLog.v1`.

@@ -1,6 +1,7 @@
 import { bindSelectionDetails, characterDetails, TONIC_DESCRIPTION } from '../ui/SelectionDetails.js';
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
+import { getEquippedAdventurer } from '../game/Equipment.js';
 import enemies from '../data/enemies.js';
 import { createEncounterWaves } from '../data/encounters.js';
 import { leaderAbilities } from '../game/LeaderProgression.js';
@@ -148,7 +149,7 @@ export default class BattleScene extends Phaser.Scene {
       : GameState.roster.slice(0, 5);
 
     this.partyUnits = party.map((adventurer) => new BattleUnit(this, {
-      ...adventurer,
+      ...getEquippedAdventurer(GameState.roster.find((hero) => hero.id === adventurer.id) ?? adventurer),
       battlefield: this.battlefield,
       arenaX: 500,
       arenaY: 110,
@@ -201,6 +202,12 @@ export default class BattleScene extends Phaser.Scene {
     this.partyUnits.forEach((unit, index) => {
 
       const x = startX + index * sectionWidth;
+      // Give the whole portrait/name/class area one generous touch target.
+      // It sits behind the visible labels and stops above the separate TONIC
+      // button, so selecting a character never accidentally uses a tonic.
+      const statusHitZone = this.add.rectangle(x + sectionWidth / 2 - 6, hudTop + 70, sectionWidth - 20, 116, 0xffffff, 0.001)
+        .setDepth(4500);
+      bindSelectionDetails(this, statusHitZone, () => characterDetails(unit), () => this.toggleUnitSelection(unit));
       const portrait = this.add.circle(x, hudTop + 72, 36, unit.color).setDepth(4501);
       bindSelectionDetails(this, portrait, () => characterDetails(unit), () => this.toggleUnitSelection(unit));
       const tonicButton = this.add.rectangle(x, hudTop + 155, 120, 72, 0x14532d)
@@ -251,7 +258,7 @@ export default class BattleScene extends Phaser.Scene {
         .setDepth(4501)
         .setVisible(false);
       bindSelectionDetails(this, nameText, () => characterDetails(unit), () => this.toggleUnitSelection(unit));
-      this.partyHud.push({tonicButton,tonicLabel,unit,nameText,hpText,manaText,threatText,hpFill,hpGlow,manaBack,manaFill,hudBarWidth});
+      this.partyHud.push({statusHitZone,tonicButton,tonicLabel,unit,nameText,hpText,manaText,threatText,hpFill,hpGlow,manaBack,manaFill,hudBarWidth});
     });
   }
 
@@ -277,31 +284,35 @@ export default class BattleScene extends Phaser.Scene {
   createTacticsMenus(width, height) {
 
     const left = [
+      ['ALL', 'All'],
       ['RANGED', 'Ranged DPS'], ['MELEE', 'Melee DPS'], ['HEALERS', 'Healer'], ['TANKS', 'Tank']
     ];
     const right = ['MOVE', 'HOLD', 'SPREAD', 'STACK', 'ATTACK', 'INTERRUPT'];
     const firstY = height * 0.31;
     const gap = 76;
+    // Add All above the existing role rows so Pause, Flee, and the tonic
+    // inventory line keep their current spacing above the party HUD.
+    const leftFirstY = firstY - gap;
     this.roleButtons = [];
     this.commandButtons = [];
 
-    this.add.text(155, firstY - 70, 'SELECT', {fontFamily:'Arial',fontSize:'33px',fontStyle:'bold',color:'#94a3b8'}).setOrigin(0.5);
+    this.add.text(155, leftFirstY - 70, 'SELECT', {fontFamily:'Arial',fontSize:'33px',fontStyle:'bold',color:'#94a3b8'}).setOrigin(0.5);
     left.forEach(([label, role], index) => {
 
-      const y = firstY + index * gap;
+      const y = leftFirstY + index * gap;
       const box = this.add.rectangle(155, y, 250, 68, 0x1f2937).setStrokeStyle(3,0x475569).setInteractive({useHandCursor:true}).setDepth(4600);
       const text = this.add.text(155,y,label,{fontFamily:'Arial',fontSize:'33px',fontStyle:'bold',color:'#e5e7eb'}).setOrigin(0.5).setDepth(4601);
       box.on('pointerdown',()=>this.selectRole(role));
-      bindSelectionDetails(this, box, { title: label, description: `Select all living ${role} adventurers, then issue an order.` });
+      bindSelectionDetails(this, box, { title: label, description: role === 'All' ? 'Select every living party member, then issue an order.' : `Select all living ${role} adventurers, then issue an order.` });
       this.roleButtons.push({box,text,role});
     });
 
-    const pauseY = firstY + 4 * gap;
+    const pauseY = leftFirstY + left.length * gap;
     this.pauseButton = this.add.rectangle(155, pauseY, 250, 62, 0x1f2937).setStrokeStyle(3,0x475569).setInteractive({useHandCursor:true}).setDepth(4600);
     this.pauseButtonText = this.add.text(155,pauseY,'PAUSE',{fontFamily:'Arial',fontSize:'31px',fontStyle:'bold',color:'#e5e7eb'}).setOrigin(0.5).setDepth(4601);
     this.pauseButton.on('pointerdown',()=>this.togglePause());
 
-    const fleeY = firstY + 5 * gap;
+    const fleeY = leftFirstY + (left.length + 1) * gap;
     const fleeButton = this.add.rectangle(155, fleeY, 250, 62, 0x3f1d1d).setStrokeStyle(3,0x991b1b).setInteractive({useHandCursor:true}).setDepth(4600);
     this.add.text(155,fleeY,'FLEE',{fontFamily:'Arial',fontSize:'31px',fontStyle:'bold',color:'#fecaca'}).setOrigin(0.5).setDepth(4601);
     fleeButton.on('pointerdown',()=>this.fleeBattle());
@@ -401,16 +412,17 @@ export default class BattleScene extends Phaser.Scene {
     HapticsService.tap();
   }
 
-  // This function selects the living members of a role for a shared command.
+  // This function selects a role or the whole living party for a shared command.
   selectRole(role) {
 
-    const matching = this.partyUnits.filter((unit) => unit.alive && unit.role === role);
+    const matching = this.partyUnits.filter((unit) => unit.alive && (role === 'All' || unit.role === role));
+    const groupName = role === 'All' ? 'All adventurers' : role;
     this.selectedUnitIds = new Set(matching.map((unit) => unit.id));
     this.commandMode = null;
     this.setTargetingInputState(false);
 
     this.showBattleMessage(
-      matching.length > 0 ? `${role} - tap a tile to move or an enemy to attack` : `No living ${role}`,
+      matching.length > 0 ? `${groupName} - tap a tile to move or an enemy to attack` : role === 'All' ? 'No living adventurers' : `No living ${role}`,
       matching.length > 0 ? '#93c5fd' : '#fca5a5',
       matching.length > 0
     );
@@ -498,7 +510,10 @@ export default class BattleScene extends Phaser.Scene {
 
     this.roleButtons?.forEach(({box,role})=>{
 
-      const selected=this.partyUnits?.some((u)=>u.role===role && this.selectedUnitIds.has(u.id));
+      const living = this.partyUnits?.filter((unit) => unit.alive) ?? [];
+      const selected = role === 'All'
+        ? living.length > 0 && living.every((unit) => this.selectedUnitIds.has(unit.id))
+        : living.some((unit) => unit.role === role && this.selectedUnitIds.has(unit.id));
       box.setFillStyle(selected?0x243b53:0x1f2937).setStrokeStyle(3,selected?0x60a5fa:0x475569);
     });
     this.commandButtons?.forEach(({box,label})=>{

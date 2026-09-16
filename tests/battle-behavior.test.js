@@ -115,6 +115,26 @@ function scene(party, enemies) {
   });
 }
 
+// All selects living allies only, clears target mode, and still allows a
+// role selection to replace the whole-party selection.
+{
+  const tank = unit('tank', 'Tank');
+  const healer = unit('healer', 'Healer');
+  const fallen = unit('fallen', 'Ranged DPS');
+  fallen.alive = false;
+  const battle = scene([tank, healer, fallen], []);
+  battle.commandMode = 'ATTACK';
+  battle.selectRole('All');
+  assert.deepEqual([...battle.selectedUnitIds], ['tank', 'healer']);
+  assert.equal(battle.commandMode, null);
+  battle.selectRole('Healer');
+  assert.deepEqual([...battle.selectedUnitIds], ['healer']);
+  tank.alive = false;
+  healer.alive = false;
+  battle.selectRole('All');
+  assert.equal(battle.selectedUnitIds.size, 0);
+}
+
 // Attack releases only the selected unit and overrides its global focus.
 {
   const tank = unit('tank', 'Tank');

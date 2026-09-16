@@ -1,5 +1,4 @@
-// import Phaser from 'phaser';
-const Phaser = window.Phaser; // Phaser is loaded via <script> in index.html
+import Phaser from 'phaser';
 import './style.css';
 import gameConfig from './config/gameConfig.js';
 

@@ -1,4 +1,5 @@
 import GameState from './GameState.js';
+import { restoreEquipment } from './Equipment.js';
 
 const STORAGE_KEY = 'delveDeep.profile.v2';
 
@@ -59,6 +60,8 @@ export function loadProfile(baseRoster) {
     };
   });
 
+  restoreEquipment(saved?.inventory, savedRoster);
+
   // Discard saved party IDs that no longer exist in the current roster.
   GameState.lastPartyIds = GameState.lastPartyIds.filter((id) => GameState.roster.some((adventurer) => adventurer.id === id));
 }
@@ -80,6 +83,7 @@ export function saveProfile() {
     world: GameState.world,
     roster: GameState.roster.map((adventurer) => ({
       id: adventurer.id,
+      equipment: adventurer.equipment ?? { weapon: null, armor: null },
       level: adventurer.level,
       xp: adventurer.xp ?? 0,
       happiness: adventurer.happiness ?? 70,

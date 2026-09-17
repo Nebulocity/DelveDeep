@@ -1,6 +1,7 @@
 import { bindSelectionDetails, characterDetails } from '../ui/SelectionDetails.js';
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
+import { getEquippedAdventurer } from '../game/Equipment.js';
 import HapticsService from '../services/HapticsService.js';
 import { beginExpedition } from '../game/ExpeditionProgression.js';
 import { leaderAbilities } from '../game/LeaderProgression.js';
@@ -54,7 +55,7 @@ export default class DungeonScene extends Phaser.Scene {
 
       const y = height * 0.38 + index * 92;
       const card = this.add.rectangle(width * 0.28, y + 7, 700, 82, 0xffffff, 0);
-      bindSelectionDetails(this, card, () => characterDetails(adventurer));
+      bindSelectionDetails(this, card, () => characterDetails(getEquippedAdventurer(GameState.roster.find((hero) => hero.id === adventurer.id) ?? adventurer)));
       this.add.circle(width * 0.15, y, 30, adventurer.color);
       this.add.text(width * 0.18, y - 18, adventurer.name, { fontFamily: 'Arial', fontSize: '34px', fontStyle: 'bold', color: '#ffffff' });
       this.add.text(width * 0.18, y + 19, `${adventurer.className} • ${adventurer.role} • Lv ${adventurer.level}`, { fontFamily: 'Arial', fontSize: '26px', color: '#cbd5e1' });

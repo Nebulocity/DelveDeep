@@ -11,7 +11,7 @@ export function beginExpedition() {
   GameState.run.elapsedMs = 0;
   GameState.run.summary = null;
   GameState.run.startingGold = GameState.gold;
-  GameState.run.startingInventory = { ...GameState.inventory };
+  GameState.run.startingInventory = structuredClone(GameState.inventory);
 }
 
 // This function applies a successful expedition to persistent progression. It
@@ -130,7 +130,7 @@ export function fleeExpedition() {
   // Restore the resource snapshots from the start of the run, including the
   // original inventory quantities.
   GameState.gold = GameState.run.startingGold ?? GameState.gold;
-  if (GameState.run.startingInventory) GameState.inventory = { ...GameState.run.startingInventory };
+  if (GameState.run.startingInventory) GameState.inventory = structuredClone(GameState.run.startingInventory);
   GameState.rewards = [];
   GameState.currentRoom = 0;
 

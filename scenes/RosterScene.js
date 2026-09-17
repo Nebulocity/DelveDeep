@@ -1,6 +1,7 @@
 import { bindSelectionDetails, characterDetails } from '../ui/SelectionDetails.js';
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
+import { getEquippedAdventurer } from '../game/Equipment.js';
 import HapticsService from '../services/HapticsService.js';
 import { happinessLabel, xpRequired } from '../game/AdventurerProgression.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
@@ -83,7 +84,7 @@ export default class RosterScene extends Phaser.Scene {
     const cardHeight = 178;
     const card = this.add.rectangle(x, y, cardWidth, cardHeight, 0x1f2937)
       .setStrokeStyle(3, 0x374151);
-    bindSelectionDetails(this, card, () => characterDetails(adventurer));
+    bindSelectionDetails(this, card, () => characterDetails(getEquippedAdventurer(adventurer)));
 
     this.add.circle(x - cardWidth * 0.40, y - 30, 35, adventurer.color)
       .setStrokeStyle(3, 0xffffff, 0.2);

@@ -20,7 +20,7 @@ export default class TownScene extends Phaser.Scene {
   }
 
   // This function builds the current town screen with its name, currencies,
-  // and five facility cards. The Adventurers' Hall has its own screen; the
+  // and five facility cards. The Hall and Blacksmith have their own screens;
   // other destinations currently use the shared facility placeholder.
   create() {
 
@@ -47,7 +47,7 @@ export default class TownScene extends Phaser.Scene {
       ['TAVERN', 'Stories and rest', 'Tavern'],
       ["ADVENTURER'S HALL", 'Tactics, equipment, items', 'AdventurersHallScene'],
       ['ALCHEMIST', 'Potions and mixtures', 'Alchemist'],
-      ['BLACKSMITH', 'Weapons and armor', 'Blacksmith'],
+      ['BLACKSMITH', 'Buy, sell, and craft gear', 'BlacksmithScene'],
       ['ENCHANTER', 'Arcane improvements', 'Enchanter']
     ];
 
@@ -88,9 +88,9 @@ export default class TownScene extends Phaser.Scene {
     button.on('pointerdown', () => {
 
       HapticsService.tap();
-      if (target === 'AdventurersHallScene') this.scene.start(target);
+      if (['AdventurersHallScene', 'BlacksmithScene'].includes(target)) this.scene.start(target);
       else this.scene.start('FacilityScene', { title: target, townName: this.townName });
     });
-    bindSelectionDetails(this, button, { title: label, description: subtitle + (target === 'AdventurersHallScene' ? '. Choose leadership tactics and review preparation facilities.' : '. This facility is planned and is not yet available.') });
+    bindSelectionDetails(this, button, { title: label, description: subtitle + (target === 'AdventurersHallScene' ? '. Choose tactics, equip adventurers, and inspect inventory.' : target === 'BlacksmithScene' ? '. Purchase class equipment and crafting supplies, sell unequipped items, or craft from starter recipes.' : '. This facility is planned and is not yet available.') });
   }
 }

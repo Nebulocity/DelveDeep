@@ -1,4 +1,5 @@
 import { bindSelectionDetails } from '../ui/SelectionDetails.js';
+import { showConfirmation } from '../ui/ConfirmationDialog.js';
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
 import HapticsService from '../services/HapticsService.js';
@@ -82,8 +83,15 @@ export default class RaidLeaderScene extends Phaser.Scene {
     card.on('pointerdown',()=>{
 
       if (!hasLeaderAbility(leader,ability.id)) {
-        if (purchaseLeaderAbility(leader,ability.id)) { HapticsService.confirm(); this.scene.restart(); }
-        else { HapticsService.tap(); status.setText('NEED MORE TP'); this.time.delayedCall(800,()=>status.setText(`${ability.cost} TP`)); }
+        HapticsService.tap();
+        showConfirmation(this, {
+          title: 'Confirm tactic unlock',
+          description: `Unlock ${ability.name} for ${ability.cost} TP?\n\n${ability.description}\n\nAvailable: ${leader.tacticsPoints} TP`,
+          onConfirm: () => {
+            if (purchaseLeaderAbility(leader,ability.id)) { HapticsService.confirm(); this.scene.restart(); }
+            else { status.setText('NEED MORE TP'); this.time.delayedCall(800,()=>status.setText(`${ability.cost} TP`)); }
+          }
+        });
         return;
       }
       if (!toggleLeaderLoadoutAbility(leader,ability.id)) {

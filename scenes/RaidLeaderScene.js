@@ -1,4 +1,4 @@
-import { bindSelectionDetails } from '../ui/SelectionDetails.js';
+import { bindSelectionDetails, showSelectionDetails } from '../ui/SelectionDetails.js';
 import { showConfirmation } from '../ui/ConfirmationDialog.js';
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
@@ -84,6 +84,13 @@ export default class RaidLeaderScene extends Phaser.Scene {
 
       if (!hasLeaderAbility(leader,ability.id)) {
         HapticsService.tap();
+        if (leader.tacticsPoints < ability.cost) {
+          showSelectionDetails(this, {
+            title: 'Not enough TP',
+            description: `You do not have enough TP to unlock ${ability.name}.\n\nRequired: ${ability.cost} TP\nAvailable: ${leader.tacticsPoints} TP`
+          });
+          return;
+        }
         showConfirmation(this, {
           title: 'Confirm tactic unlock',
           description: `Unlock ${ability.name} for ${ability.cost} TP?\n\n${ability.description}\n\nAvailable: ${leader.tacticsPoints} TP`,

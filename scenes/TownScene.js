@@ -91,6 +91,6 @@ export default class TownScene extends Phaser.Scene {
       if (['AdventurersHallScene', 'BlacksmithScene'].includes(target)) this.scene.start(target);
       else this.scene.start('FacilityScene', { title: target, townName: this.townName });
     });
-    bindSelectionDetails(this, button, { title: label, description: subtitle + (target === 'AdventurersHallScene' ? '. Choose tactics, equip adventurers, and inspect inventory.' : target === 'BlacksmithScene' ? '. Purchase class equipment and crafting supplies, sell unequipped items, or craft from starter recipes.' : '. This facility is planned and is not yet available.') });
+    bindSelectionDetails(this, button, { title: label, description: subtitle + (target === 'AdventurersHallScene' ? '. Choose tactics, equip adventurers, and inspect inventory.' : target === 'BlacksmithScene' ? '. Purchase class equipment and crafting supplies, sell unequipped items, or craft from starter recipes.' : '. This feature is planned and is not yet available.') });
   }
 }

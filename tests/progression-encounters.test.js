@@ -68,6 +68,10 @@ assert.equal(leader.battleLoadout.length, 5);
 
 // Each difficulty retains its original waves and ends with the requested
 // boss group. Every spawn type resolves to real enemy data.
+const slimeCave = delves.find((delve) => delve.id === 'slime-cave');
+assert.ok(slimeCave.visuals?.battlefieldBackground?.key);
+assert.ok(slimeCave.visuals?.battlefieldBackground?.url);
+assert.equal(delves.filter((delve) => delve.visuals?.battlefieldBackground).length, 1);
 for (const delve of delves) {
   const waves = createEncounterWaves(delve);
   const counts = { Easy: 4, Moderate: 5, Void: 6 };

@@ -5,13 +5,16 @@ import { CLASS_DEFINITIONS } from '../data/classes.js';
 import { leaderAbilities } from '../game/LeaderProgression.js';
 import { createEncounterWaves } from '../data/encounters.js';
 import { getBattleLayout } from '../ui/Layout.js';
+import CombatMovement from '../combat/CombatMovement.js';
+import combatSpacing from '../config/combatSpacing.js';
 
 const context = vm.createContext({
-  leaderAbilities, createEncounterWaves, getBattleLayout,
+  leaderAbilities, createEncounterWaves, getBattleLayout, CombatMovement, combatSpacing,
   Phaser: {
     Scene: class {},
     Math: {
-      Distance: { Between: (x, y, tx, ty) => Math.hypot(tx - x, ty - y) }
+      Distance: { Between: (x, y, tx, ty) => Math.hypot(tx - x, ty - y) },
+      Between: (min) => min
     }
   },
   HapticsService: { tap() {
@@ -80,6 +83,9 @@ function unit(id, role, x = 0, y = 0) {
     moveToward(x, y, delta, stopDistance) {
 
       this.lastMove = { x, y, delta, stopDistance };
+    },
+    moveAwayFrom(x, y, delta, stopDistance) {
+      this.lastRetreat = { x, y, delta, stopDistance };
     }
   });
 }
@@ -89,7 +95,7 @@ function unit(id, role, x = 0, y = 0) {
 function scene(party, enemies) {
 
   const timers = [];
-  return Object.assign(Object.create(BattleScene.prototype), {
+  const battle = Object.assign(Object.create(BattleScene.prototype), {
     partyUnits: party, enemies, selectedUnitIds: new Set(),
     manualTargets: new Map(), heldUnitIds: new Set(), attackTargets: new Map(),
     enemyThreat: new Map(enemies.map(enemy => [enemy.id, new Map()])),
@@ -113,6 +119,9 @@ function scene(party, enemies) {
 
       this.hits = (this.hits ?? 0) + 1; }
   });
+  battle.battlefield = { clampPoint: (x, y) => ({ x, y }) };
+  battle.movement = new CombatMovement(battle);
+  return battle;
 }
 
 // All selects living allies only, clears target mode, and still allows a
@@ -129,10 +138,34 @@ function scene(party, enemies) {
   assert.equal(battle.commandMode, null);
   battle.selectRole('Healer');
   assert.deepEqual([...battle.selectedUnitIds], ['healer']);
+  battle.attackTargets.set(healer.id, 'mistaken-target');
+  battle.selectRole('Healer');
+  assert.equal(battle.selectedUnitIds.size, 0);
+  assert.equal(battle.attackTargets.has(healer.id), false);
   tank.alive = false;
   healer.alive = false;
   battle.selectRole('All');
   assert.equal(battle.selectedUnitIds.size, 0);
+}
+
+// Repeated order presses cancel armed targeting and persistent Hold/Attack
+// orders for the selected allies.
+{
+  const tank = unit('tank', 'Tank');
+  const battle = scene([tank], []);
+  battle.selectedUnitIds.add(tank.id);
+  battle.armCommand('MOVE');
+  assert.equal(battle.commandMode, 'MOVE');
+  battle.armCommand('MOVE');
+  assert.equal(battle.commandMode, null);
+  battle.armCommand('HOLD');
+  assert.equal(battle.heldUnitIds.has(tank.id), true);
+  battle.armCommand('HOLD');
+  assert.equal(battle.heldUnitIds.has(tank.id), false);
+  battle.attackTargets.set(tank.id, 'mistaken-target');
+  battle.armCommand('ATTACK');
+  assert.equal(battle.attackTargets.has(tank.id), false);
+  assert.equal(battle.commandMode, null);
 }
 
 // Attack releases only the selected unit and overrides its global focus.
@@ -147,11 +180,13 @@ function scene(party, enemies) {
   battle.selectedUnitIds.add(tank.id);
   battle.heldUnitIds = new Set([tank.id, ally.id]);
   battle.manualTargets.set(tank.id, { x: 0, y: 0 });
+  tank.spacingMode = 'spread';
   battle.focusTargetId = other.id;
   battle.handleEnemyTap(enemy);
   assert.equal(battle.heldUnitIds.has(tank.id), false);
   assert.equal(battle.heldUnitIds.has(ally.id), true);
   assert.equal(battle.manualTargets.has(tank.id), false);
+  assert.equal(tank.spacingMode, 'normal');
   assert.equal(battle.getPrimaryTarget(tank), enemy);
   assert.equal(battle.getPrimaryTarget(ally), other);
   assert.equal(enemy.hitZone.enabled, true);
@@ -189,7 +224,7 @@ function scene(party, enemies) {
   const enemy = unit('enemy', 'Enemy', 1300, 850);
   const battle = scene([tank], [enemy]);
   battle.updateTankUnit(tank, enemy, 0, 0.016);
-  assert.equal(tank.lastMove.x, enemy.arenaX);
+  assert.ok(Math.hypot(tank.lastMove.x - enemy.arenaX, tank.lastMove.y - enemy.arenaY) <= tank.attackRange);
   assert.ok(tank.lastMove.stopDistance < tank.attackRange);
   tank.lastMove = null;
   battle.heldUnitIds.add(tank.id);
@@ -333,6 +368,23 @@ for (const definition of Object.values(CLASS_DEFINITIONS).filter(entry => entry.
   assert.equal(battle.enemyThreat.get(enemy.id).size, 0);
 }
 
+// Enemy defeat pays its reward once and immediately removes only the enemy's
+// battlefield container; the dead record remains available to the wave flow.
+{
+  const enemy = unit('enemy', 'Enemy');
+  enemy.definition = { goldMin: 3, goldMax: 3 };
+  enemy.container.destroy = () => { enemy.container.destroyed = true; enemy.container.active = false; };
+  enemy.hitZone.disableInteractive = () => { enemy.hitZone.disabled = true; };
+  const battle = scene([], [enemy]);
+  battle.earnedGold = 0;
+  BattleScene.prototype.handleEnemyDeath.call(battle, enemy);
+  assert.equal(battle.earnedGold, 3);
+  assert.equal(enemy.container.destroyed, true);
+  assert.equal(enemy.hitZone.disabled, true);
+  BattleScene.prototype.handleEnemyDeath.call(battle, enemy);
+  assert.equal(battle.earnedGold, 3);
+}
+
 // An explicit healer Attack waits for engagement and uses a basic attack.
 // Once its target dies, normal healing decisions resume automatically.
 {
@@ -436,6 +488,64 @@ function fallenUnit(id, maxMana) {
   assert.equal(battle.isLeaderAbilityReady('arise'), false);
 }
 
+// Paused choices remain interactive: orders set their state immediately and
+// valid tactics wait until resume before changing encounter resources.
+{
+  const ally = unit('ally', 'Healer');
+  ally.hp = 50;
+  ally.maxHp = 100;
+  const battle = scene([ally], []);
+  context.GameState.leader = { unlockedAbilities: ['preparedSupplies'], battleLoadout: ['preparedSupplies'] };
+  context.GameState.inventory = { healingTonic: 0 };
+  battle.usedLeaderAbilities = new Set();
+  battle.leaderAbilityCooldowns = new Map();
+  battle.combatPaused = true;
+  battle.selectedUnitIds.add(ally.id);
+  battle.armCommand('HOLD');
+  assert.equal(battle.heldUnitIds.has(ally.id), true);
+  battle.useLeaderAbility('preparedSupplies');
+  assert.equal(battle.pendingPausedTactics.length, 1);
+  assert.equal(battle.pendingPausedTactics[0], 'preparedSupplies');
+  assert.equal(context.GameState.inventory.healingTonic, 0);
+  battle.combatPaused = false;
+  battle.flushPausedTactics();
+  assert.equal(context.GameState.inventory.healingTonic, 1);
+  assert.equal(battle.pendingPausedTactics.length, 0);
+}
+
+// A healer-only selection assigns an ally healing priority, clears a stale
+// attack/hold order, and keeps that target ahead of a more injured ally until
+// the selected target reaches full health.
+{
+  const healer = unit('healer', 'Healer');
+  healer.healRange = 100;
+  healer.healPower = 10;
+  healer.healCooldown = 0;
+  healer.lastHealAt = -Infinity;
+  const priority = unit('priority', 'Tank', 10);
+  priority.maxHp = 100;
+  priority.hp = 90;
+  const lowerHealth = unit('lower', 'Melee DPS', 20);
+  lowerHealth.maxHp = 100;
+  lowerHealth.hp = 20;
+  const battle = scene([healer, priority, lowerHealth], []);
+  battle.selectedUnitIds.add(healer.id);
+  battle.attackTargets.set(healer.id, 'old-enemy');
+  battle.manualTargets.set(healer.id, { x: 0, y: 0 });
+  battle.heldUnitIds.add(healer.id);
+  battle.toggleUnitSelection(priority);
+  assert.equal(battle.healerPriorityTargets.get(healer.id), priority.id);
+  assert.equal(battle.attackTargets.has(healer.id), false);
+  assert.equal(battle.manualTargets.has(healer.id), false);
+  assert.equal(battle.heldUnitIds.has(healer.id), false);
+  battle.beginBasicHeal = (source, target) => { battle.healedTarget = target; };
+  battle.updateHealerUnit(healer, 0, 0.016);
+  assert.equal(battle.healedTarget, priority);
+  priority.hp = priority.maxHp;
+  assert.equal(battle.getHealerPriorityTarget(healer), null);
+  assert.equal(battle.healerPriorityTargets.has(healer.id), false);
+}
+
 // Full-party defeat waits for an equipped, unused Arise. Once it has been
 // spent, a later wipe proceeds to defeat instead of waiting indefinitely.
 {
@@ -444,8 +554,8 @@ function fallenUnit(id, maxMana) {
   const battle = scene([ally], [enemy]);
   Object.assign(battle, {
     usedLeaderAbilities: new Set(), leaderAbilityCooldowns: new Map(),
-    updatePartyUnit() {}, updateEnemies() {}, applySeparation() {},
-    tryUseHealingTonic() {}, updateHud() {},
+    updatePartyUnit() {}, updateEnemies() {},
+    tryUseHealingTonic() {}, updateHud() {}, updateTonicHud() {},
     finishDefeat() { battle.defeated = true; }
   });
   ally.clampToBattlefield = () => {};
@@ -544,6 +654,46 @@ function fallenUnit(id, maxMana) {
   assert.equal(context.GameState.inventory.healingTonic, 0);
   second.hp = 20;
   assert.equal(battle.useHealingTonic(second, 4500), false);
+}
+
+// Empty stock hides and disables controls; restocking pulses once and settles.
+{
+  const element = () => ({
+    input: { enabled: true },
+    setVisible(value) { this.visible = value; return this; },
+    setAlpha(value) { this.alpha = value; return this; },
+    setText(value) { this.text = value; return this; },
+    setFillStyle() { return this; }
+  });
+  const battle = scene([], []);
+  const tonicButton = element(), tonicLabel = element();
+  battle.tonicHintText = element();
+  battle.tonicCountText = element();
+  battle.partyHud = [{ unit: {}, tonicButton, tonicLabel }];
+  battle.canUseHealingTonic = () => true;
+  context.GameState.inventory = { healingTonic: 0 };
+  battle.updateTonicHud();
+  assert.equal(battle.tonicHintText.visible, false);
+  assert.equal(tonicButton.input.enabled, false);
+  context.GameState.inventory.healingTonic = 1;
+  battle.updateTonicHud();
+  assert.equal(tonicButton.visible, true);
+  assert.equal(tonicLabel.visible, true);
+  assert.equal(tonicButton.input.enabled, true);
+  battle.time.now = 250;
+  battle.updateTonicHud();
+  assert.ok(tonicButton.alpha < 1);
+  assert.ok(battle.tonicHintText.alpha < 1);
+  battle.time.now = 1600;
+  battle.updateTonicHud();
+  assert.equal(tonicButton.alpha, 1);
+  context.GameState.inventory.healingTonic = 0;
+  battle.updateTonicHud();
+  assert.equal(tonicLabel.visible, false);
+  assert.equal(tonicButton.input.enabled, false);
+  context.GameState.inventory.healingTonic = 2;
+  battle.updateTonicHud();
+  assert.equal(battle.tonicFlashUntil, 3100);
 }
 
 console.log('Battle behavior checks passed.');

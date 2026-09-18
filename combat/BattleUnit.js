@@ -102,8 +102,7 @@ export default class BattleUnit {
       strokeThickness: 4
     }).setOrigin(0.5);
 
-    // Show enemy target names separately from the unit name and current
-    // action.
+    // Keep the current enemy target visible above its nameplate.
     this.targetLabel = scene.add.text(0, -106 - bossOffset, '', {
       fontFamily: 'Arial',
       fontSize: '25px',
@@ -157,9 +156,10 @@ export default class BattleUnit {
     this.syncPresentation();
   }
 
-  // This function shows who an enemy is targeting so its intent is readable.
+  // This function shows who an enemy is targeting above its nameplate.
   setTargetName(name) {
 
+    this.targetName = name;
     if (!this.isEnemy || !this.targetLabel?.active) return;
     this.targetLabel.setText(name ? `(${name})` : '');
   }
@@ -229,7 +229,7 @@ export default class BattleUnit {
 
     this.pendingAction = { name, startAt: time, duration };
     this.busyUntil = time + duration;
-    this.actionLabel.setText(name);
+    this.actionLabel.setText(name === 'Attack' ? '' : name);
     this.castBack.setVisible(true);
     this.castFill.setVisible(true).setScale(0, 1);
     return true;
@@ -290,9 +290,7 @@ export default class BattleUnit {
     const direction = new Phaser.Math.Vector2(targetX - this.arenaX, targetY - this.arenaY).normalize();
     const travel = Math.min(this.moveSpeed * deltaSeconds, Math.max(0, distance - stopDistance));
 
-    this.arenaX += direction.x * travel;
-    this.arenaY += direction.y * travel;
-    this.syncPresentation();
+    this.moveBy(direction.x * travel, direction.y * travel);
   }
 
   // This function retreats until the unit has the requested breathing room.
@@ -311,9 +309,16 @@ export default class BattleUnit {
     }
 
     const travel = Math.min(this.moveSpeed * deltaSeconds, desiredDistance - distance);
-    this.arenaX += direction.x * travel;
-    this.arenaY += direction.y * travel;
-    this.syncPresentation();
+    this.moveBy(direction.x * travel, direction.y * travel);
+  }
+
+  // All voluntary movement shares soft personal-space steering before the
+  // normal arena projection. Teleports/revives still use setArenaPosition.
+  moveBy(dx, dy) {
+    const point = this.scene?.movement
+      ? this.scene.movement.steerStep(this, dx, dy)
+      : { x: this.arenaX + dx, y: this.arenaY + dy };
+    this.setArenaPosition(point.x, point.y);
   }
 
   // This function brings the unit back inside the playable arena bounds.

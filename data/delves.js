@@ -1,5 +1,9 @@
 import { createEncounterWaves } from './encounters.js';
 
+// Vite bundles this as an asset URL; Node-based data tests can still load the
+// delve definitions without needing a PNG module loader.
+const slimeCaveBackgroundUrl = new URL('../assets/the_slime_cave_bg.png', import.meta.url).href;
+
 const delves = [
   {
     id: 'slime-cave',
@@ -11,6 +15,12 @@ const delves = [
     depth: 1,
     type: 'delve',
     possibleDrops: ['Gold', 'Healing Tonic', 'Adventurer XP'],
+    visuals: {
+      battlefieldBackground: {
+        key: 'slime-cave-battlefield-background',
+        url: slimeCaveBackgroundUrl
+      }
+    },
     prerequisites: [],
     map: { x: 0.307, y: 0.475, radius: 0.055 }
   },

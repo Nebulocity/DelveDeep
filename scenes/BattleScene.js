@@ -8,6 +8,8 @@ import { leaderAbilities } from '../game/LeaderProgression.js';
 import BattleUnit from '../combat/BattleUnit.js';
 import BattlefieldGeometry from '../combat/BattlefieldGeometry.js';
 import TacticsController from '../combat/TacticsController.js';
+import CombatMovement from '../combat/CombatMovement.js';
+import combatSpacing from '../config/combatSpacing.js';
 import CombatLog from '../combat/CombatLog.js';
 import HapticsService from '../services/HapticsService.js';
 import { completeExpedition, failExpedition, fleeExpedition, formatDuration } from '../game/ExpeditionProgression.js';
@@ -21,6 +23,16 @@ export default class BattleScene extends Phaser.Scene {
   constructor() {
 
     super('BattleScene');
+  }
+
+  // Encounter visual data supplies only the assets needed by the selected
+  // delve. Other delves retain the existing battlefield presentation.
+  preload() {
+
+    const background = GameState.currentDelve?.visuals?.battlefieldBackground;
+    if (background?.key && background?.url && !this.textures.exists(background.key)) {
+      this.load.image(background.key, background.url);
+    }
   }
 
   // This function starts a new battle by resetting encounter state, creating
@@ -44,15 +56,16 @@ export default class BattleScene extends Phaser.Scene {
     this.selectedUnitIds = new Set();
     this.manualTargets = new Map();
     this.attackTargets = new Map();
+    this.healerPriorityTargets = new Map();
     this.heldUnitIds = new Set();
     this.commandMode = null;
-    this.stackMode = 'spread';
     this.focusTargetId = null;
     this.gridCells = [];
     this.leaderAbilityCooldowns = new Map();
     this.assaultUntil = 0;
     this.braceUntil = 0;
     this.usedLeaderAbilities = new Set();
+    this.pendingPausedTactics = [];
     this.awaitingRevive = false;
     this.battleLayout = getBattleLayout(width, height);
     this.combatPaused = false;
@@ -77,6 +90,7 @@ export default class BattleScene extends Phaser.Scene {
     // Create the formation controller and copy the appropriate encounter wave
     // definitions.
     this.tactics = new TacticsController(this.battlefield, GameState.tactics);
+    this.movement = new CombatMovement(this);
     this.waves = this.buildEncounterWaves();
 
     // Build the battlefield interface, register the combat log, and start the
@@ -134,8 +148,23 @@ export default class BattleScene extends Phaser.Scene {
 
   // This function draws the battlefield beneath its units and tactical
   // controls.
-  createArena() {
+  createArena(width, height) {
 
+    const background = GameState.currentDelve?.visuals?.battlefieldBackground;
+    let staticBackground = null;
+    if (background?.key && this.textures.exists(background.key)) {
+      staticBackground = this.add.image(width / 2, height / 2, background.key).setDepth(-1000);
+      // Cover the complete game viewport without stretching the artwork.
+      const scale = Math.max(width / staticBackground.width, height / staticBackground.height);
+      staticBackground.setScale(scale);
+    }
+
+    // Future cave water, fog, scenery, and ambient effects can be inserted
+    // here: above the static backdrop but below combat units and HUD layers.
+    this.battlefieldVisualLayers = {
+      staticBackground,
+      scenery: this.add.container(0, 0).setDepth(90)
+    };
     this.battlefield.drawPerspectiveFloor();
   }
 
@@ -195,9 +224,14 @@ export default class BattleScene extends Phaser.Scene {
     this.tonicCountText = this.add.text(70, height * 0.75, '', {
       fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: '#86efac'
     }).setOrigin(0, 0.5).setDepth(4501);
-    this.add.text(width - 70, height * 0.75, 'Tap TONIC to heal. Long-press / hold-click characters, tactics or orders for details.', {
+    this.tonicHintText = this.add.text(width / 2, height * 0.738, 'Tap TONIC to heal.', {
+      fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: '#86efac'
+    }).setOrigin(0.5).setDepth(4501);
+    this.add.text(width / 2, height * 0.765, 'Long-press / hold-click characters, tactics or orders for details.', {
       fontFamily: 'Arial', fontSize: '26px', color: '#cbd5e1'
-    }).setOrigin(1, 0.5).setDepth(4501);
+    }).setOrigin(0.5).setDepth(4501);
+    this.hadHealingTonics = GameState.inventory.healingTonic > 0;
+    this.tonicFlashUntil = 0;
 
     this.partyUnits.forEach((unit, index) => {
 
@@ -260,6 +294,7 @@ export default class BattleScene extends Phaser.Scene {
       bindSelectionDetails(this, nameText, () => characterDetails(unit), () => this.toggleUnitSelection(unit));
       this.partyHud.push({statusHitZone,tonicButton,tonicLabel,unit,nameText,hpText,manaText,threatText,hpFill,hpGlow,manaBack,manaFill,hudBarWidth});
     });
+    this.updateTonicHud();
   }
 
   // This function makes the perspective tiles usable as touch destinations.
@@ -377,9 +412,10 @@ export default class BattleScene extends Phaser.Scene {
     this.leaderButtons?.forEach(({ ability, box, status }) => {
 
       const used = ability.oncePerEncounter && this.usedLeaderAbilities.has(ability.id);
+      const queued = this.pendingPausedTactics?.includes(ability.id);
       const remaining = Math.max(0, (ability.cooldown ?? 0) - (this.time.now - (this.leaderAbilityCooldowns.get(ability.id) ?? -Infinity)));
-      status.setText(used ? 'USED' : remaining > 0 ? Math.ceil(remaining / 1000) + 's' : ability.oncePerEncounter ? 'ONCE / ENCOUNTER' : 'READY');
-      box.setFillStyle(used || remaining > 0 ? 0x1c1917 : 0x292524);
+      status.setText(queued ? 'QUEUED' : used ? 'USED' : remaining > 0 ? Math.ceil(remaining / 1000) + 's' : ability.oncePerEncounter ? 'ONCE / ENCOUNTER' : 'READY');
+      box.setFillStyle(queued || used || remaining > 0 ? 0x1c1917 : 0x292524);
     });
   }
 
@@ -388,6 +424,8 @@ export default class BattleScene extends Phaser.Scene {
   toggleUnitSelection(unit) {
 
     if (!unit?.alive) return;
+
+    if (this.assignHealerPriority(unit)) return;
 
     if (this.selectedUnitIds.has(unit.id)) {
       this.selectedUnitIds.delete(unit.id);
@@ -412,11 +450,65 @@ export default class BattleScene extends Phaser.Scene {
     HapticsService.tap();
   }
 
+  // A healer-only selection turns a tap on an ally into a healing priority
+  // instead of changing selection. The direct order replaces Hold/Attack so
+  // the healer can safely move into healing range when necessary.
+  assignHealerPriority(target) {
+    const selected = this.getSelectedUnits();
+    const healers = selected.filter((unit) => unit.role === 'Healer');
+    if (healers.length === 0 || healers.length !== selected.length || healers.includes(target)) return false;
+    if (target.hp >= target.maxHp) {
+      this.showBattleMessage(`${target.name} is already at full health`, '#a8a29e');
+      HapticsService.tap();
+      return true;
+    }
+    this.healerPriorityTargets ??= new Map();
+    healers.forEach((healer) => {
+      this.healerPriorityTargets.set(healer.id, target.id);
+      this.manualTargets.delete(healer.id);
+      this.attackTargets.delete(healer.id);
+      this.heldUnitIds.delete(healer.id);
+    });
+    this.commandMode = null;
+    this.setTargetingInputState(false);
+    this.refreshTacticsMenus();
+    this.showBattleMessage(`${healers.length === 1 ? healers[0].name : 'Healers'} prioritizing ${target.name}`, '#86efac', true);
+    HapticsService.confirm();
+    return true;
+  }
+
+  // Healing priorities are encounter-only and end automatically when their
+  // target is full health, defeated, or no longer in the party.
+  getHealerPriorityTarget(healer) {
+    const targetId = this.healerPriorityTargets?.get(healer.id);
+    const target = this.partyUnits.find((unit) => unit.id === targetId && unit.alive);
+    if (!target || target.hp >= target.maxHp) {
+      this.healerPriorityTargets?.delete(healer.id);
+      return null;
+    }
+    return target;
+  }
+
   // This function selects a role or the whole living party for a shared command.
   selectRole(role) {
 
     const matching = this.partyUnits.filter((unit) => unit.alive && (role === 'All' || unit.role === role));
     const groupName = role === 'All' ? 'All adventurers' : role;
+    const alreadySelected = matching.length > 0
+      && matching.length === this.getSelectedUnits().length
+      && matching.every((unit) => this.selectedUnitIds.has(unit.id));
+
+    if (alreadySelected) {
+      matching.forEach((unit) => this.attackTargets.delete(unit.id));
+      this.selectedUnitIds.clear();
+      this.commandMode = null;
+      this.setTargetingInputState(false);
+      this.refreshTacticsMenus();
+      this.showBattleMessage(`${groupName} deselected`, '#a8a29e');
+      HapticsService.tap();
+      return;
+    }
+
     this.selectedUnitIds = new Set(matching.map((unit) => unit.id));
     this.commandMode = null;
     this.setTargetingInputState(false);
@@ -452,6 +544,17 @@ export default class BattleScene extends Phaser.Scene {
     const selected = this.getSelectedUnits();
     const needsSelection = ['MOVE', 'HOLD', 'SPREAD', 'STACK', 'ATTACK'].includes(label);
 
+    // A second press cancels a target-selection mode before it can affect the
+    // party. This is particularly useful for an accidentally armed Attack.
+    if (this.commandMode === label) {
+      this.commandMode = null;
+      this.setTargetingInputState(false);
+      this.refreshTacticsMenus();
+      this.showBattleMessage(`${label} canceled`, '#a8a29e');
+      HapticsService.tap();
+      return;
+    }
+
     // Reject movement and formation commands until the player chooses units
     // or a role.
     if (needsSelection && selected.length === 0) {
@@ -463,6 +566,17 @@ export default class BattleScene extends Phaser.Scene {
     // Hold takes effect immediately at each selected unit's current position.
     // Other commands wait for a target tap.
     if (label === 'HOLD') {
+      const alreadyHeld = selected.length > 0 && selected.every((unit) => this.isPositionLocked(unit));
+      if (alreadyHeld) {
+        selected.forEach((unit) => {
+          this.manualTargets.delete(unit.id);
+          this.heldUnitIds.delete(unit.id);
+        });
+        this.refreshTacticsMenus();
+        this.showBattleMessage('HOLD ORDER CANCELED', '#a8a29e');
+        HapticsService.tap();
+        return;
+      }
       selected.forEach((unit) => {
 
         this.manualTargets.set(unit.id, { x: unit.arenaX, y: unit.arenaY });
@@ -473,6 +587,18 @@ export default class BattleScene extends Phaser.Scene {
       this.refreshTacticsMenus();
       this.showBattleMessage('HOLD ORDER SET', '#93c5fd');
       this.setTargetingInputState(false);
+      HapticsService.tap();
+      return;
+    }
+
+    // Attack is a persistent order after an enemy is chosen. Pressing it
+    // again with that same group selected releases a mistaken attack target.
+    if (label === 'ATTACK' && selected.some((unit) => this.attackTargets.has(unit.id))) {
+      selected.forEach((unit) => this.attackTargets.delete(unit.id));
+      this.commandMode = null;
+      this.setTargetingInputState(false);
+      this.refreshTacticsMenus();
+      this.showBattleMessage('ATTACK ORDER CANCELED', '#a8a29e');
       HapticsService.tap();
       return;
     }
@@ -574,18 +700,13 @@ export default class BattleScene extends Phaser.Scene {
     // tight stack, then hold those positions.
     if (this.commandMode === 'SPREAD' || this.commandMode === 'STACK') {
       const formationMode = this.commandMode;
-      const radius = formationMode === 'STACK' ? 34 : 135;
+      const mode = formationMode.toLowerCase();
+      const positions = this.movement.getFormationPositions(units, center, mode);
 
       units.forEach((unit, index) => {
 
-        const angle = (Math.PI * 2 * index) / Math.max(1, units.length);
-        const point = this.battlefield.clampPoint(
-          center.x + Math.cos(angle) * radius,
-          center.y + Math.sin(angle) * radius,
-          45,
-          35
-        );
-
+        const point = positions[index];
+        unit.spacingMode = mode;
         this.manualTargets.set(unit.id, point);
         this.attackTargets.delete(unit.id);
         this.heldUnitIds.add(unit.id);
@@ -598,15 +719,16 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
+    const positions = this.movement.getFormationPositions(units, center);
     units.forEach((unit, index) => {
 
-      const offset = (index - (units.length - 1) / 2) * 38;
-      const point = this.battlefield.clampPoint(center.x + offset, center.y, 45, 35);
+      const point = positions[index];
+      unit.spacingMode = 'normal';
       this.manualTargets.set(unit.id, point);
       this.attackTargets.delete(unit.id);
 
       // Make direct movement a persistent Hold immediately so AI, dodging,
-      // and separation cannot override the player's destination.
+      // cannot override the player's destination. Personal space still applies.
       this.heldUnitIds.add(unit.id);
     });
 
@@ -639,6 +761,7 @@ export default class BattleScene extends Phaser.Scene {
 
         this.manualTargets.delete(unit.id);
         this.heldUnitIds.delete(unit.id);
+        unit.spacingMode = 'normal';
         this.attackTargets.set(unit.id, enemy.id);
         unit.finishAction();
       });
@@ -691,8 +814,8 @@ export default class BattleScene extends Phaser.Scene {
       return false;
     }
 
-    if (unit.distanceToPoint(target.x, target.y) > 24) {
-      unit.moveToward(target.x, target.y, deltaSeconds, 18);
+    if (unit.distanceToPoint(target.x, target.y) > combatSpacing.arrivalTolerance) {
+      unit.moveToward(target.x, target.y, deltaSeconds, combatSpacing.arrival);
       return true;
     }
 
@@ -707,7 +830,11 @@ export default class BattleScene extends Phaser.Scene {
   // cooldown.
   useLeaderAbility(id) {
 
-    if (this.battleOver || this.combatPaused || this.waveTransitioning) return;
+    if (this.battleOver || this.waveTransitioning) return;
+    if (this.combatPaused) {
+      this.queuePausedTactic(id);
+      return;
+    }
     const ability = leaderAbilities.find((entry) => entry.id === id);
     if (!ability || !this.isLeaderAbilityReady(id)) {
       this.showBattleMessage('Tactic unavailable or recharging', '#a8a29e');
@@ -756,9 +883,10 @@ export default class BattleScene extends Phaser.Scene {
       });
       this.showBattleMessage('ENCOURAGEMENT - party healed', '#bef264', false, 1.5);
     } else if (id === 'preparedSupplies') {
-      GameState.inventory.healingTonic += ability.tonicAmount;
+      GameState.inventory.healingTonic = Math.max(0, GameState.inventory.healingTonic ?? 0) + ability.tonicAmount;
       saveProfile();
-      this.showBattleMessage('+1 HEALING TONIC', '#bef264', false, 1.5);
+      this.updateTonicHud();
+      this.showBattleMessage(`+${ability.tonicAmount} HEALING TONIC (${GameState.inventory.healingTonic} TOTAL)`, '#bef264', false, 1.5);
     } else if (id === 'arise') {
       fallen.forEach((unit) => {
 
@@ -777,6 +905,42 @@ export default class BattleScene extends Phaser.Scene {
     this.combatLog?.add('tactic', ability.name + ' used', { wave: this.currentWaveIndex + 1, ability: ability.name });
     this.refreshTacticsMenus();
     this.updateLeaderLoadoutBar();
+  }
+
+  // This function records a legal tactic press while paused. Commands already
+  // update player order state while paused; tactics need an explicit queue
+  // because their effects would otherwise be committed immediately.
+  queuePausedTactic(id) {
+    const ability = leaderAbilities.find((entry) => entry.id === id);
+    if (!ability || !this.isLeaderAbilityReady(id)) {
+      this.showBattleMessage('Tactic unavailable or recharging', '#a8a29e');
+      return;
+    }
+    const living = this.partyUnits.filter((unit) => unit.alive);
+    const fallen = this.partyUnits.filter((unit) => !unit.alive);
+    if ((id !== 'arise' && living.length === 0)
+      || (id === 'arise' && fallen.length === 0)
+      || (id === 'encouragement' && !living.some((unit) => unit.hp < unit.maxHp))) {
+      this.showBattleMessage(id === 'arise' ? 'No fallen adventurers to revive' : 'Tactic has no effect yet', '#a8a29e');
+      return;
+    }
+    this.pendingPausedTactics ??= [];
+    if (this.pendingPausedTactics.includes(id)) {
+      this.showBattleMessage(`${ability.name} is already queued`, '#a8a29e');
+      return;
+    }
+    this.pendingPausedTactics.push(id);
+    this.showBattleMessage(`${ability.name} queued`, '#bef264', true);
+    HapticsService.tap();
+    this.updateLeaderLoadoutBar();
+  }
+
+  // This function runs queued tactic presses synchronously before the first
+  // resumed combat update, preserving the player's paused decision order.
+  flushPausedTactics() {
+    const queued = this.pendingPausedTactics ?? [];
+    this.pendingPausedTactics = [];
+    queued.forEach((id) => this.useLeaderAbility(id));
   }
 
   // This function validates the equipped tactic, its unlock, and encounter
@@ -851,6 +1015,7 @@ export default class BattleScene extends Phaser.Scene {
   // separates crowded units, and checks for a cleared wave or defeated party.
   update(time, delta) {
 
+    this.updateTonicHud();
     if (this.battleOver || this.waveTransitioning || this.combatPaused) {
       return;
     }
@@ -880,9 +1045,8 @@ export default class BattleScene extends Phaser.Scene {
     // Run party decisions, resolve crowding, and then let enemies choose
     // their actions.
     this.partyUnits.forEach((unit) => this.updatePartyUnit(unit, time, deltaSeconds));
-    this.applySeparation(this.partyUnits, deltaSeconds, 62);
-    this.applySeparation(livingEnemies, deltaSeconds, 78);
     this.updateEnemies(time, deltaSeconds);
+    this.movement.separate(deltaSeconds);
 
     this.partyUnits.forEach((unit) => unit.clampToBattlefield(38, 20));
     livingEnemies.forEach((enemy) => enemy.clampToBattlefield(60, 20));
@@ -999,7 +1163,7 @@ export default class BattleScene extends Phaser.Scene {
     // Healers use basic attacks for this order, never healing spells as
     // damage.
     if (ordered && unit.canStartAction(time)) {
-      unit.moveToward(ordered.arenaX, ordered.arenaY, deltaSeconds, unit.attackRange * 0.85);
+      this.movement.moveToCombatPosition(unit, ordered, time, deltaSeconds);
     }
     if (ordered && unit.role === 'Healer') {
       if (unit.distanceTo(ordered) <= unit.attackRange && unit.canAttack(time)) {
@@ -1025,6 +1189,14 @@ export default class BattleScene extends Phaser.Scene {
     } else {
       this.updateRangedUnit(unit, target, time, deltaSeconds);
     }
+  }
+
+  // Melee reach is measured from centers in the combat data. Extend it only
+  // by the shared visual-clearance allowance so a readable melee slot can
+  // still resolve its attack without changing ranged combat ranges.
+  isWithinAttackReach(attacker, target, padding = 0) {
+    const meleePadding = this.movement.isMelee(attacker) ? combatSpacing.meleeReachPadding : 0;
+    return attacker.distanceTo(target) <= attacker.attackRange + meleePadding + padding;
   }
 
   // This function applies the Naturalist aura when its healing interval comes
@@ -1188,13 +1360,12 @@ export default class BattleScene extends Phaser.Scene {
   // positions.
   updateTankUnit(unit, target, time, deltaSeconds) {
 
-    // Formation anchors can be farther from an enemy than melee range. Close
-    // on the actual target unless a player Hold order prevents it.
+    // Approach a reserved position within attack range, never the target center.
     if (!this.attackTargets.has(unit.id) && !this.isPositionLocked(unit) && unit.canStartAction(time)) {
-      unit.moveToward(target.arenaX, target.arenaY, deltaSeconds, unit.attackRange * 0.85);
+      this.movement.moveToCombatPosition(unit, target, time, deltaSeconds);
     }
 
-    if (unit.distanceTo(target) > unit.attackRange + 24) return;
+    if (!this.isWithinAttackReach(unit, target, 24)) return;
 
     const primary = unit.abilities?.primary;
     if (primary && unit.abilityReady('primary', time)) {
@@ -1224,12 +1395,11 @@ export default class BattleScene extends Phaser.Scene {
       }
     }
 
-    const desired = this.tactics.getMeleePosition(unit, target);
-    if (!this.attackTargets.has(unit.id) && !this.isPositionLocked(unit) && !unit.isBusy(time) && unit.distanceToPoint(desired.x, desired.y) > 25) {
-      unit.moveToward(desired.x, desired.y, deltaSeconds, 16);
+    if (!this.attackTargets.has(unit.id)) {
+      this.movement.moveToCombatPosition(unit, target, time, deltaSeconds);
     }
 
-    if (unit.distanceTo(target) > unit.attackRange + 28) return;
+    if (!this.isWithinAttackReach(unit, target, 28)) return;
 
     const primary = unit.abilities?.primary;
     if (primary && unit.abilityReady('primary', time)) {
@@ -1244,13 +1414,12 @@ export default class BattleScene extends Phaser.Scene {
   // spells.
   updateRangedUnit(unit, target, time, deltaSeconds) {
 
-    const desired = this.tactics.getRangedPosition(unit, target);
-    if (!this.attackTargets.has(unit.id) && !this.isPositionLocked(unit) && !unit.isBusy(time) && unit.distanceToPoint(desired.x, desired.y) > 42) {
-      unit.moveToward(desired.x, desired.y, deltaSeconds, 34);
+    if (!this.attackTargets.has(unit.id)) {
+      this.movement.moveToCombatPosition(unit, target, time, deltaSeconds);
     }
 
     if (unit.className === 'Ranger') this.tryRangerTrap(unit, target, time);
-    if (unit.distanceTo(target) > unit.attackRange) return;
+    if (!this.isWithinAttackReach(unit, target)) return;
     if (!unit.canCast(time) && unit.className === 'Wizard') return;
 
     if (unit.className === 'Wizard') {
@@ -1283,10 +1452,16 @@ export default class BattleScene extends Phaser.Scene {
   // supporting range.
   updateHealerUnit(unit, time, deltaSeconds) {
 
-    const injured = this.getMostInjuredPartyMember();
+    const priorityTarget = this.getHealerPriorityTarget(unit);
+    const injured = priorityTarget ?? this.getMostInjuredPartyMember();
+    const nearestEnemy = this.getLivingEnemies().sort((a, b) => unit.distanceTo(a) - unit.distanceTo(b))[0];
+    const canReposition = !this.isPositionLocked(unit) && unit.canStartAction(time);
+    // Retreat from immediate danger even while supporting an injured ally.
+    const retreating = canReposition && nearestEnemy
+      && this.movement.maintainRange(unit, nearestEnemy, deltaSeconds, true);
 
-    if (injured && injured.hp / injured.maxHp < 0.84) {
-      if (!this.isPositionLocked(unit) && !unit.isBusy(time) && unit.distanceTo(injured) > unit.healRange * 0.9) {
+    if (injured && (priorityTarget || injured.hp / injured.maxHp < 0.84)) {
+      if (canReposition && !retreating && unit.distanceTo(injured) > unit.healRange * 0.9) {
         unit.moveToward(injured.arenaX, injured.arenaY, deltaSeconds, unit.healRange * 0.72);
       }
 
@@ -1302,10 +1477,8 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    const anchor = this.tank?.alive ? this.tank : this.partyUnits.find((candidate) => candidate.alive && candidate !== unit);
-    if (anchor && !this.isPositionLocked(unit) && !unit.isBusy(time)) {
-      const desired = this.tactics.getHealerPosition(unit, anchor);
-      if (unit.distanceToPoint(desired.x, desired.y) > 45) unit.moveToward(desired.x, desired.y, deltaSeconds, 30);
+    if (nearestEnemy && canReposition && !retreating) {
+      this.movement.maintainRange(unit, nearestEnemy, deltaSeconds);
     }
 
     const target = this.getPrimaryTarget(unit);
@@ -1319,7 +1492,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    if (unit.distanceTo(target) <= unit.attackRange && unit.canAttack(time)) {
+    if (this.isWithinAttackReach(unit, target) && unit.canAttack(time)) {
       this.beginBasicAttack(unit, target, time, unit.className === 'Bloodwarder' ? 'spell' : 'holy');
     }
   }
@@ -1445,11 +1618,9 @@ export default class BattleScene extends Phaser.Scene {
         return;
       }
 
-      if (!enemy.isBusy(time) && enemy.distanceTo(target) > enemy.attackRange) {
-        enemy.moveToward(target.arenaX, target.arenaY, deltaSeconds, enemy.attackRange * 0.82);
-      }
+      this.movement.moveToCombatPosition(enemy, target, time, deltaSeconds);
 
-      if (enemy.distanceTo(target) <= enemy.attackRange + 8 && enemy.canAttack(time)) {
+      if (this.isWithinAttackReach(enemy, target, 8) && enemy.canAttack(time)) {
         this.beginBasicAttack(enemy, target, time, 'enemy');
       }
     });
@@ -1483,7 +1654,7 @@ export default class BattleScene extends Phaser.Scene {
     this.time.delayedCall(attacker.attackWindup, () => {
 
       if (!this.isActionCurrent(attacker, action, target)) return;
-      if (attacker.distanceTo(target) <= attacker.attackRange + 28) {
+      if (this.isWithinAttackReach(attacker, target, 28)) {
         this.resolveDamage(attacker, target, attacker.attackPower, attackType, attacker.threatMultiplier, 'Attack');
       }
       attacker.finishAction();
@@ -1514,7 +1685,7 @@ export default class BattleScene extends Phaser.Scene {
 
       if (!this.isActionCurrent(attacker, action, target)) return;
       const rangePadding = attackType === 'spell' ? 50 : 30;
-      if (attacker.distanceTo(target) <= attacker.attackRange + rangePadding) {
+      if (this.isWithinAttackReach(attacker, target, rangePadding)) {
         this.resolveDamage(
           attacker,
           target,
@@ -1908,6 +2079,12 @@ export default class BattleScene extends Phaser.Scene {
     enemy.rewarded = true;
     const definition = enemy.definition;
     this.earnedGold += Phaser.Math.Between(definition.goldMin ?? 0, definition.goldMax ?? 0);
+
+    // Enemies remain in the wave array for reward accounting and delayed
+    // action checks, but their battlefield body should not occupy the scene
+    // after defeat. Floating damage text is separate and can finish normally.
+    enemy.hitZone?.disableInteractive?.();
+    enemy.container?.destroy?.();
   }
 
   // This function checks whether allies may engage an enemy. A tank hit or
@@ -1967,7 +2144,7 @@ export default class BattleScene extends Phaser.Scene {
       .sort((a, b) => b.threat - a.threat);
   }
 
-  // This function displays the enemy target and logs meaningful targeting
+  // This function stores the enemy target for inspection and logs meaningful targeting
   // changes.
   setEnemyTarget(enemy, target, reason = '') {
 
@@ -2007,63 +2184,6 @@ export default class BattleScene extends Phaser.Scene {
       total += this.enemyThreat.get(enemy.id)?.get(unit.id) ?? 0;
     });
     return total;
-  }
-
-  // This function pushes overlapping living units apart a little each frame.
-  // Held adventurers stay fixed, so any needed separation is applied to the
-  // other unit instead.
-  applySeparation(units, deltaSeconds, minimumDistance) {
-
-    const living = units.filter((unit) => unit.alive);
-
-    for (let i = 0; i < living.length; i += 1) {
-      for (let j = i + 1; j < living.length; j += 1) {
-        const first = living[i];
-        const second = living[j];
-        const distance = first.distanceTo(second);
-
-        if (distance === 0 || distance >= minimumDistance) {
-          continue;
-        }
-
-        const firstLocked = !first.isEnemy && this.isPositionLocked(first);
-        const secondLocked = !second.isEnemy && this.isPositionLocked(second);
-
-        // Leave two held units alone. If only one is held, the other unit
-        // takes the entire separation adjustment.
-        if (firstLocked && secondLocked) {
-          continue;
-        }
-
-        const direction = new Phaser.Math.Vector2(
-          first.arenaX - second.arenaX,
-          first.arenaY - second.arenaY
-        ).normalize();
-
-        const push = (minimumDistance - distance) * 2.3 * deltaSeconds;
-
-        if (firstLocked) {
-          second.setArenaPosition(
-            second.arenaX - direction.x * push * 2,
-            second.arenaY - direction.y * push * 2
-          );
-        } else if (secondLocked) {
-          first.setArenaPosition(
-            first.arenaX + direction.x * push * 2,
-            first.arenaY + direction.y * push * 2
-          );
-        } else {
-          first.setArenaPosition(
-            first.arenaX + direction.x * push,
-            first.arenaY + direction.y * push
-          );
-          second.setArenaPosition(
-            second.arenaX - direction.x * push,
-            second.arenaY - direction.y * push
-          );
-        }
-      }
-    }
   }
 
   // This function prioritizes living allies by the fraction of health
@@ -2186,7 +2306,7 @@ export default class BattleScene extends Phaser.Scene {
     this.combatLog?.add('wave', `Wave ${this.currentWaveIndex + 1} cleared`, { wave: this.currentWaveIndex + 1 });
     this.combatLog?.persist();
 
-    this.enemies.forEach((enemy) => {
+    this.enemies.filter((enemy) => enemy.container?.active !== false).forEach((enemy) => {
 
       this.tweens.add({
         targets: enemy.container,
@@ -2203,16 +2323,33 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
+  // Watch the shared inventory so any source of Tonics restores the controls.
+  // Three gentle pulses announce newly available stock without moving targets.
+  updateTonicHud() {
+    const hasTonics = GameState.inventory.healingTonic > 0;
+    const now = this.time.now;
+    if (hasTonics && this.hadHealingTonics === false) this.tonicFlashUntil = now + 1500;
+    if (!hasTonics) this.tonicFlashUntil = 0;
+    this.hadHealingTonics = hasTonics;
+    const remaining = Math.max(0, (this.tonicFlashUntil ?? 0) - now);
+    const alpha = remaining > 0 ? 0.7 + 0.3 * Math.cos(remaining * Math.PI * 2 / 500) : 1;
+    this.tonicHintText?.setVisible(hasTonics).setAlpha(alpha);
+    this.tonicCountText?.setText(`Healing Tonics: ${GameState.inventory.healingTonic}`).setVisible(hasTonics);
+    this.partyHud?.forEach(({ unit, tonicButton, tonicLabel }) => {
+      const ready = this.canUseHealingTonic(unit);
+      tonicButton?.setVisible(hasTonics).setAlpha(alpha).setFillStyle(ready ? 0x14532d : 0x292524);
+      if (tonicButton?.input) tonicButton.input.enabled = hasTonics;
+      tonicLabel?.setVisible(hasTonics).setAlpha(alpha * (ready ? 1 : 0.45));
+    });
+  }
+
   // This function refreshes party resources and encounter progress as combat
   // changes.
   updateHud() {
 
     this.updateLeaderLoadoutBar();
-    this.tonicCountText?.setText(`Healing Tonics: ${GameState.inventory.healingTonic}`);
-    this.partyHud?.forEach(({ unit, tonicButton, tonicLabel, hpText, manaText, threatText, hpFill, hpGlow, manaBack, manaFill, hudBarWidth }) => {
-      const tonicReady = this.canUseHealingTonic(unit);
-      tonicButton?.setFillStyle(tonicReady ? 0x14532d : 0x292524);
-      tonicLabel?.setAlpha(tonicReady ? 1 : 0.45);
+    this.updateTonicHud();
+    this.partyHud?.forEach(({ unit, hpText, manaText, threatText, hpFill, hpGlow, manaBack, manaFill, hudBarWidth }) => {
 
       const ratio = unit.maxHp > 0 ? Phaser.Math.Clamp(unit.hp / unit.maxHp, 0, 1) : 0;
       const manaRatio = unit.maxMana > 0 ? Phaser.Math.Clamp(unit.mana / unit.maxMana, 0, 1) : 0;
@@ -2330,6 +2467,7 @@ export default class BattleScene extends Phaser.Scene {
     this.pauseButtonText?.setText(this.combatPaused ? 'RESUME' : 'PAUSE');
     this.pauseButton?.setFillStyle(this.combatPaused ? 0x3b321d : 0x1f2937);
     this.showBattleMessage(this.combatPaused ? 'PAUSED' : 'RESUMED', this.combatPaused ? '#fbbf24' : '#bef264');
+    if (!this.combatPaused) this.flushPausedTactics();
     HapticsService.tap();
   }
 

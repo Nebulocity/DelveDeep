@@ -1,7 +1,6 @@
 import { createEncounterWaves } from './encounters.js';
 
-// Vite bundles this as an asset URL; Node-based data tests can still load the
-// delve definitions without needing a PNG module loader.
+// Vite bundles this as an asset URL; Node-based data tests can still load the delve definitions without needing a PNG module loader.
 const slimeCaveBackgroundUrl = new URL('../assets/the_slime_cave_bg.png', import.meta.url).href;
 
 const delves = [
@@ -21,9 +20,7 @@ const delves = [
         url: slimeCaveBackgroundUrl
       }
     },
-    // Terrain uses the battlefield's 1400 x 900 logical coordinates. These
-    // points mask the large stalagmite/rock formation in the upper-right of
-    // the Slime Cave art. Adjust them freely while tuning the background.
+    // Terrain uses the battlefield's 1400 x 900 logical coordinates. These points mask the large stalagmite/rock formation in the upper-right of the Slime Cave art. Adjust them freely while tuning the background.
     terrain: [
       {
         id: 'upper-right-stalagmites',

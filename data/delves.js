@@ -23,17 +23,89 @@ const delves = [
     // Terrain uses the battlefield's 1400 x 900 logical coordinates. These points mask the large stalagmite/rock formation in the upper-right of the Slime Cave art. Adjust them freely while tuning the background.
     terrain: [
       {
-        id: 'upper-right-stalagmites',
-        type: 'blocked',
-        points: [
-          { x: 1160, y: 900 },
-          { x: 1400, y: 900 },
-          { x: 1400, y: 610 },
-          { x: 1325, y: 625 },
-          { x: 1260, y: 680 },
-          { x: 1215, y: 760 }
-        ]
-      }
+      "id": "blocked-zone-2",
+      "type": "blocked",
+      "points": [
+        {
+          "x": 1228,
+          "y": 892
+        },
+        {
+          "x": 1194,
+          "y": 842
+        },
+        {
+          "x": 1170,
+          "y": 807
+        },
+        {
+          "x": 1148,
+          "y": 781
+        },
+        {
+          "x": 1132,
+          "y": 743
+        },
+        {
+          "x": 1109,
+          "y": 705
+        },
+        {
+          "x": 1090,
+          "y": 675
+        },
+        {
+          "x": 1074,
+          "y": 658
+        },
+        {
+          "x": 1092,
+          "y": 625
+        },
+        {
+          "x": 1128,
+          "y": 590
+        },
+        {
+          "x": 1162,
+          "y": 581
+        },
+        {
+          "x": 1188,
+          "y": 578
+        },
+        {
+          "x": 1224,
+          "y": 570
+        },
+        {
+          "x": 1263,
+          "y": 558
+        },
+        {
+          "x": 1295,
+          "y": 543
+        },
+        {
+          "x": 1322,
+          "y": 540
+        },
+        {
+          "x": 1365,
+          "y": 540
+        },
+        {
+          "x": 1385,
+          "y": 531
+        },
+        {
+          "x": 1397,
+          "y": 531
+        },
+        {
+          "x": 1391,
+          "y": 889
+        }
     ],
     prerequisites: [],
     map: { x: 0.307, y: 0.475, radius: 0.055 }

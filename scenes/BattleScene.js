@@ -77,7 +77,7 @@ export default class BattleScene extends Phaser.Scene {
       bottomRightX: width - 345,
       topLeftX: width * 0.29,
       topRightX: width * 0.71,
-      bottomY: height * 0.72,
+      bottomY: height * 0.775,
       topY: this.battleLayout.arenaTop,
       logicalWidth: 1400,
       logicalHeight: 900,

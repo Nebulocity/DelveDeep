@@ -17,7 +17,8 @@ export default class CombatMovement {
 
   clamp(x, y) {
     const padding = this.config.edgePadding;
-    return this.scene.battlefield.clampPoint(x, y, padding, padding);
+    const point = this.scene.battlefield.clampPoint(x, y, padding, padding);
+    return this.scene.terrain?.nearestSafePoint(point.x, point.y, padding) ?? point;
   }
 
   isMelee(unit) {
@@ -72,7 +73,13 @@ export default class CombatMovement {
       }
     }
     const scale = Math.min(1, travel / (Math.hypot(dx, dy) || 1));
-    return this.clamp(unit.arenaX + dx * scale, unit.arenaY + dy * scale);
+    const desired = this.scene.battlefield.clampPoint(
+      unit.arenaX + dx * scale,
+      unit.arenaY + dy * scale,
+      this.config.edgePadding,
+      this.config.edgePadding
+    );
+    return this.scene.terrain?.resolveStep(unit, desired.x, desired.y, unit.bodyRadius ?? 0) ?? desired;
   }
 
   getMeleeApproachPosition(unit, target, time) {

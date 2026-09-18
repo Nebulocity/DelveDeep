@@ -7,7 +7,6 @@ import { createEncounterWaves } from '../data/encounters.js';
 import { leaderAbilities } from '../game/LeaderProgression.js';
 import BattleUnit from '../combat/BattleUnit.js';
 import BattlefieldGeometry from '../combat/BattlefieldGeometry.js';
-import BattlefieldTerrain from '../combat/BattlefieldTerrain.js';
 import TacticsController from '../combat/TacticsController.js';
 import CombatMovement from '../combat/CombatMovement.js';
 import combatSpacing from '../config/combatSpacing.js';
@@ -90,11 +89,6 @@ export default class BattleScene extends Phaser.Scene {
 
     // Create the formation controller and copy the appropriate encounter wave
     // definitions.
-    this.terrain = new BattlefieldTerrain(this, this.battlefield, GameState.currentDelve?.terrain ?? []);
-
-    // Uncomment this while authoring terrain to see blocked polygons over the art.
-    // this.terrainDebug = this.terrain.drawDebug();
-
     this.tactics = new TacticsController(this.battlefield, GameState.tactics);
     this.movement = new CombatMovement(this);
     this.waves = this.buildEncounterWaves();
@@ -711,8 +705,7 @@ export default class BattleScene extends Phaser.Scene {
 
       units.forEach((unit, index) => {
 
-        const rawPoint = positions[index];
-        const point = this.terrain.nearestSafePoint(rawPoint.x, rawPoint.y, unit.bodyRadius ?? 0);
+        const point = positions[index];
         unit.spacingMode = mode;
         this.manualTargets.set(unit.id, point);
         this.attackTargets.delete(unit.id);
@@ -729,8 +722,7 @@ export default class BattleScene extends Phaser.Scene {
     const positions = this.movement.getFormationPositions(units, center);
     units.forEach((unit, index) => {
 
-      const rawPoint = positions[index];
-      const point = this.terrain.nearestSafePoint(rawPoint.x, rawPoint.y, unit.bodyRadius ?? 0);
+      const point = positions[index];
       unit.spacingMode = 'normal';
       this.manualTargets.set(unit.id, point);
       this.attackTargets.delete(unit.id);

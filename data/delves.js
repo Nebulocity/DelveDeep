@@ -21,6 +21,23 @@ const delves = [
         url: slimeCaveBackgroundUrl
       }
     },
+    // Terrain uses the battlefield's 1400 x 900 logical coordinates. These
+    // points mask the large stalagmite/rock formation in the upper-right of
+    // the Slime Cave art. Adjust them freely while tuning the background.
+    terrain: [
+      {
+        id: 'upper-right-stalagmites',
+        type: 'blocked',
+        points: [
+          { x: 1160, y: 900 },
+          { x: 1400, y: 900 },
+          { x: 1400, y: 610 },
+          { x: 1325, y: 625 },
+          { x: 1260, y: 680 },
+          { x: 1215, y: 760 }
+        ]
+      }
+    ],
     prerequisites: [],
     map: { x: 0.307, y: 0.475, radius: 0.055 }
   },

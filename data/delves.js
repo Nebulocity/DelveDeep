@@ -22,7 +22,6 @@ const delves = [
     },
     // Terrain uses the battlefield's 1400 x 900 logical coordinates. These points mask the large stalagmite/rock formation in the upper-right, and the rock in the bottom-right, of the Slime Cave art.
     terrain: [
-      {
       {"id":"upper-right-stalagmites","type":"blocked","points":[{"x":1223,"y":892},{"x":1188,"y":839},{"x":1159,"y":798},{"x":1126,"y":734},{"x":1084,"y":672},{"x":1076,"y":634},{"x":1103,"y":587},{"x":1149,"y":552},{"x":1215,"y":558},{"x":1308,"y":549},{"x":1350,"y":534},{"x":1398,"y":546},{"x":1388,"y":895},{"x":1231,"y":895}]},
       {"id":"rock","type":"blocked","points":[{"x":1194,"y":24},{"x":1219,"y":88},{"x":1253,"y":88},{"x":1266,"y":59},{"x":1258,"y":21}]}                                                            
     ],

@@ -77,7 +77,7 @@ export default class BattleScene extends Phaser.Scene {
       bottomRightX: width - 345,
       topLeftX: width * 0.29,
       topRightX: width * 0.71,
-      bottomY: height * 0.72,
+      bottomY: height * 0.775,
       topY: this.battleLayout.arenaTop,
       logicalWidth: 1400,
       logicalHeight: 900,
@@ -227,9 +227,9 @@ export default class BattleScene extends Phaser.Scene {
     this.tonicHintText = this.add.text(width / 2, height * 0.738, 'Tap TONIC to heal.', {
       fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: '#86efac'
     }).setOrigin(0.5).setDepth(4501);
-    this.add.text(width / 2, height * 0.765, 'Long-press / hold-click characters, tactics or orders for details.', {
-      fontFamily: 'Arial', fontSize: '26px', color: '#cbd5e1'
-    }).setOrigin(0.5).setDepth(4501);
+    // this.add.text(width / 2, height * 0.765, 'Long-press / hold-click characters, tactics or orders for details.', {
+    //   fontFamily: 'Arial', fontSize: '26px', color: '#cbd5e1'
+    // }).setOrigin(0.5).setDepth(4501);
     this.hadHealingTonics = GameState.inventory.healingTonic > 0;
     this.tonicFlashUntil = 0;
 

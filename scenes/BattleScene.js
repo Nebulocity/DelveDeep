@@ -94,7 +94,7 @@ export default class BattleScene extends Phaser.Scene {
     this.terrain = new BattlefieldTerrain(this, this.battlefield, GameState.currentDelve?.terrain ?? []);
 
     // Uncomment this while authoring terrain to see blocked polygons over the art.
-    // this.terrainDebug = this.terrain.drawDebug();
+    this.terrainDebug = this.terrain.drawDebug();
 
     this.tactics = new TacticsController(this.battlefield, GameState.tactics);
     this.movement = new CombatMovement(this);

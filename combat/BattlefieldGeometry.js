@@ -57,6 +57,20 @@ export default class BattlefieldGeometry {
     };
   }
 
+  // This function converts a screen position back into logical arena coordinates.
+  screenToArena(screenX, screenY) {
+
+    const screenHeight = this.topY - this.bottomY;
+    if (Math.abs(screenHeight) < 0.001) return null;
+    const depthRatio = (screenY - this.bottomY) / screenHeight;
+    if (depthRatio < 0 || depthRatio > 1) return null;
+    const arenaY = depthRatio * this.logicalHeight;
+    const span = this.getSpanAt(arenaY);
+    if (screenX < span.leftX || screenX > span.rightX || span.width <= 0) return null;
+    const arenaX = ((screenX - span.leftX) / span.width) * this.logicalWidth;
+    return { x: arenaX, y: arenaY };
+  }
+
   // This function keeps destinations inside the arena with room at the edges.
   clampPoint(arenaX, arenaY, paddingX = 0, paddingY = 0) {
 

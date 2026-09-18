@@ -1,8 +1,6 @@
 import Phaser from 'phaser';
 
-// Encounter terrain lives in the same logical coordinate space as combat.
-// That means obstacles keep working when the visible battlefield trapezoid,
-// device resolution, or perspective changes.
+// Encounter terrain lives in the same logical coordinate space as combat. That means obstacles keep working when the visible battlefield trapezoid, device resolution, or perspective changes.
 export default class BattlefieldTerrain {
   constructor(scene, battlefield, zones = []) {
     this.scene = scene;
@@ -45,9 +43,7 @@ export default class BattlefieldTerrain {
     });
   }
 
-  // Return the closest usable point when a formation or tap lands in terrain.
-  // A radial search keeps encounter data simple and also handles irregular
-  // polygons without requiring hand-authored escape points.
+  // Return the closest usable point when a formation or tap lands in terrain. A radial search keeps encounter data simple and also handles irregular polygons without requiring hand-authored escape points.
   nearestSafePoint(x, y, padding = 0) {
     const base = this.battlefield.clampPoint(x, y, padding, padding);
     if (!this.isBlocked(base.x, base.y, padding)) return base;
@@ -68,10 +64,7 @@ export default class BattlefieldTerrain {
     return base;
   }
 
-  // Keep a continuous movement step out of blocked terrain. If the direct
-  // step is blocked, try progressively wider left/right steering angles.
-  // This gives units lightweight obstacle avoidance while preserving their
-  // existing continuous movement and personal-space behavior.
+  // Keep a continuous movement step out of blocked terrain. If the direct step is blocked, try progressively wider left/right steering angles. This gives units lightweight obstacle avoidance while preserving their existing continuous movement and personal-space behavior.
   resolveStep(unit, targetX, targetY, padding = 0) {
     if (!this.isBlocked(targetX, targetY, padding)) return { x: targetX, y: targetY };
 
@@ -93,8 +86,7 @@ export default class BattlefieldTerrain {
     return { x: unit.arenaX, y: unit.arenaY };
   }
 
-  // Optional developer overlay. Call this from BattleScene while tuning an
-  // encounter to see the logical obstacle polygons projected over the art.
+  // Optional developer overlay. Call this from BattleScene while tuning an encounter to see the logical obstacle polygons projected over the art.
   drawDebug() {
     const graphics = this.scene.add.graphics().setDepth(34);
     this.blockedZones.forEach(zone => {

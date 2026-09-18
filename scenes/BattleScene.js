@@ -8,6 +8,7 @@ import { leaderAbilities } from '../game/LeaderProgression.js';
 import BattleUnit from '../combat/BattleUnit.js';
 import BattlefieldGeometry from '../combat/BattlefieldGeometry.js';
 import BattlefieldTerrain from '../combat/BattlefieldTerrain.js';
+import BattlefieldTerrainEditor from '../combat/BattlefieldTerrainEditor.js';
 import TacticsController from '../combat/TacticsController.js';
 import CombatMovement from '../combat/CombatMovement.js';
 import combatSpacing from '../config/combatSpacing.js';
@@ -110,9 +111,25 @@ export default class BattleScene extends Phaser.Scene {
     this.createTacticsMenus(width, height);
     this.createLeaderLoadoutBar(width);
     this.createHud(width, height);
+    this.createTerrainEditorButton(width);
     this.startWave(0);
   }
 
+
+  // This function adds a developer button for authoring blocked battlefield terrain.
+  createTerrainEditorButton(width) {
+
+    this.terrainEditor = new BattlefieldTerrainEditor(this, this.battlefield, this.terrain);
+    this.terrainEditorButton = this.add.rectangle(width - 125, 34, 220, 48, 0x292524)
+      .setStrokeStyle(2, 0xfacc15).setInteractive({ useHandCursor: true }).setDepth(11000);
+    this.terrainEditorButtonLabel = this.add.text(width - 125, 34, 'EDIT TERRAIN', {
+      fontFamily: 'Arial', fontSize: '20px', fontStyle: 'bold', color: '#facc15'
+    }).setOrigin(0.5).setDepth(11001);
+    this.terrainEditorButton.on('pointerdown', (pointer, localX, localY, event) => {
+      event?.stopPropagation?.();
+      this.terrainEditor.open();
+    });
+  }
 
   // This function chooses the encounter waves and adds the depth milestone
   // guardian.
@@ -233,9 +250,6 @@ export default class BattleScene extends Phaser.Scene {
     this.tonicHintText = this.add.text(width / 2, height * 0.738, 'Tap TONIC to heal.', {
       fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: '#86efac'
     }).setOrigin(0.5).setDepth(4501);
-    // this.add.text(width / 2, height * 0.765, 'Long-press / hold-click characters, tactics or orders for details.', {
-    //   fontFamily: 'Arial', fontSize: '26px', color: '#cbd5e1'
-    // }).setOrigin(0.5).setDepth(4501);
     this.hadHealingTonics = GameState.inventory.healingTonic > 0;
     this.tonicFlashUntil = 0;
 

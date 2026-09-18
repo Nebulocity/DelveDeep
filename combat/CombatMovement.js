@@ -1,7 +1,6 @@
 import combatSpacing from '../config/combatSpacing.js';
 
-// Shared destination selection and soft personal space for both armies.
-// BattleUnit still owns movement speed and the arena-to-screen projection.
+// Shared destination selection and soft personal space for both armies. BattleUnit still owns movement speed and the arena-to-screen projection.
 export default class CombatMovement {
   constructor(scene, config = combatSpacing) {
     this.scene = scene;
@@ -46,9 +45,7 @@ export default class CombatMovement {
     });
   }
 
-  // Reduce inward travel before applying it, so pursuit cannot continually
-  // overpower gentle separation. Tangential travel stays smooth and lets
-  // units pass a neighbor instead of stopping head-on in a crowded approach.
+  // Reduce inward travel before applying it, so pursuit cannot continually overpower gentle separation. Tangential travel stays smooth and lets units pass a neighbor instead of stopping head-on in a crowded approach.
   steerStep(unit, dx, dy) {
     const travel = Math.hypot(dx, dy);
     for (const other of this.getUnits()) {
@@ -66,8 +63,7 @@ export default class CombatMovement {
       dx -= nx * inward * (1 - allowed);
       dy -= ny * inward * (1 - allowed);
       if (Math.abs(dx * ny - dy * nx) < travel * 0.1) {
-        // Consistent right-hand passing; opposing movers choose opposite
-        // world-space sides without changing their choice every frame.
+        // Consistent right-hand passing; opposing movers choose opposite world-space sides without changing their choice every frame.
         dx -= ny * travel * this.config.sidestepStrength * (1 - allowed);
         dy += nx * travel * this.config.sidestepStrength * (1 - allowed);
       }
@@ -84,9 +80,7 @@ export default class CombatMovement {
 
   getMeleeApproachPosition(unit, target, time) {
     const c = this.config;
-    // A target-relative attack radius must clear both visible bodies. The
-    // existing attack ranges use center points, so melee gets a small shared
-    // reach allowance instead of visually entering another unit's sprite.
+    // A target-relative attack radius must clear both visible bodies. The existing attack ranges use center points, so melee gets a small shared reach allowance instead of visually entering another unit's sprite.
     const desiredRadius = Math.max(
       unit.role === 'Tank' ? c.tankRange : c.meleeRange,
       (unit.bodyRadius ?? 0) + (target.bodyRadius ?? 0) + c.personalSpaceGap
@@ -168,9 +162,7 @@ export default class CombatMovement {
     return state.direction !== 0;
   }
 
-  // Apply every pair from the same snapshot, avoiding order-dependent pushes.
-  // Held allies yield only to another held ally; their settled anchors move
-  // with the small correction so Hold never pulls them back into overlap.
+  // Apply every pair from the same snapshot, avoiding order-dependent pushes. Held allies yield only to another held ally; their settled anchors move with the small correction so Hold never pulls them back into overlap.
   separate(delta) {
     const units = this.getUnits();
     const offsets = new Map(units.map(unit => [unit, { x: 0, y: 0 }]));

@@ -1,0 +1,242 @@
+[
+  {
+    "category": "boulders",
+    "sheet": "boulders_1.png",
+    "grid": "3x4",
+    "extracted": 12
+  },
+  {
+    "category": "boulders",
+    "sheet": "boulders_2.png",
+    "grid": "3x4",
+    "extracted": 12
+  },
+  {
+    "category": "boulders",
+    "sheet": "boulders_3.png",
+    "grid": "3x4",
+    "extracted": 12
+  },
+  {
+    "category": "boulders",
+    "sheet": "boulders_4.png",
+    "grid": "3x4",
+    "extracted": 12
+  },
+  {
+    "category": "day_trees",
+    "sheet": "day_trees_ (1).png",
+    "grid": "4x4",
+    "extracted": 16
+  },
+  {
+    "category": "day_trees",
+    "sheet": "day_trees_ (2).png",
+    "grid": "4x4",
+    "extracted": 16
+  },
+  {
+    "category": "day_trees",
+    "sheet": "day_trees_ (3).png",
+    "grid": "4x4",
+    "extracted": 16
+  },
+  {
+    "category": "day_trees",
+    "sheet": "day_trees_ (4).png",
+    "grid": "4x4",
+    "extracted": 16
+  },
+  {
+    "category": "delves",
+    "sheet": "mrglmrglmrghl_Create_a_game_asset_sheet_containing_10_isolate_346d4ca2-9d03-4492-964e-6f2c2ba5dcb5_0.png",
+    "grid": "3x4",
+    "extracted": 12
+  },
+  {
+    "category": "delves",
+    "sheet": "mrglmrglmrghl_Create_a_game_asset_sheet_containing_10_isolate_346d4ca2-9d03-4492-964e-6f2c2ba5dcb5_1.png",
+    "grid": "3x4",
+    "extracted": 12
+  },
+  {
+    "category": "delves",
+    "sheet": "mrglmrglmrghl_Create_a_game_asset_sheet_containing_10_isolate_346d4ca2-9d03-4492-964e-6f2c2ba5dcb5_2.png",
+    "grid": "3x4",
+    "extracted": 12
+  },
+  {
+    "category": "delves",
+    "sheet": "mrglmrglmrghl_Create_a_game_asset_sheet_containing_10_isolate_346d4ca2-9d03-4492-964e-6f2c2ba5dcb5_3.png",
+    "grid": "3x4",
+    "extracted": 12
+  },
+  {
+    "category": "night_trees",
+    "sheet": "night_trees_1.png",
+    "grid": "3x4",
+    "extracted": 12
+  },
+  {
+    "category": "night_trees",
+    "sheet": "night_trees_2.png",
+    "grid": "3x4",
+    "extracted": 12
+  },
+  {
+    "category": "night_trees",
+    "sheet": "night_trees_3.png",
+    "grid": "3x4",
+    "extracted": 12
+  },
+  {
+    "category": "night_trees",
+    "sheet": "night_trees_4.png",
+    "grid": "3x4",
+    "extracted": 12
+  },
+  {
+    "category": "points_of_interest",
+    "sheet": "mrglmrglmrghl_Create_a_game_asset_sheet_containing_12_isolate_5c9e203c-1887-4eaa-b15d-22058036eb88_0.png",
+    "grid": "3x4",
+    "extracted": 12
+  },
+  {
+    "category": "points_of_interest",
+    "sheet": "mrglmrglmrghl_Create_a_game_asset_sheet_containing_12_isolate_5c9e203c-1887-4eaa-b15d-22058036eb88_1.png",
+    "grid": "3x4",
+    "extracted": 12
+  },
+  {
+    "category": "points_of_interest",
+    "sheet": "mrglmrglmrghl_Create_a_game_asset_sheet_containing_12_isolate_5c9e203c-1887-4eaa-b15d-22058036eb88_2.png",
+    "grid": "3x4",
+    "extracted": 12
+  },
+  {
+    "category": "points_of_interest",
+    "sheet": "mrglmrglmrghl_Create_a_game_asset_sheet_containing_12_isolate_5c9e203c-1887-4eaa-b15d-22058036eb88_3.png",
+    "grid": "3x4",
+    "extracted": 12
+  },
+  {
+    "category": "rocks",
+    "sheet": "mrglmrglmrghl_Create_a_game_asset_sheet_containing_12_isolate_8450808c-5e64-408f-935a-ab648a7a0c2c_0.png",
+    "grid": "3x4",
+    "extracted": 12
+  },
+  {
+    "category": "rocks",
+    "sheet": "mrglmrglmrghl_Create_a_game_asset_sheet_containing_12_isolate_8450808c-5e64-408f-935a-ab648a7a0c2c_1.png",
+    "grid": "3x4",
+    "extracted": 12
+  },
+  {
+    "category": "rocks",
+    "sheet": "mrglmrglmrghl_Create_a_game_asset_sheet_containing_12_isolate_8450808c-5e64-408f-935a-ab648a7a0c2c_2.png",
+    "grid": "3x4",
+    "extracted": 12
+  },
+  {
+    "category": "rocks",
+    "sheet": "mrglmrglmrghl_Create_a_game_asset_sheet_containing_12_isolate_8450808c-5e64-408f-935a-ab648a7a0c2c_3.png",
+    "grid": "3x4",
+    "extracted": 12
+  },
+  {
+    "category": "swamp_trees",
+    "sheet": "mrglmrglmrghl_Create_a_game_asset_sheet_containing_16_isolate_2ae88568-da93-40cf-8749-9a4909a5f3ca_0.png",
+    "grid": "4x4",
+    "extracted": 16
+  },
+  {
+    "category": "swamp_trees",
+    "sheet": "mrglmrglmrghl_Create_a_game_asset_sheet_containing_16_isolate_2ae88568-da93-40cf-8749-9a4909a5f3ca_1.png",
+    "grid": "4x4",
+    "extracted": 16
+  },
+  {
+    "category": "swamp_trees",
+    "sheet": "mrglmrglmrghl_Create_a_game_asset_sheet_containing_16_isolate_2ae88568-da93-40cf-8749-9a4909a5f3ca_2.png",
+    "grid": "4x4",
+    "extracted": 16
+  },
+  {
+    "category": "swamp_trees",
+    "sheet": "mrglmrglmrghl_Create_a_game_asset_sheet_containing_16_isolate_2ae88568-da93-40cf-8749-9a4909a5f3ca_3.png",
+    "grid": "4x4",
+    "extracted": 16
+  },
+  {
+    "category": "towns",
+    "sheet": "mrglmrglmrghl_Create_a_game_asset_sheet_containing_16_isolate_ceb6e577-85b2-41b5-ac0f-9fb290d0f4a7_0.png",
+    "grid": "4x4",
+    "extracted": 16
+  },
+  {
+    "category": "towns",
+    "sheet": "mrglmrglmrghl_Create_a_game_asset_sheet_containing_16_isolate_ceb6e577-85b2-41b5-ac0f-9fb290d0f4a7_1.png",
+    "grid": "4x4",
+    "extracted": 16
+  },
+  {
+    "category": "towns",
+    "sheet": "mrglmrglmrghl_Create_a_game_asset_sheet_containing_16_isolate_ceb6e577-85b2-41b5-ac0f-9fb290d0f4a7_2.png",
+    "grid": "4x4",
+    "extracted": 16
+  },
+  {
+    "category": "towns",
+    "sheet": "mrglmrglmrghl_Create_a_game_asset_sheet_containing_16_isolate_ceb6e577-85b2-41b5-ac0f-9fb290d0f4a7_3.png",
+    "grid": "4x4",
+    "extracted": 16
+  },
+  {
+    "category": "void_objects",
+    "sheet": "mrglmrglmrghl_Create_a_game_asset_sheet_containing_12_isolate_7c715eaa-f034-4fa7-a0b4-3ae730715b70_0.png",
+    "grid": "4x4",
+    "extracted": 16
+  },
+  {
+    "category": "void_objects",
+    "sheet": "mrglmrglmrghl_Create_a_game_asset_sheet_containing_12_isolate_7c715eaa-f034-4fa7-a0b4-3ae730715b70_1.png",
+    "grid": "4x4",
+    "extracted": 16
+  },
+  {
+    "category": "void_objects",
+    "sheet": "mrglmrglmrghl_Create_a_game_asset_sheet_containing_12_isolate_7c715eaa-f034-4fa7-a0b4-3ae730715b70_2.png",
+    "grid": "4x4",
+    "extracted": 16
+  },
+  {
+    "category": "void_objects",
+    "sheet": "mrglmrglmrghl_Create_a_game_asset_sheet_containing_12_isolate_7c715eaa-f034-4fa7-a0b4-3ae730715b70_3.png",
+    "grid": "4x4",
+    "extracted": 16
+  },
+  {
+    "category": "void_portals",
+    "sheet": "mrglmrglmrghl_Game_asset_sheet_of_8_isolated_Void_Portals_for_b0827ab5-c200-4e5b-973f-68f3d9de0276_0.png",
+    "grid": "3x3",
+    "extracted": 9
+  },
+  {
+    "category": "void_portals",
+    "sheet": "mrglmrglmrghl_Game_asset_sheet_of_8_isolated_Void_Portals_for_b0827ab5-c200-4e5b-973f-68f3d9de0276_1.png",
+    "grid": "3x3",
+    "extracted": 9
+  },
+  {
+    "category": "void_portals",
+    "sheet": "mrglmrglmrghl_Game_asset_sheet_of_8_isolated_Void_Portals_for_b0827ab5-c200-4e5b-973f-68f3d9de0276_2.png",
+    "grid": "3x3",
+    "extracted": 9
+  },
+  {
+    "category": "void_portals",
+    "sheet": "mrglmrglmrghl_Game_asset_sheet_of_8_isolated_Void_Portals_for_b0827ab5-c200-4e5b-973f-68f3d9de0276_3.png",
+    "grid": "3x3",
+    "extracted": 9
+  }
+]

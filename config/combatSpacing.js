@@ -23,5 +23,6 @@ export default {
   maxSeparationSpeed: 65,
   personalSpaceCore: 0.8,
   sidestepStrength: 0.35,
-  edgePadding: 38
+  edgePadding: 38,
+  terrainFootRadius: 12
 };

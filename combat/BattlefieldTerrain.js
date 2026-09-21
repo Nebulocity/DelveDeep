@@ -5,6 +5,7 @@ export default class BattlefieldTerrain {
   constructor(scene, battlefield, zones = []) {
     this.scene = scene;
     this.battlefield = battlefield;
+    this.avoidanceStates = new WeakMap();
     this.zones = zones.map((zone, index) => ({
       id: zone.id ?? `terrain-${index}`,
       type: zone.type ?? 'blocked',
@@ -43,6 +44,41 @@ export default class BattlefieldTerrain {
     });
   }
 
+  // Convert a unit's visual bottom-center into the logical floor point used for terrain collision.
+  getUnitFootPoint(unit, arenaX = unit.arenaX, arenaY = unit.arenaY) {
+    const center = this.battlefield.arenaToScreen(arenaX, arenaY);
+    const scale = this.battlefield.getUnitScale(arenaY);
+    const footScreenY = center.y + (unit.bodyRadius ?? 0) * scale;
+    const foot = this.battlefield.screenToArena(center.x, footScreenY);
+    return foot ?? { x: arenaX, y: arenaY };
+  }
+
+  // Check terrain against the unit's feet instead of its visual body.
+  isUnitBlocked(unit, arenaX = unit.arenaX, arenaY = unit.arenaY, footRadius = 0) {
+    const foot = this.getUnitFootPoint(unit, arenaX, arenaY);
+    return this.isBlocked(foot.x, foot.y, footRadius);
+  }
+
+  // Return a safe center position while testing the unit's feet against terrain.
+  nearestSafeUnitPoint(unit, x, y, footRadius = 0) {
+    const base = this.battlefield.clampPoint(x, y);
+    if (!this.isUnitBlocked(unit, base.x, base.y, footRadius)) return base;
+
+    const step = 24;
+    for (let radius = step; radius <= 420; radius += step) {
+      const samples = Math.max(12, Math.ceil(Math.PI * 2 * radius / step));
+      for (let i = 0; i < samples; i += 1) {
+        const angle = i * Math.PI * 2 / samples;
+        const candidate = this.battlefield.clampPoint(
+          base.x + Math.cos(angle) * radius,
+          base.y + Math.sin(angle) * radius
+        );
+        if (!this.isUnitBlocked(unit, candidate.x, candidate.y, footRadius)) return candidate;
+      }
+    }
+    return base;
+  }
+
   // Return the closest usable point when a formation or tap lands in terrain. A radial search keeps encounter data simple and also handles irregular polygons without requiring hand-authored escape points.
   nearestSafePoint(x, y, padding = 0) {
     const base = this.battlefield.clampPoint(x, y, padding, padding);
@@ -64,25 +100,58 @@ export default class BattlefieldTerrain {
     return base;
   }
 
-  // Keep a continuous movement step out of blocked terrain. If the direct step is blocked, try progressively wider left/right steering angles. This gives units lightweight obstacle avoidance while preserving their existing continuous movement and personal-space behavior.
-  resolveStep(unit, targetX, targetY, padding = 0) {
-    if (!this.isBlocked(targetX, targetY, padding)) return { x: targetX, y: targetY };
+  // Keep movement legal at the unit's feet and hold a stable avoidance side while navigating tight corners.
+  resolveStep(unit, targetX, targetY, footRadius = 0) {
+    const currentBlocked = this.isUnitBlocked(unit, unit.arenaX, unit.arenaY, footRadius);
+    if (currentBlocked) {
+      const recovery = this.nearestSafeUnitPoint(unit, unit.arenaX, unit.arenaY, footRadius);
+      if (Math.hypot(recovery.x - unit.arenaX, recovery.y - unit.arenaY) > 0.001) return recovery;
+    }
+
+    const directSafe = !this.isUnitBlocked(unit, targetX, targetY, footRadius);
+    let state = this.avoidanceStates.get(unit);
+    if (directSafe) {
+      if (state) {
+        state.clearFrames += 1;
+        if (state.clearFrames >= 4) this.avoidanceStates.delete(unit);
+      }
+      return { x: targetX, y: targetY };
+    }
 
     const dx = targetX - unit.arenaX;
     const dy = targetY - unit.arenaY;
     const distance = Math.hypot(dx, dy);
     if (distance < 0.001) return { x: unit.arenaX, y: unit.arenaY };
 
-    const baseAngle = Math.atan2(dy, dx);
-    const turns = [18, -18, 35, -35, 55, -55, 75, -75, 95, -95, 120, -120, 150, -150, 180];
-    for (const degrees of turns) {
-      const angle = baseAngle + Phaser.Math.DegToRad(degrees);
-      const candidate = {
-        x: unit.arenaX + Math.cos(angle) * distance,
-        y: unit.arenaY + Math.sin(angle) * distance
-      };
-      if (!this.isBlocked(candidate.x, candidate.y, padding)) return candidate;
+    if (!state) {
+      const seed = String(unit.id ?? '').split('').reduce((total, char) => total + char.charCodeAt(0), 0);
+      state = { side: seed % 2 === 0 ? 1 : -1, clearFrames: 0, blockedFrames: 0 };
+      this.avoidanceStates.set(unit, state);
     }
+    state.clearFrames = 0;
+    state.blockedFrames += 1;
+
+    const baseAngle = Math.atan2(dy, dx);
+    const turns = [18, 35, 55, 75, 95, 120, 150, 180];
+    const sides = state.blockedFrames < 24 ? [state.side, -state.side] : [-state.side, state.side];
+
+    for (const side of sides) {
+      for (const degrees of turns) {
+        const angle = baseAngle + Phaser.Math.DegToRad(degrees * side);
+        const candidate = {
+          x: unit.arenaX + Math.cos(angle) * distance,
+          y: unit.arenaY + Math.sin(angle) * distance
+        };
+        if (!this.isUnitBlocked(unit, candidate.x, candidate.y, footRadius)) {
+          state.side = side;
+          if (state.blockedFrames >= 24) state.blockedFrames = 0;
+          return candidate;
+        }
+      }
+    }
+
+    const recovery = this.nearestSafeUnitPoint(unit, unit.arenaX, unit.arenaY, footRadius);
+    if (Math.hypot(recovery.x - unit.arenaX, recovery.y - unit.arenaY) > 0.001) return recovery;
     return { x: unit.arenaX, y: unit.arenaY };
   }
 

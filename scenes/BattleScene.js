@@ -213,6 +213,7 @@ export default class BattleScene extends Phaser.Scene {
 
       const spawn = this.tactics.getSpawnPosition(unit, index);
       unit.setArenaPosition(spawn.x, spawn.y);
+      this.movement.validateUnitPosition(unit);
     });
 
     this.partyUnits.forEach((unit) => {
@@ -726,7 +727,7 @@ export default class BattleScene extends Phaser.Scene {
       units.forEach((unit, index) => {
 
         const rawPoint = positions[index];
-        const point = this.terrain.nearestSafePoint(rawPoint.x, rawPoint.y, unit.bodyRadius ?? 0);
+        const point = this.terrain.nearestSafeUnitPoint(unit, rawPoint.x, rawPoint.y, combatSpacing.terrainFootRadius);
         unit.spacingMode = mode;
         this.manualTargets.set(unit.id, point);
         this.attackTargets.delete(unit.id);
@@ -744,7 +745,7 @@ export default class BattleScene extends Phaser.Scene {
     units.forEach((unit, index) => {
 
       const rawPoint = positions[index];
-      const point = this.terrain.nearestSafePoint(rawPoint.x, rawPoint.y, unit.bodyRadius ?? 0);
+      const point = this.terrain.nearestSafeUnitPoint(unit, rawPoint.x, rawPoint.y, combatSpacing.terrainFootRadius);
       unit.spacingMode = 'normal';
       this.manualTargets.set(unit.id, point);
       this.attackTargets.delete(unit.id);
@@ -1028,6 +1029,7 @@ export default class BattleScene extends Phaser.Scene {
       this.handleEnemyTap(enemy);
     });
     bindSelectionDetails(this, enemy.hitZone, () => characterDetails(enemy));
+    this.movement.validateUnitPosition(enemy);
     this.enemyThreat.set(enemy.id, new Map(this.partyUnits.map((unit) => [unit.id, 0])));
     return enemy;
   }
@@ -1070,8 +1072,8 @@ export default class BattleScene extends Phaser.Scene {
     this.updateEnemies(time, deltaSeconds);
     this.movement.separate(deltaSeconds);
 
-    this.partyUnits.forEach((unit) => unit.clampToBattlefield(38, 20));
-    livingEnemies.forEach((enemy) => enemy.clampToBattlefield(60, 20));
+    this.partyUnits.forEach((unit) => this.movement.validateUnitPosition(unit));
+    livingEnemies.forEach((enemy) => this.movement.validateUnitPosition(enemy));
 
     this.tryUseHealingTonic(time);
     this.updateHud();
@@ -1924,6 +1926,23 @@ export default class BattleScene extends Phaser.Scene {
     return allowCrit && Math.random() < (attacker.critChance ?? 0);
   }
 
+  // This function flashes the perspective-grid cell containing a targeted unit.
+  flashTargetCell(target, color = 0xffffff) {
+
+    if (!target?.alive || !this.battlefield) return;
+    const cell = this.battlefield.arenaPointToCell(target.arenaX, target.arenaY);
+    const polygon = this.battlefield.getCellPolygon(cell.column, cell.row);
+    const graphics = this.add.graphics().setDepth(39);
+
+    graphics.lineStyle(10, color, 1);
+    graphics.strokePoints(polygon, true);
+    graphics.setAlpha(1);
+
+    this.time.delayedCall(2000, () => {
+      if (graphics.active) graphics.destroy();
+    });
+  }
+
   // This function resolves an attack from its base damage through critical
   // hits, status effects, and the target defenses. It updates combat
   // timestamps, threat, visual feedback, and the log, then handles any
@@ -1934,6 +1953,11 @@ export default class BattleScene extends Phaser.Scene {
     // cannot pull an untouched enemy while the tank is approaching.
     if (!attacker.isEnemy && attacker.role !== 'Tank' && target.isEnemy && !this.isEnemyEngaged(target)) return;
     const now = this.time.now;
+
+    // Flash only non-basic abilities that target another unit, using the target's slot color.
+    if (attacker !== target && abilityName !== 'Attack' && abilityName !== 'Bleed') {
+      this.flashTargetCell(target, target.color ?? 0xffffff);
+    }
 
     // Resolve blindness before damage modifiers; a miss stops the rest of the
     // hit processing.
@@ -2064,6 +2088,11 @@ export default class BattleScene extends Phaser.Scene {
   // how much health was actually restored for feedback and the combat log.
   // Healing generates threat only on enemies already engaged by a tank.
   resolveHeal(healer, target, baseAmount, abilityName) {
+
+    // Flash only named healing abilities cast on someone else, not routine Mend casts or self-targets.
+    if (healer !== target && abilityName !== 'Mend') {
+      this.flashTargetCell(target, target.color ?? 0xffffff);
+    }
 
     const critical = this.rollCritical(healer, true);
     const amount = Math.round(baseAmount * (critical ? healer.critMultiplier : 1));

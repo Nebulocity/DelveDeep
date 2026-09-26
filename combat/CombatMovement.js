@@ -14,10 +14,23 @@ export default class CombatMovement {
       .filter(unit => unit.alive && unit.container?.active !== false);
   }
 
-  clamp(x, y) {
+  clamp(x, y, unit = null) {
     const padding = this.config.edgePadding;
     const point = this.scene.battlefield.clampPoint(x, y, padding, padding);
-    return this.scene.terrain?.nearestSafePoint(point.x, point.y, padding) ?? point;
+    if (!unit) return this.scene.terrain?.nearestSafePoint(point.x, point.y) ?? point;
+    return this.scene.terrain?.nearestSafeUnitPoint(unit, point.x, point.y, this.config.terrainFootRadius) ?? point;
+  }
+
+  // Move a newly spawned or displaced unit to the nearest position where its feet are legal.
+  validateUnitPosition(unit) {
+    const point = this.scene.terrain?.nearestSafeUnitPoint(
+      unit,
+      unit.arenaX,
+      unit.arenaY,
+      this.config.terrainFootRadius
+    ) ?? this.scene.battlefield.clampPoint(unit.arenaX, unit.arenaY, this.config.edgePadding, this.config.edgePadding);
+    unit.setArenaPosition(point.x, point.y);
+    return point;
   }
 
   isMelee(unit) {
@@ -75,7 +88,7 @@ export default class CombatMovement {
       this.config.edgePadding,
       this.config.edgePadding
     );
-    return this.scene.terrain?.resolveStep(unit, desired.x, desired.y, unit.bodyRadius ?? 0) ?? desired;
+    return this.scene.terrain?.resolveStep(unit, desired.x, desired.y, this.config.terrainFootRadius) ?? desired;
   }
 
   getMeleeApproachPosition(unit, target, time) {
@@ -96,7 +109,7 @@ export default class CombatMovement {
     };
     let claim = this.slots.get(unit);
     const valid = point => {
-      const safe = this.clamp(point.x, point.y);
+      const safe = this.clamp(point.x, point.y, unit);
       return Math.hypot(safe.x - point.x, safe.y - point.y) < c.arrival;
     };
     if (!claim || claim.target !== target || (time >= claim.recheckAt && !valid(position(claim.index)))) {
@@ -119,7 +132,7 @@ export default class CombatMovement {
     claim.usedAt = time;
     if (time >= claim.recheckAt) claim.recheckAt = time + c.slotRecheckMs;
     const point = position(claim.index);
-    return this.clamp(point.x, point.y);
+    return this.clamp(point.x, point.y, unit);
   }
 
   moveToCombatPosition(unit, target, time, delta) {
@@ -192,7 +205,7 @@ export default class CombatMovement {
       const length = Math.hypot(offset.x, offset.y);
       if (length < 0.001) continue;
       const scale = Math.min(1, this.config.maxSeparationSpeed * delta / length);
-      const point = this.clamp(unit.arenaX + offset.x * scale, unit.arenaY + offset.y * scale);
+      const point = this.clamp(unit.arenaX + offset.x * scale, unit.arenaY + offset.y * scale, unit);
       const anchor = this.scene.manualTargets.get(unit.id);
       if (locked(unit) && anchor && unit.distanceToPoint(anchor.x, anchor.y) <= this.config.arrivalTolerance) {
         anchor.x += point.x - unit.arenaX;

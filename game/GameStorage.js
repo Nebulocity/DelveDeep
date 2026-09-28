@@ -1,3 +1,4 @@
+import { migrateEquipmentId } from '../data/items.js';
 import GameState from './GameState.js';
 import { restoreEquipment } from './Equipment.js';
 
@@ -60,7 +61,9 @@ export function loadProfile(baseRoster) {
     };
   });
 
-  restoreEquipment(saved?.inventory, savedRoster);
+  const savedInventory = saved?.inventory ? { ...saved.inventory } : undefined;
+  if (Array.isArray(savedInventory?.equipment)) savedInventory.equipment = savedInventory.equipment.map(entry => entry && ({ ...entry, itemId: migrateEquipmentId(entry.itemId) }));
+  restoreEquipment(savedInventory, savedRoster);
 
   // Discard saved party IDs that no longer exist in the current roster.
   GameState.lastPartyIds = GameState.lastPartyIds.filter((id) => GameState.roster.some((adventurer) => adventurer.id === id));

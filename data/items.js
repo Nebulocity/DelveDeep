@@ -1,4 +1,4 @@
-import { CLASS_DEFINITIONS } from './classes.js';
+import { CLASS_DEFINITIONS, CLASS_MIGRATIONS } from './classes.js';
 
 export const ITEM_RARITIES = {
   uncommon: { label: 'Uncommon', color: '#4ade80', level: 1 },
@@ -11,10 +11,10 @@ export const ITEM_RARITIES = {
 // and a rare upgrade for each slot. Stable IDs are stored in player saves.
 const CLASS_KITS = {
   Paladin: ['Dawn Mace', 'Pilgrim Hammer', 'Dawn Plate', 'Sunforged Mace', 'Sunforged Plate'],
-  Gladiator: ['Arena Blade', 'Pit Maul', 'Arena Mail', 'Champion Blade', 'Champion Mail'],
-  Guardian: ['Root Maul', 'Briar Club', 'Barkplate', 'Heartwood Maul', 'Ironbark Plate'],
   Rogue: ['Dusk Dagger', 'Viper Knife', 'Shadow Leather', 'Nightfang', 'Nightstalker Leather'],
   Barbarian: ['Raider Axe', 'Boar Cleaver', 'Raider Hide', 'Stormsplitter', 'Thunderhide'],
+  'Mage of the Crimson Spire': ['Crimson Staff', 'Spire Wand', 'Red Robe', 'Arcane Staff', 'Crimson Robe'],
+  'Mage of the Luminous Archive': ['Lumen Staff', 'Libram Focus', 'White Robe', 'Archive Staff', 'Luminous Robe'],
   Wizard: ['Ember Staff', 'Runic Wand', 'Apprentice Robe', 'Starfire Staff', 'Starweave Robe'],
   Ranger: ['Trail Bow', 'Thorn Bow', 'Trail Leathers', 'Hawkeye Bow', 'Hawkeye Leathers'],
   Naturalist: ['Willow Staff', 'Bloom Scepter', 'Grove Vestments', 'Lifebloom Staff', 'Lifebloom Vestments'],
@@ -22,7 +22,8 @@ const CLASS_KITS = {
   Bloodwarder: ['Crimson Focus', 'Sanguine Rod', 'Bloodwoven Robe', 'Heartfire Focus', 'Heartfire Robe']
 };
 
-export const EQUIPMENT_ITEMS = Object.entries(CLASS_KITS).flatMap(([className, names]) => {
+export const EQUIPMENT_ITEMS = Object.entries(CLASS_KITS).flatMap(([kitId, names]) => {
+  const className = CLASS_MIGRATIONS[kitId] ?? kitId;
   const role = CLASS_DEFINITIONS[className].role;
   const power = role === 'Healer' ? 'healPower' : 'attackPower';
   const variants = [
@@ -34,7 +35,7 @@ export const EQUIPMENT_ITEMS = Object.entries(CLASS_KITS).flatMap(([className, n
   ];
   return variants.map((variant, index) => ({
     ...variant,
-    id: `${className.toLowerCase()}-${variant.suffix}`,
+    id: `${kitId.toLowerCase()}-${variant.suffix}`,
     name: names[index],
     className,
     type: 'equipment',
@@ -42,6 +43,9 @@ export const EQUIPMENT_ITEMS = Object.entries(CLASS_KITS).flatMap(([className, n
   }));
 });
 
+export function migrateEquipmentId(id) {
+  return typeof id === 'string' ? id.replace(/^(gladiator|guardian)-/, 'paladin-') : id;
+}
 export const EQUIPMENT_BY_ID = Object.fromEntries(EQUIPMENT_ITEMS.map((item) => [item.id, item]));
 
 // Supplies can be purchased now; delve drops can grant these same IDs later.
@@ -53,13 +57,13 @@ export const CRAFTING_MATERIALS = {
 
 export const CRAFTING_RECIPES = EQUIPMENT_ITEMS.map((item) => {
   const role = CLASS_DEFINITIONS[item.className].role;
-  const armorMaterial = role === 'Tank' ? 'iron' : role === 'Healer' || item.className === 'Wizard' ? 'cloth' : 'leather';
+  const armorMaterial = role === 'Tank' ? 'iron' : role === 'Healer' || item.className.startsWith('Mage of') ? 'cloth' : 'leather';
   const material = item.slot === 'weapon' ? 'iron' : armorMaterial;
   return {
     id: item.id,
     itemId: item.id,
     materials: { [material]: item.rarity === 'rare' ? 4 : 2 },
-    equipment: item.rarity === 'rare' ? `${item.className.toLowerCase()}-${item.slot}` : null,
+    equipment: item.rarity === 'rare' ? item.id.replace('-rare-', '-') : null,
     gold: item.rarity === 'rare' ? 50 : 0
   };
 });
@@ -78,6 +82,6 @@ export function equipmentStatsText(stats) {
 export function equipmentDetails(item) {
   return {
     title: item.name,
-    description: `${ITEM_RARITIES[item.rarity].label} ${item.slot} | ${item.className}\n\n${equipmentStatsText(item.stats)}\n\n${item.slot === 'weapon' ? 'Attack and healing bonuses improve basic attacks or basic heals. Class ability powers remain unchanged.' : 'Armor adds percentage points of damage mitigation.'}\n\nSell value: ${sellPrice(item)} gold. Unequip before selling.`
+    description: `${ITEM_RARITIES[item.rarity].label} ${item.slot} | ${item.className}\n\n${equipmentStatsText(item.stats)}\n\n${item.slot === 'weapon' ? 'Attack and healing bonuses improve basic actions and the new grid class spells. Rogue, Barbarian, and Ranger ability powers remain unchanged.' : 'Armor adds percentage points of damage mitigation.'}\n\nSell value: ${sellPrice(item)} gold. Unequip before selling.`
   };
 }

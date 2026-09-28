@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import UnitSprite from './UnitSprite.js';
 
 export default class BattleUnit {
 
@@ -14,6 +15,8 @@ export default class BattleUnit {
     this.id = config.id;
     this.name = config.name;
     this.className = config.className ?? '';
+    this.shortName = config.shortName;
+    this.gridAbilities = config.gridAbilities === true;
     this.role = config.role ?? '';
     this.color = config.color;
     this.isBoss = config.boss === true;
@@ -89,10 +92,18 @@ export default class BattleUnit {
     this.body = scene.add.circle(0, 0, this.bodyRadius, this.color)
       .setStrokeStyle(4, this.isEnemy ? 0x365314 : 0x1c1917);
 
-    // Enlarge the invisible touch target to ease crowded melee taps.
-    this.hitZone = scene.add.circle(0, 0, Math.max(this.bodyRadius + 20, this.isEnemy ? 68 : 58), 0xffffff, 0.001);
+    this.spriteVisual = UnitSprite.create(this);
+    if (this.spriteVisual) {
+      // Keep the old body as a ground selection/flash ring, beneath the sprite.
+      this.body.setFillStyle(this.color, 0).setPosition(0, 30).setScale(1, 0.4);
+    }
 
-    const bossOffset = this.isEnemy ? Math.max(0, this.bodyRadius - 45) : 0;
+    // Enlarge the invisible touch target to ease crowded melee taps.
+    this.hitZone = this.spriteVisual
+      ? scene.add.rectangle(0, -35, 120, 180, 0xffffff, 0.001)
+      : scene.add.circle(0, 0, Math.max(this.bodyRadius + 20, this.isEnemy ? 68 : 58), 0xffffff, 0.001);
+
+    const bossOffset = this.isEnemy ? Math.max(0, this.bodyRadius - 45) : (this.spriteVisual ? 60 : 0);
     this.label = scene.add.text(0, (this.isEnemy ? -70 : -82) - bossOffset, this.name, {
       fontFamily: 'Arial',
       fontSize: this.isEnemy ? '34px' : '30px',
@@ -152,6 +163,7 @@ export default class BattleUnit {
       this.castFill
     ]);
 
+    if (this.spriteVisual) this.container.addAt(this.spriteVisual.image, 3);
     this.setStealthed(this.stealthed);
     this.syncPresentation();
   }
@@ -315,6 +327,7 @@ export default class BattleUnit {
   // All voluntary movement shares soft personal-space steering before the
   // normal arena projection. Teleports/revives still use setArenaPosition.
   moveBy(dx, dy) {
+    if (this.scene.time?.now < (this.status?.rootedUntil ?? 0)) return;
     const point = this.scene?.movement
       ? this.scene.movement.steerStep(this, dx, dy)
       : { x: this.arenaX + dx, y: this.arenaY + dy };
@@ -387,6 +400,7 @@ export default class BattleUnit {
 
     this.stealthed = value === true;
     if (this.body?.active) this.body.setAlpha(this.stealthed ? 0.55 : 1);
+    this.spriteVisual?.image.setAlpha(this.stealthed ? 0.55 : 1);
   }
 
   // This function reduces incoming damage using armor and active defensive
@@ -405,7 +419,10 @@ export default class BattleUnit {
     let adjusted = Math.max(0, amount);
 
     if (!this.isEnemy) {
-      adjusted *= Math.max(0, 1 - this.armor);
+      const armor = now < (this.status.armorUntil ?? 0)
+        ? Math.min(0.9, this.armor * this.status.armorMultiplier)
+        : this.armor;
+      adjusted *= Math.max(0, 1 - armor);
     }
     adjusted *= this.damageTakenMultiplier;
 
@@ -422,7 +439,14 @@ export default class BattleUnit {
       adjusted *= options.ranged ? 0 : 0.55;
     }
 
+    if (adjusted > 0 && this.status.nextHitReduction) {
+      adjusted *= 1 - this.status.nextHitReduction;
+      this.status.nextHitReduction = 0;
+    }
     adjusted = Math.max(adjusted > 0 ? 1 : 0, Math.round(adjusted));
+    const absorbed = Math.min(adjusted, this.status.temporaryHp ?? 0);
+    this.status.temporaryHp = (this.status.temporaryHp ?? 0) - absorbed;
+    adjusted -= absorbed;
     this.hp = Math.max(0, this.hp - adjusted);
 
     // Allow one successful death escape per delve; failed rolls leave the
@@ -443,7 +467,8 @@ export default class BattleUnit {
     if (this.hp <= 0) {
       this.alive = false;
       this.finishAction();
-      this.body.setFillStyle(0x44403c);
+      this.body.setFillStyle(0x44403c, this.spriteVisual ? 0 : 1);
+      this.spriteVisual?.image.setTint(0x777777);
       this.container.setAlpha(0.5);
       return true;
     }
@@ -467,7 +492,8 @@ export default class BattleUnit {
     });
     this.seekingRestealth = false;
     this.setStealthed(false);
-    this.body.setFillStyle(this.color);
+    this.body.setFillStyle(this.color, this.spriteVisual ? 0 : 1);
+    this.spriteVisual?.reset();
     this.container.setAlpha(1);
     this.hitZone.setInteractive({ useHandCursor: true });
     this.updateHealthBar();
@@ -512,8 +538,13 @@ export default class BattleUnit {
   flash(color = 0xffffff) {
 
     this.body.setStrokeStyle(6, color);
+    this.spriteVisual?.image.setTintFill(color);
     this.scene.time.delayedCall(100, () => {
 
+      if (this.spriteVisual?.image.active) {
+        if (this.alive) this.spriteVisual.image.clearTint();
+        else this.spriteVisual.image.setTint(0x777777);
+      }
       if (this.body?.active) {
         this.body.setStrokeStyle(4, this.isEnemy ? 0x365314 : 0x1c1917);
       }

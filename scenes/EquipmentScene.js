@@ -35,7 +35,7 @@ export default class EquipmentScene extends InventoryScene {
         .setStrokeStyle(3, selected ? 0x93c5fd : 0x334155);
       this.add.circle(118, y - 18, 22, hero.color);
       this.text(162, y - 28, hero.name, 40);
-      this.text(100, y + 26, `${hero.className}  /  Level ${hero.level}`, 32, '#cbd5e1');
+      this.text(100, y + 26, `${hero.shortName ?? hero.className}  /  Level ${hero.level}`, 32, '#cbd5e1');
       bindSelectionDetails(this, card, () => characterDetails(getEquippedAdventurer(hero)), () => {
         HapticsService.tap();
         this.heroId = hero.id; this.itemPage = 0; this.message = ''; this.render();
@@ -43,7 +43,7 @@ export default class EquipmentScene extends InventoryScene {
     });
     const hero = GameState.roster.find((entry) => entry.id === this.heroId);
     if (!hero) return;
-    this.text(735, 239, `${hero.name}  /  ${hero.className}`, 44, '#f8fafc');
+    this.text(735, 239, `${hero.name}  /  ${hero.shortName ?? hero.className}`, 44, '#f8fafc');
     const stats = getEquippedAdventurer(hero);
     this.text(735, 295, `HP ${stats.maxHp}   |   Attack ${stats.attackPower}   |   Healing ${stats.healPower ?? 0}   |   Armor ${Math.round((stats.armor ?? 0) * 100)}%`, 32, '#cbd5e1');
     ['weapon', 'armor'].forEach((slot, index) => {
@@ -59,7 +59,7 @@ export default class EquipmentScene extends InventoryScene {
       });
       this.button(x, 511, 330, `UNEQUIP ${slot.toUpperCase()}`, () => this.commit(unequipItem(hero.id, slot)), { enabled: Boolean(item) });
     });
-    this.text(735, 588, `Owned ${hero.className} ${this.slot}s - tap a slot above to switch`, 32, '#cbd5e1');
+    this.text(735, 588, `Owned ${hero.shortName ?? hero.className} ${this.slot}s - tap a slot above to switch`, 32, '#cbd5e1');
     const items = ownedEquipment().filter((instance) => {
       const item = EQUIPMENT_BY_ID[instance.itemId];
       return item.className === hero.className && item.slot === this.slot;

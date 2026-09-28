@@ -58,7 +58,7 @@ export default class DungeonScene extends Phaser.Scene {
       bindSelectionDetails(this, card, () => characterDetails(getEquippedAdventurer(GameState.roster.find((hero) => hero.id === adventurer.id) ?? adventurer)));
       this.add.circle(width * 0.15, y, 30, adventurer.color);
       this.add.text(width * 0.18, y - 18, adventurer.name, { fontFamily: 'Arial', fontSize: '34px', fontStyle: 'bold', color: '#ffffff' });
-      this.add.text(width * 0.18, y + 19, `${adventurer.className} • ${adventurer.role} • Lv ${adventurer.level}`, { fontFamily: 'Arial', fontSize: '26px', color: '#cbd5e1' });
+      this.add.text(width * 0.18, y + 19, `${adventurer.shortName ?? adventurer.className} • ${adventurer.role} • Lv ${adventurer.level}`, { fontFamily: 'Arial', fontSize: '26px', color: '#cbd5e1' });
     });
 
     // Resolve the equipped leadership IDs into names for the tactics review.

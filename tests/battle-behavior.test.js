@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import ClassAbilitySystem from '../combat/ClassAbilitySystem.js';
 import { CLASS_DEFINITIONS } from '../data/classes.js';
 import { leaderAbilities } from '../game/LeaderProgression.js';
 import { createEncounterWaves } from '../data/encounters.js';
@@ -9,7 +10,7 @@ import CombatMovement from '../combat/CombatMovement.js';
 import combatSpacing from '../config/combatSpacing.js';
 
 const context = vm.createContext({
-  leaderAbilities, createEncounterWaves, getBattleLayout, CombatMovement, combatSpacing,
+  ClassAbilitySystem, leaderAbilities, createEncounterWaves, getBattleLayout, CombatMovement, combatSpacing,
   Phaser: {
     Scene: class {},
     Math: {
@@ -71,6 +72,7 @@ function unit(id, role, x = 0, y = 0) {
   return Object.assign(Object.create(BattleUnit.prototype), {
     id, name: id, role, arenaX: x, arenaY: y, alive: true,
     container: { x, y },
+    setArenaPosition(x, y) { this.arenaX = x; this.arenaY = y; },
     isEnemy: role === 'Enemy', status: {}, abilities: {},
     lastAbilityAt: {}, lastAttackAt: -Infinity, mana: 0, maxMana: 0,
     attackPower: 10, attackRange: 74, attackWindup: 100,
@@ -96,6 +98,7 @@ function scene(party, enemies) {
 
   const timers = [];
   const battle = Object.assign(Object.create(BattleScene.prototype), {
+    terrain: { nearestSafeUnitPoint: (unit, x, y) => ({ x, y }) },
     partyUnits: party, enemies, selectedUnitIds: new Set(),
     manualTargets: new Map(), heldUnitIds: new Set(), attackTargets: new Map(),
     enemyThreat: new Map(enemies.map(enemy => [enemy.id, new Map()])),
@@ -232,23 +235,21 @@ function scene(party, enemies) {
   assert.equal(tank.lastMove, null);
 }
 
-// Every tank class gets independent 8-second and 16-second cooldowns. Area
-// taunts skip current tank targets and pull the closest three others.
-for (const definition of Object.values(CLASS_DEFINITIONS).filter(entry => entry.role === 'Tank')) {
+// Forced targeting persists despite higher threat, then expires after six seconds.
+{
   const tank = unit('tank', 'Tank');
-  tank.abilities = definition.abilities;
-  const enemies = [100, 20, 300, 80, 200, 700].map((x, index) => unit(`enemy${index}`, 'Enemy', x));
-  enemies[1].currentTargetId = tank.id;
-  const battle = scene([tank], enemies);
-  battle.tryTankTaunts(tank, 0);
-  assert.deepEqual(enemies.filter(enemy => enemy.currentTargetReason === 'Challenging Shout').map(enemy => enemy.arenaX), [100, 80, 200]);
-  assert.equal(tank.abilityReady('areaTaunt', 15999), false);
-  assert.equal(tank.abilityReady('areaTaunt', 16000), true);
-  battle.tryTankTaunts(tank, 1);
-  assert.equal(enemies[2].currentTargetId, tank.id);
-  assert.equal(tank.abilityReady('taunt', 8000), false);
-  assert.equal(tank.abilityReady('taunt', 8001), true);
-  assert.equal(enemies[5].currentTargetId, undefined);
+  tank.abilities = CLASS_DEFINITIONS.Dawnwarden.abilities;
+  const ally = unit('ally', 'Ranged DPS');
+  const enemy = unit('enemy', 'Enemy');
+  const battle = scene([tank, ally], [enemy]);
+  battle.applyTankTaunt(tank, [enemy], 'challenge', 0);
+  battle.addThreat(enemy, ally, 10000);
+  battle.time.now = 5999;
+  assert.equal(battle.getHighestThreatTarget(enemy), tank);
+  battle.time.now = 6000;
+  assert.equal(battle.getHighestThreatTarget(enemy), ally);
+  assert.equal(tank.abilityReady('challenge', 9999), false);
+  assert.equal(tank.abilityReady('challenge', 10000), true);
 }
 
 // New waves choose a tank even when a damage dealer is closer. Allies wait
@@ -318,12 +319,12 @@ for (const definition of Object.values(CLASS_DEFINITIONS).filter(entry => entry.
 // Taunting an enemy cancels an already queued attack on a vulnerable ally.
 {
   const tank = unit('tank', 'Tank');
-  tank.abilities = CLASS_DEFINITIONS.Paladin.abilities;
+  tank.abilities = CLASS_DEFINITIONS.Dawnwarden.abilities;
   const wizard = unit('wizard', 'Ranged DPS', 5);
   const enemy = unit('enemy', 'Enemy');
   const battle = scene([tank, wizard], [enemy]);
   battle.beginBasicAttack(enemy, wizard, 0, 'enemy');
-  battle.applyTankTaunt(tank, [enemy], 'taunt', 1);
+  battle.applyTankTaunt(tank, [enemy], 'challenge', 1);
   battle.timers.shift()();
   assert.equal(battle.hits, undefined);
   assert.equal(enemy.currentTargetId, tank.id);
@@ -409,16 +410,13 @@ for (const definition of Object.values(CLASS_DEFINITIONS).filter(entry => entry.
   assert.equal(battle.attackTargets.has(healer.id), false);
 }
 
-// No eligible enemies means no wasted taunt cooldowns.
+// No living enemies means no wasted new-class ability cooldowns.
 {
   const tank = unit('tank', 'Tank');
-  tank.abilities = CLASS_DEFINITIONS.Guardian.abilities;
-  const enemy = unit('enemy', 'Enemy', 10);
-  enemy.currentTargetId = tank.id;
-  const battle = scene([tank], [enemy]);
-  battle.tryTankTaunts(tank, 100);
-  assert.equal(tank.lastAbilityAt.taunt, undefined);
-  assert.equal(tank.lastAbilityAt.areaTaunt, undefined);
+  tank.abilities = CLASS_DEFINITIONS.Dawnwarden.abilities;
+  const battle = scene([tank], []);
+  new ClassAbilitySystem(battle).update(tank, 100, 0.016);
+  assert.deepEqual(tank.lastAbilityAt, {});
 }
 
 // This function prepares real revival state with harmless visual hooks.

@@ -171,7 +171,7 @@ export default class PartySelectScene extends Phaser.Scene {
         .setInteractive({ useHandCursor: true });
       const portrait = this.add.circle(contentCenterX - width * 0.31, cardY, 36, adventurer.color).setStrokeStyle(3, 0xffffff, 0.18);
       const name = this.add.text(contentCenterX - width * 0.22, cardY - 42, adventurer.name, { fontFamily: 'Arial', fontSize: '31px', fontStyle: 'bold', color: '#ffffff' });
-      const cls = this.add.text(contentCenterX - width * 0.22, cardY - 5, adventurer.className, { fontFamily: 'Arial', fontSize: '25px', color: '#cbd5e1' });
+      const cls = this.add.text(contentCenterX - width * 0.22, cardY - 5, adventurer.shortName ?? adventurer.className, { fontFamily: 'Arial', fontSize: '25px', color: '#cbd5e1' });
       const level = this.add.text(contentCenterX - width * 0.22, cardY + 28, `Lv ${adventurer.level} • ${adventurer.happiness ?? 70}%`, { fontFamily: 'Arial', fontSize: '22px', color: '#94a3b8' });
       content.add([card, portrait, name, cls, level]);
       this.cards.set(adventurer.id, { card, portrait, name, cls, level, adventurer });

@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import { SpriteMotion, movementDirection } from '../combat/SpriteMotion.js';
+const directions = [[1,0,'east'],[1,1,'north-east'],[0,1,'north'],[-1,1,'north-west'],[-1,0,'west'],[-1,-1,'south-west'],[0,-1,'south'],[1,-1,'south-east']];
+for (const [x,y,name] of directions) assert.equal(movementDirection(x,y),name);
+const motion = new SpriteMotion(0,0);
+motion.update(0,0,80,140); assert.equal(motion.state,'idle'); assert.equal(motion.elapsed,80);
+motion.update(2,2,16,140); assert.equal(motion.state,'walk'); assert.equal(motion.direction,'north-east');
+motion.update(4,4,16,140); assert.equal(motion.elapsed,16);
+motion.update(4,4,50,140); assert.equal(motion.state,'walk');
+motion.update(4,4,50,140); assert.equal(motion.state,'idle'); assert.equal(motion.direction,'north-east');
+motion.update(800,500,16,140); assert.equal(motion.state,'idle','teleport is not walking');
+motion.update(798,500,16,140); assert.equal(motion.direction,'west');
+const before = motion.elapsed;
+motion.update(798,500,16,140,true,true); assert.equal(motion.elapsed,before,'pause freezes presentation');
+motion.update(798,500,16,140,false); assert.equal(motion.elapsed,before,'death freezes presentation');
+motion.reset(200,200); assert.equal(motion.state,'idle'); assert.equal(motion.elapsed,0);
+motion.update(200.02,200.02,16,140); assert.equal(motion.state,'idle','small separation does not animate walking');
+console.log('Sprite motion: eight directions, idle/walk, Hold settling, teleport, pause, death, and reset passed.');

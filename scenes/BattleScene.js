@@ -1,5 +1,7 @@
 import { bindSelectionDetails, characterDetails, TONIC_DESCRIPTION } from '../ui/SelectionDetails.js';
 import Phaser from 'phaser';
+import ClassAbilitySystem from '../combat/ClassAbilitySystem.js';
+import { preloadCharacterSprites } from '../data/characterSprites.js';
 import GameState from '../game/GameState.js';
 import { getEquippedAdventurer } from '../game/Equipment.js';
 import enemies from '../data/enemies.js';
@@ -30,6 +32,7 @@ export default class BattleScene extends Phaser.Scene {
   // Encounter visual data supplies only the assets needed by the selected
   // delve. Other delves retain the existing battlefield presentation.
   preload() {
+    preloadCharacterSprites(this);
 
     const background = GameState.currentDelve?.visuals?.battlefieldBackground;
     if (background?.key && background?.url && !this.textures.exists(background.key)) {
@@ -274,7 +277,7 @@ export default class BattleScene extends Phaser.Scene {
       const nameText = this.add.text(x + 85, hudTop + 38, unit.name, {
         fontFamily:'Arial', fontSize:'39px', fontStyle:'bold', color:'#f5f5f4'
       }).setOrigin(0,0.5).setDepth(4501);
-      this.add.text(x + 85, hudTop + 73, unit.className, {
+      this.add.text(x + 85, hudTop + 73, unit.shortName ?? unit.className, {
         fontFamily:'Arial', fontSize:'30px', color:'#cbd5e1'
       }).setOrigin(0,0.5).setDepth(4501);
 
@@ -747,6 +750,10 @@ export default class BattleScene extends Phaser.Scene {
       const rawPoint = positions[index];
       const point = this.terrain.nearestSafeUnitPoint(unit, rawPoint.x, rawPoint.y, combatSpacing.terrainFootRadius);
       unit.spacingMode = 'normal';
+      if (unit.gridAbilities) {
+        this.classAbilitySystem ??= new ClassAbilitySystem(this);
+        this.classAbilitySystem.move(unit, point, this.time.now);
+      }
       this.manualTargets.set(unit.id, point);
       this.attackTargets.delete(unit.id);
 
@@ -837,6 +844,10 @@ export default class BattleScene extends Phaser.Scene {
       return false;
     }
 
+    if (unit.gridAbilities) {
+      this.classAbilitySystem ??= new ClassAbilitySystem(this);
+      this.classAbilitySystem.move(unit, target, this.time.now);
+    }
     if (unit.distanceToPoint(target.x, target.y) > combatSpacing.arrivalTolerance) {
       unit.moveToward(target.x, target.y, deltaSeconds, combatSpacing.arrival);
       return true;
@@ -1075,6 +1086,8 @@ export default class BattleScene extends Phaser.Scene {
     this.partyUnits.forEach((unit) => this.movement.validateUnitPosition(unit));
     livingEnemies.forEach((enemy) => this.movement.validateUnitPosition(enemy));
 
+    this.partyUnits.forEach((unit) => unit.spriteVisual?.update(delta));
+
     this.tryUseHealingTonic(time);
     this.updateHud();
 
@@ -1173,6 +1186,14 @@ export default class BattleScene extends Phaser.Scene {
 
     if (!unit?.alive) return;
 
+    if (unit.gridAbilities) {
+      this.classAbilitySystem ??= new ClassAbilitySystem(this);
+      this.classAbilitySystem.tick(unit, time);
+      if (this.applyManualMovement(unit, deltaSeconds)) return;
+      if (!this.isPositionLocked(unit) && this.tryEvadeTelegraph(unit, deltaSeconds)) return;
+      this.classAbilitySystem.update(unit, time, deltaSeconds);
+      return;
+    }
     this.runClassPassive(unit, time);
     if (unit.role === 'Tank') this.tryTankTaunts(unit, time);
 
@@ -1373,6 +1394,11 @@ export default class BattleScene extends Phaser.Scene {
       const highest = Math.max(0, ...table.values());
       table.set(tank.id, highest + 1);
       enemy.engagedByTank = true;
+      if (tank.abilities[key].duration) {
+        enemy.status.forcedApproach = tank.abilities[key].farthest === true;
+        enemy.status.forcedTargetId = tank.id;
+        enemy.status.forcedTargetUntil = time + tank.abilities[key].duration;
+      }
       enemy.finishAction();
       this.activeTelegraphs.filter((telegraph) => telegraph.attacker === enemy)
         .forEach((telegraph) => this.removeTelegraph(telegraph));
@@ -1628,6 +1654,10 @@ export default class BattleScene extends Phaser.Scene {
       }
       if (!enemy.isBusy(time)) this.setEnemyTarget(enemy, target, 'highest threat');
 
+      if (enemy.status.forcedApproach && time < enemy.status.forcedTargetUntil && enemy.distanceTo(target) > 90) {
+        if (!enemy.isBusy(time)) enemy.moveToward(target.arenaX, target.arenaY, deltaSeconds, 85);
+        return;
+      }
       const primary = enemy.abilities?.primary;
       if (primary?.telegraph && enemy.abilityReady('primary', time) && enemy.distanceTo(target) <= 220) {
         this.setEnemyTarget(enemy, target, 'highest threat');
@@ -2060,6 +2090,11 @@ export default class BattleScene extends Phaser.Scene {
       threat: target.isEnemy ? this.getThreatSnapshot(target) : undefined
     });
 
+    if (attacker.isEnemy && target.status.bramble && amount > 0) {
+      const bramble = target.status.bramble;
+      target.status.bramble = null;
+      if (attacker.alive) this.resolveDamage(bramble.caster, attacker, bramble.power, 'spell', 1, 'Bramble Mend', false);
+    }
     if (attackType === 'spell' || attackType === 'holy') {
       this.createProjectile(attacker, target, attackType === 'holy' ? 0xfde68a : 0x60a5fa);
     } else {
@@ -2082,20 +2117,22 @@ export default class BattleScene extends Phaser.Scene {
         ability: abilityName
       });
     }
+    return actualDamage;
   }
 
   // This function applies a heal, including its critical roll, and measures
   // how much health was actually restored for feedback and the combat log.
   // Healing generates threat only on enemies already engaged by a tank.
-  resolveHeal(healer, target, baseAmount, abilityName) {
+  resolveHeal(healer, target, baseAmount, abilityName, allowCrit = true) {
 
     // Flash only named healing abilities cast on someone else, not routine Mend casts or self-targets.
     if (healer !== target && abilityName !== 'Mend') {
       this.flashTargetCell(target, target.color ?? 0xffffff);
     }
 
-    const critical = this.rollCritical(healer, true);
-    const amount = Math.round(baseAmount * (critical ? healer.critMultiplier : 1));
+    const critical = this.rollCritical(healer, allowCrit);
+    const healingBoost = this.time.now < (healer.status.healingBoostUntil ?? 0) ? 1 + healer.status.healingBoost : 1;
+    const amount = Math.round(baseAmount * healingBoost * (critical ? healer.critMultiplier : 1));
     const before = target.hp;
     target.heal(amount);
 
@@ -2171,6 +2208,8 @@ export default class BattleScene extends Phaser.Scene {
     if (living.length === 0) {
       return null;
     }
+    const forced = living.find(unit => unit.id === enemy.status?.forcedTargetId);
+    if (forced && this.time.now < (enemy.status.forcedTargetUntil ?? 0)) return forced;
     const table = this.enemyThreat.get(enemy.id) ?? new Map();
 
     return living.sort((a, b) => {

@@ -60,6 +60,7 @@ export default class CombatMovement {
 
   // Reduce inward travel before applying it, so pursuit cannot continually overpower gentle separation. Tangential travel stays smooth and lets units pass a neighbor instead of stopping head-on in a crowded approach.
   steerStep(unit, dx, dy) {
+    if (this.scene.time?.now < (unit.status?.rootedUntil ?? 0)) return { x: unit.arenaX, y: unit.arenaY };
     const travel = Math.hypot(dx, dy);
     for (const other of this.getUnits()) {
       if (other === unit) continue;
@@ -201,6 +202,7 @@ export default class CombatMovement {
       }
     }
     for (const unit of units) {
+      if (this.scene.time?.now < (unit.status?.rootedUntil ?? 0)) continue;
       const offset = offsets.get(unit);
       const length = Math.hypot(offset.x, offset.y);
       if (length < 0.001) continue;

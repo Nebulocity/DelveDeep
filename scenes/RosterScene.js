@@ -96,7 +96,7 @@ export default class RosterScene extends Phaser.Scene {
       color: '#ffffff'
     });
 
-    this.add.text(x - cardWidth * 0.31, y - 35, `${adventurer.className} • ${adventurer.role}`, {
+    this.add.text(x - cardWidth * 0.31, y - 35, `${adventurer.shortName ?? adventurer.className} • ${adventurer.role}`, {
       fontFamily: 'Arial',
       fontSize: '23px',
       color: '#cbd5e1'

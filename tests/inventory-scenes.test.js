@@ -210,6 +210,7 @@ context.BattleUnit = class {
 const Battle = load('../scenes/BattleScene.js', 'BattleScene');
 const battle = new Battle();
 battle.tactics = { registerParty() {}, getSpawnPosition: () => ({ x: 0, y: 0 }) };
+battle.movement = { validateUnitPosition() {} };
 battle.createParty();
 assert.equal(battle.partyUnits[0].attackPower, sturm.attackPower + 3);
 assert.equal(battle.partyUnits[0].maxHp, sturm.maxHp);

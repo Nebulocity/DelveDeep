@@ -37,7 +37,7 @@ export default class BlacksmithScene extends InventoryScene {
     const className = classes[this.classIndex];
     if (this.kind === 'equipment' || this.mode === 'craft') {
       this.button(1060, 250, 160, '<', () => this.change('classIndex', (this.classIndex + classes.length - 1) % classes.length));
-      this.text(1565, 250, className, 38).setOrigin(0.5);
+      this.text(1565, 250, CLASS_DEFINITIONS[className]?.shortName ?? className, 38).setOrigin(0.5);
       this.button(2150, 250, 160, '>', () => this.change('classIndex', (this.classIndex + 1) % classes.length));
     }
     this.tabs([['all', 'All rarities'], ...Object.entries(ITEM_RARITIES).map(([id, rarity]) => [id, rarity.label])], this.rarity,
@@ -64,7 +64,7 @@ export default class BlacksmithScene extends InventoryScene {
     bindSelectionDetails(this, card, details);
     this.text(96, y - 32, item.name, 36, rarity.color);
     const stock = material ? GameState.inventory.materials?.[item.id] ?? 0 : ownedEquipment().filter((entry) => entry.itemId === item.id).length;
-    this.text(790, y - 32, `${rarity.label} ${material ? 'material' : `${item.slot} / ${item.className}`}   |   Owned: ${stock}`, 30, '#cbd5e1');
+    this.text(790, y - 32, `${rarity.label} ${material ? 'material' : `${item.slot} / ${CLASS_DEFINITIONS[item.className]?.shortName ?? item.className}`}   |   Owned: ${stock}`, 30, '#cbd5e1');
     if (recipe) {
       const requirements = craftingRequirements(recipe);
       const ingredients = Object.entries(recipe.materials).map(([id, count]) => `${CRAFTING_MATERIALS[id].name} ${GameState.inventory.materials?.[id] ?? 0}/${count}`);

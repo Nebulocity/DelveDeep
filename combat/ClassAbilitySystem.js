@@ -137,6 +137,7 @@ export default class ClassAbilitySystem {
   cast(unit,target,key,time) {
     const scene=this.scene, a=unit.abilities[key];
     if(!unit.startAction(a.name,time,a.windup)) return;
+    unit.spriteVisual?.play(a.effect === 'damage' ? 'attack' : 'block', target);
     unit.markAbilityUsed(key,time);
     scene.announceAbility(unit,a.name,'#fde68a');
     scene.logActionStart(unit,target===unit||a.zone?null:target,a.name);

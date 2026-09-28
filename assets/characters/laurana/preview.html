@@ -11,6 +11,11 @@
 <nav aria-label="Sprite preview controls">
 <button data-mode="idle" aria-pressed="true">Idle</button>
 <button data-mode="walk" aria-pressed="false">Walk</button>
+<button data-mode="attack" aria-pressed="false">attack</button>
+<button data-mode="block" aria-pressed="false">block</button>
+<button data-mode="hit" aria-pressed="false">hit</button>
+<button data-mode="death" aria-pressed="false">death</button>
+<button data-mode="dead" aria-pressed="false">dead</button>
 <select aria-label="Facing direction" id="direction"><option value="south-east">South-east</option><option>south</option><option value="south-west">South-west</option><option>west</option><option value="north-west">North-west</option><option>north</option><option value="north-east">North-east</option><option>east</option></select>
 <button id="pause" aria-pressed="false">Pause</button>
 </nav>
@@ -37,14 +42,14 @@ try {
   const delta=Math.min(now-last,100);last=now;if(!paused)elapsed+=delta;
   ctx.clearRect(0,0,900,430);ctx.imageSmoothingEnabled=false;
   for(let x=0;x<900;x+=24)for(let y=0;y<430;y+=24){ctx.fillStyle=((x+y)/24)%2?'#202c3c':'#263344';ctx.fillRect(x,y,24,24);}
-  const clip=definition.clips[mode][direction];const i=Math.floor(elapsed/clip.frameMs)%clip.frames.length;const f=clip.frames[i],im=images.get(f.key);
+  const clip=definition.clips[mode][direction];const frameIndex=Math.floor(elapsed/clip.frameMs);const i=['idle','walk'].includes(mode)?frameIndex%clip.frames.length:Math.min(frameIndex,clip.frames.length-1);const f=clip.frames[i],im=images.get(f.key);
   for(const [x,y,scale,label] of [[220,320,definition.scale,'Gameplay size'],[650,355,3,'3× native pixels']]){
    ctx.fillStyle='#0005';ctx.beginPath();ctx.ellipse(x,y+2,25*scale,6*scale,0,0,Math.PI*2);ctx.fill();
    ctx.save();ctx.translate(x,y);ctx.scale(f.flipX?-scale:scale,scale);
    ctx.drawImage(im,-f.originX*im.width,-f.originY*im.height);ctx.restore();
    ctx.font='18px system-ui';ctx.fillStyle='#e2e8f0';ctx.textAlign='center';ctx.fillText(label,x,400);
   }
-  status.textContent=`${mode==='idle'?'Idle':'Walk'} · ${direction} · Frame ${i+1}/${clip.frames.length}${paused?' · Paused':''}`;
+  status.textContent=`${mode} · ${direction} · Frame ${i+1}/${clip.frames.length}${paused?' · Paused':''}`;
   requestAnimationFrame(render);
  }
  requestAnimationFrame(render);

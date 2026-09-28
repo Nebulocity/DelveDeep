@@ -1063,6 +1063,10 @@ export default class BattleScene extends Phaser.Scene {
 
     this.updateTonicHud();
     if (this.battleOver || this.waveTransitioning || this.combatPaused) {
+      // Finish a fall even when its lethal hit ended the battle or wave.
+      if (!this.combatPaused) this.partyUnits?.forEach(unit => {
+        if (!unit.alive) unit.spriteVisual?.update(delta);
+      });
       return;
     }
 
@@ -1396,6 +1400,7 @@ export default class BattleScene extends Phaser.Scene {
   // redirects it immediately. Canceling its old action prevents a queued
   // attack from still hitting the ally the taunt just protected.
   applyTankTaunt(tank, enemies, key, time) {
+    tank.spriteVisual?.play('block', enemies[0]);
 
     tank.markAbilityUsed(key, time);
     this.announceAbility(tank, tank.abilities[key].name, '#fde68a');
@@ -1713,6 +1718,7 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     attacker.lastAttackAt = time;
+    attacker.spriteVisual?.play('attack', target);
     if (attacker.isEnemy) this.setEnemyTarget(attacker, target, 'highest threat');
     this.logActionStart(attacker, target, 'Attack');
     const action = attacker.pendingAction;
@@ -2049,7 +2055,10 @@ export default class BattleScene extends Phaser.Scene {
     // the combat log.
     const ranged = attackType === 'spell' || attackType === 'ranged' || attacker.attackRange > 180;
     const hpBefore = target.hp;
-    target.takeDamage(amount, { time: now, ranged });
+    target.takeDamage(amount, { time: now, ranged, attacker,
+      blocked: (!target.isEnemy && now < this.braceUntil)
+        || now < (target.status.shieldUntil ?? 0)
+        || now < (target.status.damageReductionUntil ?? 0) });
     const actualDamage = hpBefore - target.hp;
 
     // Update the combat interaction timestamps used by the Rogue quiet-time

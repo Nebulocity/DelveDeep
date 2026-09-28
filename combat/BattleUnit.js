@@ -467,12 +467,14 @@ export default class BattleUnit {
     if (this.hp <= 0) {
       this.alive = false;
       this.finishAction();
+      this.spriteVisual?.play('death');
       this.body.setFillStyle(0x44403c, this.spriteVisual ? 0 : 1);
       this.spriteVisual?.image.setTint(0x777777);
       this.container.setAlpha(0.5);
       return true;
     }
 
+    if (amount > 0) this.spriteVisual?.play(options.blocked ? 'block' : 'hit', options.attacker);
     return false;
   }
 

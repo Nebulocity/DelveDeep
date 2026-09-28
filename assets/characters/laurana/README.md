@@ -49,3 +49,27 @@ The same sprite persists across animation changes, preserving tint and alpha.
 
 Open `preview.html` through a local web server to inspect idle/walk, directional
 facing, pause, native pixel detail and approximate gameplay size.
+
+## Expanded combat animation set
+
+The same PixelLab character now supplies front/back three-quarter combat clips,
+mirrored for left-facing headings. Sources:
+
+- Active idle: `fight-stance-idle-8-frames`, group `00129fbe-3dfa-4be5-b228-b9cbcc07f2cc`.
+- Hit: `taking-punch`, group `135aed21-8d30-4195-97d9-e5b54457fc72`.
+- Death: `falling-back-death`, group `888f9ba3-7c0e-4efc-912e-ea87c87e0777`.
+- Attack: v3, six generated frames plus reference, group `751c8cdb-21e7-450d-85c3-7c8abef2ab76`.
+  Prompt: Plant feet, draw spear back, thrust spear sharply forward at enemy, then
+  recover to ready stance. Keep shield in other hand. Stationary spear jab attack,
+  full spear stays in frame.
+- Block: v3, four generated frames plus reference, group `3405270f-e62b-4d31-a7e4-9db01e46a800`.
+  Prompt: Raise round shield in front of torso, brace visibly against an incoming
+  blow, recoil slightly behind shield, then lower to ready stance. Keep spear in
+  other hand. Feet planted.
+
+Walk timing is 75ms/frame (formerly 110ms); active idle is 110ms/frame.
+Attacks, taunts, incoming hits and existing defensive damage reductions drive
+one-shot clips. Shield poses do not introduce a new block chance or change damage.
+Death plays once, including after battle end, and holds the final frame as the
+corpse. Revival resets it. Pause still freezes all animation. Combat movement
+speed, cooldowns, stats and saves are unchanged.

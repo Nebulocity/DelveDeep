@@ -31,3 +31,23 @@ assert.equal(UnitSprite.create({id:'not-a-sprite',scene:{}}),null);
 console.log('Unit sprite: frame selection, eight-direction clips, origins, pause, death, revival and circle fallback passed.');
 
 visual.applyFrame({key:'mirror',originX:0.4,originY:0.9,flipX:true});assert.equal(image.flipX,true);assert.deepEqual(image.origin,[0.6,0.9]);
+
+// One-shot actions override locomotion, freeze on pause and return cleanly to idle.
+for (const state of ['attack','block','hit','death']) {
+ definition.clips[state] = Object.fromEntries(directions.map(direction => [direction, {
+  frameMs:100, frames:[0,1,2].map(i=>({key:`${state}-${direction}-${i}`,originX:.5,originY:.9}))
+ }]));
+}
+unit.alive=true;visual.reset();
+visual.play('attack',{arenaX:unit.arenaX-10,arenaY:unit.arenaY});
+assert.equal(image.key,'attack-west-0');
+visual.update(110);assert.equal(image.key,'attack-west-1');
+unit.scene.combatPaused=true;visual.update(500);assert.equal(image.key,'attack-west-1');
+unit.scene.combatPaused=false;visual.update(200);assert.equal(image.key,'idle-west-0');
+visual.play('hit');visual.update(110);visual.play('hit');
+assert.equal(image.key,'hit-west-1','repeated hits do not restart reaction');
+visual.play('death');unit.alive=false;unit.scene.battleOver=true;
+visual.update(500);assert.equal(image.key,'death-west-2');
+visual.play('attack');visual.update(500);assert.equal(image.key,'death-west-2');
+unit.alive=true;unit.scene.battleOver=false;visual.reset();assert.equal(image.key,'idle-west-0');
+console.log('Action playback: facing, interruption, pause, persistent corpse, battle-end fall and revival passed.');

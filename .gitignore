@@ -19,3 +19,22 @@ android/build/
 
 .DS_Store
 Thumbs.db
+
+# Generated web output: build locally, do not version hashed bundles.
+/dist/
+
+# Blender authoring files stay local; ship only Phaser runtime exports.
+/assets/blender/*
+!/assets/blender/README.md
+!/assets/blender/export_phaser_stills.py
+*.blend1
+*.blend2
+
+# Imported modeling sources and visual references (already embedded in Blender).
+/assets/*.glb
+/assets/mrglmrglmrghl_*.png
+/assets/screenshot*.png
+/assets/environments/slime-cave/layer-check.png
+
+# Local conversation attachments
+/.codex-remote-attachments/

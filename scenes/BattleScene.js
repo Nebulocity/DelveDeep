@@ -19,6 +19,7 @@ import HapticsService from '../services/HapticsService.js';
 import { completeExpedition, failExpedition, fleeExpedition, formatDuration } from '../game/ExpeditionProgression.js';
 import { saveProfile } from '../game/GameStorage.js';
 import { getBattleLayout } from '../ui/Layout.js';
+import { preloadEnvironment, createEnvironment, getEnvironmentFloor } from '../combat/LayeredEnvironment.js';
 
 export default class BattleScene extends Phaser.Scene {
 
@@ -34,6 +35,8 @@ export default class BattleScene extends Phaser.Scene {
   preload() {
     preloadCharacterSprites(this);
 
+    const environment = GameState.currentDelve?.visuals?.environment;
+    if (environment) preloadEnvironment(this, environment);
     const background = GameState.currentDelve?.visuals?.battlefieldBackground;
     if (background?.key && background?.url && !this.textures.exists(background.key)) {
       this.load.image(background.key, background.url);
@@ -89,7 +92,9 @@ export default class BattleScene extends Phaser.Scene {
       columns: 8,
       rows: 6,
       nearScale: 1.05,
-      farScale: 0.74
+      farScale: 0.74,
+      ...(GameState.currentDelve?.visuals?.environment
+        ? getEnvironmentFloor(GameState.currentDelve.visuals.environment, width, height) : {})
     });
 
     // Create the formation controller and copy the appropriate encounter wave
@@ -97,7 +102,7 @@ export default class BattleScene extends Phaser.Scene {
     this.terrain = new BattlefieldTerrain(this, this.battlefield, GameState.currentDelve?.terrain ?? []);
 
     // Uncomment this while authoring terrain to see blocked polygons over the art.
-    this.terrainDebug = this.terrain.drawDebug();
+    this.terrainDebug = null;
 
     this.tactics = new TacticsController(this.battlefield, GameState.tactics);
     this.movement = new CombatMovement(this);
@@ -153,7 +158,7 @@ export default class BattleScene extends Phaser.Scene {
       fontSize: '48px',
       fontStyle: 'bold',
       color: '#f5f5f4'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setDepth(4501);
 
     this.battleMessageText = this.add.text(width / 2, this.battleLayout.messageY, '', {
       fontFamily: 'Arial',
@@ -169,13 +174,19 @@ export default class BattleScene extends Phaser.Scene {
       fontSize: '32px',
       fontStyle: 'bold',
       color: '#fb923c'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setDepth(4501);
   }
 
   // This function draws the battlefield beneath its units and tactical
   // controls.
   createArena(width, height) {
 
+    const environment = GameState.currentDelve?.visuals?.environment;
+    if (environment) {
+      this.battlefieldVisualLayers = createEnvironment(this, environment);
+      this.battlefield.drawPerspectiveFloor();
+      return;
+    }
     const background = GameState.currentDelve?.visuals?.battlefieldBackground;
     let staticBackground = null;
     if (background?.key && this.textures.exists(background.key)) {

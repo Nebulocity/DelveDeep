@@ -125,19 +125,19 @@ for (const mode of ['buy', 'sell', 'craft']) {
 const gear = new Equipment();
 gear.create();
 tap(gear, 'Tanks');
-const sturmLabel = gear.objects.find((object) => object.type === 'text' && object.value === 'Sturm');
+const sturmLabel = gear.objects.find((object) => object.type === 'text' && object.value === 'Laurana');
 gear.objects.find((object) => object.type === 'rectangle' && object.y === sturmLabel.y + 28 && object.tap).tap();
 tap(gear, 'EQUIP');
-assert.ok(GameState.roster.find((hero) => hero.id === 'sturm').equipment.weapon);
-assert.ok(hasText(gear, 'Equipped by Sturm'));
+assert.ok(GameState.roster.find((hero) => hero.id === 'laurana').equipment.weapon);
+assert.ok(hasText(gear, 'Equipped by Laurana'));
 tap(gear, 'UNEQUIP WEAPON');
-assert.equal(GameState.roster.find((hero) => hero.id === 'sturm').equipment.weapon, null);
+assert.equal(GameState.roster.find((hero) => hero.id === 'laurana').equipment.weapon, null);
 tap(gear, 'EQUIP');
 const inventory = new Items();
 inventory.create();
 assert.ok(hasText(inventory, 'No battle items owned'));
 tap(inventory, 'Equipment');
-assert.ok(hasText(inventory, 'Equipped by Sturm'));
+assert.ok(hasText(inventory, 'Equipped by Laurana'));
 tap(inventory, 'Crafting Material');
 assert.ok(hasText(inventory, 'No crafting materials owned'));
 GameState.inventory.healingTonic = 3;
@@ -198,7 +198,7 @@ assert.equal(GameState.leader.battleLoadout.includes('brace'), true);
 
 // Actual combat setup must consume effective stats even when activeParty is
 // an older pre-equipment snapshot. Roster base stats must stay untouched.
-const sturm = GameState.roster.find((hero) => hero.id === 'sturm');
+const sturm = GameState.roster.find((hero) => hero.id === 'laurana');
 GameState.activeParty = [{ ...sturm, equipment: { weapon: null, armor: null } }];
 context.BattleUnit = class {
   constructor(scene, config) {

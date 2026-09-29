@@ -404,9 +404,7 @@ export default class BattleUnit {
   }
 
   // This function reduces incoming damage using armor and active defensive
-  // effects, then subtracts it from health. It checks the Barbarian survival
-  // roll before marking a defeated unit inactive and clearing its current
-  // action.
+  // effects, then subtracts it from health. It marks a defeated unit inactive and clears its current action.
   takeDamage(amount, options = {}) {
 
     if (!this.alive) {
@@ -416,6 +414,7 @@ export default class BattleUnit {
     // Apply armor and active damage modifiers before rounding and subtracting
     // health.
     const now = options.time ?? this.scene.time.now;
+    if (now < (this.status.immuneUntil ?? 0)) return false;
     let adjusted = Math.max(0, amount);
 
     if (!this.isEnemy) {
@@ -450,33 +449,27 @@ export default class BattleUnit {
     adjusted -= absorbed;
     this.hp = Math.max(0, this.hp - adjusted);
 
-    // Allow one successful death escape per delve; failed rolls leave the
-    // escape unused.
-    if (this.hp <= 0 && this.className === 'Barbarian' && !this.gridAbilities && !this.delvesUsed.shrugDeath) {
-      const chance = Math.min(0.8, 0.02 * Math.max(1, this.level ?? 1));
-      if (Math.random() < chance) {
-        this.delvesUsed.shrugDeath = true;
-        this.hp = Math.max(1, Math.round(this.maxHp * 0.10));
-        this.scene.createFloatingText?.(this.x, this.y - 110, 'SHRUG IT OFF!', '#fb923c', true);
-      }
-    }
-
     this.updateHealthBar();
 
-    // Mark an actual defeat only after the survival roll, then cancel the
-    // action and fade the unit.
+    // Cancel the action and fade a defeated unit.
     if (this.hp <= 0) {
-      this.alive = false;
-      this.finishAction();
-      this.spriteVisual?.play('death');
-      this.body.setFillStyle(0x44403c, this.spriteVisual ? 0 : 1);
-      this.spriteVisual?.image.setTint(0x777777);
-      this.container.setAlpha(0.5);
+      this.defeat();
       return true;
     }
 
     if (amount > 0) this.spriteVisual?.play(options.blocked ? 'block' : 'hit', options.attacker);
     return false;
+  }
+
+  defeat() {
+    this.hp = 0;
+    this.alive = false;
+    this.finishAction();
+    this.spriteVisual?.play('death');
+    this.body.setFillStyle(0x44403c, this.spriteVisual ? 0 : 1);
+    this.spriteVisual?.image.setTint(0x777777);
+    this.container.setAlpha(0.5);
+    this.updateHealthBar();
   }
 
   // This function revives a fallen ally with partial health and mana while

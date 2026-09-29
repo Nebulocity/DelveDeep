@@ -1,5 +1,5 @@
 // Powers and unspecified durations are provisional balance values; see docs/CLASS_ABILITIES.md.
-export const CLASS_MIGRATIONS = { Paladin: 'Dawnwarden', Rogue: 'Scoundrel', Guardian: 'Dawnwarden', Wizard: 'Mage of the Umbral Veil', Priest: 'Cleric of the Holy Light', 'Cleric of the Everbright': 'Cleric of the Holy Light', Naturalist: 'Cleric of the Verdant Covenant', Bloodwarder: 'Cleric of the Sanguine Song' };
+export const CLASS_MIGRATIONS = { Paladin: 'Dawnwarden', Rogue: 'Scoundrel', Guardian: 'Dawnwarden', Wizard: 'Mage of the Umbral Veil', Priest: 'Cleric of the Everbright', 'Cleric of the Holy Light': 'Cleric of the Everbright', Naturalist: 'Cleric of the Verdant Covenant', Bloodwarder: 'Cleric of the Sanguine Song' };
 const spell = (name, cooldown, range, effect, extra = {}) => ({ name, cooldown: cooldown * 1000, range, effect, windup: 300, ...extra });
 const mage = (shortName, color, abilities) => ({ role: 'Ranged DPS', shortName, color, maxHp: 80, maxMana: 120, manaRegen: 8, moveSpeed: 130, attackPower: 15, attackRange: 345, attackCooldown: 1500, attackWindup: 400, critChance: 0.15, critMultiplier: 1.75, gridAbilities: true, abilities });
 const cleric = (shortName, color, abilities) => ({ role: 'Healer', shortName, color, armor: 0.08, maxHp: 110, maxMana: 120, manaRegen: 8, moveSpeed: 140, attackPower: 7, attackRange: 300, attackCooldown: 1600, attackWindup: 400, healPower: 22, healRange: 600, gridAbilities: true, abilities });
@@ -11,6 +11,24 @@ export const CLASS_DEFINITIONS = {
       net: spell('Throw Net', 15, 6, 'damage', { power: 12, damageType: 'physical', root: 10000, farthest: true }),
       cleave: spell('Whirling Cleave', 10, 0, 'damage', { power: 40, damageType: 'physical', radius: 4, totalThreat: 2 }),
       sand: spell('Kick Sand', 10, 1, 'damage', { power: 12, damageType: 'physical', blind: 6000, blindChance: 0.6 })
+    }
+  },
+  Oathwarden: {
+    role: 'Tank', color: 0x94a3b8, maxHp: 190, moveSpeed: 132, attackPower: 9, attackRange: 74, attackCooldown: 1100, attackWindup: 280, armor: 0.26, threatMultiplier: 3.4, gridAbilities: true,
+    abilities: {
+      sacrifice: spell('My Honor is My Life', 0, 0, 'sacrifice', { duration: 10000, damageBoost: 0.5, healingBoost: 0.5 }),
+      vow: spell('Solemn Vow', 20, 6, 'vow', { duration: 10000, immunityDuration: 5000 }),
+      defense: spell('Staunch Defense', 20, 4, 'taunt', { targets: Infinity, duration: 6000, reduction: 0.75 }),
+      parry: spell('Parry', 2, 0, 'parry', { chance: 0.65, reactive: true })
+    }
+  },
+  Barmaid: {
+    role: 'Melee DPS', color: 0xc026d3, maxHp: 110, moveSpeed: 175, attackPower: 14, attackRange: 74, attackCooldown: 1000, attackWindup: 250, critChance: 0.16, critMultiplier: 1.75, gridAbilities: true,
+    abilities: {
+      pan: spell('Frying Pan', 8, 1, 'damage', { power: 40, damageType: 'physical', stun: 4000 }),
+      swing: spell('Clumsy Swing', 15, 0, 'damage', { power: 24, damageType: 'physical', radius: 1 }),
+      bash: spell('Shield Bash', 10, 1, 'damage', { power: 24, damageType: 'physical', stun: 4000 }),
+      lastCall: spell('Last Call', 20, 6, 'damage', { power: 40, damageType: 'physical', beam: true, endpoint: true, stun: 4000 })
     }
   },
   Scoundrel: {
@@ -67,7 +85,7 @@ export const CLASS_DEFINITIONS = {
     spear: spell('Lumenspear', 5, 6, 'damage', { power: 24, damageType: 'radiant', healRatio: 2, healScope: 'near' }),
     libram: spell('Libram of Knowledge', 15, 3, 'damage', { power: 40, damageType: 'radiant', zone: [2, 2], healRatio: 2, healScope: 'all' })
   }),
-  'Cleric of the Holy Light': cleric('Holy Light Cleric', 0xffe58a, {
+  'Cleric of the Everbright': cleric('Everbright Cleric', 0xffe58a, {
     aegis: spell('Solar Aegis', 10, 0, 'aegis'),
     blessing: spell('Blessing of the Dawn', 5, 1, 'heal', { power: 42 }),
     ray: spell('Ray of Benediction', 3, 5, 'heal', { power: 24 }),

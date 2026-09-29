@@ -1402,11 +1402,13 @@ export default class BattleScene extends Phaser.Scene {
   // This function raises the tank above each target's existing threat and
   // redirects it immediately. Canceling its old action prevents a queued
   // attack from still hitting the ally the taunt just protected.
-  applyTankTaunt(tank, enemies, key, time) {
+  applyTankTaunt(tank, enemies, key, time, commit = true) {
     tank.spriteVisual?.play('block', enemies[0]);
 
-    tank.markAbilityUsed(key, time);
-    this.announceAbility(tank, tank.abilities[key].name, '#fde68a');
+    if (commit) {
+      tank.markAbilityUsed(key, time);
+      this.announceAbility(tank, tank.abilities[key].name, '#fde68a');
+    }
     enemies.forEach((enemy) => {
 
       const table = this.enemyThreat.get(enemy.id);
@@ -2011,7 +2013,7 @@ export default class BattleScene extends Phaser.Scene {
 
     // Resolve blindness before damage modifiers; a miss stops the rest of the
     // hit processing.
-    if (now < (attacker.status.blindUntil ?? 0) && Math.random() < (attacker.status.blindChance ?? 0)) {
+    if (attackType !== 'reflection' && now < (attacker.status.blindUntil ?? 0) && Math.random() < (attacker.status.blindChance ?? 0)) {
       this.createFloatingText(target.x, target.y - 82, 'MISS', '#cbd5e1', false, 'miss');
       this.combatLog?.add('miss', `${attacker.name}'s ${abilityName} missed ${target.name}`, {
         wave: this.currentWaveIndex + 1,
@@ -2027,7 +2029,7 @@ export default class BattleScene extends Phaser.Scene {
     const critical = this.rollCritical(attacker, allowCrit);
     let amount = Math.round(baseAmount * (critical ? attacker.critMultiplier : 1));
 
-    if (!attacker.isEnemy && now < (attacker.status.damageBoostUntil ?? 0)) {
+    if (attackType !== 'reflection' && !attacker.isEnemy && now < (attacker.status.damageBoostUntil ?? 0)) {
       amount = Math.round(amount * (1 + (attacker.status.damageBoost ?? 0)));
     }
     if (attacker.isEnemy && now < (attacker.status.outgoingDamageReductionUntil ?? 0)) {
@@ -2053,12 +2055,18 @@ export default class BattleScene extends Phaser.Scene {
 
     if (now < (attacker.status.enrageUntil ?? 0)) amount = Math.round(amount * attacker.status.enrageDamage);
     else if (now < (attacker.status.exhaustedUntil ?? 0)) amount = Math.round(amount * attacker.status.exhaustedDamage);
-    if (!attacker.isEnemy && now < this.assaultUntil) amount = Math.round(amount * (1 + this.assaultBonus));
+    if (attackType !== 'reflection' && now < (attacker.status.honorDamageUntil ?? 0)) amount = Math.round(amount * (1 + attacker.status.honorDamageBoost));
+    if (attackType !== 'reflection' && !attacker.isEnemy && now < this.assaultUntil) amount = Math.round(amount * (1 + this.assaultBonus));
     if (attacker.isEnemy && !target.isEnemy && now < this.braceUntil) amount = Math.max(1, Math.round(amount * (1 - this.braceReduction)));
 
     // Let the target apply its defenses, then measure actual health loss for
     // the combat log.
     const ranged = attackType === 'spell' || attackType === 'ranged' || attacker.attackRange > 180;
+    if (now < (target.status.immuneUntil ?? 0)) {
+      this.createFloatingText(target.x, target.y - 82, 'IMMUNE', '#fde68a');
+      return 0;
+    }
+    if (attacker.isEnemy && this.classAbilitySystem?.tryParry(target, attacker, amount, now)) return 0;
     const hpBefore = target.hp;
     target.takeDamage(amount, { time: now, ranged, attacker,
       blocked: (!target.isEnemy && now < this.braceUntil)
@@ -2157,7 +2165,8 @@ export default class BattleScene extends Phaser.Scene {
 
     const critical = this.rollCritical(healer, allowCrit);
     const healingBoost = this.time.now < (healer.status.healingBoostUntil ?? 0) ? 1 + healer.status.healingBoost : 1;
-    const amount = Math.round(baseAmount * healingBoost * (critical ? healer.critMultiplier : 1));
+    const honorBoost = this.time.now < (healer.status.honorHealingUntil ?? 0) ? 1 + healer.status.honorHealingBoost : 1;
+    const amount = Math.round(baseAmount * healingBoost * honorBoost * (critical ? healer.critMultiplier : 1));
     const before = target.hp;
     target.heal(amount);
 

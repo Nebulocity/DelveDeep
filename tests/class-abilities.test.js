@@ -17,8 +17,8 @@ function scene(party,enemies) {
   const s={partyUnits:party,enemies,battlefield:geometry,time:{now:0},attackTargets:new Map(),getLivingEnemies:()=>enemies.filter(e=>e.alive),isEnemyEngaged:()=>true,isPositionLocked:()=>false,getPrimaryTarget:()=>enemies.find(e=>e.alive),isWithinAttackReach:()=>false,announceAbility(){},movement:{moveToCombatPosition(){},maintainRange(){}},hits:[],heals:[],threat:[],resolveDamage(u,t,p,type,m,n){const actual=Math.min(t.hp,p);t.hp-=actual;this.hits.push({u,t,p,n});return actual;},resolveHeal(u,t,p,n){t.hp=Math.min(t.maxHp,t.hp+p);this.heals.push({u,t,p,n});},addThreat(e,u,n){this.threat.push(n);}};
   return s;
 }
-assert.equal(Object.keys(classes).length,11);
-assert.equal(Object.values(classes).filter(c=>c.gridAbilities).reduce((n,c)=>n+Object.keys(c.abilities).length,0),47);
+assert.equal(Object.keys(classes).length,13);
+assert.equal(Object.values(classes).filter(c=>c.gridAbilities).reduce((n,c)=>n+Object.keys(c.abilities).length,0),55);
 assert.ok(roster.every(unit=>classes[unit.className]));
 assert.equal(roster.find(unit=>unit.id==='raistlin').className,'Mage of the Crimson Spire');
 const caster=make('Mage of the Luminous Archive'), ally=make('Scoundrel',2), e=enemy(1);
@@ -32,7 +32,7 @@ system.resolve(caster,e,caster.abilities.touch,0);
 assert.equal(s.heals[0].p,36);
 s.heals=[];system.resolve(caster,e,caster.abilities.spear,0);assert.equal(s.heals.length,2);assert.equal(s.heals[0].p,48);
 e.hp=10;s.heals=[];system.resolve(caster,e,caster.abilities.libram,0);assert.equal(s.heals.length,2);assert.equal(s.heals[0].p,20,'healing uses actual overkill-clamped damage');
-const holy=make('Cleric of the Holy Light'), friend=make('Scoundrel',1);
+const holy=make('Cleric of the Everbright'), friend=make('Scoundrel',1);
 s=scene([holy,friend],[]);system=new System(s);
 system.resolve(holy,holy,holy.abilities.aegis,0);system.resolve(holy,friend,holy.abilities.ray,0);
 assert.deepEqual(s.heals.map(h=>h.p),[72,72]);assert.equal(holy.status.solarAegis,false);
@@ -117,6 +117,50 @@ const trapCell=system.trapPoint(ranger,[foe]);assert.equal(squareDistance(s,rang
 system.resolve(ranger,trapCell,ranger.abilities.trap,0);system.tickWorld(1);assert.equal(s.hits.length,0);
 foe.arenaX=trapCell.arenaX;foe.arenaY=trapCell.arenaY;system.tickWorld(2);assert.equal(s.hits[0].p,40);assert.equal(foe.status.hardStunUntil,10002);assert.equal(system.traps.length,0);
 // Previously equipped Caramon/Goldmoon gear keeps its instance identity and new class compatibility.
-globalThis.localStorage={getItem:()=>JSON.stringify({roster:[{id:'caramon-gladiator',equipment:{weapon:'c'}},{id:'goldmoon',equipment:{weapon:'g'}}],inventory:{equipment:[{id:'c',itemId:'paladin-weapon'},{id:'g',itemId:'naturalist-weapon'}]}})};
-loadProfile(roster);assert.equal(GameState.roster.find(u=>u.id==='goldmoon').equipment.weapon,'g');assert.equal(GameState.roster.find(u=>u.id==='caramon-gladiator').equipment.weapon,'c');assert.deepEqual(GameState.inventory.equipment.map(e=>e.itemId),['gladiator-weapon','priest-weapon']);
+globalThis.localStorage={getItem:()=>JSON.stringify({roster:[{id:'caramon-gladiator',equipment:{weapon:'c'}},{id:'goldmoon',equipment:{weapon:'g'}}],inventory:{equipment:[{id:'c',itemId:'paladin-weapon'},{id:'g',itemId:'priest-weapon'}]}})};
+loadProfile(roster);assert.equal(GameState.roster.find(u=>u.id==='goldmoon').equipment.weapon,'g');assert.equal(GameState.roster.find(u=>u.id==='caramon-gladiator').equipment.weapon,'c');assert.deepEqual(GameState.inventory.equipment.map(e=>e.itemId),['gladiator-weapon','naturalist-weapon']);
 console.log('Martial kits, poison cadence, trap entry, control durations and reassigned equipment passed.');
+// The active catalog contains only the requested roster and its classes.
+assert.deepEqual(Object.fromEntries(roster.map(u=>[u.name,u.className])), {
+  Caramon:'Gladiator',Sturm:'Oathwarden',Laurana:'Dawnwarden',Goldmoon:'Cleric of the Verdant Covenant',
+  Mishakal:'Cleric of the Everbright',Fistandantilus:'Cleric of the Sanguine Song',Riverwind:'Barbarian',Flint:'Barbarian',
+  Tasslehoff:'Scoundrel',Tika:'Barmaid',Dalamar:'Mage of the Umbral Veil',Palin:'Mage of the Luminous Archive',Raistlin:'Mage of the Crimson Spire',Tanis:'Ranger'
+});
+assert.deepEqual(new Set(roster.map(u=>u.className)),new Set(Object.keys(classes)));
+const barmaid=make('Barmaid'), lineEnemies=[enemy(1),enemy(3),enemy(5),enemy(3,1)];
+lineEnemies.forEach(e=>{e.hp=500;});s=scene([barmaid],lineEnemies);system=new System(s);
+system.resolve(barmaid,lineEnemies[0],barmaid.abilities.pan,0);assert.equal(s.hits[0].p,40);assert.equal(lineEnemies[0].status.hardStunUntil,4000);
+s.hits=[];system.resolve(barmaid,barmaid,barmaid.abilities.swing,0);assert.equal(s.hits.length,1);assert.equal(s.hits[0].p,24);
+s.hits=[];const endpoint=system.bestLine(barmaid,barmaid.abilities.lastCall,lineEnemies);
+system.resolve(barmaid,endpoint,barmaid.abilities.lastCall,100);assert.equal(s.hits.length,3);assert.ok(s.hits.every(h=>h.p===40&&h.t.status.hardStunUntil===4100));
+s.hits=[];system.resolve(barmaid,lineEnemies[1],barmaid.abilities.lastCall,200);assert.equal(s.hits.length,2,'line stops at selected endpoint');
+const oath=make('Oathwarden'), healer=make('Cleric of the Everbright',1), dps=make('Barmaid',2), attacker=enemy(3);
+s=scene([oath,healer,dps],[attacker]);system=new System(s);
+attacker.currentTargetId=healer.id;
+s.applyTankTaunt=(u,targets,key,time)=>targets.forEach(e=>{e.currentTargetId=u.id;e.status.forcedTargetUntil=time+u.abilities[key].duration;});
+system.resolve(oath,healer,oath.abilities.vow,100);assert.equal(attacker.currentTargetId,oath.id);assert.equal(attacker.status.forcedTargetUntil,10100);assert.equal(healer.status.immuneUntil,5100);
+const random=Math.random;
+try {
+  Math.random=()=>0.64;
+  assert.equal(system.tryParry(oath,attacker,30,0),true);assert.equal(s.hits.at(-1).p,30);
+  assert.equal(system.tryParry(oath,attacker,30,1999),false);
+  Math.random=()=>0.65;assert.equal(system.tryParry(oath,attacker,30,2000),false);
+  Math.random=()=>0;assert.equal(system.tryParry(oath,attacker,30,3999),false,'failed parry also spends cooldown');
+  assert.equal(system.tryParry(oath,attacker,30,4000),true);
+} finally {Math.random=random;}
+// Only the final boss wave with exactly an Oathwarden and one healer alive qualifies.
+s.waves=[{boss:true},{boss:true}];s.currentWaveIndex=0;
+dps.alive=false;oath.defeat=()=>{oath.alive=false;oath.hp=0;};
+for(const ally of [healer,dps]) {ally.maxMana=100;ally.mana=3;ally.updateHealthBar=()=>{};ally.revive=()=>{ally.alive=true;};}
+assert.equal(system.canSacrifice(oath),false);
+s.currentWaveIndex=1;s.waves[1].boss=false;assert.equal(system.canSacrifice(oath),false);
+s.waves[1].boss=true;healer.alive=false;assert.equal(system.canSacrifice(oath),false);
+healer.alive=true;dps.alive=true;assert.equal(system.canSacrifice(oath),false);
+dps.alive=false;assert.equal(system.sacrifice(oath,oath.abilities.sacrifice,100),true);
+assert.equal(oath.alive,false);assert.ok(healer.alive&&dps.alive);assert.equal(healer.hp,100);assert.equal(dps.hp,100);assert.equal(dps.mana,100);assert.equal(healer.mana,100);
+assert.equal(dps.status.honorDamageBoost,0.5);assert.equal(dps.status.honorDamageUntil,10100);assert.equal(healer.status.honorHealingBoost,0.5);
+oath.alive=true;dps.alive=false;assert.equal(system.canSacrifice(oath),false,'reviving the Oathwarden cannot repeat the sacrifice');
+console.log('Exact roster, Barmaid line/AoE, Oathwarden vow, parry and sacrifice conditions passed.');
+// Reassigned retained characters keep gear; removed characters cannot remain selected.
+globalThis.localStorage={getItem:()=>JSON.stringify({lastPartyIds:['justarius','sturm','tika'],roster:[{id:'sturm',level:3,equipment:{weapon:'s'}},{id:'tika',level:2,equipment:{weapon:'t'}}],inventory:{equipment:[{id:'s',itemId:'paladin-weapon'},{id:'t',itemId:'rogue-weapon'}]}})};
+loadProfile(roster);assert.deepEqual(GameState.lastPartyIds,['sturm','tika']);assert.equal(GameState.roster.find(u=>u.id==='sturm').equipment.weapon,'s');assert.equal(GameState.roster.find(u=>u.id==='tika').equipment.weapon,'t');assert.deepEqual(GameState.inventory.equipment.map(e=>e.itemId),['oathwarden-weapon','barmaid-weapon']);

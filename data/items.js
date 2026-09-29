@@ -12,6 +12,8 @@ export const ITEM_RARITIES = {
 const CLASS_KITS = {
   Paladin: ['Dawn Mace', 'Pilgrim Hammer', 'Dawn Plate', 'Sunforged Mace', 'Sunforged Plate'],
   Gladiator: ['Arena Sword', 'Pit Spear', 'Arena Plate', 'Champion Blade', 'Champion Plate'],
+  Oathwarden: ['Vowblade', 'Sentinel Spear', 'Oath Plate', 'Honorblade', 'Stalwart Plate'],
+  Barmaid: ['Iron Frying Pan', 'Oak Cudgel', 'Tavern Leathers', 'Last Call Pan', 'Innkeeper Guard'],
   Rogue: ['Dusk Dagger', 'Viper Knife', 'Shadow Leather', 'Nightfang', 'Nightstalker Leather'],
   Barbarian: ['Raider Axe', 'Boar Cleaver', 'Raider Hide', 'Stormsplitter', 'Thunderhide'],
   'Mage of the Crimson Spire': ['Crimson Staff', 'Spire Wand', 'Red Robe', 'Arcane Staff', 'Crimson Robe'],

@@ -32,6 +32,55 @@ export default class ClassAbilitySystem {
   allies() { return this.scene.partyUnits.filter(u => u.alive); }
   enemies(unit) { return this.scene.getLivingEnemies().filter(e => unit.role === 'Tank' || this.scene.isEnemyEngaged(e)); }
   distance(a, b) { return squareDistance(this.scene, a, b); }
+  canSacrifice(unit) {
+    const scene = this.scene, wave = scene.waves?.[scene.currentWaveIndex];
+    const others = scene.partyUnits.filter(ally => ally !== unit);
+    const survivors = others.filter(ally => ally.alive);
+    return unit.alive && !unit.delvesUsed?.honorSacrifice && !scene.battleOver
+      && scene.currentWaveIndex === scene.waves?.length - 1 && wave?.boss === true
+      && scene.getLivingEnemies().length > 0 && others.some(ally => !ally.alive)
+      && survivors.length === 1 && survivors[0].role === 'Healer';
+  }
+  sacrifice(unit, ability, time) {
+    if (!this.canSacrifice(unit)) return false;
+    const scene = this.scene;
+    unit.delvesUsed ??= {};
+    unit.delvesUsed.honorSacrifice = true;
+    unit.defeat(); // A sacrifice bypasses armor, immunity, parry and temporary HP.
+    for (const ally of scene.partyUnits.filter(ally => ally !== unit)) {
+      if (!ally.alive) ally.revive(1, 1);
+      ally.hp = ally.maxHp;
+      ally.mana = ally.maxMana;
+      ally.updateHealthBar();
+      scene.manualTargets?.delete(ally.id);
+      scene.attackTargets?.delete(ally.id);
+      scene.heldUnitIds?.delete(ally.id);
+      if (ally.role.endsWith('DPS')) {
+        ally.status.honorDamageBoost = ability.damageBoost;
+        ally.status.honorDamageUntil = time + ability.duration;
+      }
+      if (ally.role === 'Healer') {
+        ally.status.honorHealingBoost = ability.healingBoost;
+        ally.status.honorHealingUntil = time + ability.duration;
+      }
+    }
+    scene.awaitingRevive = false;
+    scene.updateHud?.();
+    return true;
+  }
+  tryParry(unit, attacker, damage, time) {
+    const ability = unit.abilities?.parry;
+    if (!unit.alive || !attacker?.isEnemy || !ability?.reactive || damage <= 0
+      || time < (unit.status.stunnedUntil ?? 0)
+      || time - (unit.lastAbilityAt.parry ?? -Infinity) < ability.cooldown) return false;
+    // Reactive abilities are independent of the Oathwarden's current action.
+    unit.lastAbilityAt.parry = time;
+    if (Math.random() >= ability.chance) return false;
+    unit.spriteVisual?.play('block', attacker);
+    this.scene.announceAbility(unit, ability.name, '#cbd5e1');
+    this.scene.resolveDamage(unit, attacker, damage, 'reflection', 1, ability.name, false);
+    return true;
+  }
   tick(unit, time) {
     const s = unit.status;
     if (s.refugeNext && s.refugeNext <= time && s.refugeNext <= s.refugeUntil) {
@@ -118,8 +167,22 @@ export default class ClassAbilitySystem {
     const ordered = scene.attackTargets.get(unit.id);
     const preferred = scene.getPrimaryTarget(unit);
     for (const [key, a] of Object.entries(unit.abilities)) {
-      if (!unit.abilityReady(key, time)) continue;
+      if (a.reactive || !unit.abilityReady(key, time)) continue;
       let target = unit;
+      if (a.effect === 'sacrifice') {
+        if (!this.canSacrifice(unit)) continue;
+        scene.announceAbility(unit, a.name, '#fde68a');
+        this.sacrifice(unit, a, time);
+        return;
+      }
+      if (a.effect === 'vow') {
+        target = allies.filter(ally => ally !== unit && this.distance(unit, ally) <= a.range
+          && enemies.some(enemy => enemy.currentTargetId === ally.id))
+          .sort((x,y) => x.hp/x.maxHp-y.hp/y.maxHp)[0];
+        if (!target) continue;
+        this.cast(unit, target, key, time);
+        return;
+      }
       if (a.effect === 'teleport') {
         if (scene.isPositionLocked(unit) || !enemies.some(e => this.distance(unit, e) <= 1)) continue;
         const point = this.escapePoint(unit, Infinity);
@@ -132,6 +195,7 @@ export default class ClassAbilitySystem {
         else eligible.sort((x,y) => Number(x.currentTargetId === unit.id)-Number(y.currentTargetId === unit.id) || this.distance(unit,x)-this.distance(unit,y));
         if (!eligible.length || eligible.every(e => e.status.forcedTargetUntil > time && e.status.forcedTargetId === unit.id)) continue;
         scene.applyTankTaunt(unit, eligible.slice(0,a.targets), key,time);
+        if (a.reduction) { unit.status.damageReduction = a.reduction; unit.status.damageReductionUntil = time+a.duration; }
         return;
       }
       if (a.effect === 'heal') {
@@ -151,6 +215,7 @@ export default class ClassAbilitySystem {
         if (a.farthest) inRange.sort((x,y) => this.distance(unit,y)-this.distance(unit,x));
         target = !a.farthest && inRange.includes(preferred) ? preferred : inRange[0];
         if (a.zone) target = this.bestZone(unit, a, enemies);
+        if (a.endpoint) target = this.bestLine(unit, a, enemies);
         if (!target) continue;
       } else {
         const threatened = scene.getLivingEnemies().some(e => e.currentTargetId === unit.id);
@@ -174,6 +239,18 @@ export default class ClassAbilitySystem {
       if (this.distance(unit,healTarget)>3) unit.moveToward(healTarget.arenaX,healTarget.arenaY,delta,100);
       else if (preferred) scene.movement.maintainRange(unit,preferred,delta,true);
     } else if (preferred) scene.movement.moveToCombatPosition(unit,preferred,time,delta);
+  }
+  bestLine(unit, ability, candidates) {
+    const scene=this.scene, g=scene.battlefield;
+    let best=null, score=0;
+    for(let c=0;c<g.columns;c++) for(let r=0;r<g.rows;r++) {
+      const p=g.getCellCenter(c,r), point={arenaX:p.x,arenaY:p.y,alive:true};
+      const length=Math.hypot((p.x-unit.arenaX)/(g.logicalWidth/g.columns),(p.y-unit.arenaY)/(g.logicalHeight/g.rows));
+      if(!length || length>ability.range) continue;
+      const count=candidates.filter(t=>beamContains(scene,unit,point,t,length+0.001)).length;
+      if(count>score) { best=point; score=count; }
+    }
+    return best;
   }
   bestZone(unit, a, candidates) {
     const scene=this.scene;
@@ -208,6 +285,11 @@ export default class ClassAbilitySystem {
       const point=this.adjacentPoint(unit,target,a.behind);
       if(!point) return;
       unit.setArenaPosition(point.x,point.y);
+    }
+    if(a.effect==='vow' && target !== unit && target.alive && this.distance(unit,target)<=a.range) {
+      const attackers=scene.getLivingEnemies().filter(enemy=>enemy.currentTargetId===target.id);
+      scene.applyTankTaunt(unit,attackers,'vow',time,false);
+      target.status.immuneUntil=time+a.immunityDuration;
     }
     if(a.effect==='stealth') {
       if(!scene.getLivingEnemies().some(e=>e.currentTargetId===unit.id)) unit.setStealthed(true);
@@ -257,7 +339,14 @@ export default class ClassAbilitySystem {
     if(a.zone) targets=targets.filter(t=>zoneContains(scene,t,target,a.zone));
     else if(a.radius) targets=targets.filter(t=>this.distance(unit,t)<=a.radius);
     else if(a.splash) targets=targets.filter(t=>this.distance(target,t)<=a.splash);
-    else if(a.beam) targets=[...targets,...(a.friendlyFire?allies.filter(t=>t!==unit):[])].filter(t=>beamContains(scene,unit,target,t,a.range));
+    else if(a.beam) {
+      const g=scene.battlefield;
+      const length=a.endpoint ? Math.min(a.range,Math.hypot(
+        (target.arenaX-unit.arenaX)/(g.logicalWidth/g.columns),
+        (target.arenaY-unit.arenaY)/(g.logicalHeight/g.rows)))+0.001 : a.range;
+      targets=[...targets,...(a.friendlyFire?allies.filter(t=>t!==unit):[])]
+        .filter(t=>beamContains(scene,unit,target,t,length));
+    }
     else if(a.targets) targets=[target,...targets.filter(t=>t!==target&&this.distance(unit,t)<=a.range)].slice(0,a.targets);
     else targets=[target];
     let power=a.power;

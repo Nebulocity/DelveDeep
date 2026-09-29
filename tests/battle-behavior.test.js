@@ -718,3 +718,38 @@ console.log('Battle behavior checks passed.');
   battle.time.now=10000;BattleScene.prototype.resolveDamage.call(battle,barbarian,enemy,10,'melee');assert.equal(enemy.hp,965);
   battle.time.now=20000;BattleScene.prototype.resolveDamage.call(battle,barbarian,enemy,10,'melee');assert.equal(enemy.hp,955);
 }
+// Vow immunity also covers direct/environmental damage, and expires exactly on time.
+{
+  const defender=unit('ally','Healer');
+  Object.assign(defender,{hp:100,maxHp:100,armor:0,damageTakenMultiplier:1,updateHealthBar(){}});
+  defender.status.immuneUntil=5000;
+  defender.takeDamage(1000,{time:4999});assert.equal(defender.hp,100);
+  defender.takeDamage(10,{time:5000});assert.equal(defender.hp,90);
+}
+// Real damage pipeline redirects a parry without taking damage; immunity bypasses parry.
+{
+  const oath=unit('oath','Tank'),enemy=unit('enemy','Enemy');
+  Object.assign(oath,{abilities:CLASS_DEFINITIONS.Oathwarden.abilities,hp:100,maxHp:100});
+  Object.assign(enemy,{hp:100,maxHp:100,flash(){},takeDamage(n){this.hp-=n;}});
+  const battle=scene([oath],[enemy]);
+  Object.assign(battle,{rollCritical:()=>false,flashTargetCell(){},createFloatingText(){},createMeleePulse(){},assaultUntil:10000,assaultBonus:0.2});
+  battle.resolveDamage=BattleScene.prototype.resolveDamage;
+  battle.classAbilitySystem=new ClassAbilitySystem(battle);
+  oath.status.blindUntil=10000;oath.status.blindChance=1;
+  // The system's random roll uses the module realm.
+  const original=Math.random;
+  try {Math.random=()=>0;battle.resolveDamage(enemy,oath,20,'enemy');} finally {Math.random=original;}
+  assert.equal(oath.hp,100);assert.equal(enemy.hp,80,'reflection is not amplified by party assault');
+  oath.status.immuneUntil=10000;battle.time.now=3000;
+  battle.resolveDamage(enemy,oath,20,'enemy');assert.equal(oath.hp,100);assert.equal(oath.lastAbilityAt.parry,0);
+}
+// Staunch Defense applies its reduction and six-second forced target window to every in-range enemy.
+{
+  const oath=unit('oath','Tank'),enemy=unit('enemy','Enemy',150,50);
+  Object.assign(oath,{className:'Oathwarden',abilities:CLASS_DEFINITIONS.Oathwarden.abilities,arenaX:50,arenaY:50});
+  const battle=scene([oath],[enemy]);
+  battle.battlefield={columns:8,rows:6,logicalWidth:800,logicalHeight:600,arenaPointToCell:(x,y)=>({column:Math.floor(x/100),row:Math.floor(y/100)})};
+  const system=new ClassAbilitySystem(battle);
+  system.update(oath,100,0);
+  assert.equal(enemy.status.forcedTargetUntil,6100);assert.equal(oath.status.damageReduction,0.75);assert.equal(oath.status.damageReductionUntil,6100);
+}

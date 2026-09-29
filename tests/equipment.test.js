@@ -42,8 +42,8 @@ assert.equal(sturm.level, 3);
 
 // Copies have individual identities; ownership, slot replacement, and class
 // restrictions apply before any mutations or gold exchange.
-const first = buyEquipment('paladin-weapon');
-const second = buyEquipment('paladin-weapon');
+const first = buyEquipment('oathwarden-weapon');
+const second = buyEquipment('oathwarden-weapon');
 assert.notEqual(first.instance.id, second.instance.id);
 assert.equal(GameState.gold, 1800);
 assert.equal(equipItem('sturm', first.instance.id).ok, true);
@@ -54,7 +54,7 @@ assert.equal(equipItem('sturm', second.instance.id).ok, true);
 assert.equal(sellEquipment(first.instance.id).ok, true);
 assert.equal(sellEquipment(first.instance.id).ok, false);
 assert.equal(GameState.gold, 1850);
-const armor = buyEquipment('paladin-rare-armor');
+const armor = buyEquipment('oathwarden-rare-armor');
 assert.equal(equipItem('sturm', armor.instance.id).ok, true);
 assert.equal(getEquippedAdventurer(sturm).maxHp, baseHp + 40);
 assert.equal(getEquippedAdventurer(sturm).attackPower, baseAttack + 3);
@@ -77,7 +77,7 @@ assert.equal(getEquippedAdventurer(sturm).maxHp, baseHp + 6);
 // Insufficient funds cannot create items or spend gold.
 GameState.gold = 99;
 const before = JSON.stringify(GameState.inventory);
-assert.equal(buyEquipment('paladin-weapon').ok, false);
+assert.equal(buyEquipment('oathwarden-weapon').ok, false);
 assert.equal(buyEquipment('missing').ok, false);
 assert.equal(GameState.gold, 99);
 assert.equal(JSON.stringify(GameState.inventory), before);
@@ -101,10 +101,10 @@ for (const recipe of CRAFTING_RECIPES) {
 GameState.gold = 500;
 GameState.inventory.materials = { iron: 4 };
 const snapshot = JSON.stringify(GameState);
-assert.equal(craftEquipment('paladin-rare-weapon').ok, false); // Sturm wears the only eligible copy.
+assert.equal(craftEquipment('oathwarden-rare-weapon').ok, false); // Sturm wears the only eligible copy.
 assert.equal(JSON.stringify(GameState), snapshot);
 unequipItem('sturm', 'weapon');
-assert.equal(craftEquipment('paladin-rare-weapon').ok, true);
+assert.equal(craftEquipment('oathwarden-rare-weapon').ok, true);
 assert.equal(GameState.gold, 450);
 assert.equal(buyMaterial('cloth').ok, true);
 assert.equal(GameState.inventory.materials.cloth, 1);
@@ -131,7 +131,7 @@ assert.equal(GameState.gold, persistedGold);
 // restore references to nonexistent items.
 const invalid = {
   inventory: { equipment: [
-    { id: 'one', itemId: 'paladin-weapon' }, { id: 'one', itemId: 'paladin-weapon' },
+    { id: 'one', itemId: 'oathwarden-weapon' }, { id: 'one', itemId: 'oathwarden-weapon' },
     { id: 'two', itemId: 'wizard-armor' }, { id: 'bad', itemId: 'missing' }, null
   ], materials: { iron: -2, cloth: 3, leather: '4' } },
   roster: [

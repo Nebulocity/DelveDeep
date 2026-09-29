@@ -73,3 +73,27 @@ one-shot clips. Shield poses do not introduce a new block chance or change damag
 Death plays once, including after battle end, and holds the final frame as the
 corpse. Revival resets it. Pause still freezes all animation. Combat movement
 speed, cooldowns, stats and saves are unchanged.
+
+## Shield grip correction
+
+The original shield-block art incorrectly placed the spear behind the shield
+while leaving the other hand empty. Runtime block clips now use
+`pixellab/block-corrected/`, with individually authored SE, NE, SW and NW facings
+and no horizontal flips. Other animation sets retain their existing mirroring.
+
+PixelLab Pixen corrected poses (one generation each):
+- NE: `a2d491ab-f55a-4c6d-9a08-1ca24528f090`
+- SE: `62b88d69-2e5e-4bc6-b521-2b4e2eb03dfc`
+- NW: `d5060313-060e-416f-a90c-820dd5d61829`
+- SW: `b18dff3e-5d04-4c48-a2b2-d73fad3ab030`
+
+Each edit asked for an upright spear gripped separately from the shield,
+preserving the original character and transparent 140px canvas.
+PixelLab animate_image jobs use those poses as both start and end frames,
+with four generated frames, explicitly preserving the two weapon grips:
+- NE: `f8ebc506-feb4-490e-a168-9c868946574d`
+- SE: `33ee4a32-04cf-4f71-820a-fa25dd025b40`
+- NW: `6c8ba0a5-08f6-4d62-adc4-6ff21a0361e8`
+- SW: `9383615f-0354-4fe3-854f-e63c78462069`
+
+The original faulty block PNGs remain only as source history and are not loaded.

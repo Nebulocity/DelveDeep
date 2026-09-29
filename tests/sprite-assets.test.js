@@ -27,4 +27,10 @@ preloadCharacterSprites({textures:{exists:()=>true},load:{image:()=>assert.fail(
 for (const direction of Object.keys(sprite.clips.death)) {
  assert.deepEqual(sprite.clips.dead[direction].frames[0],sprite.clips.death[direction].frames.at(-1));
 }
+// Shield-block facings are authored individually: flipping would swap equipment hands.
+for (const direction of Object.keys(sprite.clips.block)) {
+ assert.ok(sprite.clips.block[direction].frames.every(frame => !frame.flipX));
+}
+assert.notEqual(sprite.clips.block['south-east'].frames[0].key,sprite.clips.block['south-west'].frames[0].key);
+assert.notEqual(sprite.clips.block['north-east'].frames[0].key,sprite.clips.block['north-west'].frames[0].key);
 console.log('Sprite assets: complete RGBA PNGs, valid clips, persistent corpse and cached preloading passed.');

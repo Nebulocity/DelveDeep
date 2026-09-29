@@ -1,5 +1,25 @@
 // Native PixelLab frames; static URLs include each PNG in the Pages build.
 const textures = [
+  { key: 'laurana-block-south-east-0', url: new URL('../assets/characters/laurana/pixellab/block-corrected/south-east/frame-0.png', import.meta.url).href },
+  { key: 'laurana-block-south-east-1', url: new URL('../assets/characters/laurana/pixellab/block-corrected/south-east/frame-1.png', import.meta.url).href },
+  { key: 'laurana-block-south-east-2', url: new URL('../assets/characters/laurana/pixellab/block-corrected/south-east/frame-2.png', import.meta.url).href },
+  { key: 'laurana-block-south-east-3', url: new URL('../assets/characters/laurana/pixellab/block-corrected/south-east/frame-3.png', import.meta.url).href },
+  { key: 'laurana-block-south-east-4', url: new URL('../assets/characters/laurana/pixellab/block-corrected/south-east/frame-4.png', import.meta.url).href },
+  { key: 'laurana-block-north-east-0', url: new URL('../assets/characters/laurana/pixellab/block-corrected/north-east/frame-0.png', import.meta.url).href },
+  { key: 'laurana-block-north-east-1', url: new URL('../assets/characters/laurana/pixellab/block-corrected/north-east/frame-1.png', import.meta.url).href },
+  { key: 'laurana-block-north-east-2', url: new URL('../assets/characters/laurana/pixellab/block-corrected/north-east/frame-2.png', import.meta.url).href },
+  { key: 'laurana-block-north-east-3', url: new URL('../assets/characters/laurana/pixellab/block-corrected/north-east/frame-3.png', import.meta.url).href },
+  { key: 'laurana-block-north-east-4', url: new URL('../assets/characters/laurana/pixellab/block-corrected/north-east/frame-4.png', import.meta.url).href },
+  { key: 'laurana-block-south-west-0', url: new URL('../assets/characters/laurana/pixellab/block-corrected/south-west/frame-0.png', import.meta.url).href },
+  { key: 'laurana-block-south-west-1', url: new URL('../assets/characters/laurana/pixellab/block-corrected/south-west/frame-1.png', import.meta.url).href },
+  { key: 'laurana-block-south-west-2', url: new URL('../assets/characters/laurana/pixellab/block-corrected/south-west/frame-2.png', import.meta.url).href },
+  { key: 'laurana-block-south-west-3', url: new URL('../assets/characters/laurana/pixellab/block-corrected/south-west/frame-3.png', import.meta.url).href },
+  { key: 'laurana-block-south-west-4', url: new URL('../assets/characters/laurana/pixellab/block-corrected/south-west/frame-4.png', import.meta.url).href },
+  { key: 'laurana-block-north-west-0', url: new URL('../assets/characters/laurana/pixellab/block-corrected/north-west/frame-0.png', import.meta.url).href },
+  { key: 'laurana-block-north-west-1', url: new URL('../assets/characters/laurana/pixellab/block-corrected/north-west/frame-1.png', import.meta.url).href },
+  { key: 'laurana-block-north-west-2', url: new URL('../assets/characters/laurana/pixellab/block-corrected/north-west/frame-2.png', import.meta.url).href },
+  { key: 'laurana-block-north-west-3', url: new URL('../assets/characters/laurana/pixellab/block-corrected/north-west/frame-3.png', import.meta.url).href },
+  { key: 'laurana-block-north-west-4', url: new URL('../assets/characters/laurana/pixellab/block-corrected/north-west/frame-4.png', import.meta.url).href },
   { key: 'laurana-idle-south-east-0', url: new URL('../assets/characters/laurana/pixellab/ready-idle/south-east/frame-0.png', import.meta.url).href },
   { key: 'laurana-idle-south-east-1', url: new URL('../assets/characters/laurana/pixellab/ready-idle/south-east/frame-1.png', import.meta.url).href },
   { key: 'laurana-idle-south-east-2', url: new URL('../assets/characters/laurana/pixellab/ready-idle/south-east/frame-2.png', import.meta.url).href },
@@ -46,16 +66,6 @@ const textures = [
   { key: 'laurana-attack-north-east-4', url: new URL('../assets/characters/laurana/pixellab/spear-attack/north-east/frame-4.png', import.meta.url).href },
   { key: 'laurana-attack-north-east-5', url: new URL('../assets/characters/laurana/pixellab/spear-attack/north-east/frame-5.png', import.meta.url).href },
   { key: 'laurana-attack-north-east-6', url: new URL('../assets/characters/laurana/pixellab/spear-attack/north-east/frame-6.png', import.meta.url).href },
-  { key: 'laurana-block-south-east-0', url: new URL('../assets/characters/laurana/pixellab/shield-block/south-east/frame-0.png', import.meta.url).href },
-  { key: 'laurana-block-south-east-1', url: new URL('../assets/characters/laurana/pixellab/shield-block/south-east/frame-1.png', import.meta.url).href },
-  { key: 'laurana-block-south-east-2', url: new URL('../assets/characters/laurana/pixellab/shield-block/south-east/frame-2.png', import.meta.url).href },
-  { key: 'laurana-block-south-east-3', url: new URL('../assets/characters/laurana/pixellab/shield-block/south-east/frame-3.png', import.meta.url).href },
-  { key: 'laurana-block-south-east-4', url: new URL('../assets/characters/laurana/pixellab/shield-block/south-east/frame-4.png', import.meta.url).href },
-  { key: 'laurana-block-north-east-0', url: new URL('../assets/characters/laurana/pixellab/shield-block/north-east/frame-0.png', import.meta.url).href },
-  { key: 'laurana-block-north-east-1', url: new URL('../assets/characters/laurana/pixellab/shield-block/north-east/frame-1.png', import.meta.url).href },
-  { key: 'laurana-block-north-east-2', url: new URL('../assets/characters/laurana/pixellab/shield-block/north-east/frame-2.png', import.meta.url).href },
-  { key: 'laurana-block-north-east-3', url: new URL('../assets/characters/laurana/pixellab/shield-block/north-east/frame-3.png', import.meta.url).href },
-  { key: 'laurana-block-north-east-4', url: new URL('../assets/characters/laurana/pixellab/shield-block/north-east/frame-4.png', import.meta.url).href },
   { key: 'laurana-hit-south-east-0', url: new URL('../assets/characters/laurana/pixellab/hit/south-east/frame-0.png', import.meta.url).href },
   { key: 'laurana-hit-south-east-1', url: new URL('../assets/characters/laurana/pixellab/hit/south-east/frame-1.png', import.meta.url).href },
   { key: 'laurana-hit-south-east-2', url: new URL('../assets/characters/laurana/pixellab/hit/south-east/frame-2.png', import.meta.url).href },
@@ -125,19 +135,6 @@ const sources = {
       }
     }
   },
-  "block": {
-    "frameMs": 85,
-    "directions": {
-      "south-east": {
-        "count": 5,
-        "originY": 0.85
-      },
-      "north-east": {
-        "count": 5,
-        "originY": 0.85
-      }
-    }
-  },
   "hit": {
     "frameMs": 55,
     "directions": {
@@ -179,6 +176,15 @@ const clips = Object.fromEntries(Object.entries(sources).map(([state, source]) =
     }))
   }]))
 ]));
+// Block art has separately authored left facings so equipment is never mirrored.
+const blockFacing = { south: 'south-east', 'south-east': 'south-east', east: 'south-east',
+  north: 'north-east', 'north-east': 'north-east', 'north-west': 'north-west',
+  west: 'south-west', 'south-west': 'south-west' };
+clips.block = Object.fromEntries(Object.entries(blockFacing).map(([heading, direction]) => [heading, {
+  frameMs: 85, frames: Array.from({ length: 5 }, (_, index) => ({
+    key: `laurana-block-${direction}-${index}`, originX: 0.5, originY: 0.85, flipX: false
+  }))
+}]));
 // A corpse reuses the last death frame, with no extra generation or texture.
 clips.dead = Object.fromEntries(Object.entries(clips.death).map(([direction, clip]) =>
   [direction, { frameMs: 1000, frames: [clip.frames.at(-1)] }]));

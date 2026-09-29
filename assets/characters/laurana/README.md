@@ -1,5 +1,21 @@
 # Laurana — PixelLab sprite source
 
+## Current approved design: stern chibi
+
+The runtime now uses `chibi/` and the exact approved design in
+`concepts/chibi-laurana-stern.png` (PixelLab image
+`3c2b2067-e1db-42bf-b78e-83c888f52190`). Keep its large head, short body and
+stern expression. The taller anime experiment was rejected and is not used.
+
+PixelLab reference-rotation character: `c7d1866b-fa72-410c-b483-1381110d7a8b`.
+Four authored facings support eight movement headings; no frames are mirrored.
+Idle, walk, attack, block, hit and death retain the existing combat event hooks.
+The final death frame remains as a corpse until revival. Native frames are
+192×224, displayed at 0.75 scale to preserve the prior battlefield footprint.
+Looping clips omit the duplicate final reference frame. Generation provenance
+is recorded in `chibi/source.json`. The older sprite history below is archived;
+those PNGs are not loaded into the game.
+
 PixelLab character: `4118d5c7-c020-467d-ab06-b9e0567c1481`
 
 Laurana is the roster's existing Dawnwarden (`laurana`). Her art is based on the
@@ -97,3 +113,6 @@ with four generated frames, explicitly preserving the two weapon grips:
 - SW: `9383615f-0354-4fe3-854f-e63c78462069`
 
 The original faulty block PNGs remain only as source history and are not loaded.
+
+The SW attack omits generated recovery frame 4, which had a duplicate spearhead.
+The other frames play in order; source PNGs are preserved for provenance.

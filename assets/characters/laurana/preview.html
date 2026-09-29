@@ -43,7 +43,7 @@ try {
   ctx.clearRect(0,0,900,430);ctx.imageSmoothingEnabled=false;
   for(let x=0;x<900;x+=24)for(let y=0;y<430;y+=24){ctx.fillStyle=((x+y)/24)%2?'#202c3c':'#263344';ctx.fillRect(x,y,24,24);}
   const clip=definition.clips[mode][direction];const frameIndex=Math.floor(elapsed/clip.frameMs);const i=['idle','walk'].includes(mode)?frameIndex%clip.frames.length:Math.min(frameIndex,clip.frames.length-1);const f=clip.frames[i],im=images.get(f.key);
-  for(const [x,y,scale,label] of [[220,320,definition.scale,'Gameplay size'],[650,355,3,'3× native pixels']]){
+  for(const [x,y,scale,label] of [[220,320,definition.scale,'Gameplay size'],[650,355,1,'Native pixels']]){
    ctx.fillStyle='#0005';ctx.beginPath();ctx.ellipse(x,y+2,25*scale,6*scale,0,0,Math.PI*2);ctx.fill();
    ctx.save();ctx.translate(x,y);ctx.scale(f.flipX?-scale:scale,scale);
    ctx.drawImage(im,-f.originX*im.width,-f.originY*im.height);ctx.restore();

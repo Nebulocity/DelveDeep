@@ -1,200 +1,179 @@
-// Native PixelLab frames; static URLs include each PNG in the Pages build.
+// Approved stern chibi Laurana, native PixelLab frames. No mirrored equipment.
 const textures = [
-  { key: 'laurana-block-south-east-0', url: new URL('../assets/characters/laurana/pixellab/block-corrected/south-east/frame-0.png', import.meta.url).href },
-  { key: 'laurana-block-south-east-1', url: new URL('../assets/characters/laurana/pixellab/block-corrected/south-east/frame-1.png', import.meta.url).href },
-  { key: 'laurana-block-south-east-2', url: new URL('../assets/characters/laurana/pixellab/block-corrected/south-east/frame-2.png', import.meta.url).href },
-  { key: 'laurana-block-south-east-3', url: new URL('../assets/characters/laurana/pixellab/block-corrected/south-east/frame-3.png', import.meta.url).href },
-  { key: 'laurana-block-south-east-4', url: new URL('../assets/characters/laurana/pixellab/block-corrected/south-east/frame-4.png', import.meta.url).href },
-  { key: 'laurana-block-north-east-0', url: new URL('../assets/characters/laurana/pixellab/block-corrected/north-east/frame-0.png', import.meta.url).href },
-  { key: 'laurana-block-north-east-1', url: new URL('../assets/characters/laurana/pixellab/block-corrected/north-east/frame-1.png', import.meta.url).href },
-  { key: 'laurana-block-north-east-2', url: new URL('../assets/characters/laurana/pixellab/block-corrected/north-east/frame-2.png', import.meta.url).href },
-  { key: 'laurana-block-north-east-3', url: new URL('../assets/characters/laurana/pixellab/block-corrected/north-east/frame-3.png', import.meta.url).href },
-  { key: 'laurana-block-north-east-4', url: new URL('../assets/characters/laurana/pixellab/block-corrected/north-east/frame-4.png', import.meta.url).href },
-  { key: 'laurana-block-south-west-0', url: new URL('../assets/characters/laurana/pixellab/block-corrected/south-west/frame-0.png', import.meta.url).href },
-  { key: 'laurana-block-south-west-1', url: new URL('../assets/characters/laurana/pixellab/block-corrected/south-west/frame-1.png', import.meta.url).href },
-  { key: 'laurana-block-south-west-2', url: new URL('../assets/characters/laurana/pixellab/block-corrected/south-west/frame-2.png', import.meta.url).href },
-  { key: 'laurana-block-south-west-3', url: new URL('../assets/characters/laurana/pixellab/block-corrected/south-west/frame-3.png', import.meta.url).href },
-  { key: 'laurana-block-south-west-4', url: new URL('../assets/characters/laurana/pixellab/block-corrected/south-west/frame-4.png', import.meta.url).href },
-  { key: 'laurana-block-north-west-0', url: new URL('../assets/characters/laurana/pixellab/block-corrected/north-west/frame-0.png', import.meta.url).href },
-  { key: 'laurana-block-north-west-1', url: new URL('../assets/characters/laurana/pixellab/block-corrected/north-west/frame-1.png', import.meta.url).href },
-  { key: 'laurana-block-north-west-2', url: new URL('../assets/characters/laurana/pixellab/block-corrected/north-west/frame-2.png', import.meta.url).href },
-  { key: 'laurana-block-north-west-3', url: new URL('../assets/characters/laurana/pixellab/block-corrected/north-west/frame-3.png', import.meta.url).href },
-  { key: 'laurana-block-north-west-4', url: new URL('../assets/characters/laurana/pixellab/block-corrected/north-west/frame-4.png', import.meta.url).href },
-  { key: 'laurana-idle-south-east-0', url: new URL('../assets/characters/laurana/pixellab/ready-idle/south-east/frame-0.png', import.meta.url).href },
-  { key: 'laurana-idle-south-east-1', url: new URL('../assets/characters/laurana/pixellab/ready-idle/south-east/frame-1.png', import.meta.url).href },
-  { key: 'laurana-idle-south-east-2', url: new URL('../assets/characters/laurana/pixellab/ready-idle/south-east/frame-2.png', import.meta.url).href },
-  { key: 'laurana-idle-south-east-3', url: new URL('../assets/characters/laurana/pixellab/ready-idle/south-east/frame-3.png', import.meta.url).href },
-  { key: 'laurana-idle-south-east-4', url: new URL('../assets/characters/laurana/pixellab/ready-idle/south-east/frame-4.png', import.meta.url).href },
-  { key: 'laurana-idle-south-east-5', url: new URL('../assets/characters/laurana/pixellab/ready-idle/south-east/frame-5.png', import.meta.url).href },
-  { key: 'laurana-idle-south-east-6', url: new URL('../assets/characters/laurana/pixellab/ready-idle/south-east/frame-6.png', import.meta.url).href },
-  { key: 'laurana-idle-south-east-7', url: new URL('../assets/characters/laurana/pixellab/ready-idle/south-east/frame-7.png', import.meta.url).href },
-  { key: 'laurana-idle-north-east-0', url: new URL('../assets/characters/laurana/pixellab/ready-idle/north-east/frame-0.png', import.meta.url).href },
-  { key: 'laurana-idle-north-east-1', url: new URL('../assets/characters/laurana/pixellab/ready-idle/north-east/frame-1.png', import.meta.url).href },
-  { key: 'laurana-idle-north-east-2', url: new URL('../assets/characters/laurana/pixellab/ready-idle/north-east/frame-2.png', import.meta.url).href },
-  { key: 'laurana-idle-north-east-3', url: new URL('../assets/characters/laurana/pixellab/ready-idle/north-east/frame-3.png', import.meta.url).href },
-  { key: 'laurana-idle-north-east-4', url: new URL('../assets/characters/laurana/pixellab/ready-idle/north-east/frame-4.png', import.meta.url).href },
-  { key: 'laurana-idle-north-east-5', url: new URL('../assets/characters/laurana/pixellab/ready-idle/north-east/frame-5.png', import.meta.url).href },
-  { key: 'laurana-idle-north-east-6', url: new URL('../assets/characters/laurana/pixellab/ready-idle/north-east/frame-6.png', import.meta.url).href },
-  { key: 'laurana-idle-north-east-7', url: new URL('../assets/characters/laurana/pixellab/ready-idle/north-east/frame-7.png', import.meta.url).href },
-  { key: 'laurana-walk-south-east-0', url: new URL('../assets/characters/laurana/pixellab/walk/south-east/frame-0.png', import.meta.url).href },
-  { key: 'laurana-walk-south-east-1', url: new URL('../assets/characters/laurana/pixellab/walk/south-east/frame-1.png', import.meta.url).href },
-  { key: 'laurana-walk-south-east-2', url: new URL('../assets/characters/laurana/pixellab/walk/south-east/frame-2.png', import.meta.url).href },
-  { key: 'laurana-walk-south-east-3', url: new URL('../assets/characters/laurana/pixellab/walk/south-east/frame-3.png', import.meta.url).href },
-  { key: 'laurana-walk-south-east-4', url: new URL('../assets/characters/laurana/pixellab/walk/south-east/frame-4.png', import.meta.url).href },
-  { key: 'laurana-walk-south-east-5', url: new URL('../assets/characters/laurana/pixellab/walk/south-east/frame-5.png', import.meta.url).href },
-  { key: 'laurana-walk-south-east-6', url: new URL('../assets/characters/laurana/pixellab/walk/south-east/frame-6.png', import.meta.url).href },
-  { key: 'laurana-walk-south-east-7', url: new URL('../assets/characters/laurana/pixellab/walk/south-east/frame-7.png', import.meta.url).href },
-  { key: 'laurana-walk-north-east-0', url: new URL('../assets/characters/laurana/pixellab/walk/north-east/frame-0.png', import.meta.url).href },
-  { key: 'laurana-walk-north-east-1', url: new URL('../assets/characters/laurana/pixellab/walk/north-east/frame-1.png', import.meta.url).href },
-  { key: 'laurana-walk-north-east-2', url: new URL('../assets/characters/laurana/pixellab/walk/north-east/frame-2.png', import.meta.url).href },
-  { key: 'laurana-walk-north-east-3', url: new URL('../assets/characters/laurana/pixellab/walk/north-east/frame-3.png', import.meta.url).href },
-  { key: 'laurana-walk-north-east-4', url: new URL('../assets/characters/laurana/pixellab/walk/north-east/frame-4.png', import.meta.url).href },
-  { key: 'laurana-walk-north-east-5', url: new URL('../assets/characters/laurana/pixellab/walk/north-east/frame-5.png', import.meta.url).href },
-  { key: 'laurana-walk-north-east-6', url: new URL('../assets/characters/laurana/pixellab/walk/north-east/frame-6.png', import.meta.url).href },
-  { key: 'laurana-walk-north-east-7', url: new URL('../assets/characters/laurana/pixellab/walk/north-east/frame-7.png', import.meta.url).href },
-  { key: 'laurana-attack-south-east-0', url: new URL('../assets/characters/laurana/pixellab/spear-attack/south-east/frame-0.png', import.meta.url).href },
-  { key: 'laurana-attack-south-east-1', url: new URL('../assets/characters/laurana/pixellab/spear-attack/south-east/frame-1.png', import.meta.url).href },
-  { key: 'laurana-attack-south-east-2', url: new URL('../assets/characters/laurana/pixellab/spear-attack/south-east/frame-2.png', import.meta.url).href },
-  { key: 'laurana-attack-south-east-3', url: new URL('../assets/characters/laurana/pixellab/spear-attack/south-east/frame-3.png', import.meta.url).href },
-  { key: 'laurana-attack-south-east-4', url: new URL('../assets/characters/laurana/pixellab/spear-attack/south-east/frame-4.png', import.meta.url).href },
-  { key: 'laurana-attack-south-east-5', url: new URL('../assets/characters/laurana/pixellab/spear-attack/south-east/frame-5.png', import.meta.url).href },
-  { key: 'laurana-attack-south-east-6', url: new URL('../assets/characters/laurana/pixellab/spear-attack/south-east/frame-6.png', import.meta.url).href },
-  { key: 'laurana-attack-north-east-0', url: new URL('../assets/characters/laurana/pixellab/spear-attack/north-east/frame-0.png', import.meta.url).href },
-  { key: 'laurana-attack-north-east-1', url: new URL('../assets/characters/laurana/pixellab/spear-attack/north-east/frame-1.png', import.meta.url).href },
-  { key: 'laurana-attack-north-east-2', url: new URL('../assets/characters/laurana/pixellab/spear-attack/north-east/frame-2.png', import.meta.url).href },
-  { key: 'laurana-attack-north-east-3', url: new URL('../assets/characters/laurana/pixellab/spear-attack/north-east/frame-3.png', import.meta.url).href },
-  { key: 'laurana-attack-north-east-4', url: new URL('../assets/characters/laurana/pixellab/spear-attack/north-east/frame-4.png', import.meta.url).href },
-  { key: 'laurana-attack-north-east-5', url: new URL('../assets/characters/laurana/pixellab/spear-attack/north-east/frame-5.png', import.meta.url).href },
-  { key: 'laurana-attack-north-east-6', url: new URL('../assets/characters/laurana/pixellab/spear-attack/north-east/frame-6.png', import.meta.url).href },
-  { key: 'laurana-hit-south-east-0', url: new URL('../assets/characters/laurana/pixellab/hit/south-east/frame-0.png', import.meta.url).href },
-  { key: 'laurana-hit-south-east-1', url: new URL('../assets/characters/laurana/pixellab/hit/south-east/frame-1.png', import.meta.url).href },
-  { key: 'laurana-hit-south-east-2', url: new URL('../assets/characters/laurana/pixellab/hit/south-east/frame-2.png', import.meta.url).href },
-  { key: 'laurana-hit-south-east-3', url: new URL('../assets/characters/laurana/pixellab/hit/south-east/frame-3.png', import.meta.url).href },
-  { key: 'laurana-hit-south-east-4', url: new URL('../assets/characters/laurana/pixellab/hit/south-east/frame-4.png', import.meta.url).href },
-  { key: 'laurana-hit-south-east-5', url: new URL('../assets/characters/laurana/pixellab/hit/south-east/frame-5.png', import.meta.url).href },
-  { key: 'laurana-hit-north-east-0', url: new URL('../assets/characters/laurana/pixellab/hit/north-east/frame-0.png', import.meta.url).href },
-  { key: 'laurana-hit-north-east-1', url: new URL('../assets/characters/laurana/pixellab/hit/north-east/frame-1.png', import.meta.url).href },
-  { key: 'laurana-hit-north-east-2', url: new URL('../assets/characters/laurana/pixellab/hit/north-east/frame-2.png', import.meta.url).href },
-  { key: 'laurana-hit-north-east-3', url: new URL('../assets/characters/laurana/pixellab/hit/north-east/frame-3.png', import.meta.url).href },
-  { key: 'laurana-hit-north-east-4', url: new URL('../assets/characters/laurana/pixellab/hit/north-east/frame-4.png', import.meta.url).href },
-  { key: 'laurana-hit-north-east-5', url: new URL('../assets/characters/laurana/pixellab/hit/north-east/frame-5.png', import.meta.url).href },
-  { key: 'laurana-death-south-east-0', url: new URL('../assets/characters/laurana/pixellab/death/south-east/frame-0.png', import.meta.url).href },
-  { key: 'laurana-death-south-east-1', url: new URL('../assets/characters/laurana/pixellab/death/south-east/frame-1.png', import.meta.url).href },
-  { key: 'laurana-death-south-east-2', url: new URL('../assets/characters/laurana/pixellab/death/south-east/frame-2.png', import.meta.url).href },
-  { key: 'laurana-death-south-east-3', url: new URL('../assets/characters/laurana/pixellab/death/south-east/frame-3.png', import.meta.url).href },
-  { key: 'laurana-death-south-east-4', url: new URL('../assets/characters/laurana/pixellab/death/south-east/frame-4.png', import.meta.url).href },
-  { key: 'laurana-death-south-east-5', url: new URL('../assets/characters/laurana/pixellab/death/south-east/frame-5.png', import.meta.url).href },
-  { key: 'laurana-death-south-east-6', url: new URL('../assets/characters/laurana/pixellab/death/south-east/frame-6.png', import.meta.url).href },
-  { key: 'laurana-death-north-east-0', url: new URL('../assets/characters/laurana/pixellab/death/north-east/frame-0.png', import.meta.url).href },
-  { key: 'laurana-death-north-east-1', url: new URL('../assets/characters/laurana/pixellab/death/north-east/frame-1.png', import.meta.url).href },
-  { key: 'laurana-death-north-east-2', url: new URL('../assets/characters/laurana/pixellab/death/north-east/frame-2.png', import.meta.url).href },
-  { key: 'laurana-death-north-east-3', url: new URL('../assets/characters/laurana/pixellab/death/north-east/frame-3.png', import.meta.url).href },
-  { key: 'laurana-death-north-east-4', url: new URL('../assets/characters/laurana/pixellab/death/north-east/frame-4.png', import.meta.url).href },
-  { key: 'laurana-death-north-east-5', url: new URL('../assets/characters/laurana/pixellab/death/north-east/frame-5.png', import.meta.url).href },
-  { key: 'laurana-death-north-east-6', url: new URL('../assets/characters/laurana/pixellab/death/north-east/frame-6.png', import.meta.url).href }
+  { key: 'laurana-chibi-idle-south-east-0', url: new URL('../assets/characters/laurana/chibi/idle/south-east/frame-0.png', import.meta.url).href },
+  { key: 'laurana-chibi-idle-south-east-1', url: new URL('../assets/characters/laurana/chibi/idle/south-east/frame-1.png', import.meta.url).href },
+  { key: 'laurana-chibi-idle-south-east-2', url: new URL('../assets/characters/laurana/chibi/idle/south-east/frame-2.png', import.meta.url).href },
+  { key: 'laurana-chibi-idle-south-east-3', url: new URL('../assets/characters/laurana/chibi/idle/south-east/frame-3.png', import.meta.url).href },
+  { key: 'laurana-chibi-idle-south-west-0', url: new URL('../assets/characters/laurana/chibi/idle/south-west/frame-0.png', import.meta.url).href },
+  { key: 'laurana-chibi-idle-south-west-1', url: new URL('../assets/characters/laurana/chibi/idle/south-west/frame-1.png', import.meta.url).href },
+  { key: 'laurana-chibi-idle-south-west-2', url: new URL('../assets/characters/laurana/chibi/idle/south-west/frame-2.png', import.meta.url).href },
+  { key: 'laurana-chibi-idle-south-west-3', url: new URL('../assets/characters/laurana/chibi/idle/south-west/frame-3.png', import.meta.url).href },
+  { key: 'laurana-chibi-idle-north-east-0', url: new URL('../assets/characters/laurana/chibi/idle/north-east/frame-0.png', import.meta.url).href },
+  { key: 'laurana-chibi-idle-north-east-1', url: new URL('../assets/characters/laurana/chibi/idle/north-east/frame-1.png', import.meta.url).href },
+  { key: 'laurana-chibi-idle-north-east-2', url: new URL('../assets/characters/laurana/chibi/idle/north-east/frame-2.png', import.meta.url).href },
+  { key: 'laurana-chibi-idle-north-east-3', url: new URL('../assets/characters/laurana/chibi/idle/north-east/frame-3.png', import.meta.url).href },
+  { key: 'laurana-chibi-idle-north-west-0', url: new URL('../assets/characters/laurana/chibi/idle/north-west/frame-0.png', import.meta.url).href },
+  { key: 'laurana-chibi-idle-north-west-1', url: new URL('../assets/characters/laurana/chibi/idle/north-west/frame-1.png', import.meta.url).href },
+  { key: 'laurana-chibi-idle-north-west-2', url: new URL('../assets/characters/laurana/chibi/idle/north-west/frame-2.png', import.meta.url).href },
+  { key: 'laurana-chibi-idle-north-west-3', url: new URL('../assets/characters/laurana/chibi/idle/north-west/frame-3.png', import.meta.url).href },
+  { key: 'laurana-chibi-walk-south-east-0', url: new URL('../assets/characters/laurana/chibi/walk/south-east/frame-0.png', import.meta.url).href },
+  { key: 'laurana-chibi-walk-south-east-1', url: new URL('../assets/characters/laurana/chibi/walk/south-east/frame-1.png', import.meta.url).href },
+  { key: 'laurana-chibi-walk-south-east-2', url: new URL('../assets/characters/laurana/chibi/walk/south-east/frame-2.png', import.meta.url).href },
+  { key: 'laurana-chibi-walk-south-east-3', url: new URL('../assets/characters/laurana/chibi/walk/south-east/frame-3.png', import.meta.url).href },
+  { key: 'laurana-chibi-walk-south-east-4', url: new URL('../assets/characters/laurana/chibi/walk/south-east/frame-4.png', import.meta.url).href },
+  { key: 'laurana-chibi-walk-south-east-5', url: new URL('../assets/characters/laurana/chibi/walk/south-east/frame-5.png', import.meta.url).href },
+  { key: 'laurana-chibi-walk-south-east-6', url: new URL('../assets/characters/laurana/chibi/walk/south-east/frame-6.png', import.meta.url).href },
+  { key: 'laurana-chibi-walk-south-east-7', url: new URL('../assets/characters/laurana/chibi/walk/south-east/frame-7.png', import.meta.url).href },
+  { key: 'laurana-chibi-walk-south-west-0', url: new URL('../assets/characters/laurana/chibi/walk/south-west/frame-0.png', import.meta.url).href },
+  { key: 'laurana-chibi-walk-south-west-1', url: new URL('../assets/characters/laurana/chibi/walk/south-west/frame-1.png', import.meta.url).href },
+  { key: 'laurana-chibi-walk-south-west-2', url: new URL('../assets/characters/laurana/chibi/walk/south-west/frame-2.png', import.meta.url).href },
+  { key: 'laurana-chibi-walk-south-west-3', url: new URL('../assets/characters/laurana/chibi/walk/south-west/frame-3.png', import.meta.url).href },
+  { key: 'laurana-chibi-walk-south-west-4', url: new URL('../assets/characters/laurana/chibi/walk/south-west/frame-4.png', import.meta.url).href },
+  { key: 'laurana-chibi-walk-south-west-5', url: new URL('../assets/characters/laurana/chibi/walk/south-west/frame-5.png', import.meta.url).href },
+  { key: 'laurana-chibi-walk-south-west-6', url: new URL('../assets/characters/laurana/chibi/walk/south-west/frame-6.png', import.meta.url).href },
+  { key: 'laurana-chibi-walk-south-west-7', url: new URL('../assets/characters/laurana/chibi/walk/south-west/frame-7.png', import.meta.url).href },
+  { key: 'laurana-chibi-walk-north-east-0', url: new URL('../assets/characters/laurana/chibi/walk/north-east/frame-0.png', import.meta.url).href },
+  { key: 'laurana-chibi-walk-north-east-1', url: new URL('../assets/characters/laurana/chibi/walk/north-east/frame-1.png', import.meta.url).href },
+  { key: 'laurana-chibi-walk-north-east-2', url: new URL('../assets/characters/laurana/chibi/walk/north-east/frame-2.png', import.meta.url).href },
+  { key: 'laurana-chibi-walk-north-east-3', url: new URL('../assets/characters/laurana/chibi/walk/north-east/frame-3.png', import.meta.url).href },
+  { key: 'laurana-chibi-walk-north-east-4', url: new URL('../assets/characters/laurana/chibi/walk/north-east/frame-4.png', import.meta.url).href },
+  { key: 'laurana-chibi-walk-north-east-5', url: new URL('../assets/characters/laurana/chibi/walk/north-east/frame-5.png', import.meta.url).href },
+  { key: 'laurana-chibi-walk-north-east-6', url: new URL('../assets/characters/laurana/chibi/walk/north-east/frame-6.png', import.meta.url).href },
+  { key: 'laurana-chibi-walk-north-east-7', url: new URL('../assets/characters/laurana/chibi/walk/north-east/frame-7.png', import.meta.url).href },
+  { key: 'laurana-chibi-walk-north-west-0', url: new URL('../assets/characters/laurana/chibi/walk/north-west/frame-0.png', import.meta.url).href },
+  { key: 'laurana-chibi-walk-north-west-1', url: new URL('../assets/characters/laurana/chibi/walk/north-west/frame-1.png', import.meta.url).href },
+  { key: 'laurana-chibi-walk-north-west-2', url: new URL('../assets/characters/laurana/chibi/walk/north-west/frame-2.png', import.meta.url).href },
+  { key: 'laurana-chibi-walk-north-west-3', url: new URL('../assets/characters/laurana/chibi/walk/north-west/frame-3.png', import.meta.url).href },
+  { key: 'laurana-chibi-walk-north-west-4', url: new URL('../assets/characters/laurana/chibi/walk/north-west/frame-4.png', import.meta.url).href },
+  { key: 'laurana-chibi-walk-north-west-5', url: new URL('../assets/characters/laurana/chibi/walk/north-west/frame-5.png', import.meta.url).href },
+  { key: 'laurana-chibi-walk-north-west-6', url: new URL('../assets/characters/laurana/chibi/walk/north-west/frame-6.png', import.meta.url).href },
+  { key: 'laurana-chibi-walk-north-west-7', url: new URL('../assets/characters/laurana/chibi/walk/north-west/frame-7.png', import.meta.url).href },
+  { key: 'laurana-chibi-attack-south-east-0', url: new URL('../assets/characters/laurana/chibi/attack/south-east/frame-0.png', import.meta.url).href },
+  { key: 'laurana-chibi-attack-south-east-1', url: new URL('../assets/characters/laurana/chibi/attack/south-east/frame-1.png', import.meta.url).href },
+  { key: 'laurana-chibi-attack-south-east-2', url: new URL('../assets/characters/laurana/chibi/attack/south-east/frame-2.png', import.meta.url).href },
+  { key: 'laurana-chibi-attack-south-east-3', url: new URL('../assets/characters/laurana/chibi/attack/south-east/frame-3.png', import.meta.url).href },
+  { key: 'laurana-chibi-attack-south-east-4', url: new URL('../assets/characters/laurana/chibi/attack/south-east/frame-4.png', import.meta.url).href },
+  { key: 'laurana-chibi-attack-south-east-5', url: new URL('../assets/characters/laurana/chibi/attack/south-east/frame-5.png', import.meta.url).href },
+  { key: 'laurana-chibi-attack-south-east-6', url: new URL('../assets/characters/laurana/chibi/attack/south-east/frame-6.png', import.meta.url).href },
+  { key: 'laurana-chibi-attack-south-west-0', url: new URL('../assets/characters/laurana/chibi/attack/south-west/frame-0.png', import.meta.url).href },
+  { key: 'laurana-chibi-attack-south-west-1', url: new URL('../assets/characters/laurana/chibi/attack/south-west/frame-1.png', import.meta.url).href },
+  { key: 'laurana-chibi-attack-south-west-2', url: new URL('../assets/characters/laurana/chibi/attack/south-west/frame-2.png', import.meta.url).href },
+  { key: 'laurana-chibi-attack-south-west-3', url: new URL('../assets/characters/laurana/chibi/attack/south-west/frame-3.png', import.meta.url).href },
+  { key: 'laurana-chibi-attack-south-west-5', url: new URL('../assets/characters/laurana/chibi/attack/south-west/frame-5.png', import.meta.url).href },
+  { key: 'laurana-chibi-attack-south-west-6', url: new URL('../assets/characters/laurana/chibi/attack/south-west/frame-6.png', import.meta.url).href },
+  { key: 'laurana-chibi-attack-north-east-0', url: new URL('../assets/characters/laurana/chibi/attack/north-east/frame-0.png', import.meta.url).href },
+  { key: 'laurana-chibi-attack-north-east-1', url: new URL('../assets/characters/laurana/chibi/attack/north-east/frame-1.png', import.meta.url).href },
+  { key: 'laurana-chibi-attack-north-east-2', url: new URL('../assets/characters/laurana/chibi/attack/north-east/frame-2.png', import.meta.url).href },
+  { key: 'laurana-chibi-attack-north-east-3', url: new URL('../assets/characters/laurana/chibi/attack/north-east/frame-3.png', import.meta.url).href },
+  { key: 'laurana-chibi-attack-north-east-4', url: new URL('../assets/characters/laurana/chibi/attack/north-east/frame-4.png', import.meta.url).href },
+  { key: 'laurana-chibi-attack-north-east-5', url: new URL('../assets/characters/laurana/chibi/attack/north-east/frame-5.png', import.meta.url).href },
+  { key: 'laurana-chibi-attack-north-east-6', url: new URL('../assets/characters/laurana/chibi/attack/north-east/frame-6.png', import.meta.url).href },
+  { key: 'laurana-chibi-attack-north-west-0', url: new URL('../assets/characters/laurana/chibi/attack/north-west/frame-0.png', import.meta.url).href },
+  { key: 'laurana-chibi-attack-north-west-1', url: new URL('../assets/characters/laurana/chibi/attack/north-west/frame-1.png', import.meta.url).href },
+  { key: 'laurana-chibi-attack-north-west-2', url: new URL('../assets/characters/laurana/chibi/attack/north-west/frame-2.png', import.meta.url).href },
+  { key: 'laurana-chibi-attack-north-west-3', url: new URL('../assets/characters/laurana/chibi/attack/north-west/frame-3.png', import.meta.url).href },
+  { key: 'laurana-chibi-attack-north-west-4', url: new URL('../assets/characters/laurana/chibi/attack/north-west/frame-4.png', import.meta.url).href },
+  { key: 'laurana-chibi-attack-north-west-5', url: new URL('../assets/characters/laurana/chibi/attack/north-west/frame-5.png', import.meta.url).href },
+  { key: 'laurana-chibi-attack-north-west-6', url: new URL('../assets/characters/laurana/chibi/attack/north-west/frame-6.png', import.meta.url).href },
+  { key: 'laurana-chibi-block-south-east-0', url: new URL('../assets/characters/laurana/chibi/block/south-east/frame-0.png', import.meta.url).href },
+  { key: 'laurana-chibi-block-south-east-1', url: new URL('../assets/characters/laurana/chibi/block/south-east/frame-1.png', import.meta.url).href },
+  { key: 'laurana-chibi-block-south-east-2', url: new URL('../assets/characters/laurana/chibi/block/south-east/frame-2.png', import.meta.url).href },
+  { key: 'laurana-chibi-block-south-east-3', url: new URL('../assets/characters/laurana/chibi/block/south-east/frame-3.png', import.meta.url).href },
+  { key: 'laurana-chibi-block-south-east-4', url: new URL('../assets/characters/laurana/chibi/block/south-east/frame-4.png', import.meta.url).href },
+  { key: 'laurana-chibi-block-south-west-0', url: new URL('../assets/characters/laurana/chibi/block/south-west/frame-0.png', import.meta.url).href },
+  { key: 'laurana-chibi-block-south-west-1', url: new URL('../assets/characters/laurana/chibi/block/south-west/frame-1.png', import.meta.url).href },
+  { key: 'laurana-chibi-block-south-west-2', url: new URL('../assets/characters/laurana/chibi/block/south-west/frame-2.png', import.meta.url).href },
+  { key: 'laurana-chibi-block-south-west-3', url: new URL('../assets/characters/laurana/chibi/block/south-west/frame-3.png', import.meta.url).href },
+  { key: 'laurana-chibi-block-south-west-4', url: new URL('../assets/characters/laurana/chibi/block/south-west/frame-4.png', import.meta.url).href },
+  { key: 'laurana-chibi-block-north-east-0', url: new URL('../assets/characters/laurana/chibi/block/north-east/frame-0.png', import.meta.url).href },
+  { key: 'laurana-chibi-block-north-east-1', url: new URL('../assets/characters/laurana/chibi/block/north-east/frame-1.png', import.meta.url).href },
+  { key: 'laurana-chibi-block-north-east-2', url: new URL('../assets/characters/laurana/chibi/block/north-east/frame-2.png', import.meta.url).href },
+  { key: 'laurana-chibi-block-north-east-3', url: new URL('../assets/characters/laurana/chibi/block/north-east/frame-3.png', import.meta.url).href },
+  { key: 'laurana-chibi-block-north-east-4', url: new URL('../assets/characters/laurana/chibi/block/north-east/frame-4.png', import.meta.url).href },
+  { key: 'laurana-chibi-block-north-west-0', url: new URL('../assets/characters/laurana/chibi/block/north-west/frame-0.png', import.meta.url).href },
+  { key: 'laurana-chibi-block-north-west-1', url: new URL('../assets/characters/laurana/chibi/block/north-west/frame-1.png', import.meta.url).href },
+  { key: 'laurana-chibi-block-north-west-2', url: new URL('../assets/characters/laurana/chibi/block/north-west/frame-2.png', import.meta.url).href },
+  { key: 'laurana-chibi-block-north-west-3', url: new URL('../assets/characters/laurana/chibi/block/north-west/frame-3.png', import.meta.url).href },
+  { key: 'laurana-chibi-block-north-west-4', url: new URL('../assets/characters/laurana/chibi/block/north-west/frame-4.png', import.meta.url).href },
+  { key: 'laurana-chibi-hit-south-east-0', url: new URL('../assets/characters/laurana/chibi/hit/south-east/frame-0.png', import.meta.url).href },
+  { key: 'laurana-chibi-hit-south-east-1', url: new URL('../assets/characters/laurana/chibi/hit/south-east/frame-1.png', import.meta.url).href },
+  { key: 'laurana-chibi-hit-south-east-2', url: new URL('../assets/characters/laurana/chibi/hit/south-east/frame-2.png', import.meta.url).href },
+  { key: 'laurana-chibi-hit-south-east-3', url: new URL('../assets/characters/laurana/chibi/hit/south-east/frame-3.png', import.meta.url).href },
+  { key: 'laurana-chibi-hit-south-east-4', url: new URL('../assets/characters/laurana/chibi/hit/south-east/frame-4.png', import.meta.url).href },
+  { key: 'laurana-chibi-hit-south-west-0', url: new URL('../assets/characters/laurana/chibi/hit/south-west/frame-0.png', import.meta.url).href },
+  { key: 'laurana-chibi-hit-south-west-1', url: new URL('../assets/characters/laurana/chibi/hit/south-west/frame-1.png', import.meta.url).href },
+  { key: 'laurana-chibi-hit-south-west-2', url: new URL('../assets/characters/laurana/chibi/hit/south-west/frame-2.png', import.meta.url).href },
+  { key: 'laurana-chibi-hit-south-west-3', url: new URL('../assets/characters/laurana/chibi/hit/south-west/frame-3.png', import.meta.url).href },
+  { key: 'laurana-chibi-hit-south-west-4', url: new URL('../assets/characters/laurana/chibi/hit/south-west/frame-4.png', import.meta.url).href },
+  { key: 'laurana-chibi-hit-north-east-0', url: new URL('../assets/characters/laurana/chibi/hit/north-east/frame-0.png', import.meta.url).href },
+  { key: 'laurana-chibi-hit-north-east-1', url: new URL('../assets/characters/laurana/chibi/hit/north-east/frame-1.png', import.meta.url).href },
+  { key: 'laurana-chibi-hit-north-east-2', url: new URL('../assets/characters/laurana/chibi/hit/north-east/frame-2.png', import.meta.url).href },
+  { key: 'laurana-chibi-hit-north-east-3', url: new URL('../assets/characters/laurana/chibi/hit/north-east/frame-3.png', import.meta.url).href },
+  { key: 'laurana-chibi-hit-north-east-4', url: new URL('../assets/characters/laurana/chibi/hit/north-east/frame-4.png', import.meta.url).href },
+  { key: 'laurana-chibi-hit-north-west-0', url: new URL('../assets/characters/laurana/chibi/hit/north-west/frame-0.png', import.meta.url).href },
+  { key: 'laurana-chibi-hit-north-west-1', url: new URL('../assets/characters/laurana/chibi/hit/north-west/frame-1.png', import.meta.url).href },
+  { key: 'laurana-chibi-hit-north-west-2', url: new URL('../assets/characters/laurana/chibi/hit/north-west/frame-2.png', import.meta.url).href },
+  { key: 'laurana-chibi-hit-north-west-3', url: new URL('../assets/characters/laurana/chibi/hit/north-west/frame-3.png', import.meta.url).href },
+  { key: 'laurana-chibi-hit-north-west-4', url: new URL('../assets/characters/laurana/chibi/hit/north-west/frame-4.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-south-east-0', url: new URL('../assets/characters/laurana/chibi/death/south-east/frame-0.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-south-east-1', url: new URL('../assets/characters/laurana/chibi/death/south-east/frame-1.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-south-east-2', url: new URL('../assets/characters/laurana/chibi/death/south-east/frame-2.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-south-east-3', url: new URL('../assets/characters/laurana/chibi/death/south-east/frame-3.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-south-east-4', url: new URL('../assets/characters/laurana/chibi/death/south-east/frame-4.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-south-east-5', url: new URL('../assets/characters/laurana/chibi/death/south-east/frame-5.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-south-east-6', url: new URL('../assets/characters/laurana/chibi/death/south-east/frame-6.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-south-east-7', url: new URL('../assets/characters/laurana/chibi/death/south-east/frame-7.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-south-east-8', url: new URL('../assets/characters/laurana/chibi/death/south-east/frame-8.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-south-west-0', url: new URL('../assets/characters/laurana/chibi/death/south-west/frame-0.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-south-west-1', url: new URL('../assets/characters/laurana/chibi/death/south-west/frame-1.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-south-west-2', url: new URL('../assets/characters/laurana/chibi/death/south-west/frame-2.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-south-west-3', url: new URL('../assets/characters/laurana/chibi/death/south-west/frame-3.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-south-west-4', url: new URL('../assets/characters/laurana/chibi/death/south-west/frame-4.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-south-west-5', url: new URL('../assets/characters/laurana/chibi/death/south-west/frame-5.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-south-west-6', url: new URL('../assets/characters/laurana/chibi/death/south-west/frame-6.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-south-west-7', url: new URL('../assets/characters/laurana/chibi/death/south-west/frame-7.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-south-west-8', url: new URL('../assets/characters/laurana/chibi/death/south-west/frame-8.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-north-east-0', url: new URL('../assets/characters/laurana/chibi/death/north-east/frame-0.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-north-east-1', url: new URL('../assets/characters/laurana/chibi/death/north-east/frame-1.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-north-east-2', url: new URL('../assets/characters/laurana/chibi/death/north-east/frame-2.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-north-east-3', url: new URL('../assets/characters/laurana/chibi/death/north-east/frame-3.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-north-east-4', url: new URL('../assets/characters/laurana/chibi/death/north-east/frame-4.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-north-east-5', url: new URL('../assets/characters/laurana/chibi/death/north-east/frame-5.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-north-east-6', url: new URL('../assets/characters/laurana/chibi/death/north-east/frame-6.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-north-east-7', url: new URL('../assets/characters/laurana/chibi/death/north-east/frame-7.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-north-east-8', url: new URL('../assets/characters/laurana/chibi/death/north-east/frame-8.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-north-west-0', url: new URL('../assets/characters/laurana/chibi/death/north-west/frame-0.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-north-west-1', url: new URL('../assets/characters/laurana/chibi/death/north-west/frame-1.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-north-west-2', url: new URL('../assets/characters/laurana/chibi/death/north-west/frame-2.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-north-west-3', url: new URL('../assets/characters/laurana/chibi/death/north-west/frame-3.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-north-west-4', url: new URL('../assets/characters/laurana/chibi/death/north-west/frame-4.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-north-west-5', url: new URL('../assets/characters/laurana/chibi/death/north-west/frame-5.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-north-west-6', url: new URL('../assets/characters/laurana/chibi/death/north-west/frame-6.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-north-west-7', url: new URL('../assets/characters/laurana/chibi/death/north-west/frame-7.png', import.meta.url).href },
+  { key: 'laurana-chibi-death-north-west-8', url: new URL('../assets/characters/laurana/chibi/death/north-west/frame-8.png', import.meta.url).href }
 ];
-
-// PixelLab pads larger canvases symmetrically; each source retains its foot pivot.
-const sources = {
-  "idle": {
-    "frameMs": 110,
-    "directions": {
-      "south-east": {
-        "count": 8,
-        "originY": 0.8602941176470589
-      },
-      "north-east": {
-        "count": 8,
-        "originY": 0.8602941176470589
-      }
-    }
-  },
-  "walk": {
-    "frameMs": 75,
-    "directions": {
-      "south-east": {
-        "count": 8,
-        "originY": 0.8602941176470589
-      },
-      "north-east": {
-        "count": 8,
-        "originY": 0.8602941176470589
-      }
-    }
-  },
-  "attack": {
-    "frameMs": 70,
-    "directions": {
-      "south-east": {
-        "count": 7,
-        "originY": 0.85
-      },
-      "north-east": {
-        "count": 7,
-        "originY": 0.85
-      }
-    }
-  },
-  "hit": {
-    "frameMs": 55,
-    "directions": {
-      "south-east": {
-        "count": 6,
-        "originY": 0.8602941176470589
-      },
-      "north-east": {
-        "count": 6,
-        "originY": 0.8602941176470589
-      }
-    }
-  },
-  "death": {
-    "frameMs": 110,
-    "directions": {
-      "south-east": {
-        "count": 7,
-        "originY": 0.8602941176470589
-      },
-      "north-east": {
-        "count": 7,
-        "originY": 0.8602941176470589
-      }
-    }
-  }
-};
-const facing = {
-  south: ['south-east', false], 'south-east': ['south-east', false],
-  east: ['south-east', false], 'north-east': ['north-east', false],
-  north: ['north-east', false], 'north-west': ['north-east', true],
-  west: ['south-east', true], 'south-west': ['south-east', true]
-};
-const clips = Object.fromEntries(Object.entries(sources).map(([state, source]) => [state,
-  Object.fromEntries(Object.entries(facing).map(([heading, [direction, flipX]]) => [heading, {
-    frameMs: source.frameMs, frames: Array.from({ length: source.directions[direction].count }, (_, index) => ({
-      key: `laurana-${state}-${direction}-${index}`, originX: 0.5,
-      originY: source.directions[direction].originY, flipX
+// Looping clips omit the duplicate final reference frame.
+const specs = {"idle":[4,150],"walk":[8,75],"attack":[7,70],"block":[5,85],"hit":[5,60],"death":[9,110]};
+const facing = { south:'south-east', 'south-east':'south-east', east:'south-east',
+  'south-west':'south-west', west:'south-west', north:'north-east',
+  'north-east':'north-east', 'north-west':'north-west' };
+const clips = Object.fromEntries(Object.entries(specs).map(([state,[count,frameMs]]) => [state,
+  Object.fromEntries(Object.entries(facing).map(([heading,direction]) => [heading, {
+    frameMs, frames:Array.from({length:count},(_,i) => i)
+      .filter(i => !(state==='attack' && direction==='south-west' && i===4))
+      .map(i => ({
+      key:`laurana-chibi-${state}-${direction}-${i}`, originX:0.5, originY:218/224, flipX:false
     }))
   }]))
 ]));
-// Block art has separately authored left facings so equipment is never mirrored.
-const blockFacing = { south: 'south-east', 'south-east': 'south-east', east: 'south-east',
-  north: 'north-east', 'north-east': 'north-east', 'north-west': 'north-west',
-  west: 'south-west', 'south-west': 'south-west' };
-clips.block = Object.fromEntries(Object.entries(blockFacing).map(([heading, direction]) => [heading, {
-  frameMs: 85, frames: Array.from({ length: 5 }, (_, index) => ({
-    key: `laurana-block-${direction}-${index}`, originX: 0.5, originY: 0.85, flipX: false
-  }))
-}]));
-// A corpse reuses the last death frame, with no extra generation or texture.
-clips.dead = Object.fromEntries(Object.entries(clips.death).map(([direction, clip]) =>
-  [direction, { frameMs: 1000, frames: [clip.frames.at(-1)] }]));
-
-export const CHARACTER_SPRITES = { laurana: { textures, clips, scale: 1.25, footY: 30 } };
-
+clips.dead = Object.fromEntries(Object.entries(clips.death).map(([heading,clip]) =>
+  [heading,{frameMs:1000,frames:[clip.frames.at(-1)]}]));
+// Keep the previous battlefield footprint despite the higher-resolution source.
+export const CHARACTER_SPRITES = { laurana:{textures,clips,scale:0.75,footY:30} };
 export function preloadCharacterSprites(scene) {
   Object.values(CHARACTER_SPRITES).forEach(definition => {
-    definition.textures.forEach(({ key, url }) => {
-      if (!scene.textures.exists(key)) scene.load.image(key, url);
+    definition.textures.forEach(({key,url}) => {
+      if(!scene.textures.exists(key)) scene.load.image(key,url);
     });
   });
 }

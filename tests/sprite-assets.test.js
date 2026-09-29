@@ -8,7 +8,8 @@ for(const texture of sprite.textures){
  assert.ok(!keys.has(texture.key));keys.add(texture.key);
  const png=fs.readFileSync(new URL(texture.url));
  assert.equal(png.subarray(1,4).toString(),'PNG');
- assert.ok(png.readUInt32BE(16)>=136);assert.ok(png.readUInt32BE(20)>=136);
+ assert.equal(png.readUInt32BE(16),192);assert.equal(png.readUInt32BE(20),224);
+ assert.ok(texture.key.startsWith('laurana-chibi-'),'only approved chibi art is loaded');
  assert.equal(png[25],6,'original PNG must retain RGBA transparency');
  assert.equal(png.subarray(-8,-4).toString(),'IEND','PNG is complete');
 }
@@ -27,9 +28,9 @@ preloadCharacterSprites({textures:{exists:()=>true},load:{image:()=>assert.fail(
 for (const direction of Object.keys(sprite.clips.death)) {
  assert.deepEqual(sprite.clips.dead[direction].frames[0],sprite.clips.death[direction].frames.at(-1));
 }
-// Shield-block facings are authored individually: flipping would swap equipment hands.
-for (const direction of Object.keys(sprite.clips.block)) {
- assert.ok(sprite.clips.block[direction].frames.every(frame => !frame.flipX));
+// All chibi facings are authored individually so equipment never swaps via mirroring.
+for (const clips of Object.values(sprite.clips)) {
+ for (const clip of Object.values(clips)) assert.ok(clip.frames.every(frame => !frame.flipX));
 }
 assert.notEqual(sprite.clips.block['south-east'].frames[0].key,sprite.clips.block['south-west'].frames[0].key);
 assert.notEqual(sprite.clips.block['north-east'].frames[0].key,sprite.clips.block['north-west'].frames[0].key);

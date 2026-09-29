@@ -65,7 +65,7 @@ const adventurers = [
     critChance: 0.20,
     happiness: 77
   }),
-  createAdventurer('raistlin', 'Raistlin', 'Mage of the Umbral Veil', {
+  createAdventurer('raistlin', 'Raistlin', 'Mage of the Crimson Spire', {
     maxHp: 72,
     attackPower: 19,
     moveSpeed: 124,

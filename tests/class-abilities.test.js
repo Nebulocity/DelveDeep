@@ -19,7 +19,8 @@ function scene(party,enemies) {
 }
 assert.equal(Object.keys(classes).length,10);
 assert.equal(Object.values(classes).filter(c=>c.gridAbilities).reduce((n,c)=>n+Object.keys(c.abilities).length,0),31);
-assert.ok(Object.keys(classes).every(c=>roster.some(u=>u.className===c)));
+assert.ok(roster.every(unit=>classes[unit.className]));
+assert.equal(roster.find(unit=>unit.id==='raistlin').className,'Mage of the Crimson Spire');
 const caster=make('Mage of the Luminous Archive'), ally=make('Rogue',2), e=enemy(1);
 let s=scene([caster,ally],[e]), system=new System(s);
 assert.equal(squareDistance(s,caster,make('Rogue',3,3)),3);

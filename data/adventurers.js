@@ -3,7 +3,7 @@ import { createAdventurer } from './classes.js';
 const adventurers = [
   createAdventurer('justarius', 'Justarius', 'Mage of the Crimson Spire'),
   createAdventurer('palin', 'Palin', 'Mage of the Luminous Archive'),
-  createAdventurer('caramon-gladiator', 'Caramon', 'Dawnwarden', {
+  createAdventurer('caramon-gladiator', 'Caramon', 'Gladiator', {
     maxHp: 168,
     attackPower: 15,
     moveSpeed: 158,
@@ -42,14 +42,14 @@ const adventurers = [
     critChance: 0.13,
     happiness: 72
   }),
-  createAdventurer('tasslehoff', 'Tasslehoff', 'Rogue', {
+  createAdventurer('tasslehoff', 'Tasslehoff', 'Scoundrel', {
     maxHp: 89,
     attackPower: 14,
     moveSpeed: 215,
     critChance: 0.28,
     happiness: 84
   }),
-  createAdventurer('tika', 'Tika', 'Rogue', {
+  createAdventurer('tika', 'Tika', 'Scoundrel', {
     color: 0xc026d3,
     maxHp: 97,
     attackPower: 12,
@@ -73,14 +73,14 @@ const adventurers = [
     happiness: 66
   }),
 
-  createAdventurer('goldmoon', 'Goldmoon', 'Cleric of the Verdant Covenant', {
+  createAdventurer('goldmoon', 'Goldmoon', 'Cleric of the Holy Light', {
     maxHp: 116,
     healPower: 18,
     moveSpeed: 150,
     critChance: 0.12,
     happiness: 82
   }),
-  createAdventurer('mishakal', 'Mishakal', 'Cleric of the Everbright', {
+  createAdventurer('mishakal', 'Mishakal', 'Cleric of the Holy Light', {
     maxHp: 97,
     healPower: 24,
     moveSpeed: 132,

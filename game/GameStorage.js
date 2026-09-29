@@ -63,6 +63,18 @@ export function loadProfile(baseRoster) {
 
   const savedInventory = saved?.inventory ? { ...saved.inventory } : undefined;
   if (Array.isArray(savedInventory?.equipment)) savedInventory.equipment = savedInventory.equipment.map(entry => entry && ({ ...entry, itemId: migrateEquipmentId(entry.itemId) }));
+  // Keep equipped items usable when these two stable roster IDs change class.
+  // Unassigned inventory stays with its original class; instance IDs are unchanged.
+  const reassignedGear = new Map();
+  for (const [id, from, to] of [['caramon-gladiator', 'paladin-', 'gladiator-'], ['goldmoon', 'naturalist-', 'priest-']]) {
+    for (const instanceId of Object.values(savedRoster.get(id)?.equipment ?? {})) {
+      if (instanceId) reassignedGear.set(instanceId, {from, to});
+    }
+  }
+  for (const entry of savedInventory?.equipment ?? []) {
+    const migration = reassignedGear.get(entry?.id);
+    if (migration && entry.itemId?.startsWith(migration.from)) entry.itemId = migration.to + entry.itemId.slice(migration.from.length);
+  }
   restoreEquipment(savedInventory, savedRoster);
 
   // Discard saved party IDs that no longer exist in the current roster.

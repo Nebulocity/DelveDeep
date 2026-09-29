@@ -11,6 +11,7 @@ export const ITEM_RARITIES = {
 // and a rare upgrade for each slot. Stable IDs are stored in player saves.
 const CLASS_KITS = {
   Paladin: ['Dawn Mace', 'Pilgrim Hammer', 'Dawn Plate', 'Sunforged Mace', 'Sunforged Plate'],
+  Gladiator: ['Arena Sword', 'Pit Spear', 'Arena Plate', 'Champion Blade', 'Champion Plate'],
   Rogue: ['Dusk Dagger', 'Viper Knife', 'Shadow Leather', 'Nightfang', 'Nightstalker Leather'],
   Barbarian: ['Raider Axe', 'Boar Cleaver', 'Raider Hide', 'Stormsplitter', 'Thunderhide'],
   'Mage of the Crimson Spire': ['Crimson Staff', 'Spire Wand', 'Red Robe', 'Arcane Staff', 'Crimson Robe'],
@@ -44,7 +45,7 @@ export const EQUIPMENT_ITEMS = Object.entries(CLASS_KITS).flatMap(([kitId, names
 });
 
 export function migrateEquipmentId(id) {
-  return typeof id === 'string' ? id.replace(/^(gladiator|guardian)-/, 'paladin-') : id;
+  return typeof id === 'string' ? id.replace(/^guardian-/, 'paladin-') : id;
 }
 export const EQUIPMENT_BY_ID = Object.fromEntries(EQUIPMENT_ITEMS.map((item) => [item.id, item]));
 
@@ -82,6 +83,6 @@ export function equipmentStatsText(stats) {
 export function equipmentDetails(item) {
   return {
     title: item.name,
-    description: `${ITEM_RARITIES[item.rarity].label} ${item.slot} | ${item.className}\n\n${equipmentStatsText(item.stats)}\n\n${item.slot === 'weapon' ? 'Attack and healing bonuses improve basic actions and the new grid class spells. Rogue, Barbarian, and Ranger ability powers remain unchanged.' : 'Armor adds percentage points of damage mitigation.'}\n\nSell value: ${sellPrice(item)} gold. Unequip before selling.`
+    description: `${ITEM_RARITIES[item.rarity].label} ${item.slot} | ${item.className}\n\n${equipmentStatsText(item.stats)}\n\n${item.slot === 'weapon' ? 'Attack and healing bonuses improve basic actions and the new grid class spells.' : 'Armor adds percentage points of damage mitigation.'}\n\nSell value: ${sellPrice(item)} gold. Unequip before selling.`
   };
 }

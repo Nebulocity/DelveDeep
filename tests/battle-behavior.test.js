@@ -695,3 +695,26 @@ function fallenUnit(id, maxMana) {
 }
 
 console.log('Battle behavior checks passed.');
+// Stealth suppresses direct targeting without erasing threat; pending attacks recheck it.
+{
+  const tank=unit('tank','Tank'), rogue=unit('scoundrel','Melee DPS'), enemy=unit('enemy','Enemy');
+  const battle=scene([tank,rogue],[enemy]);
+  battle.enemyThreat.get(enemy.id).set(rogue.id,100);
+  rogue.stealthed=true;
+  assert.equal(battle.getHighestThreatTarget(enemy),tank);
+  assert.equal(battle.enemyThreat.get(enemy.id).get(rogue.id),100);
+  battle.beginBasicAttack(enemy,rogue,0,'enemy');battle.timers[0]();assert.equal(battle.hits,undefined);
+  rogue.stealthed=false;assert.equal(battle.getHighestThreatTarget(enemy),rogue);
+}
+// Enrage and recovery affect actual damage, while new stuns survive further hits.
+{
+  const barbarian=unit('barbarian','Melee DPS'), enemy=unit('enemy','Enemy');
+  const battle=scene([barbarian],[enemy]);
+  Object.assign(battle,{rollCritical:()=>false,flashTargetCell(){},createFloatingText(){},createMeleePulse(){}});
+  Object.assign(enemy,{hp:1000,maxHp:1000,flash(){},takeDamage(amount){this.hp-=amount;}});
+  Object.assign(barbarian.status,{enrageUntil:10000,exhaustedUntil:20000,enrageDamage:3,exhaustedDamage:0.5});
+  enemy.status.stunnedUntil=6000;enemy.status.hardStunUntil=6000;
+  BattleScene.prototype.resolveDamage.call(battle,barbarian,enemy,10,'melee');assert.equal(enemy.hp,970);assert.equal(enemy.status.stunnedUntil,6000);
+  battle.time.now=10000;BattleScene.prototype.resolveDamage.call(battle,barbarian,enemy,10,'melee');assert.equal(enemy.hp,965);
+  battle.time.now=20000;BattleScene.prototype.resolveDamage.call(battle,barbarian,enemy,10,'melee');assert.equal(enemy.hp,955);
+}

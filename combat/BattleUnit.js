@@ -327,7 +327,7 @@ export default class BattleUnit {
   // All voluntary movement shares soft personal-space steering before the
   // normal arena projection. Teleports/revives still use setArenaPosition.
   moveBy(dx, dy) {
-    if (this.scene.time?.now < (this.status?.rootedUntil ?? 0)) return;
+    if (this.scene.time?.now < Math.max(this.status?.rootedUntil ?? 0, this.status?.stunnedUntil ?? 0)) return;
     const point = this.scene?.movement
       ? this.scene.movement.steerStep(this, dx, dy)
       : { x: this.arenaX + dx, y: this.arenaY + dy };
@@ -346,7 +346,7 @@ export default class BattleUnit {
   // This function checks whether the unit can begin another basic attack.
   canAttack(time) {
 
-    return this.canStartAction(time) && time - this.lastAttackAt >= this.attackCooldown;
+    return this.canStartAction(time) && time - this.lastAttackAt >= this.attackCooldown / (time < (this.status.attackSlowUntil ?? 0) ? 1 - this.status.attackSlow : 1);
   }
 
   // This function checks whether a capable healer is ready for another basic
@@ -366,7 +366,7 @@ export default class BattleUnit {
     }
     if ((ability.manaCost ?? 0) > this.mana) return false;
 
-    return time - (this.lastAbilityAt[key] ?? -Infinity) >= ability.cooldown;
+    return time - (this.lastAbilityAt[key] ?? -Infinity) >= ability.cooldown / (time < (this.status.attackSlowUntil ?? 0) ? 1 - this.status.attackSlow : 1);
   }
 
   // This function commits the ability cooldown and its configured mana cost.
@@ -444,6 +444,7 @@ export default class BattleUnit {
       this.status.nextHitReduction = 0;
     }
     adjusted = Math.max(adjusted > 0 ? 1 : 0, Math.round(adjusted));
+    if (now < (this.status.enrageUntil ?? 0)) adjusted = Math.round(adjusted * this.status.enrageIncoming);
     const absorbed = Math.min(adjusted, this.status.temporaryHp ?? 0);
     this.status.temporaryHp = (this.status.temporaryHp ?? 0) - absorbed;
     adjusted -= absorbed;
@@ -451,7 +452,7 @@ export default class BattleUnit {
 
     // Allow one successful death escape per delve; failed rolls leave the
     // escape unused.
-    if (this.hp <= 0 && this.className === 'Barbarian' && !this.delvesUsed.shrugDeath) {
+    if (this.hp <= 0 && this.className === 'Barbarian' && !this.gridAbilities && !this.delvesUsed.shrugDeath) {
       const chance = Math.min(0.8, 0.02 * Math.max(1, this.level ?? 1));
       if (Math.random() < chance) {
         this.delvesUsed.shrugDeath = true;

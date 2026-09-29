@@ -1,66 +1,43 @@
 // Powers and unspecified durations are provisional balance values; see docs/CLASS_ABILITIES.md.
-export const CLASS_MIGRATIONS = { Paladin: 'Dawnwarden', Gladiator: 'Dawnwarden', Guardian: 'Dawnwarden', Wizard: 'Mage of the Umbral Veil', Priest: 'Cleric of the Everbright', Naturalist: 'Cleric of the Verdant Covenant', Bloodwarder: 'Cleric of the Sanguine Song' };
+export const CLASS_MIGRATIONS = { Paladin: 'Dawnwarden', Rogue: 'Scoundrel', Guardian: 'Dawnwarden', Wizard: 'Mage of the Umbral Veil', Priest: 'Cleric of the Holy Light', 'Cleric of the Everbright': 'Cleric of the Holy Light', Naturalist: 'Cleric of the Verdant Covenant', Bloodwarder: 'Cleric of the Sanguine Song' };
 const spell = (name, cooldown, range, effect, extra = {}) => ({ name, cooldown: cooldown * 1000, range, effect, windup: 300, ...extra });
 const mage = (shortName, color, abilities) => ({ role: 'Ranged DPS', shortName, color, maxHp: 80, maxMana: 120, manaRegen: 8, moveSpeed: 130, attackPower: 15, attackRange: 345, attackCooldown: 1500, attackWindup: 400, critChance: 0.15, critMultiplier: 1.75, gridAbilities: true, abilities });
 const cleric = (shortName, color, abilities) => ({ role: 'Healer', shortName, color, armor: 0.08, maxHp: 110, maxMana: 120, manaRegen: 8, moveSpeed: 140, attackPower: 7, attackRange: 300, attackCooldown: 1600, attackWindup: 400, healPower: 22, healRange: 600, gridAbilities: true, abilities });
 export const CLASS_DEFINITIONS = {
-  Rogue: {
-    role: 'Melee DPS',
-    color: 0x7c3aed,
-    maxHp: 92,
-    moveSpeed: 205,
-    attackPower: 13,
-    attackRange: 70,
-    attackCooldown: 780,
-    attackWindup: 170,
-    threatMultiplier: 0.8,
-    critChance: 0.24,
-    critMultiplier: 1.85,
-    description: 'Stealth melee attacker with a devastating opener, bleeds, and short armor vulnerabilities.',
-    startsStealthed: true,
+  Gladiator: {
+    role: 'Tank', color: 0xd99b35, maxHp: 185, moveSpeed: 150, attackPower: 15, attackRange: 74, attackCooldown: 1100, attackWindup: 280, armor: 0.22, threatMultiplier: 3.4, gridAbilities: true,
     abilities: {
-      primary: { name: 'Hemorrhage', cooldown: 3900, windup: 230, power: 25, threatMultiplier: 0.7, bleedPower: 5, bleedTicks: 4, bleedInterval: 1200 },
-      opener: { name: 'Ambush', multiplier: 3, armorReduction: 0.25, duration: 10000 }
+      roar: spell('Roar', 10, 4, 'taunt', { duration: 6000, targets: 1 }),
+      net: spell('Throw Net', 15, 6, 'damage', { power: 12, damageType: 'physical', root: 10000, farthest: true }),
+      cleave: spell('Whirling Cleave', 10, 0, 'damage', { power: 40, damageType: 'physical', radius: 4, totalThreat: 2 }),
+      sand: spell('Kick Sand', 10, 1, 'damage', { power: 12, damageType: 'physical', blind: 6000, blindChance: 0.6 })
+    }
+  },
+  Scoundrel: {
+    role: 'Melee DPS', color: 0x7c3aed, maxHp: 92, moveSpeed: 205, attackPower: 13, attackRange: 70, attackCooldown: 780, attackWindup: 170, threatMultiplier: 0.8, critChance: 0.24, critMultiplier: 1.85, gridAbilities: true,
+    abilities: {
+      stealth: spell('Stealth', 8, 0, 'stealth'),
+      surprise: spell('Surprise Attack', 10, 1, 'damage', { power: 60, damageType: 'physical', requiresStealth: true, behind: true, stun: 4000 }),
+      poison: spell('Poison', 10, 1, 'damage', { power: 0, damageType: 'poison', poison: { power: 8, interval: 2000, duration: 6000 }, attackSlow: 0.5 }),
+      dagger: spell('Dagger Throw', 4, 6, 'damage', { power: 12, damageType: 'physical' })
     }
   },
   Barbarian: {
-    role: 'Melee DPS',
-    color: 0xdc2626,
-    maxHp: 132,
-    moveSpeed: 170,
-    attackPower: 16,
-    attackRange: 84,
-    attackCooldown: 980,
-    attackWindup: 250,
-    threatMultiplier: 1.0,
-    critChance: 0.16,
-    critMultiplier: 1.85,
-    damageTakenMultiplier: 1.15,
-    description: 'Greataxe bruiser that enrages for more damage, cleaves groups, and can roar to empower nearby allies.',
+    role: 'Melee DPS', color: 0xdc2626, maxHp: 132, moveSpeed: 170, attackPower: 16, attackRange: 84, attackCooldown: 980, attackWindup: 250, threatMultiplier: 1, critChance: 0.16, critMultiplier: 1.85, gridAbilities: true,
     abilities: {
-      primary: { name: 'Sweeping Cleave', cooldown: 4300, windup: 300, power: 25, radius: 155, aoe: true, threatMultiplier: 1.0 },
-      utility: { name: 'War Roar', cooldown: 9000, duration: 10000, radius: 270, damageBoost: 0.15 }
+      enrage: spell('Enrage', 30, 0, 'enrage', { duration: 10000, recovery: 10000, damageMultiplier: 3, incomingMultiplier: 2, recoveryMultiplier: 0.5 }),
+      charge: spell('Charge', 15, 6, 'damage', { power: 40, damageType: 'physical', charge: true, stun: 6000 }),
+      strike: spell('Heroic Strike', 10, 1, 'damage', { power: 40, damageType: 'physical' }),
+      rend: spell('Agonizing Rend', 15, 1, 'damage', { power: 60, damageType: 'physical' })
     }
   },
   Ranger: {
-    role: 'Ranged DPS',
-    color: 0x15803d,
-    maxHp: 102,
-    maxMana: 70,
-    manaRegen: 4,
-    moveSpeed: 165,
-    attackPower: 15,
-    attackRange: 360,
-    attackCooldown: 1050,
-    attackWindup: 290,
-    threatMultiplier: 0.9,
-    critChance: 0.18,
-    critMultiplier: 1.8,
-    description: 'Long-range damage dealer with Hunter\'s Mark and battlefield traps.',
+    role: 'Ranged DPS', color: 0x15803d, maxHp: 102, moveSpeed: 165, attackPower: 15, attackRange: 360, attackCooldown: 1050, attackWindup: 290, threatMultiplier: 0.9, critChance: 0.18, critMultiplier: 1.8, gridAbilities: true,
     abilities: {
-      primary: { name: 'Rain of Arrows', cooldown: 5000, windup: 420, power: 19, radius: 145, aoe: true, threatMultiplier: 0.8, manaCost: 18 },
-      utility: { name: "Hunter's Mark", cooldown: 9000, duration: 9000, damageTakenBoost: 0.1, manaCost: 14 },
-      trap: { name: 'Hunter Trap', cooldown: 7200, manaCost: 12 }
+      mark: spell("Hunter's Mark", 15, 6, 'mark', { duration: 10000, damageTakenBoost: 0.25 }),
+      rain: spell('Rain of Arrows', 15, 4, 'damage', { power: 24, damageType: 'physical', zone: [2, 2] }),
+      trap: spell("Hunter's Trap", 15, 1, 'trap', { power: 40, damageType: 'poison', stun: 10000 }),
+      arrow: spell('Exploding Arrow', 15, 6, 'damage', { power: 60, damageType: 'physical' })
     }
   },
   Dawnwarden: {
@@ -90,7 +67,7 @@ export const CLASS_DEFINITIONS = {
     spear: spell('Lumenspear', 5, 6, 'damage', { power: 24, damageType: 'radiant', healRatio: 2, healScope: 'near' }),
     libram: spell('Libram of Knowledge', 15, 3, 'damage', { power: 40, damageType: 'radiant', zone: [2, 2], healRatio: 2, healScope: 'all' })
   }),
-  'Cleric of the Everbright': cleric('Everbright Cleric', 0xffe58a, {
+  'Cleric of the Holy Light': cleric('Holy Light Cleric', 0xffe58a, {
     aegis: spell('Solar Aegis', 10, 0, 'aegis'),
     blessing: spell('Blessing of the Dawn', 5, 1, 'heal', { power: 42 }),
     ray: spell('Ray of Benediction', 3, 5, 'heal', { power: 24 }),

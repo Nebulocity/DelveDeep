@@ -28,7 +28,7 @@ export function beamContains(scene, caster, target, point, range) {
 }
 
 export default class ClassAbilitySystem {
-  constructor(scene) { this.scene = scene; }
+  constructor(scene) { this.scene = scene; this.traps = []; }
   allies() { return this.scene.partyUnits.filter(u => u.alive); }
   enemies(unit) { return this.scene.getLivingEnemies().filter(e => unit.role === 'Tank' || this.scene.isEnemyEngaged(e)); }
   distance(a, b) { return squareDistance(this.scene, a, b); }
@@ -38,6 +38,48 @@ export default class ClassAbilitySystem {
       this.scene.resolveHeal(unit, unit, s.refugePower, 'Scripted Refuge', false);
       s.refugeNext += s.refugeInterval;
     }
+  }
+  tickWorld(time) {
+    for (const enemy of this.scene.getLivingEnemies()) {
+      const poison = enemy.status.poison;
+      while (poison && enemy.alive && poison.next <= time && poison.next <= poison.until) {
+        this.scene.resolveDamage(poison.caster, enemy, poison.power, 'spell', 1, 'Poison', false);
+        poison.next += poison.interval;
+      }
+    }
+    this.traps = this.traps.filter(trap => {
+      if (trap.wave !== this.scene.currentWaveIndex) return false;
+      const target = this.scene.getLivingEnemies().find(e => this.distance(e, trap.point) === 0);
+      if (!target) return true;
+      this.resolve(trap.owner, target, { ...trap.ability, effect: 'damage' }, time);
+      return false;
+    });
+  }
+  adjacentPoint(unit, target, behind = false) {
+    const scene = this.scene, cell = cellOf(scene, target);
+    const facing = this.allies().find(a => a.id === target.currentTargetId);
+    const points = [];
+    for (let c = cell.column - 1; c <= cell.column + 1; c++) for (let r = cell.row - 1; r <= cell.row + 1; r++) {
+      if (c < 0 || r < 0 || c >= scene.battlefield.columns || r >= scene.battlefield.rows || (c === cell.column && r === cell.row)) continue;
+      const point = scene.battlefield.getCellCenter(c, r);
+      if (this.canTeleport(unit, point)) points.push(point);
+    }
+    // Rear cells are opposite the monster's current target; otherwise use the nearest free cell.
+    const score = p => behind && facing
+      ? (p.x-target.arenaX)*(facing.arenaX-target.arenaX)+(p.y-target.arenaY)*(facing.arenaY-target.arenaY)
+      : Math.hypot(p.x-unit.arenaX,p.y-unit.arenaY);
+    return points.sort((a,b) => score(a)-score(b))[0];
+  }
+  trapPoint(unit, enemies) {
+    const cell = cellOf(this.scene, unit), points = [];
+    for (let c=cell.column-1;c<=cell.column+1;c++) for(let r=cell.row-1;r<=cell.row+1;r++) {
+      if(c<0||r<0||c>=this.scene.battlefield.columns||r>=this.scene.battlefield.rows||(c===cell.column&&r===cell.row)) continue;
+      const p=this.scene.battlefield.getCellCenter(c,r);
+      if(this.canTeleport(unit,p)) points.push(p);
+    }
+    const score=p=>Math.min(...enemies.map(e=>Math.hypot(e.arenaX-p.x,e.arenaY-p.y)));
+    const p=points.sort((a,b)=>score(a)-score(b))[0];
+    return p ? {arenaX:p.x,arenaY:p.y,alive:true} : null;
   }
   canTeleport(unit, point) {
     const scene = this.scene, g = scene.battlefield;
@@ -97,13 +139,23 @@ export default class ClassAbilitySystem {
         target = injured.find(t => this.distance(unit,t) <= a.range);
         if (a.zone) target = this.bestZone(unit, a, injured);
         if (!target) continue;
-      } else if (a.effect === 'damage') {
+      } else if (a.effect === 'trap') {
+        if (!enemies.length) continue;
+        target = this.trapPoint(unit, enemies);
+        if (!target) continue;
+      } else if (a.effect === 'damage' || a.effect === 'mark') {
+        if (a.requiresStealth && !unit.stealthed) continue;
+        if (unit.stealthed && !a.requiresStealth) continue;
+        if ((a.charge || a.behind) && scene.isPositionLocked(unit)) continue;
         const inRange = enemies.filter(e => this.distance(unit,e) <= (a.radius ?? a.range));
-        target = inRange.includes(preferred) ? preferred : inRange[0];
+        if (a.farthest) inRange.sort((x,y) => this.distance(unit,y)-this.distance(unit,x));
+        target = !a.farthest && inRange.includes(preferred) ? preferred : inRange[0];
         if (a.zone) target = this.bestZone(unit, a, enemies);
         if (!target) continue;
       } else {
         const threatened = scene.getLivingEnemies().some(e => e.currentTargetId === unit.id);
+        if (a.effect === 'stealth' && (threatened || unit.stealthed || !enemies.length || !unit.abilityReady('surprise', time))) continue;
+        if (a.effect === 'enrage' && !enemies.some(e => this.distance(unit,e) <= 6)) continue;
         if (a.effect === 'aegis' && (!injured.length || unit.status.solarAegis || ordered)) continue;
         if (a.effect === 'stabilize' && !enemies.length) continue;
         if (a.effect === 'refuge' && unit.hp === unit.maxHp && !threatened) continue;
@@ -113,8 +165,8 @@ export default class ClassAbilitySystem {
       this.cast(unit, target, key, time);
       return;
     }
-    if (preferred && scene.isWithinAttackReach(unit, preferred) && unit.canAttack(time)) {
-      scene.beginBasicAttack(unit, preferred, time, unit.role === 'Tank' ? 'melee' : 'spell');
+    if (!unit.stealthed && preferred && scene.isWithinAttackReach(unit, preferred) && unit.canAttack(time)) {
+      scene.beginBasicAttack(unit, preferred, time, ['Tank', 'Melee DPS'].includes(unit.role) ? 'melee' : unit.className === 'Ranger' ? 'ranged' : 'spell');
     }
     if (scene.isPositionLocked(unit)) return;
     const healTarget = unit.role === 'Healer' && !ordered ? injured[0] : null;
@@ -150,6 +202,25 @@ export default class ClassAbilitySystem {
   }
   resolve(unit,target,a,time) {
     const scene=this.scene,s=unit.status,allies=this.allies();
+    if(a.requiresStealth && !unit.stealthed) return;
+    if(a.charge || a.behind) {
+      if(scene.isPositionLocked(unit) || s.rootedUntil > time) return;
+      const point=this.adjacentPoint(unit,target,a.behind);
+      if(!point) return;
+      unit.setArenaPosition(point.x,point.y);
+    }
+    if(a.effect==='stealth') {
+      if(!scene.getLivingEnemies().some(e=>e.currentTargetId===unit.id)) unit.setStealthed(true);
+    }
+    if(a.effect==='enrage') {
+      s.enrageUntil=time+a.duration; s.exhaustedUntil=s.enrageUntil+a.recovery;
+      s.enrageDamage=a.damageMultiplier; s.enrageIncoming=a.incomingMultiplier; s.exhaustedDamage=a.recoveryMultiplier;
+    }
+    if(a.effect==='mark') { target.status.damageTakenBoost=a.damageTakenBoost; target.status.damageTakenBoostUntil=time+a.duration; }
+    if(a.effect==='trap') {
+      this.traps=this.traps.filter(t=>t.owner!==unit);
+      this.traps.push({owner:unit,point:target,ability:a,wave:scene.currentWaveIndex});
+    }
     if(a.effect==='stabilize') { s.damageReduction= a.reduction; s.damageReductionUntil=time+a.duration; s.nextSpellBoost=a.spellBoost; }
     if(a.effect==='aegis') s.solarAegis=true;
     if(a.effect==='armor') { s.armorMultiplier=a.armorMultiplier; s.armorUntil=time+a.duration; }
@@ -192,11 +263,24 @@ export default class ClassAbilitySystem {
     let power=a.power;
     if(a.judgement && !allies.some(t=>t.id===target.currentTargetId&&t.role==='Tank')) power=a.highPower;
     if(a.missingHealthBonus) power*=1+(1-unit.hp/unit.maxHp);
-    power += Math.max(0, unit.attackPower - (CLASS_DEFINITIONS[unit.className]?.attackPower ?? unit.attackPower));
+    if (!a.poison) power += Math.max(0, unit.attackPower - (CLASS_DEFINITIONS[unit.className]?.attackPower ?? unit.attackPower));
     power*=1+(s.nextSpellBoost??0); s.nextSpellBoost=0;
+    if (unit.stealthed) unit.setStealthed(false);
     let total=0;
     for(const t of targets) {
-      total+=scene.resolveDamage(unit,t,power,['holy','radiant'].includes(a.damageType)?'holy':'spell',a.totalThreat?0:1,a.name)??0;
+      const dealt=a.poison ? 0 : scene.resolveDamage(unit,t,power,a.damageType==='physical'?'melee':['holy','radiant'].includes(a.damageType)?'holy':'spell',a.totalThreat?0:1,a.name);
+      total+=dealt??0;
+      if (dealt === undefined && !a.poison) continue;
+      if(a.stun&&t.alive) {
+        t.status.stunnedUntil=Math.max(t.status.stunnedUntil??0,time+a.stun);
+        t.status.hardStunUntil=Math.max(t.status.hardStunUntil??0,time+a.stun);
+        t.finishAction?.();
+      }
+      if(a.blind&&t.alive) { t.status.blindUntil=time+a.blind; t.status.blindChance=a.blindChance; }
+      if(a.poison&&t.alive) {
+        t.status.poison={caster:unit,power:a.poison.power,interval:a.poison.interval,next:time+a.poison.interval,until:time+a.poison.duration};
+        t.status.attackSlowUntil=time+a.poison.duration; t.status.attackSlow=a.attackSlow;
+      }
       if(a.root&&t.alive) t.status.rootedUntil=time+a.root;
     }
     if(a.totalThreat) for(const t of targets) scene.addThreat(t,unit,total*a.totalThreat);

@@ -47,6 +47,7 @@ export default class BattleScene extends Phaser.Scene {
   // the perspective arena and combatants, and building the tactical controls.
   // It also starts the combat log and spawns the first enemy wave.
   create() {
+    this.classAbilitySystem = new ClassAbilitySystem(this);
 
     const { width, height } = this.scale;
 
@@ -1094,6 +1095,8 @@ export default class BattleScene extends Phaser.Scene {
 
     // Run party decisions, resolve crowding, and then let enemies choose
     // their actions.
+    this.classAbilitySystem ??= new ClassAbilitySystem(this);
+    this.classAbilitySystem.tickWorld(time);
     this.partyUnits.forEach((unit) => this.updatePartyUnit(unit, time, deltaSeconds));
     this.updateEnemies(time, deltaSeconds);
     this.movement.separate(deltaSeconds);
@@ -1702,7 +1705,7 @@ export default class BattleScene extends Phaser.Scene {
   isActionCurrent(unit, action, target = null) {
 
     if (unit.pendingAction !== action) return false;
-    if (!unit.alive || this.battleOver || (target && !target.alive)) {
+    if (!unit.alive || this.battleOver || this.time.now < (unit.status?.stunnedUntil ?? 0) || (target && (!target.alive || (unit.isEnemy && target.stealthed)))) {
       unit.finishAction();
       return false;
     }
@@ -2048,6 +2051,8 @@ export default class BattleScene extends Phaser.Scene {
       }
     }
 
+    if (now < (attacker.status.enrageUntil ?? 0)) amount = Math.round(amount * attacker.status.enrageDamage);
+    else if (now < (attacker.status.exhaustedUntil ?? 0)) amount = Math.round(amount * attacker.status.exhaustedDamage);
     if (!attacker.isEnemy && now < this.assaultUntil) amount = Math.round(amount * (1 + this.assaultBonus));
     if (attacker.isEnemy && !target.isEnemy && now < this.braceUntil) amount = Math.max(1, Math.round(amount * (1 - this.braceReduction)));
 
@@ -2070,7 +2075,7 @@ export default class BattleScene extends Phaser.Scene {
       target.lastTakenDamageAt = now;
     }
 
-    if (target.isEnemy && now < (target.status.stunnedUntil ?? 0) && amount > 0) {
+    if (target.isEnemy && now < (target.status.stunnedUntil ?? 0) && now >= (target.status.hardStunUntil ?? 0) && amount > 0) {
       target.status.stunnedUntil = 0;
       this.createFloatingText(target.x, target.y - 96, 'UNFROZEN', '#cbd5e1');
     }
@@ -2224,7 +2229,7 @@ export default class BattleScene extends Phaser.Scene {
   // take priority before distance, including at the start of a wave.
   getHighestThreatTarget(enemy) {
 
-    const living = this.partyUnits.filter((unit) => unit.alive);
+    const living = this.partyUnits.filter((unit) => unit.alive && !unit.stealthed);
     if (living.length === 0) {
       return null;
     }

@@ -117,7 +117,7 @@ for (const mode of ['buy', 'sell', 'craft']) {
     for (let classIndex = 0; classIndex <= Object.keys(CLASS_DEFINITIONS).length; classIndex++) {
       Object.assign(smith, { mode, rarity, classIndex, page: 999, kind: 'equipment' });
       smith.render();
-      assert.ok(smith.page >= 0 && smith.page < 13);
+      assert.ok(smith.page >= 0 && smith.page < Math.ceil(itemData.EQUIPMENT_ITEMS.length / 4));
     }
   }
 }

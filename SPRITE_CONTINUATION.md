@@ -248,3 +248,13 @@ Further Flint jobs. All four walking and four attack clips have been inspected a
 - Riverwind four bow attack clips visually checked and installed. Source jobs: SE `29e0b663-837d-4dbc-b950-2fae20add061`, SW `e9f48882-1beb-4f6b-a25f-b744b75d6a46`, NE `df165433-2552-49f6-ba59-969a1c5e2f76`, NW `a3166056-6011-43b9-bf51-083687ea8c61`. Bow and quiver remain intact through the attack motion.
 - Riverwind hit jobs now queued: SE `1476f67b-24e9-4ec6-9c21-2b4a35db6355`, SW `25708546-38b8-466f-8e52-6d22e2b3c5f8`, NE `553bf19d-8038-4e63-9d87-5ade54adc9d5`, NW `1d04268b-7da8-4d8e-bd39-17779b0b6d68`. Block clips are still processing; death clips not yet queued.
 
+
+- Riverwind southeast block `b4067c8b-56df-4436-a462-d43eec15bc82` was visually checked and installed. Death SE job `9f56b426-0e58-4f0b-b533-21498a6a24cf` queued. Three other death facings remain unqueued until slots free.
+
+
+### Fistandantilus preparation while Riverwind finishes
+
+- Supplied `Fistandantalus.png` converted to 256px pixel art by PixelLab job `b1aa973d-5b31-47c0-8b71-e906180a5e50`. Visual check: pale-haired red-hooded mage, tattered crimson robe, ornate gold staff with red crystal.
+- Eight-direction v3 character generation ID `0fd49919-ab42-4863-a91e-075c71d20a07` is processing. Planned game ID `fistandantilus`, reconciling the existing `aoth` record after sprite completion. Preserve user art file spelling separately.
+- Riverwind all four block clips are visually checked and installed. Hit SE and SW are installed; NE and NW hits and all four deaths are still rendering. Death jobs: SE `9f56b426-0e58-4f0b-b533-21498a6a24cf`, SW `9803c1ab-14e5-40a6-b7d1-a45694e1bbb5`, NE `5f5340e0-7496-49b1-aed5-cabf22291631`, NW `213bfc8f-1d53-44a9-8cb3-32cf192ef0d8`.
+

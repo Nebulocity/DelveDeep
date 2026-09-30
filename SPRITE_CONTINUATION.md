@@ -37,6 +37,7 @@ User supplied art was displayed in this chat; local character source art is unde
 - Commit `58a1414`: checkpoint of Palin's supplied reference, four rotations, eight idle/walk clips, two south-facing attacks, south-east block, and updated continuation log. Palin is still incomplete and is not yet in the runtime catalog.
 - Commit `b45a64f`: completed Palin's remaining 24-clip source set, six transparent runtime sheets, sprite catalog, and test. `node tests/sprite-assets.test.js` passed for eight characters.
 - Commit `0c6180c`: checkpoint of Tasslehoff's transparent authored rotations and first four idle/walk source clips; Tasslehoff remains incomplete.
+- Commit `00b49df`: completed Tasslehoff's 24 source clips, six transparent runtime sheets, catalog, and test. `node tests/sprite-assets.test.js` passed for nine characters.
 - These commits have **not been pushed yet**. Push only after remaining work and final tests.
 
 ## Dalamar source record (completed)
@@ -81,6 +82,8 @@ User supplied art was displayed in this chat; local character source art is unde
 - Palin is complete: conversion job `c0cd9d7c-9010-41b4-8c27-8c83c01753ed`, eight-direction character `a4079b0f-dec3-41ea-990d-cd9230e29c35`, supplied reference, four authored facings, and all 24 clips installed. Six transparent runtime sheets were packed, catalogued, and visually checked. `node tests/sprite-assets.test.js` passed for eight characters. All Palin source job IDs are also recorded in `assets/characters/reference-v2-animations.json`.
 
 - Tasslehoff is complete: conversion job `d06869c7-7eb3-4cbe-9a78-c7a036a777bf`, eight-direction v3 character `c5584399-7532-4546-bdda-935fb424a4e9`, supplied art and four cleaned transparent facings. All 24 clips and six transparent runtime sheets are installed, catalogued, and visually checked. `node tests/sprite-assets.test.js` passed for nine characters. All source jobs are recorded in `assets/characters/reference-v2-animations.json`.
+
+- Flint is next. Supplied art conversion job `df1f86d7-36d5-4b63-9f11-dea177e69766` completed and visually matched the source (older white-bearded dwarf, blue horned armor, red plume, large double-bladed axe). Eight-direction v3 PixelLab character `e88421d4-b575-4a98-ad3c-f0e55a81ba9e` is processing. Inspect four game facings, clean any background, then generate 24 clips.
 
 Southwest attack job `5768cb34-bf38-414d-a505-17d60300358c` had white/green artifacts in source frames 2 and 7. Installed frame selection is `[0,1,3,3,4,5,6,6,8]`. Southeast, southwest, northeast and northwest block jobs had poor recovery frames; each installed selection is `[0,1,2,3,0]`. Original northwest walk job `8249ad79-0544-414d-8c98-e9683d5a16c2` changed the hoopak to a ring. Regeneration job `dd2014e9-c83a-419b-a510-cda7343da772` did the same after its first two clean frames. To retain the correct hoopak, installed NW walk uses source indices `[0,1,0,1,0,1,0,1,0]`. Its motion is subtler than the other walk facings.
 
@@ -159,4 +162,34 @@ Continue in order: Flint (`Flint.png`, game ID `flint`, double-bladed axe), Rive
 - Current `data/adventurers.js` has `createAdventurer('aoth', 'Fistandantilus', ...)`; reconcile this obsolete ID with new Fistandantilus sprite only after all character sprites are in place. `data/classes.js` contains `CLASS_MIGRATIONS` for old classes, and there may be old ability/save migration references. User said old character and ability data are no longer needed, so inspect usages and remove obsolete references while keeping active class abilities, saves, and tests coherent.
 - The current enemy data is `data/enemies.js`; Slime Cave encounter placement is in `data/encounters.js`, and level definition is in `data/levels/SlimeCave.js`. The first Delve needs Cave Slime as weak, Elder Slime as tough, Slime Sovereign as boss. Update the `Elder Cave Slime` name to `Elder Slime`. Existing IDs `caveSlime`, `elderSlime`, and `slimeSovereign` already appear in enemy data and encounters. The supplied enemy artwork needs to be recovered or reattached before creating their sprites.
 - Final verification: run focused combat/ability, sprite asset, progression/encounter tests and `npm run build`. Stage only intentional changes, commit, then `git push origin 0.1.2-3dSprites`. Check remote status.
+
+
+### Flint progress (2026-09-30)
+
+- PixelLab conversion job `df1f86d7-36d5-4b63-9f11-dea177e69766`; v3 eight-direction character `e88421d4-b575-4a98-ad3c-f0e55a81ba9e`. Four game facings were visually checked: white beard, horned blue helmet, red plume, blue armor, double-bladed axe; transparent backgrounds. Character ZIP and supplied Flint reference are installed under `assets/characters/flint/reference-v2/`.
+- Scratch manifest `work/flint-frame-manifest.json` in the original Codex projectless workspace tracks current animation jobs. Each output includes source frame zero, giving 5 total for 4-frame jobs or 9 for 8-frame jobs.
+
+| State | Facing | PixelLab job |
+| --- | --- | --- |
+| idle | south-east | `08dcebd1-83a9-406a-8d5a-e635183736de` |
+| walk | south-east | `c6428171-9cfd-44ce-ac05-118b5e0a0c50` |
+| idle | south-west | `d78ec584-94f0-442a-88e8-ecbbbd81daa1` |
+| walk | south-west | `86edcf77-8e26-4fd4-8e7b-fb4998d19cee` |
+| idle | north-east | `f1902b50-1217-47c7-bd54-04a4937edb31` |
+| walk | north-east | `e74a2515-fb8a-40ae-87ea-b8d2ef0be388` |
+| idle | north-west | `e1357485-42d5-484e-80d6-9721591a0fde` |
+| walk | north-west | `1c772a6a-1a77-422c-a13a-262b2ab33194` |
+
+
+Further Flint jobs:
+
+| State | Facing | PixelLab job |
+| --- | --- | --- |
+| attack | south-east | `b66e05bc-55e2-4dff-9256-862427742ec8` |
+| attack | south-west | `049897a7-056b-4088-b450-90f623f43352` |
+| attack | north-east | `05333e63-065a-452d-9649-c76bf9eb422a` |
+| attack | north-west | `f5704e6e-1552-4095-b866-8c0a35613a0b` |
+| block | south-east | `9016611e-c819-4dd5-9141-2b824592fa9f` |
+| block | south-west | `1d5c40a9-f3c7-41be-a572-f4980ffdf647` |
+| block | north-east | `1c169aad-6eab-4828-a630-fec3ea3068d7` |
 

@@ -233,3 +233,7 @@ Further Flint jobs. All four walking and four attack clips have been inspected a
 - Riverwind four idle clips and south-east/south-west walk clips are visually checked and installed. Pending jobs: NW walk `379f7f2c-5cf0-4426-94a9-698ba07cc61d`; bow attack SE `29e0b663-837d-4dbc-b950-2fae20add061`, SW `e9f48882-1beb-4f6b-a25f-b744b75d6a46`, NE `df165433-2552-49f6-ba59-969a1c5e2f76`, NW `a3166056-6011-43b9-bf51-083687ea8c61`; block SE `b4067c8b-56df-4436-a462-d43eec15bc82`. Riverwind's `work/riverwind-frame-manifest.json` is the scratch manifest.
 - The enemy art files were requested again from the user because the three chat images are not readable at the stated paths. Continue characters and data work while awaiting them.
 
+
+- Riverwind northeast walk `88e80eba-2815-4889-b7a2-e9fc5407bc34` visually checked and installed. Northwest walk and four bow attacks are pending.
+- Additional Riverwind jobs: southwest block `0e288341-adf6-4692-b343-264ba0f4c1c6`. Southeast block and four attacks remain listed above. All four idle clips are installed.
+

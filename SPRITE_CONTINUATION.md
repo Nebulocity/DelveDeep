@@ -34,6 +34,7 @@ User supplied art was displayed in this chat; local character source art is unde
 - Commit `43b4695`: updated Raistlin art, four authored facings, all six animated sheets, runtime catalog, sprite asset test. `node tests/sprite-assets.test.js` passed. NW attack's corrupted last frame was replaced with the first clean frame of that clip.
 - Raistlin PixelLab 8-direction character: `cf445947-307b-4ea0-b91f-0c5200160192`. Source conversion job: `7be2e932-74da-44a1-9128-31f766612058`. All 24 source jobs are in `assets/characters/reference-v2-animations.json`.
 - Commit `5667f6e`: Dalamar reference, four facings, six animated sheets, runtime catalog, sprite asset test, and this continuation log. `node tests/sprite-assets.test.js` passed for seven characters. Dalamar PixelLab character: `f231196f-4737-4b3f-aa95-c7a90ab32ca6`; source conversion job: `6680ed12-c620-4c78-9eaf-128f13b2435d`.
+- Commit `58a1414`: checkpoint of Palin's supplied reference, four rotations, eight idle/walk clips, two south-facing attacks, south-east block, and updated continuation log. Palin is still incomplete and is not yet in the runtime catalog.
 - These commits have **not been pushed yet**. Push only after remaining work and final tests.
 
 ## Dalamar source record (completed)
@@ -75,7 +76,7 @@ User supplied art was displayed in this chat; local character source art is unde
 
 ## Current work: Palin and remaining characters
 
-- Palin source conversion job `c0cd9d7c-9010-41b4-8c27-8c83c01753ed` is complete. Eight-direction v3 PixelLab character `a4079b0f-dec3-41ea-990d-cd9230e29c35` is complete; all four game facings were visually checked. The supplied reference and four rotations are installed in `assets/characters/palin/reference-v2/`. All eight idle/walk clips (56 frames), both south-facing attack clips (18 frames), and south-east block (5 frames) are installed. Attack, block, hit, and death are still in progress. In the current session, `work/palin-frame-manifest.json` tracks all jobs. Palin sheets have not yet been packed or catalogued.
+- Palin is complete: conversion job `c0cd9d7c-9010-41b4-8c27-8c83c01753ed`, eight-direction character `a4079b0f-dec3-41ea-990d-cd9230e29c35`, supplied reference, four authored facings, and all 24 clips installed. Six transparent runtime sheets were packed, catalogued, and visually checked. `node tests/sprite-assets.test.js` passed for eight characters. All Palin source job IDs are also recorded in `assets/characters/reference-v2-animations.json`.
 
 South-east block job `3a9c5e2e-a620-4170-833c-54b5df905edf` had a damaged final transition frame; installed output frames use source indices `[0,1,2,3,0]`.
 
@@ -102,12 +103,17 @@ Palin jobs started (each returns 5 frames for idle/block, 9 for walk/attack):
 | hit | south-east | `41ffa4c2-9c47-4b38-a54a-eb9acf541d4f` |
 | hit | south-west | `af1f34b3-060d-4163-a969-6a6ea2ee141e` |
 | hit | north-east | `1abfbfbe-38b7-4267-a2e3-a46880cceb97` |
+| hit | north-west | `383c8d1e-9abb-497a-a00c-271aaae88673` |
+| death | south-east | `00d8b50d-9723-4902-ab1f-7a9b3ee6e686` |
+| death | south-west | `9da5ca0b-2817-4f2b-a37c-88e734404159` |
+| death | north-east | `4a307e6b-6d09-4985-8fff-7f4816bc7454` |
+| death | north-west | `4fa8d435-b978-4e3b-8a05-63e88a521940` |
 
 Prepare each supplied PNG as a ~512px JPEG. Call PixelLab `image_to_pixelart` with `faithful:true`, `init_image_strength:180`, `output_width:256`, `output_height:256`. Then call `create_character` in `v3` mode with eight directions, 256px, low top-down, using the converted image download URL as `reference_image_url`. Inspect the four game facings before animation. Download the PixelLab character ZIP (`https://api.pixellab.ai/mcp/characters/<character-id>/download`) and install only `Idle/rotations/<direction>.png` as the four facings and SE as `base.png`; do not use the generated template animation in that ZIP. Prior template animation changed Sturm's design.
 
 For each facing, `animate_image_pixminimax` with the rotation URL as `first_frame_url`, `no_background:true`, and `direction`. Pin `last_frame_url` to the same rotation for idle, walk, attack, block, hit; leave death open to end in a fallen pose. Use frame counts 4 idle, 8 walk, 8 attack, 4 block, 4 hit, 8 death. Keep distinctive equipment in the same hand and design consistent. Contact sheets should be visually checked; fix or replace corrupted individual frames before packing.
 
-Continue in order: Palin (`Palin.png`, game ID `palin`, white and blue robe with glowing blue crystal staff), Tasslehof (`Tasslehof.png`, game ID `tasslehoff`, hoopak staff), Flint (`Flint.png`, game ID `flint`, double-bladed axe), Riverwind (`Riverwind.png`, game ID `riverwind`, **bow** per supplied art), Fistandantalus (`Fistandantalus.png`, likely game ID `fistandantilus`, red hood and ornate red crystal staff). Preserve user art and authored facings.
+Continue in order: Tasslehof (`Tasslehof.png`, game ID `tasslehoff`, hoopak staff), Flint (`Flint.png`, game ID `flint`, double-bladed axe), Riverwind (`Riverwind.png`, game ID `riverwind`, **bow** per supplied art), Fistandantalus (`Fistandantalus.png`, likely game ID `fistandantilus`, red hood and ornate red crystal staff). Preserve user art and authored facings.
 
 ## Code/data cleanup and enemies after characters
 

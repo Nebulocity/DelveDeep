@@ -36,6 +36,7 @@ User supplied art was displayed in this chat; local character source art is unde
 - Commit `5667f6e`: Dalamar reference, four facings, six animated sheets, runtime catalog, sprite asset test, and this continuation log. `node tests/sprite-assets.test.js` passed for seven characters. Dalamar PixelLab character: `f231196f-4737-4b3f-aa95-c7a90ab32ca6`; source conversion job: `6680ed12-c620-4c78-9eaf-128f13b2435d`.
 - Commit `58a1414`: checkpoint of Palin's supplied reference, four rotations, eight idle/walk clips, two south-facing attacks, south-east block, and updated continuation log. Palin is still incomplete and is not yet in the runtime catalog.
 - Commit `b45a64f`: completed Palin's remaining 24-clip source set, six transparent runtime sheets, sprite catalog, and test. `node tests/sprite-assets.test.js` passed for eight characters.
+- Commit `0c6180c`: checkpoint of Tasslehoff's transparent authored rotations and first four idle/walk source clips; Tasslehoff remains incomplete.
 - These commits have **not been pushed yet**. Push only after remaining work and final tests.
 
 ## Dalamar source record (completed)
@@ -75,11 +76,15 @@ User supplied art was displayed in this chat; local character source art is unde
 - Local scratch helpers for the current session are under `C:\Users\kenwh\Documents\Codex\2026-09-29\do-x20\work\`: `dalamar-frame-manifest.json` lists all 24 jobs, `install_pixellab_frames.py` downloads PNGs concurrently to the repo, `update_sprite_job_manifest.py` records jobs in the repo metadata, and `install_character_references.py` installs the four rotation frames from a PixelLab character ZIP. This file alone has the job IDs and download procedure if scratch files are unavailable.
 - Dalamar was visually inspected, packed, catalogued, tested, and committed. The table remains for source reconstruction.
 
-## Current work: Tasslehoff and remaining characters
+## Current work: Flint and remaining characters
 
 - Palin is complete: conversion job `c0cd9d7c-9010-41b4-8c27-8c83c01753ed`, eight-direction character `a4079b0f-dec3-41ea-990d-cd9230e29c35`, supplied reference, four authored facings, and all 24 clips installed. Six transparent runtime sheets were packed, catalogued, and visually checked. `node tests/sprite-assets.test.js` passed for eight characters. All Palin source job IDs are also recorded in `assets/characters/reference-v2-animations.json`.
 
-- Tasslehoff conversion job `d06869c7-7eb3-4cbe-9a78-c7a036a777bf` and eight-direction v3 character `c5584399-7532-4546-bdda-935fb424a4e9` are complete. All four game facings were inspected. PixelLab generated a white opaque square behind each; the PixelLab workbench removed exact connected white backgrounds, leaving transparency. The supplied reference and four cleaned facings are installed under `assets/characters/tasslehoff/reference-v2/`. South-east and southwest idle/walk clips (four clips, 28 frames) are installed; remaining animation jobs are running. Current scratch manifest: `work/tasslehoff-frame-manifest.json`.
+- Tasslehoff is complete: conversion job `d06869c7-7eb3-4cbe-9a78-c7a036a777bf`, eight-direction v3 character `c5584399-7532-4546-bdda-935fb424a4e9`, supplied art and four cleaned transparent facings. All 24 clips and six transparent runtime sheets are installed, catalogued, and visually checked. `node tests/sprite-assets.test.js` passed for nine characters. All source jobs are recorded in `assets/characters/reference-v2-animations.json`.
+
+Southwest attack job `5768cb34-bf38-414d-a505-17d60300358c` had white/green artifacts in source frames 2 and 7. Installed frame selection is `[0,1,3,3,4,5,6,6,8]`. Southeast, southwest, northeast and northwest block jobs had poor recovery frames; each installed selection is `[0,1,2,3,0]`. Original northwest walk job `8249ad79-0544-414d-8c98-e9683d5a16c2` changed the hoopak to a ring. Regeneration job `dd2014e9-c83a-419b-a510-cda7343da772` did the same after its first two clean frames. To retain the correct hoopak, installed NW walk uses source indices `[0,1,0,1,0,1,0,1,0]`. Its motion is subtler than the other walk facings.
+
+Southwest death job `e1e6f7d5-a9a9-4bb8-ae9b-8ce748899a6f` had white artifacts over the face in source frames 2 and 3; installed selection is `[0,1,1,4,4,5,6,7,8]`. Original northwest death job `22335c40-45d2-4a70-91b9-26e7cace4e27` morphed the hoopak into a blue mirror; replacement job `f0ad2198-cf3c-45de-98ee-517fd03c5ee2` is installed and clean.
 
 Tasslehoff cleaned rotation workbench image IDs: south-east `da929d41-5745-4a75-b0fe-5b5df4185805`, south-west `c4cfd8fa-2975-44e1-bbd7-c17ab0bffb5d`, north-east `5826d550-5319-47cf-b950-df6138d32590`, north-west `a61926ae-64ea-4b7e-9da3-cc63afc76542`. Animation first/last frame URLs use `https://api.pixellab.ai/mcp/pixel-tools/<workbench-id>/image.png`.
 
@@ -94,11 +99,23 @@ Tasslehoff jobs started:
 | idle | north-east | `878fee8d-d07b-4737-b6c1-b62fc9efb86d` |
 | walk | north-east | `13b75977-c86b-4f01-ba82-4ed044c5714b` |
 | idle | north-west | `1d82544a-0125-49b6-a0fc-6538ef1a1381` |
-| walk | north-west | `8249ad79-0544-414d-8c98-e9683d5a16c2` |
+| walk | north-west | `dd2014e9-c83a-419b-a510-cda7343da772` (regeneration) |
 | attack | south-east | `aed06864-b93d-4bec-b2da-d2682f276138` |
 | attack | south-west | `5768cb34-bf38-414d-a505-17d60300358c` |
 | block | south-east | `f6028f7f-1994-4aba-b607-e686fb3de5fe` |
 | attack | north-east | `3d62a9ab-e701-4c91-aa26-e4f055b7af6b` |
+| attack | north-west | `35358a44-7181-43b7-9aa3-d7dfa429e54c` |
+| block | south-west | `1781003f-cf82-4086-bcf6-9b261be78dfc` |
+| block | north-east | `fc2ca3a1-d1c4-4601-8ae4-ceb57dd427ea` |
+| block | north-west | `c7244636-c5f7-4f30-b448-5a2b834d00c5` |
+| hit | south-east | `e0996555-afc1-40c8-91b8-252b443944a7` |
+| hit | south-west | `25569f51-f339-422b-be18-cfda4b578bbc` |
+| hit | north-east | `01449951-0e94-4486-a15b-45e2bd96caa7` |
+| hit | north-west | `4d88dacc-266d-49e1-b4d3-7eb73ccd4a8a` |
+| death | south-east | `6ae20965-b211-4bbe-a0d2-84ae7f4fd3e6` |
+| death | south-west | `e1e6f7d5-a9a9-4bb8-ae9b-8ce748899a6f` |
+| death | north-east | `b5b235c2-8af0-4e6b-90a6-7b704a1b4c6d` |
+| death | north-west | `f0ad2198-cf3c-45de-98ee-517fd03c5ee2` (replacement) |
 
 South-east block job `3a9c5e2e-a620-4170-833c-54b5df905edf` had a damaged final transition frame; installed output frames use source indices `[0,1,2,3,0]`.
 
@@ -135,7 +152,7 @@ Prepare each supplied PNG as a ~512px JPEG. Call PixelLab `image_to_pixelart` wi
 
 For each facing, `animate_image_pixminimax` with the rotation URL as `first_frame_url`, `no_background:true`, and `direction`. Pin `last_frame_url` to the same rotation for idle, walk, attack, block, hit; leave death open to end in a fallen pose. Use frame counts 4 idle, 8 walk, 8 attack, 4 block, 4 hit, 8 death. Keep distinctive equipment in the same hand and design consistent. Contact sheets should be visually checked; fix or replace corrupted individual frames before packing.
 
-Continue in order: Tasslehof (`Tasslehof.png`, game ID `tasslehoff`, hoopak staff), Flint (`Flint.png`, game ID `flint`, double-bladed axe), Riverwind (`Riverwind.png`, game ID `riverwind`, **bow** per supplied art), Fistandantalus (`Fistandantalus.png`, likely game ID `fistandantilus`, red hood and ornate red crystal staff). Preserve user art and authored facings.
+Continue in order: Flint (`Flint.png`, game ID `flint`, double-bladed axe), Riverwind (`Riverwind.png`, game ID `riverwind`, **bow** per supplied art), Fistandantalus (`Fistandantalus.png`, likely game ID `fistandantilus`, red hood and ornate red crystal staff). Preserve user art and authored facings.
 
 ## Code/data cleanup and enemies after characters
 

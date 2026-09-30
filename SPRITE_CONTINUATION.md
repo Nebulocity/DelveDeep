@@ -244,3 +244,7 @@ Further Flint jobs. All four walking and four attack clips have been inspected a
 - All source jobs recorded in `assets/characters/reference-v2-animations.json`. The southwest block selected clean source indices `[0,1,2,3,0]` as noted above. Flint is complete; continue Riverwind and then Fistandantalus.
 - Riverwind northwest walk `379f7f2c-5cf0-4426-94a9-698ba07cc61d` visually checked and installed; all four Riverwind idle and walk clips are now installed. Newly queued blocks: northeast `702bfb70-f813-4d8f-b2c4-1bf7f33bdd3b`, northwest `c734dc58-7bf6-458a-a5be-0d46f5f30191`. Attack and block clips still pending.
 
+
+- Riverwind four bow attack clips visually checked and installed. Source jobs: SE `29e0b663-837d-4dbc-b950-2fae20add061`, SW `e9f48882-1beb-4f6b-a25f-b744b75d6a46`, NE `df165433-2552-49f6-ba59-969a1c5e2f76`, NW `a3166056-6011-43b9-bf51-083687ea8c61`. Bow and quiver remain intact through the attack motion.
+- Riverwind hit jobs now queued: SE `1476f67b-24e9-4ec6-9c21-2b4a35db6355`, SW `25708546-38b8-466f-8e52-6d22e2b3c5f8`, NE `553bf19d-8038-4e63-9d87-5ade54adc9d5`, NW `1d04268b-7da8-4d8e-bd39-17779b0b6d68`. Block clips are still processing; death clips not yet queued.
+

@@ -225,3 +225,7 @@ Further Flint jobs. All four walking and four attack clips have been inspected a
 - Riverwind idle PixelLab jobs: SE `ac2243a8-b25c-46ec-abc1-f1a69f3d7cbf`, SW `8b37d17b-b9ba-4e02-8e93-ad323cfaa748`, NE `2ea3fc35-371a-42d2-8b23-b1d9a4acb39c`, NW `6f2a4f80-5c2c-42e7-9277-d870f5ca181c`. Jobs are pending; scratch manifest `work/riverwind-frame-manifest.json` records them.
 - Flint southwest death clip `ec95e333-96e5-4827-bb2c-4bbb0c333911` visually checked and installed. Only north-east and north-west death clips remain for Flint.
 
+
+- Riverwind walk PixelLab jobs queued: SE `19e3f3fc-17f8-4aa0-899b-b3db65b0c680`, SW `0e90cc44-6369-4a30-96f4-660dc4e4e62b`, NE `88e80eba-2815-4889-b7a2-e9fc5407bc34`. NW walk not yet submitted because the 8-job PixelLab queue is full.
+- Flint northeast death `b0d40ea2-c95d-4228-b523-63a05dfa99be` visually checked and installed. Only northwest death `5cb010e9-85e8-40cb-b226-626072d41e26` remains.
+

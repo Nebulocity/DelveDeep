@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { CHARACTER_SPRITES, preloadCharacterSprites } from '../data/characterSprites.js';
 
-const names = ['laurana', 'tika', 'tanis', 'sturm', 'goldmoon'];
+const names = ['laurana', 'tika', 'tanis', 'sturm', 'goldmoon', 'raistlin'];
 const states = ['idle', 'walk', 'attack', 'block', 'hit', 'death'];
 const loaded = [];
 for (const name of names) {
@@ -49,4 +49,4 @@ preloadCharacterSprites({
   textures: { exists: () => true },
   load: { spritesheet: () => assert.fail('should reuse existing textures') },
 });
-console.log('Sprite sheets: five characters, complete RGBA atlases, clips, facings and cached preloading passed.');
+console.log(`Sprite sheets: ${names.length} characters, complete RGBA atlases, clips, facings and cached preloading passed.`);

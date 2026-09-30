@@ -1017,5 +1017,197 @@
     "job": "a0a5f09d-7935-42ac-9954-4567cb1ae744",
     "count": 9,
     "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "south-east",
+    "state": "idle",
+    "job": "c48580eb-2148-4e25-8e33-1df938fdaae3",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "south-west",
+    "state": "idle",
+    "job": "c2b28885-8328-4d34-a06c-c5d47f34a815",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "north-east",
+    "state": "idle",
+    "job": "776b778c-8247-4508-9a11-d10611827ab6",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "north-west",
+    "state": "idle",
+    "job": "30f54d07-b1e7-43c1-ad20-a5c5254e33fe",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "south-east",
+    "state": "walk",
+    "job": "a854ce8f-b8f6-4d08-aa40-9524bfebf842",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "south-west",
+    "state": "walk",
+    "job": "849c4d00-be2c-4092-9f58-b0d39e6e5ffc",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "north-east",
+    "state": "walk",
+    "job": "b754aa0b-a9b9-4d3f-992b-39c0e80cb682",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "north-west",
+    "state": "walk",
+    "job": "65f3e91d-ceea-4aa1-8571-9e9e4132e842",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "south-east",
+    "state": "attack",
+    "job": "9c6b597c-6f8d-416d-a681-e968775bf9d4",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "south-west",
+    "state": "attack",
+    "job": "b5b220af-a983-4941-a7db-f52e9208f8d3",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "north-east",
+    "state": "attack",
+    "job": "670a5b56-951c-4874-8e2c-e95c7e631c14",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "north-west",
+    "state": "attack",
+    "job": "4b6dbc4b-eca7-471d-9cce-e4f22d09215e",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "south-east",
+    "state": "block",
+    "job": "9016301f-e2d5-4650-b452-074921c7ccbe",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "south-west",
+    "state": "block",
+    "job": "2a5884f2-1120-4a73-aab1-07beffe47e6c",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "north-east",
+    "state": "block",
+    "job": "c87188cc-21d7-499f-885c-386c4cef3d7a",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "north-west",
+    "state": "block",
+    "job": "a46bac23-ca6a-470b-9079-ce0d2138d713",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "south-east",
+    "state": "hit",
+    "job": "5d847980-2cae-46a5-a7b4-774b9ec5de7d",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "south-west",
+    "state": "hit",
+    "job": "8da87821-2afd-4c78-8768-b0066423e454",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "north-east",
+    "state": "hit",
+    "job": "63111b57-2c25-4ade-8cf5-2065d45fb4cd",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "north-west",
+    "state": "hit",
+    "job": "ae6108c9-8df7-4098-9de5-ccae567abfbf",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "south-east",
+    "state": "death",
+    "job": "977fea15-10ae-454c-ae0c-8fe160368a54",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "south-west",
+    "state": "death",
+    "job": "9b07d75a-1916-457f-9ab4-03afec106907",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "north-east",
+    "state": "death",
+    "job": "429f6e58-4158-47e7-a84b-6c6bc1382100",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "north-west",
+    "state": "death",
+    "job": "e9b04414-1ab8-4b0b-8031-1cb2e044d8e2",
+    "count": 9,
+    "completed": true
   }
 ]

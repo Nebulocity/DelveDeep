@@ -210,3 +210,6 @@ Further Flint jobs. All four walking and four attack clips have been inspected a
 - All 24 Flint animation jobs have now been submitted. Remaining death jobs: north-east `b0d40ea2-c95d-4228-b523-63a05dfa99be`, north-west `5cb010e9-85e8-40cb-b226-626072d41e26`. Four idle, four walk, four attack, and four block clips are installed. Hit and death clips are rendering.
 - Flint south-west block job `1d5c40a9-f3c7-41be-a572-f4980ffdf647` had a damaged final transition frame; installed clip uses source indices `[0,1,2,3,0]`.
 
+
+- Flint now has all 20 idle, walk, attack, block, and hit clips installed and visually checked. All four death clips remain in PixelLab generation. Four death job IDs are `7726eede-be4f-4648-b0ac-2b5a8201023b` (SE), `ec95e333-96e5-4827-bb2c-4bbb0c333911` (SW), `b0d40ea2-c95d-4228-b523-63a05dfa99be` (NE), and `5cb010e9-85e8-40cb-b226-626072d41e26` (NW).
+

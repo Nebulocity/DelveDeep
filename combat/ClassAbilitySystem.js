@@ -39,7 +39,7 @@ export default class ClassAbilitySystem {
     return unit.alive && !unit.delvesUsed?.honorSacrifice && !scene.battleOver
       && scene.currentWaveIndex === scene.waves?.length - 1 && wave?.boss === true
       && scene.getLivingEnemies().length > 0 && others.some(ally => !ally.alive)
-      && survivors.length === 1 && survivors[0].role === 'Healer';
+      && survivors.length === 1;
   }
   sacrifice(unit, ability, time) {
     if (!this.canSacrifice(unit)) return false;

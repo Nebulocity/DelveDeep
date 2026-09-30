@@ -486,6 +486,20 @@ function fallenUnit(id, maxMana) {
   assert.equal(battle.isLeaderAbilityReady('arise'), false);
 }
 
+// Sturm's honor sacrifice makes him ineligible for any revival this encounter.
+{
+  const sturm = fallenUnit('sturm', 100);
+  sturm.delvesUsed.honorSacrifice = true;
+  const battle = scene([sturm, unit('survivor', 'Melee DPS')], []);
+  battle.usedLeaderAbilities = new Set();
+  battle.leaderAbilityCooldowns = new Map();
+  context.GameState.leader = { unlockedAbilities: ['arise'], battleLoadout: ['arise'] };
+  assert.equal(sturm.revive(1, 1), false);
+  battle.useLeaderAbility('arise');
+  assert.equal(sturm.alive, false);
+  assert.equal(battle.usedLeaderAbilities.size, 0);
+}
+
 // Paused choices remain interactive: orders set their state immediately and
 // valid tactics wait until resume before changing encounter resources.
 {

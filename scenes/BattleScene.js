@@ -887,7 +887,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
     const living = this.partyUnits.filter((unit) => unit.alive);
-    const fallen = this.partyUnits.filter((unit) => !unit.alive);
+    const fallen = this.partyUnits.filter((unit) => !unit.alive && !unit.delvesUsed?.honorSacrifice);
     if (id === 'arise' && fallen.length === 0) {
       this.showBattleMessage('No fallen adventurers to revive', '#a8a29e');
       return;

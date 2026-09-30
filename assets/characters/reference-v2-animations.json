@@ -629,7 +629,7 @@
     "name": "sturm",
     "direction": "south-east",
     "state": "idle",
-    "job": "cb6af0bf-0b05-4d3a-9f7d-2f2cc09cf5f6",
+    "job": "a4ed3aaa-d5ca-4523-b162-66092bcef461",
     "count": 5,
     "completed": true
   },
@@ -637,7 +637,7 @@
     "name": "sturm",
     "direction": "south-east",
     "state": "walk",
-    "job": "148e60b5-59e0-4c00-b048-9fff7c1cce50",
+    "job": "e1b3c5fd-e0c7-4b0e-8915-51003b2997d2",
     "count": 9,
     "completed": true
   },
@@ -645,7 +645,7 @@
     "name": "sturm",
     "direction": "south-east",
     "state": "attack",
-    "job": "7b141bad-72b8-48ce-b28f-3a5fd895499f",
+    "job": "e499c8e0-8cb6-4764-b11e-091e6005da09",
     "count": 7,
     "completed": true
   },
@@ -653,7 +653,7 @@
     "name": "sturm",
     "direction": "south-east",
     "state": "block",
-    "job": "2b13e246-2048-4b67-b236-ded4f23f2b6c",
+    "job": "1690a580-9341-495d-bb0b-b26102c76df1",
     "count": 5,
     "completed": true
   },
@@ -661,7 +661,7 @@
     "name": "sturm",
     "direction": "south-east",
     "state": "hit",
-    "job": "f95f0623-a1c0-4d10-88d5-7f9456e8cd7d",
+    "job": "f1396c07-5e55-4ca2-998c-187a7df16002",
     "count": 5,
     "completed": true
   },
@@ -669,7 +669,7 @@
     "name": "sturm",
     "direction": "south-east",
     "state": "death",
-    "job": "ec7759d7-e496-4211-813c-b5b3006b1358",
+    "job": "016a5303-2895-452a-96c9-fe7927686ae3",
     "count": 9,
     "completed": true
   },
@@ -677,7 +677,7 @@
     "name": "sturm",
     "direction": "south-west",
     "state": "idle",
-    "job": "67ce73f0-fbff-4339-b855-e28c94016d6d",
+    "job": "8a5e30f8-fc35-44ce-99ca-8e913d8af887",
     "count": 5,
     "completed": true
   },
@@ -685,7 +685,7 @@
     "name": "sturm",
     "direction": "south-west",
     "state": "walk",
-    "job": "98bd592e-714a-4086-bed2-16d741779e51",
+    "job": "e52e3d82-2376-4447-b0b6-c458eaea45ba",
     "count": 9,
     "completed": true
   },
@@ -693,7 +693,7 @@
     "name": "sturm",
     "direction": "south-west",
     "state": "attack",
-    "job": "21e70dad-763b-4297-9c2b-8590c8d885ae",
+    "job": "3aa90536-f586-4f31-baea-c11671b71c15",
     "count": 7,
     "completed": true
   },
@@ -701,7 +701,7 @@
     "name": "sturm",
     "direction": "south-west",
     "state": "block",
-    "job": "f98320ed-51d3-4b68-b6e3-76ab3781116e",
+    "job": "229711a6-9169-45f8-8964-aa83deea597a",
     "count": 5,
     "completed": true
   },
@@ -709,7 +709,7 @@
     "name": "sturm",
     "direction": "south-west",
     "state": "hit",
-    "job": "d1f83d6e-2f02-441b-bfab-79e999ea1401",
+    "job": "f61d644c-8a98-485d-b7ba-08356ce174f1",
     "count": 5,
     "completed": true
   },
@@ -717,7 +717,7 @@
     "name": "sturm",
     "direction": "south-west",
     "state": "death",
-    "job": "ed6d9784-c75f-4d5d-8e23-689c2b0e9943",
+    "job": "54877bd7-9c9f-4742-965e-5454b205dfa8",
     "count": 9,
     "completed": true
   },
@@ -725,7 +725,7 @@
     "name": "sturm",
     "direction": "north-east",
     "state": "idle",
-    "job": "855036ed-c257-434c-b9c4-b018fceb3d07",
+    "job": "42ba7b98-2d74-4b98-8851-30813717c0d4",
     "count": 5,
     "completed": true
   },
@@ -733,7 +733,7 @@
     "name": "sturm",
     "direction": "north-east",
     "state": "walk",
-    "job": "8901f189-6244-4223-8fd4-c60c5e65e4d3",
+    "job": "d8a6e558-8d13-4662-b27a-dce73d7b83bb",
     "count": 9,
     "completed": true
   },
@@ -741,7 +741,7 @@
     "name": "sturm",
     "direction": "north-east",
     "state": "attack",
-    "job": "fc621e41-51c3-45cd-8912-ca6ea4563670",
+    "job": "4937f66c-d034-45d7-9501-a4de3d9deafd",
     "count": 7,
     "completed": true
   },
@@ -749,7 +749,7 @@
     "name": "sturm",
     "direction": "north-east",
     "state": "block",
-    "job": "ee4e8e30-0c5d-47d6-bcce-74abdaaee03b",
+    "job": "d6367ec0-e734-4508-a741-d1b7f0c487bf",
     "count": 5,
     "completed": true
   },
@@ -757,7 +757,7 @@
     "name": "sturm",
     "direction": "north-east",
     "state": "hit",
-    "job": "2d3ba3b3-aff6-4bc9-9003-0230bc45a5cb",
+    "job": "ede9e500-8793-427e-81f4-40cd6a181d80",
     "count": 5,
     "completed": true
   },
@@ -765,7 +765,7 @@
     "name": "sturm",
     "direction": "north-east",
     "state": "death",
-    "job": "9b040dd8-c3db-4f44-8263-675c1a402d19",
+    "job": "4891e04e-c368-4929-83b2-d21b5ffd18ec",
     "count": 9,
     "completed": true
   },
@@ -773,7 +773,7 @@
     "name": "sturm",
     "direction": "north-west",
     "state": "idle",
-    "job": "7c5e3bac-d154-4a8b-ae0c-348768365012",
+    "job": "f6c1c78c-b499-492c-bc8e-cb14bc08f37d",
     "count": 5,
     "completed": true
   },
@@ -781,7 +781,7 @@
     "name": "sturm",
     "direction": "north-west",
     "state": "walk",
-    "job": "2df13a1d-166e-4e02-8723-e6c1f746b559",
+    "job": "324777a9-9e5f-4d96-bd10-af86f3371ae2",
     "count": 9,
     "completed": true
   },
@@ -789,7 +789,7 @@
     "name": "sturm",
     "direction": "north-west",
     "state": "attack",
-    "job": "30af9a2c-8097-4ab8-a4c1-23e673782fb9",
+    "job": "4ab3d77b-ee52-4d06-bc6f-57039fd6d2a6",
     "count": 7,
     "completed": true
   },
@@ -797,7 +797,7 @@
     "name": "sturm",
     "direction": "north-west",
     "state": "block",
-    "job": "c22b3d1c-47df-4a0c-bb0f-a4e1c5fa444c",
+    "job": "35bf3106-ec31-4a10-bdb8-7f6a773bbb86",
     "count": 5,
     "completed": true
   },
@@ -805,7 +805,7 @@
     "name": "sturm",
     "direction": "north-west",
     "state": "hit",
-    "job": "27bcbc45-11ab-4c1b-94d8-4957e91f4dbf",
+    "job": "31225a5f-b1d6-4b66-831b-51063bfa14c4",
     "count": 5,
     "completed": true
   },
@@ -813,7 +813,7 @@
     "name": "sturm",
     "direction": "north-west",
     "state": "death",
-    "job": "2e127555-69da-46ea-9106-b60e50da92ac",
+    "job": "15d23d53-5279-49ba-b87b-6e61d90c4b89",
     "count": 9,
     "completed": true
   },

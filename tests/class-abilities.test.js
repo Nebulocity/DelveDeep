@@ -148,7 +148,7 @@ try {
   Math.random=()=>0;assert.equal(system.tryParry(oath,attacker,30,3999),false,'failed parry also spends cooldown');
   assert.equal(system.tryParry(oath,attacker,30,4000),true);
 } finally {Math.random=random;}
-// Only the final boss wave with exactly an Oathwarden and one healer alive qualifies.
+// Only the final boss wave with exactly an Oathwarden and one other ally alive qualifies.
 s.waves=[{boss:true},{boss:true}];s.currentWaveIndex=0;
 dps.alive=false;oath.defeat=()=>{oath.alive=false;oath.hp=0;};
 for(const ally of [healer,dps]) {ally.maxMana=100;ally.mana=3;ally.updateHealthBar=()=>{};ally.revive=()=>{ally.alive=true;};}
@@ -160,6 +160,14 @@ dps.alive=false;assert.equal(system.sacrifice(oath,oath.abilities.sacrifice,100)
 assert.equal(oath.alive,false);assert.ok(healer.alive&&dps.alive);assert.equal(healer.hp,100);assert.equal(dps.hp,100);assert.equal(dps.mana,100);assert.equal(healer.mana,100);
 assert.equal(dps.status.honorDamageBoost,0.5);assert.equal(dps.status.honorDamageUntil,10100);assert.equal(healer.status.honorHealingBoost,0.5);
 oath.alive=true;dps.alive=false;assert.equal(system.canSacrifice(oath),false,'reviving the Oathwarden cannot repeat the sacrifice');
+const secondOath=make('Oathwarden'), secondHealer=make('Cleric of the Everbright',1), secondDps=make('Barmaid',2);
+secondOath.defeat=()=>{secondOath.alive=false;};
+secondHealer.alive=false;secondHealer.maxMana=100;secondHealer.mana=0;secondHealer.updateHealthBar=()=>{};
+secondHealer.revive=()=>{secondHealer.alive=true;};
+secondDps.maxMana=100;secondDps.mana=3;secondDps.updateHealthBar=()=>{};
+s=scene([secondOath,secondHealer,secondDps],[enemy(3)]);s.waves=[{boss:true}];s.currentWaveIndex=0;system=new System(s);
+assert.equal(system.sacrifice(secondOath,secondOath.abilities.sacrifice,100),true,'a DPS survivor can witness the sacrifice');
+assert.equal(secondOath.alive,false);assert.equal(secondHealer.alive,true);assert.equal(secondHealer.hp,100);assert.equal(secondHealer.mana,100);
 console.log('Exact roster, Barmaid line/AoE, Oathwarden vow, parry and sacrifice conditions passed.');
 // Reassigned retained characters keep gear; removed characters cannot remain selected.
 globalThis.localStorage={getItem:()=>JSON.stringify({lastPartyIds:['justarius','sturm','tika'],roster:[{id:'sturm',level:3,equipment:{weapon:'s'}},{id:'tika',level:2,equipment:{weapon:'t'}}],inventory:{equipment:[{id:'s',itemId:'paladin-weapon'},{id:'t',itemId:'rogue-weapon'}]}})};

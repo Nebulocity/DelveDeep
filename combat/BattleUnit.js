@@ -477,7 +477,7 @@ export default class BattleUnit {
   // statuses and orders must not leave the revived unit disabled or frozen.
   revive(healthFraction = 0.5, manaFraction = 0.5) {
 
-    if (this.alive || this.isEnemy) return false;
+    if (this.alive || this.isEnemy || this.delvesUsed?.honorSacrifice) return false;
     this.alive = true;
     this.hp = Math.max(1, Math.round(this.maxHp * healthFraction));
     this.mana = Math.round(this.maxMana * manaFraction);

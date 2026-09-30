@@ -35,6 +35,7 @@ User supplied art was displayed in this chat; local character source art is unde
 - Raistlin PixelLab 8-direction character: `cf445947-307b-4ea0-b91f-0c5200160192`. Source conversion job: `7be2e932-74da-44a1-9128-31f766612058`. All 24 source jobs are in `assets/characters/reference-v2-animations.json`.
 - Commit `5667f6e`: Dalamar reference, four facings, six animated sheets, runtime catalog, sprite asset test, and this continuation log. `node tests/sprite-assets.test.js` passed for seven characters. Dalamar PixelLab character: `f231196f-4737-4b3f-aa95-c7a90ab32ca6`; source conversion job: `6680ed12-c620-4c78-9eaf-128f13b2435d`.
 - Commit `58a1414`: checkpoint of Palin's supplied reference, four rotations, eight idle/walk clips, two south-facing attacks, south-east block, and updated continuation log. Palin is still incomplete and is not yet in the runtime catalog.
+- Commit `b45a64f`: completed Palin's remaining 24-clip source set, six transparent runtime sheets, sprite catalog, and test. `node tests/sprite-assets.test.js` passed for eight characters.
 - These commits have **not been pushed yet**. Push only after remaining work and final tests.
 
 ## Dalamar source record (completed)
@@ -74,9 +75,30 @@ User supplied art was displayed in this chat; local character source art is unde
 - Local scratch helpers for the current session are under `C:\Users\kenwh\Documents\Codex\2026-09-29\do-x20\work\`: `dalamar-frame-manifest.json` lists all 24 jobs, `install_pixellab_frames.py` downloads PNGs concurrently to the repo, `update_sprite_job_manifest.py` records jobs in the repo metadata, and `install_character_references.py` installs the four rotation frames from a PixelLab character ZIP. This file alone has the job IDs and download procedure if scratch files are unavailable.
 - Dalamar was visually inspected, packed, catalogued, tested, and committed. The table remains for source reconstruction.
 
-## Current work: Palin and remaining characters
+## Current work: Tasslehoff and remaining characters
 
 - Palin is complete: conversion job `c0cd9d7c-9010-41b4-8c27-8c83c01753ed`, eight-direction character `a4079b0f-dec3-41ea-990d-cd9230e29c35`, supplied reference, four authored facings, and all 24 clips installed. Six transparent runtime sheets were packed, catalogued, and visually checked. `node tests/sprite-assets.test.js` passed for eight characters. All Palin source job IDs are also recorded in `assets/characters/reference-v2-animations.json`.
+
+- Tasslehoff conversion job `d06869c7-7eb3-4cbe-9a78-c7a036a777bf` and eight-direction v3 character `c5584399-7532-4546-bdda-935fb424a4e9` are complete. All four game facings were inspected. PixelLab generated a white opaque square behind each; the PixelLab workbench removed exact connected white backgrounds, leaving transparency. The supplied reference and four cleaned facings are installed under `assets/characters/tasslehoff/reference-v2/`. South-east and southwest idle/walk clips (four clips, 28 frames) are installed; remaining animation jobs are running. Current scratch manifest: `work/tasslehoff-frame-manifest.json`.
+
+Tasslehoff cleaned rotation workbench image IDs: south-east `da929d41-5745-4a75-b0fe-5b5df4185805`, south-west `c4cfd8fa-2975-44e1-bbd7-c17ab0bffb5d`, north-east `5826d550-5319-47cf-b950-df6138d32590`, north-west `a61926ae-64ea-4b7e-9da3-cc63afc76542`. Animation first/last frame URLs use `https://api.pixellab.ai/mcp/pixel-tools/<workbench-id>/image.png`.
+
+Tasslehoff jobs started:
+
+| State | Facing | PixelLab job |
+| --- | --- | --- |
+| idle | south-east | `860f7998-d765-475e-984d-7946c34b042a` |
+| walk | south-east | `3466ad08-3798-4bf5-b1b4-2d610340bdc2` |
+| idle | south-west | `f831712e-6b58-4bb9-90c1-15f2187fe4a7` |
+| walk | south-west | `4dfbce78-663c-44e3-9b09-e89657722b5e` |
+| idle | north-east | `878fee8d-d07b-4737-b6c1-b62fc9efb86d` |
+| walk | north-east | `13b75977-c86b-4f01-ba82-4ed044c5714b` |
+| idle | north-west | `1d82544a-0125-49b6-a0fc-6538ef1a1381` |
+| walk | north-west | `8249ad79-0544-414d-8c98-e9683d5a16c2` |
+| attack | south-east | `aed06864-b93d-4bec-b2da-d2682f276138` |
+| attack | south-west | `5768cb34-bf38-414d-a505-17d60300358c` |
+| block | south-east | `f6028f7f-1994-4aba-b607-e686fb3de5fe` |
+| attack | north-east | `3d62a9ab-e701-4c91-aa26-e4f055b7af6b` |
 
 South-east block job `3a9c5e2e-a620-4170-833c-54b5df905edf` had a damaged final transition frame; installed output frames use source indices `[0,1,2,3,0]`.
 

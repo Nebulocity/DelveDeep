@@ -1,0 +1,54 @@
+{
+  "canvas": [
+    256,
+    256
+  ],
+  "jobs": [
+    {
+      "name": "laurana",
+      "baseJob": "99e90b38-1fc7-4fb1-9dd8-cc73654c6e07",
+      "design": "Stern blonde green-eyed elf with two braids, silver plate and gold trim, red plume and cape, red tabard. Spear in anatomical RIGHT hand, sun shield on LEFT arm.",
+      "framingJob": "45c46705-4c84-4a29-95a3-30973354b8ac",
+      "rotationId": "e8b890fe-70d1-4f4d-a3e7-54ee8fea38c5",
+      "rotationsApproved": true,
+      "rotationsReady": true
+    },
+    {
+      "name": "tika",
+      "baseJob": "449734c0-c150-4935-be53-4f018bd26173",
+      "design": "Fierce curly red-haired woman with gold hoop earrings, blue and gold domed jewel helmet, blue pauldrons, chainmail top, red ragged cloth with white fur trim, asymmetric gold knee armor and tall brown boots. Cast-iron frying pan in anatomical RIGHT hand, round blue shield on LEFT arm.",
+      "framingJob": "be47c246-24a8-436a-ab13-f0898390b2e0",
+      "rotationId": "24f223ff-350a-4dac-ac3d-20ad8d7938b7",
+      "rotationsApproved": true,
+      "rotationsReady": true
+    },
+    {
+      "name": "tanis",
+      "baseJob": "34ba4efa-b4bb-495a-baa6-403a3722dc2d",
+      "design": "Stern auburn-haired bearded half elf, green headband, blue feather hair ornaments, green cloak, tan tunic and trousers, brown leather bracers boots belts and pouches, back quiver. Wooden bow in anatomical LEFT hand, right hand nocks an arrow.",
+      "framingJob": "ca8d03af-a239-4bb4-b62e-8a31d39127e9",
+      "correctionJob": "1b1d157b-2e16-4b0d-a9fa-6d69c10037a8",
+      "rotationId": "2fad23d8-95fa-4811-abb8-c9b16a1eff94",
+      "rotationsReady": true,
+      "rotationsApproved": true
+    },
+    {
+      "name": "sturm",
+      "baseJob": "84710a9b-24c1-423d-bc2f-0f4566dd5671",
+      "design": "Stern brown-haired mustached knight, dark blue armor with ornate gold trim, horned dark helmet with two large golden horns, red cloth, ornate sword in anatomical RIGHT hand and round dark shield with orange gold central emblem on LEFT arm.",
+      "framingJob": "03698839-0d30-4bf9-92f7-7d93fc2b385f",
+      "rotationId": "86d8bb57-d50c-4d9b-bb67-58304badcf6b",
+      "rotationsReady": true,
+      "rotationsApproved": true
+    },
+    {
+      "name": "goldmoon",
+      "baseJob": "753017c2-10d4-434e-878e-5a3bcd53d67d",
+      "design": "Blonde blue-eyed woman with braids, gold and cream fur-trimmed robes, red cape, sun pendant, brown boots and pouch. Sun-topped staff in anatomical RIGHT hand, round gold and silver sun shield on LEFT arm.",
+      "framingJob": "2ad5ee16-d753-4bec-8f0c-4640d591d30e",
+      "rotationId": "10716f56-5cc2-4627-b53c-b7945b6912f5",
+      "rotationsApproved": true,
+      "rotationsReady": true
+    }
+  ]
+}

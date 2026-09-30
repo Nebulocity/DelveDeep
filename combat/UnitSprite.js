@@ -9,7 +9,7 @@ export default class UnitSprite {
     this.definition = definition;
     this.motion = new SpriteMotion(unit.arenaX, unit.arenaY);
     const frame = this.currentFrame();
-    this.image = unit.scene.add.image(0, definition.footY, frame.key)
+    this.image = unit.scene.add.image(0, definition.footY, frame.key, frame.frame)
       .setScale(definition.scale);
     this.applyFrame(frame);
   }
@@ -47,8 +47,11 @@ export default class UnitSprite {
   }
 
   applyFrame(frame) {
-    if (this.frameKey !== frame.key) this.image.setTexture(frame.key);
+    if (this.frameKey !== frame.key || this.frameIndex !== frame.frame) {
+      this.image.setTexture(frame.key, frame.frame);
+    }
     this.frameKey = frame.key;
+    this.frameIndex = frame.frame;
     this.image.setOrigin(frame.flipX ? 1 - frame.originX : frame.originX, frame.originY);
     this.image.setFlipX(frame.flipX === true);
   }

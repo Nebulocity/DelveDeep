@@ -10,7 +10,7 @@ for (const state of ['idle','walk']) {
 }
 const image = {
   setScale(value){this.scale=value;return this;},
-  setTexture(key){this.key=key;return this;},
+  setTexture(key,frame){this.key=key;this.frame=frame;return this;},
   setOrigin(x,y){this.origin=[x,y];return this;},
   setFlipX(value){this.flipX=value;return this;},
   clearTint(){this.cleared=true;return this;}
@@ -31,6 +31,9 @@ assert.equal(UnitSprite.create({id:'not-a-sprite',scene:{}}),null);
 console.log('Unit sprite: frame selection, eight-direction clips, origins, pause, death, revival and circle fallback passed.');
 
 visual.applyFrame({key:'mirror',originX:0.4,originY:0.9,flipX:true});assert.equal(image.flipX,true);assert.deepEqual(image.origin,[0.6,0.9]);
+visual.applyFrame({key:'sheet',frame:0,originX:0.5,originY:0.9});
+visual.applyFrame({key:'sheet',frame:1,originX:0.5,originY:0.9});
+assert.equal(image.key,'sheet');assert.equal(image.frame,1,'atlas frame advances without changing texture');
 
 // One-shot actions override locomotion, freeze on pause and return cleanly to idle.
 for (const state of ['attack','block','hit','death']) {

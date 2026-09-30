@@ -1,0 +1,88 @@
+# Delve Deep sprite and data continuation log
+
+Updated 2026-09-30. This file is intended to be uploaded to a new Codex session if this conversation or usage window ends. Continue the existing work in order; do not restart completed characters.
+
+## User request and order
+
+1. Correct Sturm wherever his sword points down during combat. Use supplied `Sturm (Good).png` as the raised sword reference, rather than `Sturm (Bad).jpg`.
+2. Create four authored directional facings and six animated sheets for these characters, in order: Raistlin (updated art), Dalamar, Palin, Tasslehof (game ID `tasslehoff`), Flint, Riverwind, Fistandantalus (existing display spelling `Fistandantilus`, currently game ID `aoth`).
+3. After all seven are done, remove obsolete character and ability data references from the code.
+4. If PixelLab usage remains, create Slime Cave enemies from supplied art: Cave Slime (weak), Elder Slime (tough), Slime Sovereign (final boss). Update enemy data names to match. In current `data/enemies.js`, Cave Slime and Slime Sovereign already match; Elder is called `Elder Cave Slime`.
+5. Update Sturm's `My Honor is My Life` so he can sacrifice himself when exactly Sturm and any one ally survive in the final boss wave. It restores the other party members and Sturm cannot be revived for the rest of that encounter.
+6. Push all completed changes to the GitHub repo when finished.
+
+User supplied art was displayed in this chat; local character source art is under `C:\Users\kenwh\OneDrive\Desktop\DLChibi\`. The three enemy files `CaveSlime.png`, `ElderSlime.png`, and `SlimeSovereign.png` are **not present** at those local paths despite the images shown in the chat. Ask for them to be reattached if still missing when reaching enemies.
+
+## Repository and constraints
+
+- Repo: `E:\Programming\DelveDeep`
+- Branch: `0.1.2-3dSprites`
+- Remote: `https://github.com/Nebulocity/DelveDeep.git`
+- Read repo `AGENTS.md`; it requires PixelLab for sprites. The prior chat asked for 256×256 PixelLab frames, four authored facings `south-east`, `south-west`, `north-east`, `north-west`, and six states `idle`, `walk`, `attack`, `block`, `hit`, `death`. Do not mirror equipment.
+- Keep user-unrelated untracked Laurana concept PNGs out of commits. `ios/App/CapApp-SPM/Package.swift` shows a line ending modification after builds; exclude it unless there is a real intended diff.
+- `docs/` and `AGENTS.md` are Git-ignored. Local `docs/CLASS_ABILITIES.md` was edited but is not pushed.
+- Sprite source frames: `assets/characters/<id>/reference-v2/<state>/<direction>/frame-<n>.png`. Reference art: `reference.jpg`; four facings: `rotations/`; sheet outputs: `sheets/<state>.png` and `sheets/layout.json`.
+- `scripts/pack-sprite-sheets.py <id>` packs frames. It drops the last generated frame for idle/walk loops. `scripts/build-sprite-catalog.mjs` rebuilds `data/characterSprites.js`. Both scripts were extended with the remaining requested names; the catalog includes only characters whose `sheets/layout.json` exists.
+- `assets/characters/reference-v2-animations.json` records completed PixelLab job IDs and frame counts. Update it for each completed character.
+- The PixelLab account is Tier 1; about 653 generations remained at last check, resetting 2026-10-29. `animate_image_pixminimax` costs about one generation per 4- or 8-frame clip but sometimes queues for 10–20 minutes. `animate_image` is faster but spends more generations. PixelLab allows eight concurrent generation jobs.
+- PixelLab tool access in Codex: discover `mcp__pixellab__*` dynamically through `ALL_TOOLS` in `functions.exec`.
+
+## Completed and committed locally
+
+- Commit `73f83bf`: Sturm's raised sword reference, four facings, all six corrected sheets, plus ability change. `combat/ClassAbilitySystem.js` removed the surviving ally's healer role requirement; `combat/BattleUnit.js` rejects revival of `delvesUsed.honorSacrifice`; `scenes/BattleScene.js` excludes sacrificed Sturm from `Arise`. Tests in `tests/class-abilities.test.js` and `tests/battle-behavior.test.js` pass. `npm run build` passed after Sturm.
+- Sturm PixelLab 8-direction character: `4baf8049-ab98-4f9f-8f66-7bdfa1d3109c`. Source conversion job: `954f5802-12b5-4c84-ae03-d7ed8e7c49d1`. SW idle had a small shield artifact cleaned with PixelLab workbench result `ea7bc826-73e1-4114-ad88-ccf6432951cf`. SW attack and NW hit use selected raised sword frames. All 24 source jobs are recorded in `assets/characters/reference-v2-animations.json`.
+- Commit `43b4695`: updated Raistlin art, four authored facings, all six animated sheets, runtime catalog, sprite asset test. `node tests/sprite-assets.test.js` passed. NW attack's corrupted last frame was replaced with the first clean frame of that clip.
+- Raistlin PixelLab 8-direction character: `cf445947-307b-4ea0-b91f-0c5200160192`. Source conversion job: `7be2e932-74da-44a1-9128-31f766612058`. All 24 source jobs are in `assets/characters/reference-v2-animations.json`.
+- These commits have **not been pushed yet**. Push only after remaining work and final tests.
+
+## Current work: Dalamar
+
+- Dalamar supplied art converted by PixelLab job `6680ed12-c620-4c78-9eaf-128f13b2435d`. 8-direction PixelLab character `f231196f-4737-4b3f-aa95-c7a90ab32ca6`; all four game facings visually checked (dark hood, black robe, jagged staff).
+- Dalamar `reference.jpg`, `base.png`, and four `rotations/` are already installed in repo under `assets/characters/dalamar/reference-v2/`.
+- All 24 Dalamar animation jobs have been queued. Use `get_image(job_id)` or `wait_for_jobs` until complete, inspect contact sheets via `pixelart_workbench inspect job:<id>`, and download frames with `https://api.pixellab.ai/mcp/images/<job-id>/download?index=<0-based-index>`. Each job returns `frame_count+1` PNGs. Use 5 frames for idle/block/hit and 9 for walk/attack/death.
+- Dalamar jobs:
+
+| State | Facing | Output frames | PixelLab job |
+| --- | --- | ---: | --- |
+| idle | south-east | 5 | `4adc53e2-4534-45d8-bd44-4b6e9657f8bb` |
+| idle | south-west | 5 | `94266d45-db91-4ba9-96c5-af42b98de264` |
+| idle | north-east | 5 | `83f82227-27f4-4fb7-9244-c1374e342ff8` |
+| idle | north-west | 5 | `02becc4b-646f-4fa4-9300-e2dfb672ce36` |
+| walk | south-east | 9 | `0c30bc77-598b-45d1-9ade-bdee38aadbe5` |
+| walk | south-west | 9 | `116218f9-95b1-4498-84e3-f17697bfd4d7` |
+| walk | north-east | 9 | `e7987394-cef4-4b03-98af-07eb70ffc522` |
+| walk | north-west | 9 | `4c609c68-c792-4d39-9ddf-13c86aff9f7e` |
+| attack | south-east | 9 | `c4d67be3-0371-48ae-8a77-0205a66fe75c` |
+| attack | south-west | 9 | `aad58110-93ea-4013-8184-98818deab6e5` |
+| attack | north-east | 9 | `2f2df8f8-9949-4677-a2fd-c61a76119c47` |
+| attack | north-west | 9 | `393c6538-b9dc-4d56-a60f-0eb5efa78d30` |
+| block | south-east | 5 | `94fe958c-365d-42c1-b35c-d3d116b7d731` |
+| block | south-west | 5 | `54a124e5-257b-47d6-aa37-959b0fcc9443` |
+| block | north-east | 5 | `9e1a5261-a9fd-406e-8806-3d8e6c3a3ef0` |
+| block | north-west | 5 | `77de8d87-ad31-4850-aac4-f3a9d7797e41` |
+| hit | south-east | 5 | `ae43c62b-f47b-4004-8238-d9bad681cf7b` |
+| hit | south-west | 5 | `ee8b2f67-9902-4c0f-ae8e-3d54ad1fd5d9` |
+| hit | north-east | 5 | `868b7029-2d47-4b8a-ab63-5e8a096f729b` |
+| hit | north-west | 5 | `2b010d3b-d2f8-4a7d-91ad-a34abddc3e26` |
+| death | south-east | 9 | `b8315d6a-cd6d-42c0-9d7c-7821f4c1d43c` |
+| death | south-west | 9 | `9c06386b-e7a0-49a0-b8de-2c9aea745779` |
+| death | north-east | 9 | `710eff01-f1bf-4ec6-9939-65615a377549` |
+| death | north-west | 9 | `93878b97-ef71-4ace-bc82-4cc9970d7747` |
+
+- Local scratch helpers for the current session are under `C:\Users\kenwh\Documents\Codex\2026-09-29\do-x20\work\`: `dalamar-frame-manifest.json` lists all 24 jobs, `install_pixellab_frames.py` downloads PNGs concurrently to the repo, `update_sprite_job_manifest.py` records jobs in the repo metadata, and `install_character_references.py` installs the four rotation frames from a PixelLab character ZIP. This file alone has the job IDs and download procedure if scratch files are unavailable.
+- After all Dalamar jobs complete and look clean: download all source frames, run `python scripts/pack-sprite-sheets.py dalamar`, run `node scripts/build-sprite-catalog.mjs`, add `dalamar` to `tests/sprite-assets.test.js`, run that test, and commit the targeted files. Inspect attack/death sheets for corrupted last frames before committing.
+
+## Next characters and source art
+
+Prepare each supplied PNG as a ~512px JPEG. Call PixelLab `image_to_pixelart` with `faithful:true`, `init_image_strength:180`, `output_width:256`, `output_height:256`. Then call `create_character` in `v3` mode with eight directions, 256px, low top-down, using the converted image download URL as `reference_image_url`. Inspect the four game facings before animation. Download the PixelLab character ZIP (`https://api.pixellab.ai/mcp/characters/<character-id>/download`) and install only `Idle/rotations/<direction>.png` as the four facings and SE as `base.png`; do not use the generated template animation in that ZIP. Prior template animation changed Sturm's design.
+
+For each facing, `animate_image_pixminimax` with the rotation URL as `first_frame_url`, `no_background:true`, and `direction`. Pin `last_frame_url` to the same rotation for idle, walk, attack, block, hit; leave death open to end in a fallen pose. Use frame counts 4 idle, 8 walk, 8 attack, 4 block, 4 hit, 8 death. Keep distinctive equipment in the same hand and design consistent. Contact sheets should be visually checked; fix or replace corrupted individual frames before packing.
+
+After Dalamar: Palin (`Palin.png`, game ID `palin`, white and blue robe with glowing blue crystal staff), Tasslehof (`Tasslehof.png`, game ID `tasslehoff`, hoopak staff), Flint (`Flint.png`, game ID `flint`, double-bladed axe), Riverwind (`Riverwind.png`, game ID `riverwind`, **bow** per supplied art), Fistandantalus (`Fistandantalus.png`, likely game ID `fistandantilus`, red hood and ornate red crystal staff). Preserve user art and authored facings.
+
+## Code/data cleanup and enemies after characters
+
+- Current `data/adventurers.js` has `createAdventurer('aoth', 'Fistandantilus', ...)`; reconcile this obsolete ID with new Fistandantilus sprite only after all character sprites are in place. `data/classes.js` contains `CLASS_MIGRATIONS` for old classes, and there may be old ability/save migration references. User said old character and ability data are no longer needed, so inspect usages and remove obsolete references while keeping active class abilities, saves, and tests coherent.
+- The current enemy data is `data/enemies.js`; Slime Cave encounter placement is in `data/encounters.js`, and level definition is in `data/levels/SlimeCave.js`. The first Delve needs Cave Slime as weak, Elder Slime as tough, Slime Sovereign as boss. Update the `Elder Cave Slime` name to `Elder Slime`. Existing IDs `caveSlime`, `elderSlime`, and `slimeSovereign` already appear in enemy data and encounters. The supplied enemy artwork needs to be recovered or reattached before creating their sprites.
+- Final verification: run focused combat/ability, sprite asset, progression/encounter tests and `npm run build`. Stage only intentional changes, commit, then `git push origin 0.1.2-3dSprites`. Check remote status.
+

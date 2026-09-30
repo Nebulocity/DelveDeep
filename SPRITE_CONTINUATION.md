@@ -213,3 +213,15 @@ Further Flint jobs. All four walking and four attack clips have been inspected a
 
 - Flint now has all 20 idle, walk, attack, block, and hit clips installed and visually checked. All four death clips remain in PixelLab generation. Four death job IDs are `7726eede-be4f-4648-b0ac-2b5a8201023b` (SE), `ec95e333-96e5-4827-bb2c-4bbb0c333911` (SW), `b0d40ea2-c95d-4228-b523-63a05dfa99be` (NE), and `5cb010e9-85e8-40cb-b226-626072d41e26` (NW).
 
+
+### Riverwind preparation while Flint death animations render
+
+- Supplied `Riverwind.png` converted to 256px pixel art by PixelLab job `014622bd-3e20-46d6-8544-4c4a954dd6b8`. Visual check: tan fringed archer, red headband, dark hair, bow and quiver intact.
+- Eight-direction v3 character generation ID `d2975e85-6db3-4b5a-ad2a-8d8b5f6689c5` is processing. Do not replace or mirror his bow. Flint still takes integration priority; start Riverwind animations after Flint is complete.
+- Flint southeast death clip `7726eede-be4f-4648-b0ac-2b5a8201023b` was visually checked and installed. Three other death clips remain in generation.
+
+
+- Riverwind v3 character `d2975e85-6db3-4b5a-ad2a-8d8b5f6689c5` finished. All four game facings visually checked and installed under `assets/characters/riverwind/reference-v2/` with supplied reference; bow, quiver, headband, hair and outfit are preserved.
+- Riverwind idle PixelLab jobs: SE `ac2243a8-b25c-46ec-abc1-f1a69f3d7cbf`, SW `8b37d17b-b9ba-4e02-8e93-ad323cfaa748`, NE `2ea3fc35-371a-42d2-8b23-b1d9a4acb39c`, NW `6f2a4f80-5c2c-42e7-9277-d870f5ca181c`. Jobs are pending; scratch manifest `work/riverwind-frame-manifest.json` records them.
+- Flint southwest death clip `ec95e333-96e5-4827-bb2c-4bbb0c333911` visually checked and installed. Only north-east and north-west death clips remain for Flint.
+

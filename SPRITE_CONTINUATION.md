@@ -258,3 +258,10 @@ Further Flint jobs. All four walking and four attack clips have been inspected a
 - Eight-direction v3 character generation ID `0fd49919-ab42-4863-a91e-075c71d20a07` is processing. Planned game ID `fistandantilus`, reconciling the existing `aoth` record after sprite completion. Preserve user art file spelling separately.
 - Riverwind all four block clips are visually checked and installed. Hit SE and SW are installed; NE and NW hits and all four deaths are still rendering. Death jobs: SE `9f56b426-0e58-4f0b-b533-21498a6a24cf`, SW `9803c1ab-14e5-40a6-b7d1-a45694e1bbb5`, NE `5f5340e0-7496-49b1-aed5-cabf22291631`, NW `213bfc8f-1d53-44a9-8cb3-32cf192ef0d8`.
 
+
+### Riverwind complete; Fistandantilus queued next
+
+- All 24 Riverwind clips (idle, walk, bow attack, block, hit, death in four facings) are installed and visually checked. Six transparent sheets packed; death sheet checked for coherent bow/quiver and complete falling poses. `node tests/sprite-assets.test.js` passes for 11 characters.
+- Last Riverwind jobs completed: hit NE `553bf19d-8038-4e63-9d87-5ade54adc9d5`, hit NW `1d04268b-7da8-4d8e-bd39-17779b0b6d68`; death SE `9f56b426-0e58-4f0b-b533-21498a6a24cf`, SW `9803c1ab-14e5-40a6-b7d1-a45694e1bbb5`, NE `5f5340e0-7496-49b1-aed5-cabf22291631`, NW `213bfc8f-1d53-44a9-8cb3-32cf192ef0d8`.
+- Fistandantilus v3 character `0fd49919-ab42-4863-a91e-075c71d20a07` finished. All four game rotations inspected; northwest had a small detached gray ground line. PixelLab workbench edit `d4e719ea-5859-4bfd-903a-11e3ef05a2be` removes 119 gray pixels without changing character colors. Use `https://api.pixellab.ai/mcp/pixel-tools/d4e719ea-5859-4bfd-903a-11e3ef05a2be/image.png` as the NW animation first frame if accessible. Other directions use v3 rotations.
+- Future Blender level context, without opening the `.blend`: approved Slime Cave composition is 1920x1080, production camera named `CAM_SlimeCave_Game`; game fits art to a 2400x1080 canvas with `offsetY:-120`. Floor corner coordinates are in `data/levels/SlimeCave.js`. Exact camera location, rotation, lens and orthographic scale are not recorded in inspected docs/code.

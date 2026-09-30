@@ -33,13 +33,14 @@ User supplied art was displayed in this chat; local character source art is unde
 - Sturm PixelLab 8-direction character: `4baf8049-ab98-4f9f-8f66-7bdfa1d3109c`. Source conversion job: `954f5802-12b5-4c84-ae03-d7ed8e7c49d1`. SW idle had a small shield artifact cleaned with PixelLab workbench result `ea7bc826-73e1-4114-ad88-ccf6432951cf`. SW attack and NW hit use selected raised sword frames. All 24 source jobs are recorded in `assets/characters/reference-v2-animations.json`.
 - Commit `43b4695`: updated Raistlin art, four authored facings, all six animated sheets, runtime catalog, sprite asset test. `node tests/sprite-assets.test.js` passed. NW attack's corrupted last frame was replaced with the first clean frame of that clip.
 - Raistlin PixelLab 8-direction character: `cf445947-307b-4ea0-b91f-0c5200160192`. Source conversion job: `7be2e932-74da-44a1-9128-31f766612058`. All 24 source jobs are in `assets/characters/reference-v2-animations.json`.
+- Commit `5667f6e`: Dalamar reference, four facings, six animated sheets, runtime catalog, sprite asset test, and this continuation log. `node tests/sprite-assets.test.js` passed for seven characters. Dalamar PixelLab character: `f231196f-4737-4b3f-aa95-c7a90ab32ca6`; source conversion job: `6680ed12-c620-4c78-9eaf-128f13b2435d`.
 - These commits have **not been pushed yet**. Push only after remaining work and final tests.
 
-## Current work: Dalamar
+## Dalamar source record (completed)
 
 - Dalamar supplied art converted by PixelLab job `6680ed12-c620-4c78-9eaf-128f13b2435d`. 8-direction PixelLab character `f231196f-4737-4b3f-aa95-c7a90ab32ca6`; all four game facings visually checked (dark hood, black robe, jagged staff).
-- Dalamar `reference.jpg`, `base.png`, and four `rotations/` are already installed in repo under `assets/characters/dalamar/reference-v2/`.
-- All 24 Dalamar animation jobs have been queued. Use `get_image(job_id)` or `wait_for_jobs` until complete, inspect contact sheets via `pixelart_workbench inspect job:<id>`, and download frames with `https://api.pixellab.ai/mcp/images/<job-id>/download?index=<0-based-index>`. Each job returns `frame_count+1` PNGs. Use 5 frames for idle/block/hit and 9 for walk/attack/death.
+- Dalamar source frames, four rotations, six sheets, and job metadata are installed in the repo under `assets/characters/dalamar/reference-v2/` and `assets/characters/reference-v2-animations.json`.
+- All 24 Dalamar animation jobs are complete. Each job returns `frame_count+1` PNGs; 5 frames for idle/block/hit and 9 for walk/attack/death.
 - Dalamar jobs:
 
 | State | Facing | Output frames | PixelLab job |
@@ -70,15 +71,43 @@ User supplied art was displayed in this chat; local character source art is unde
 | death | north-west | 9 | `93878b97-ef71-4ace-bc82-4cc9970d7747` |
 
 - Local scratch helpers for the current session are under `C:\Users\kenwh\Documents\Codex\2026-09-29\do-x20\work\`: `dalamar-frame-manifest.json` lists all 24 jobs, `install_pixellab_frames.py` downloads PNGs concurrently to the repo, `update_sprite_job_manifest.py` records jobs in the repo metadata, and `install_character_references.py` installs the four rotation frames from a PixelLab character ZIP. This file alone has the job IDs and download procedure if scratch files are unavailable.
-- After all Dalamar jobs complete and look clean: download all source frames, run `python scripts/pack-sprite-sheets.py dalamar`, run `node scripts/build-sprite-catalog.mjs`, add `dalamar` to `tests/sprite-assets.test.js`, run that test, and commit the targeted files. Inspect attack/death sheets for corrupted last frames before committing.
+- Dalamar was visually inspected, packed, catalogued, tested, and committed. The table remains for source reconstruction.
 
-## Next characters and source art
+## Current work: Palin and remaining characters
+
+- Palin source conversion job `c0cd9d7c-9010-41b4-8c27-8c83c01753ed` is complete. Eight-direction v3 PixelLab character `a4079b0f-dec3-41ea-990d-cd9230e29c35` is complete; all four game facings were visually checked. The supplied reference and four rotations are installed in `assets/characters/palin/reference-v2/`. All eight idle/walk clips (56 frames), both south-facing attack clips (18 frames), and south-east block (5 frames) are installed. Attack, block, hit, and death are still in progress. In the current session, `work/palin-frame-manifest.json` tracks all jobs. Palin sheets have not yet been packed or catalogued.
+
+South-east block job `3a9c5e2e-a620-4170-833c-54b5df905edf` had a damaged final transition frame; installed output frames use source indices `[0,1,2,3,0]`.
+
+Palin jobs started (each returns 5 frames for idle/block, 9 for walk/attack):
+
+| State | Facing | PixelLab job |
+| --- | --- | --- |
+| idle | south-east | `23238654-490c-4d22-bb9c-575b8c99b053` |
+| walk | south-east | `e756748b-b2fd-425b-8d4f-f263ca41854b` |
+| idle | south-west | `5cd20645-f93d-495e-bd59-45e3c93f0e5f` |
+| walk | south-west | `8641c1e9-a4c2-441b-a4bd-b6e03c289481` |
+| idle | north-east | `539a44b7-3723-4e2c-92f6-aba6a6a2222c` |
+| walk | north-east | `a5cc22af-9cdb-40ad-8041-8a5f7e8fee60` |
+| idle | north-west | `4693d145-25f9-4ef0-94ee-822d84b837f5` |
+| walk | north-west | `a98d391d-ac00-4a4f-bf9c-0fa74dfbf2c5` |
+| attack | south-east | `ce4f9322-a241-4b46-af89-e4fb866d736a` |
+| attack | south-west | `4ffd80eb-7685-475b-ac64-4ed677d6b1d2` |
+| block | south-east | `3a9c5e2e-a620-4170-833c-54b5df905edf` |
+| attack | north-east | `f5357bba-d107-45c3-9108-5ba7ce762a86` |
+| attack | north-west | `657e60c7-8ed3-4486-ba66-a22bfd15d2e9` |
+| block | south-west | `5d9dd113-3865-44af-b215-f374dc5337dd` |
+| block | north-east | `46787c12-dddb-4806-bd8d-044db1d4e326` |
+| block | north-west | `a573a2dd-38d5-4f65-9140-e98c0a9329bd` |
+| hit | south-east | `41ffa4c2-9c47-4b38-a54a-eb9acf541d4f` |
+| hit | south-west | `af1f34b3-060d-4163-a969-6a6ea2ee141e` |
+| hit | north-east | `1abfbfbe-38b7-4267-a2e3-a46880cceb97` |
 
 Prepare each supplied PNG as a ~512px JPEG. Call PixelLab `image_to_pixelart` with `faithful:true`, `init_image_strength:180`, `output_width:256`, `output_height:256`. Then call `create_character` in `v3` mode with eight directions, 256px, low top-down, using the converted image download URL as `reference_image_url`. Inspect the four game facings before animation. Download the PixelLab character ZIP (`https://api.pixellab.ai/mcp/characters/<character-id>/download`) and install only `Idle/rotations/<direction>.png` as the four facings and SE as `base.png`; do not use the generated template animation in that ZIP. Prior template animation changed Sturm's design.
 
 For each facing, `animate_image_pixminimax` with the rotation URL as `first_frame_url`, `no_background:true`, and `direction`. Pin `last_frame_url` to the same rotation for idle, walk, attack, block, hit; leave death open to end in a fallen pose. Use frame counts 4 idle, 8 walk, 8 attack, 4 block, 4 hit, 8 death. Keep distinctive equipment in the same hand and design consistent. Contact sheets should be visually checked; fix or replace corrupted individual frames before packing.
 
-After Dalamar: Palin (`Palin.png`, game ID `palin`, white and blue robe with glowing blue crystal staff), Tasslehof (`Tasslehof.png`, game ID `tasslehoff`, hoopak staff), Flint (`Flint.png`, game ID `flint`, double-bladed axe), Riverwind (`Riverwind.png`, game ID `riverwind`, **bow** per supplied art), Fistandantalus (`Fistandantalus.png`, likely game ID `fistandantilus`, red hood and ornate red crystal staff). Preserve user art and authored facings.
+Continue in order: Palin (`Palin.png`, game ID `palin`, white and blue robe with glowing blue crystal staff), Tasslehof (`Tasslehof.png`, game ID `tasslehoff`, hoopak staff), Flint (`Flint.png`, game ID `flint`, double-bladed axe), Riverwind (`Riverwind.png`, game ID `riverwind`, **bow** per supplied art), Fistandantalus (`Fistandantalus.png`, likely game ID `fistandantilus`, red hood and ornate red crystal staff). Preserve user art and authored facings.
 
 ## Code/data cleanup and enemies after characters
 

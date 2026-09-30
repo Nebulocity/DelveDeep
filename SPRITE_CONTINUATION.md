@@ -193,3 +193,20 @@ Further Flint jobs:
 | block | south-west | `1d5c40a9-f3c7-41be-a572-f4980ffdf647` |
 | block | north-east | `1c169aad-6eab-4828-a630-fec3ea3068d7` |
 
+
+Further Flint jobs. All four walking and four attack clips have been inspected and installed. Blocks, hits, and deaths are in progress.
+
+| State | Facing | PixelLab job |
+| --- | --- | --- |
+| block | north-west | `defeb3a6-f096-44f6-adeb-b75c9679562c` |
+| hit | south-east | `603f9354-b7ae-4c18-8166-b9e38ce564f0` |
+| hit | south-west | `1ed1eba2-4b79-4565-8254-db77c3f6f109` |
+| hit | north-east | `7885ed57-de22-4972-9031-97580cc7f237` |
+| hit | north-west | `e3b05063-70e8-4a52-a2b5-8c2430121985` |
+| death | south-east | `7726eede-be4f-4648-b0ac-2b5a8201023b` |
+| death | south-west | `ec95e333-96e5-4827-bb2c-4bbb0c333911` |
+
+
+- All 24 Flint animation jobs have now been submitted. Remaining death jobs: north-east `b0d40ea2-c95d-4228-b523-63a05dfa99be`, north-west `5cb010e9-85e8-40cb-b226-626072d41e26`. Four idle, four walk, four attack, and four block clips are installed. Hit and death clips are rendering.
+- Flint south-west block job `1d5c40a9-f3c7-41be-a572-f4980ffdf647` had a damaged final transition frame; installed clip uses source indices `[0,1,2,3,0]`.
+

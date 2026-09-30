@@ -237,3 +237,10 @@ Further Flint jobs. All four walking and four attack clips have been inspected a
 - Riverwind northeast walk `88e80eba-2815-4889-b7a2-e9fc5407bc34` visually checked and installed. Northwest walk and four bow attacks are pending.
 - Additional Riverwind jobs: southwest block `0e288341-adf6-4692-b343-264ba0f4c1c6`. Southeast block and four attacks remain listed above. All four idle clips are installed.
 
+
+### Flint complete
+
+- All 24 Flint clips are installed and visually checked. Six transparent sprite sheets were packed into `assets/characters/flint/reference-v2/sheets/`; runtime catalog now includes Flint. `node tests/sprite-assets.test.js` passed for ten characters. Attack sheet visually checked with consistent double-bladed axe.
+- All source jobs recorded in `assets/characters/reference-v2-animations.json`. The southwest block selected clean source indices `[0,1,2,3,0]` as noted above. Flint is complete; continue Riverwind and then Fistandantalus.
+- Riverwind northwest walk `379f7f2c-5cf0-4426-94a9-698ba07cc61d` visually checked and installed; all four Riverwind idle and walk clips are now installed. Newly queued blocks: northeast `702bfb70-f813-4d8f-b2c4-1bf7f33bdd3b`, northwest `c734dc58-7bf6-458a-a5be-0d46f5f30191`. Attack and block clips still pending.
+

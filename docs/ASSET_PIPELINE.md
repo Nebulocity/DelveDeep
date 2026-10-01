@@ -1,0 +1,7 @@
+# Asset pipeline
+
+Runtime art lives under `assets/`. Character assets use `assets/characters/<id>/`; the current PixelLab sheet pipeline stores source frames under `reference-v2/<state>/<direction>/frame-<n>.png`, authored facings in `rotations/`, and packed `sheets/<state>.png` plus `sheets/layout.json`. States are `idle`, `walk`, `attack`, `block`, `hit`, `death`; directions are `south-east`, `south-west`, `north-east`, `north-west`. Character IDs must align with `data/adventurers.js` and the catalog in `data/characterSprites.js`.
+
+Use supplied character references and PixelLab for new sprites. `scripts/pack-sprite-sheets.py <id>` packs accepted frames; `scripts/build-sprite-catalog.mjs` rebuilds the runtime catalog after sheets exist. The active PixelLab chat owns unfinished outputs and its root `SPRITE_CONTINUATION.md` handoff. Do not move or rename those files until that work finishes.
+
+Environment runtime exports live in `assets/environments/<level>/`. The current Slime Cave uses `reference.png`, `background.png`, `battlefield.png`, `foreground.png` and `ambient.mp4`, referenced by URL in `data/levels/SlimeCave.js`. Check string keys and URL construction before declaring an asset unused. Blender authoring source lives separately under `assets/blender/`; see [Blender pipeline](BLENDER_PIPELINE.md). Keep source art, accepted frame sets, packed sheets and runtime catalog in sync. Validate with `node tests/sprite-assets.test.js` and `npm run build` when sprite integration changes.

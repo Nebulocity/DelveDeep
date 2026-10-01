@@ -317,3 +317,9 @@ Further Flint jobs. All four walking and four attack clips have been inspected a
 
 - User explicitly confirmed `https://github.com/Nebulocity/DelveDeep.git` and the existing `0.1.2-3dSprites` branch. `git push origin 0.1.2-3dSprites` succeeded, advancing remote from `293108c` to `a6747f7`. The previous automatic-review rejection was resolved by this exact user confirmation.
 - Do not push to other branches. Current remaining work is optional Slime Cave enemy sprite sheets after the three missing reference image files become available. Unrelated uncommitted workspace changes remain untouched.
+
+### Enemy sprite integration audit
+
+- `combat/UnitSprite.js` currently looks up `CHARACTER_SPRITES[unit.id]`. Enemy runtime IDs are unique spawn IDs (`cave-slime-wave-index-spawn-index-serial`) in `scenes/BattleScene.createEnemy`, so a future enemy sprite catalog should instead use the enemy type (`caveSlime`, `elderSlime`, `slimeSovereign`) or a stable `spriteId` passed into `BattleUnit` before its constructor calls `UnitSprite.create`. `enemy.enemyType` is currently assigned only *after* constructing `BattleUnit`, too late for constructor-time sprite lookup.
+- Enemy data is in `data/enemies.js` and Slime Cave wave selection in `data/encounters.js`. Existing `combat/UnitSprite.js` can animate enemy `idle`, `walk`, `attack`, `block`, `hit`, and `death` if the sprite definition is registered and preloaded. Size/scale, hit zone, label offsets should be inspected visually for the small Cave Slime versus large boss. Write a focused runtime test for stable enemy sprite lookup when implementing.
+- No enemy sprite code was changed without the missing source images. The user supplied the correct GitHub remote and the completed commits through `f071721` are already pushed on `0.1.2-3dSprites`.

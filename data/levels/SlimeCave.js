@@ -14,8 +14,8 @@ export default {
   visuals: {
     environment: {
       width: 1920, height: 1080, offsetY: -120,
-      floor: { topLeftX: 465, topRightX: 1470, topY: 670,
-        bottomLeftX: 380, bottomRightX: 1510, bottomY: 945 },
+      floor: { topLeftX: 408, topRightX: 1512, topY: 670,
+        bottomLeftX: 339, bottomRightX: 1581, bottomY: 945 },
       layers: [
         { key: 'slime-cave-reference', url: new URL('../../assets/environments/slime-cave/reference.png', import.meta.url).href, depth: -1000 },
         { key: 'slime-cave-background', url: new URL('../../assets/environments/slime-cave/background.png', import.meta.url).href, depth: -990 },

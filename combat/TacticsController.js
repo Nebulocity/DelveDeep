@@ -45,13 +45,14 @@ export default class TacticsController {
   getSpawnPosition(unit, index) {
 
     const preference = this.preferences.get(unit.id) ?? { jitterX: 0, jitterY: 0, side: 1 };
+    const centerX = this.battlefield.logicalWidth / 2;
     const rolePositions = {
-      Tank: { x: 700, y: 300 },
-      Healer: { x: 420, y: 125 },
-      'Melee DPS': { x: 760, y: 190 },
-      'Ranged DPS': { x: 1040, y: 125 }
+      Tank: { x: centerX, y: 300 },
+      Healer: { x: centerX - 280, y: 125 },
+      'Melee DPS': { x: centerX + 60, y: 190 },
+      'Ranged DPS': { x: centerX + 340, y: 125 }
     };
-    const base = rolePositions[unit.role] ?? { x: 260 + index * 150, y: 150 };
+    const base = rolePositions[unit.role] ?? { x: centerX - 440 + index * 150, y: 150 };
     return this.safePoint(base.x + preference.jitterX, base.y + preference.jitterY, 70);
   }
 
@@ -60,7 +61,8 @@ export default class TacticsController {
   getTankPosition(tank, primaryEnemy) {
 
     const preference = this.preferences.get(tank.id) ?? { jitterX: 0 };
-    const desiredX = Phaser.Math.Clamp(primaryEnemy.arenaX, 520, 880) + preference.jitterX * 0.25;
+    const centerX = this.battlefield.logicalWidth / 2;
+    const desiredX = Phaser.Math.Clamp(primaryEnemy.arenaX, centerX - 180, centerX + 180) + preference.jitterX * 0.25;
     const desiredY = Phaser.Math.Clamp(primaryEnemy.arenaY - 100, 380, 650);
     return this.safePoint(desiredX, desiredY, 100);
   }
@@ -84,7 +86,7 @@ export default class TacticsController {
 
     const preference = this.preferences.get(unit.id) ?? { side: 1, jitterX: 0, jitterY: 0 };
     const spread = this.tactics.rangedFormation === 'spread' ? 1 : 0.45;
-    const x = 700 + preference.side * (330 * spread) + preference.jitterX;
+    const x = this.battlefield.logicalWidth / 2 + preference.side * (330 * spread) + preference.jitterX;
     const y = Phaser.Math.Clamp(enemy.arenaY - 380 + preference.jitterY, 90, 310);
     return this.safePoint(x, y, 75);
   }

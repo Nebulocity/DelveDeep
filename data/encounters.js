@@ -60,7 +60,7 @@ const thornbriarWaves = [
 
 // This function creates independent wave data for the selected delve.
 // Thornbriar uses bandits; other delves retain their difficulty waves.
-export function createEncounterWaves(delve = {}) {
+export function createEncounterWaves(delve = {}, arenaWidth = 1400) {
 
   const difficulty = delve.type === 'void' ? 'Void' : delve.difficulty ?? 'Easy';
   const base = difficulty === 'Void' ? voidPortalWaves : forgottenCavernWaves;
@@ -80,7 +80,8 @@ export function createEncounterWaves(delve = {}) {
       ]
     });
   }
+  const centerOffset = (arenaWidth - 1400) / 2;
   return waves.map((wave) => ({
-    ...wave, enemies: wave.enemies.map((enemy) => ({ ...enemy }))
+    ...wave, enemies: wave.enemies.map((enemy) => ({ ...enemy, arenaX: enemy.arenaX + centerOffset }))
   }));
 }

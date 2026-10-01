@@ -97,6 +97,8 @@ assert.deepEqual(banditWaves.flatMap((wave) => wave.enemies.map((spawn) => spawn
 ]);
 assert.equal(banditWaves.at(-1).enemies[0].type, 'banditChief');
 assert.equal(createEncounterWaves(slimeCave).at(-1).enemies[0].type, 'slimeSovereign');
+const oldBossX = createEncounterWaves(slimeCave).at(-1).enemies[0].arenaX;
+assert.equal(createEncounterWaves(slimeCave, 1750).at(-1).enemies[0].arenaX, oldBossX + 175);
 const milestone = createEncounterWaves({ difficulty: 'Easy', depth: 5 });
 assert.equal(milestone.length, 5);
 assert.equal(milestone.at(-2).milestoneBoss, true);

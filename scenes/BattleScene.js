@@ -88,15 +88,15 @@ export default class BattleScene extends Phaser.Scene {
     // Define the logical combat area and the screen-space perspective used to
     // display its grid and units.
     this.battlefield = new BattlefieldGeometry(this, {
-      bottomLeftX: 345,
-      bottomRightX: width - 345,
-      topLeftX: width * 0.29,
-      topRightX: width * 0.71,
+      bottomLeftX: 310,
+      bottomRightX: width - 310,
+      topLeftX: width * 0.27,
+      topRightX: width * 0.73,
       bottomY: height * 0.775,
       topY: this.battleLayout.arenaTop,
-      logicalWidth: 1400,
+      logicalWidth: 1750,
       logicalHeight: 900,
-      columns: 8,
+      columns: 10,
       rows: 6,
       nearScale: 1.05,
       farScale: 0.74,
@@ -151,7 +151,7 @@ export default class BattleScene extends Phaser.Scene {
   // guardian.
   buildEncounterWaves() {
 
-    const waves = createEncounterWaves(GameState.currentDelve ?? {});
+    const waves = createEncounterWaves(GameState.currentDelve ?? {}, this.battlefield.logicalWidth);
 
     if (GameState.currentDelve) GameState.currentDelve.rooms = waves.length;
     return waves;
@@ -225,7 +225,7 @@ export default class BattleScene extends Phaser.Scene {
     this.partyUnits = party.map((adventurer) => new BattleUnit(this, {
       ...getEquippedAdventurer(GameState.roster.find((hero) => hero.id === adventurer.id) ?? adventurer),
       battlefield: this.battlefield,
-      arenaX: 500,
+      arenaX: this.battlefield.logicalWidth / 2 - 200,
       arenaY: 110,
       isEnemy: false
     }));

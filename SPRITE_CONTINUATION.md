@@ -306,3 +306,9 @@ Further Flint jobs. All four walking and four attack clips have been inspected a
 - `data/enemies.js` now displays `Elder Slime` (formerly `Elder Cave Slime`). The existing enemy keys and strength ordering already match the request: `caveSlime` weaker, `elderSlime` tougher, `slimeSovereign` final boss. `tests/progression-encounters.test.js` passes.
 - Enemy sprite generation remains pending solely because `CaveSlime.png`, `ElderSlime.png`, and `SlimeSovereign.png` are absent from the supplied OneDrive path and repository. Do not invent replacements from memory; obtain the three actual files from the user, then PixelLab-convert/animate them and connect sheets to enemy rendering. The user has already been asked to reattach/place them.
 - All requested Sturm and seven subsequent character sheets are complete. Code cleanup and `My Honor is My Life` gameplay change are complete. The remaining requested work is the optional three Slime Cave enemy sprite sets and a final integrated visual check once their source art is available. Push current completed commits to the GitHub branch so progress is preserved.
+
+### GitHub push status
+
+- All task commits through `ef6e14c` are local on branch `0.1.2-3dSprites`, 25 commits ahead of `origin/0.1.2-3dSprites`. Configured remote is `https://github.com/Nebulocity/DelveDeep.git`.
+- An attempted `git push origin 0.1.2-3dSprites` was rejected by automatic approval review: the user authorized pushing generally, but the review could not verify the exact GitHub destination for sensitive code egress. Do not bypass the rejection. An explicit user confirmation of the exact remote URL has been requested asynchronously. Retry only once that confirmation is supplied.
+- Other working-tree changes in `.gitignore`, Blender, loading UI, Laurana concepts, and iOS package are unrelated and were not staged or committed by this task. Preserve them.

@@ -423,3 +423,9 @@ Further Flint jobs. All four walking and four attack clips have been inspected a
 - `data/slimeSprites.js` has static Vite URLs and sizes for each enemy (Cave scale 1, Elder 1.1, Sovereign 1.65). `combat/BattleUnit.js` receives a stable `spriteId`; `combat/UnitSprite.js` selects the slime catalog by enemy type; `scenes/BattleScene.js` preloads the slime sheets and passes type before sprite creation. Existing names and relative strengths match the user's request.
 - `node tests/slime-cave-sprites.test.js`, `node tests/unit-sprite.test.js`, `node tests/thornbriar-bandits.test.js`, `node tests/progression-encounters.test.js`, and `npm run build` passed. Physical Android/in-game visual review is not yet done.
 - User explicitly authorized committing **all substantive current project changes, including concurrent Thornbriar work**, and pushing to the existing `0.1.2-3dSprites` branch. `work/` is temporary scratch with PixelLab ZIP downloads, contact sheets and scripts; exclude it from the commit. Commit/push still pending at this checkpoint.
+
+### Push checkpoint (2026-10-01)
+
+- Commit `f917aec` (`Integrate Slime Cave and Thornbriar enemy updates`) was pushed successfully to `origin/0.1.2-3dSprites` at `https://github.com/Nebulocity/DelveDeep.git`. It includes all substantive staged project changes, including Thornbriar assets/data/tests and the Slime Cave sprites. Temporary `work/` scratch remains local and untracked.
+- All 15 maintained JavaScript tests and `npm run build` passed before the commit. The staged diff passed `git diff --cached --check`. Physical Android/in-game visual review remains to be done.
+- This checkpoint supersedes earlier in-progress notes that say Slime Cave runtime integration or push is pending.

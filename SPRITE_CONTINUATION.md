@@ -281,3 +281,6 @@ Further Flint jobs. All four walking and four attack clips have been inspected a
 
 - Fistandantilus walk NE `75d2129e-5246-40c0-8927-4adb662ff525` and spell attack SW `b8519ea5-838a-4f67-9ef8-997b613076c3` visually checked and installed. Total installed 14/24 clips.
 - Death SE `9f229bba-5803-4e91-8231-c2f5d96b40fe` and SW `1b117434-3138-423a-afb2-2053c0911c06` queued; NE/NW death await free slots. See `work/fistandantilus-frame-manifest.json` for 22 of 24 planned jobs. Pending render: replacement idle SE, block NW, four hits, four deaths.
+
+- Fistandantilus southeast idle replacement `e68ec3c5-bfef-4d28-a1d8-f00e8427067b` visually checked: hands stay in the correct ready pose. Installed with hit SE `32c0dc7a-ab72-432a-bb67-a49cff12a00e`, hit SW `1b403766-ce69-4667-927e-3991adcf7c6f`, and death SW `1b117434-3138-423a-afb2-2053c0911c06`. Death SE `9f229bba-5803-4e91-8231-c2f5d96b40fe` also installed after visual check. Now 19/24 clips accepted.
+- Final death jobs queued: NE `25a61c9c-1bab-4245-8c92-ce53ca262a97`, NW `7f338ec0-c53d-4d4b-bc57-773367350dbb`. All 24 intended jobs now in `work/fistandantilus-frame-manifest.json`. Five clips remain to inspect/install: block NW, hit NE/NW, death NE/NW. After completion pack six sheets, update source job metadata/catalog/test, migrate `aoth` ID safely, and clean obsolete character/ability references.

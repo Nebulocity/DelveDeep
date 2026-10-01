@@ -8,7 +8,7 @@ DIRECTIONS = ['south-east', 'south-west', 'north-east', 'north-west']
 STATES = ['idle', 'walk', 'attack', 'block', 'hit', 'death']
 NAMES = [
     'laurana', 'tika', 'tanis', 'sturm', 'goldmoon',
-    'raistlin', 'dalamar', 'palin', 'tasslehoff', 'flint', 'riverwind', 'fistandantilus',
+    'raistlin', 'dalamar', 'palin', 'tasslehoff', 'flint', 'riverwind', 'fistandantilus', 'mishakal',
 ]
 selected_names = sys.argv[1:] or NAMES
 if any(name not in NAMES for name in selected_names):

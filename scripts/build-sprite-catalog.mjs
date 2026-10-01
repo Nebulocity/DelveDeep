@@ -3,7 +3,7 @@ import fs from 'node:fs';
 // Each PixelLab sheet contains four facing rows of unmodified 256px frames.
 const names = [
   'laurana', 'tika', 'tanis', 'sturm', 'goldmoon',
-  'raistlin', 'dalamar', 'palin', 'tasslehoff', 'flint', 'riverwind', 'fistandantilus',
+  'raistlin', 'dalamar', 'palin', 'tasslehoff', 'flint', 'riverwind', 'fistandantilus', 'mishakal',
 ].filter(name => fs.existsSync(`assets/characters/${name}/reference-v2/sheets/layout.json`));
 const directions = ['south-east', 'south-west', 'north-east', 'north-west'];
 const timings = { idle: 150, walk: 75, attack: 70, block: 85, hit: 60, death: 110 };

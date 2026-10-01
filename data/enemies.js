@@ -55,7 +55,7 @@ const enemies = {
   },
   elderSlime: {
     id: 'elder-slime',
-    name: 'Elder Cave Slime',
+    name: 'Elder Slime',
     maxHp: 620,
     moveSpeed: 92,
     attackPower: 15,

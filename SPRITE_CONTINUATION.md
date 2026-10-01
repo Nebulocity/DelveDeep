@@ -1,6 +1,14 @@
 # Delve Deep sprite and data continuation log
 
-Updated 2026-09-30. This file is intended to be uploaded to a new Codex session if this conversation or usage window ends. Continue the existing work in order; do not restart completed characters.
+Updated 2026-10-01. Upload this file to a new Codex session if this conversation or usage window ends. Read this current checkpoint first, then the latest sections at the end; the middle of this file is chronological history and some early status statements are superseded.
+
+## Current checkpoint (2026-10-01)
+
+- Sturm, Raistlin, Dalamar, Palin, Tasslehoff, Flint, Riverwind, and Fistandantilus are complete. Character/ability cleanup and Sturm's sacrifice ability change were tested and pushed to the user-confirmed `0.1.2-3dSprites` branch of `https://github.com/Nebulocity/DelveDeep.git`.
+- Mishakal is the active character. Her supplied art is `C:\Users\kenwh\OneDrive\Desktop\DLChibi\Mishakal.png`. PixelLab character ID `5a8e0968-6c5e-427a-a3d8-a1b9c836c05a`. All four rotations and 17 of 24 animation clips are installed under `assets/characters/mishakal/reference-v2/`. The seven missing clips are block NE, hit NE/NW, and death in all four facings. Accepted/rejected job IDs are in the latest log entries and `work/mishakal-frame-manifest.json`.
+- The Slime Cave references are now present at `assets/enemies/slime-cave/references/` and came from `C:\Users\kenwh\OneDrive\Desktop\DLChibi\TheSlimeCave\`. Do the slime sprites after completing Mishakal.
+- The shared PixelLab animation queue is frequently full because other active chats are using it. Retry slots; do not use the rejected purple-crystal SE attack, broken-staff SW attack, or extra-hand NE block. Current filesystem permissions may require escalated commands for writes in `E:\Programming\DelveDeep`.
+- Another chat has uncommitted `scenes/DungeonScene.js`, `tests/dungeon-reentry.test.js`, and Thornbriar enemy assets/scripts; preserve them. This chat's Mishakal work is uncommitted and not yet pushed. Stage only its files with explicit paths, check the index, and push only to existing `0.1.2-3dSprites`.
 
 ## User request and order
 
@@ -328,3 +336,39 @@ Further Flint jobs. All four walking and four attack clips have been inspected a
 
 - The last handoff push advanced `0.1.2-3dSprites` to `b9275ca`. That commit includes this sprite continuation-log update **and documentation files (`AGENTS.md`, `docs/`, `changelog/README.md`) which another active workspace session had already staged**. These documentation files were not authored as part of this sprite task, but entered the same commit because Git commits all staged changes by default. They were pushed to the user-confirmed branch. Do not rewrite or force-push history to remove them without coordinating with the owner of that documentation work.
 - Other concurrent edits remain uncommitted in the working tree. The three Slime Cave reference PNGs still need to be provided. All character sheets, game data cleanup, Elder Slime display name, tests, and build are complete.
+
+### Mishakal and Slime Cave follow-up (2026-09-30)
+
+- User supplied `C:\Users\kenwh\OneDrive\Desktop\DLChibi\Mishakal.png` and requested Mishakal before the three Slime Cave enemies. Mishakal already has roster ID `mishakal` in `data/adventurers.js` but no runtime sprite asset yet.
+- Mishakal source was converted by PixelLab `image_to_pixelart` job `7bf11c28-6a0e-4857-b799-7a37c2e2db80`, Creator asset `4cae2490-501b-5273-aba0-54d33c4d0baf`. The 256px result preserves white/blue robes, long brown hair and silver cyan crystal staff. It has an opaque gray background, so use the transparent character rotations as animation sources.
+- PixelLab v3 eight-direction character creation ID `5a8e0968-6c5e-427a-a3d8-a1b9c836c05a` is processing using that converted base. Poll `get_character(character_id=...)`, inspect four game facings (`south-east`, `south-west`, `north-east`, `north-west`), install reference and rotations, then generate 24 animation clips, pack sheets, update catalog and tests.
+- The three earlier Slime Cave image paths (`CaveSlime.png`, `ElderSlime.png`, `SlimeSovereign.png`) were checked again and are absent from `C:\Users\kenwh\OneDrive\Desktop\DLChibi`. Asked user to reattach or place them in `E:\Programming\DelveDeep\assets\enemies\references`. Proceed with Mishakal while waiting.
+- At task start, unrelated `scenes/DungeonScene.js` changes and `tests/dungeon-reentry.test.js` were present. Do not stage or overwrite them. Branch is `0.1.2-3dSprites` at `9e430fc` tracking `origin/0.1.2-3dSprites`; push task changes only to that branch.
+- User supplied corrected paths under `C:\Users\kenwh\OneDrive\Desktop\DLChibi\TheSlimeCave\` for `CaveSlime.png`, `ElderSlime.png`, and `SlimeSovereign.png`; all three physical files were verified present. The prior missing-file blocker is resolved. Finish Mishakal first, then integrate these enemies.
+- Mishakal v3 character completed. All four game facings visually inspected; staff, hair, blue/white robe and crystal remain coherent. Reference and four rotations installed under `assets/characters/mishakal/reference-v2/`. First 8 animation jobs queued; scratch manifest is `work/mishakal-frame-manifest.json`.
+- idle south-east: `2700a354-765e-4bce-bfbb-611628bdebbc`
+- idle south-west: `93f2a0e1-2f11-457b-af8c-3928df494b6a`
+- idle north-east: `24bbf277-8e34-49c3-93d5-13b4c7d9b3b5`
+- idle north-west: `c2e7d054-eea4-4ef2-b02a-48a064e8be51`
+- walk south-east: `af9a9d19-66d7-44b8-9898-93eab84b7ccc`
+- walk south-west: `9fb65859-b7f8-47a0-a8b9-0e0cd1b4362f`
+- walk north-east: `303c600d-45a1-4880-8f85-2817ec6cd92d`
+- walk north-west: `18221633-83c2-4172-a83f-22b9d389d60f`
+- First six completed idle/walk clips were visually inspected and maintain the staff, crystal, robe and direction. Idle SW and walk SE were still processing at last check. Additional healing spell attack jobs queued: SE `ddaa0b48-60e8-4caf-9655-2d385ff9b783`, SW `4b1ab4d5-0bff-4067-a77e-99292bbdf48c`, NE `29137c55-59b3-4ced-977d-3d9e6fa003ad`. Attack NW and later states await PixelLab capacity. `scripts/pack-sprite-sheets.py`, `scripts/build-sprite-catalog.mjs`, and `tests/sprite-assets.test.js` now list Mishakal but catalog cannot be rebuilt until her 24 clips are complete.
+- All four idle and four walk jobs completed and were visually inspected. Seven clips installed under `assets/characters/mishakal/reference-v2/`; idle SW still needs downloading. Attack NW job `60a6d1ea-2793-4a21-abc9-83cc80ee66f4` was queued and looks usable, as does NE attack. Original SE attack `ddaa0b48-60e8-4caf-9655-2d385ff9b783` changes the cyan crystal to purple and is rejected; original SW attack `4b1ab4d5-0bff-4067-a77e-99292bbdf48c` breaks staff geometry and is rejected. Regenerate both with a modest off-hand healing gesture while the staff stays fixed. Shared PixelLab queue is frequently full with other active jobs; retry as slots open.
+
+- The eight idle/walk clips and accepted NE/NW attacks have been downloaded and installed. The next PixelLab batch is queued:
+- attack south-east replacement: `e44566ad-87be-43d9-b5c5-ee32e4506e7d`
+- attack south-west replacement: `75c9e4ee-f0da-4934-81b0-3f06cdc0aa5e`
+- block south-east: `c378a558-5be6-4336-afc8-2f93224c9af0`
+- block south-west: `e55c40d9-2a23-4970-8467-9aa62ceed6b4`
+- block north-east: `3294f99e-ea81-477e-b6c3-5ed5321e9d84`
+- block north-west: `2bcce22a-9bb1-4f9f-8134-ed661ccef0ed`
+- hit south-east: `7e3e98f6-14cc-4ed9-a5ae-dc8deec04050`
+- hit south-west: `b0309ff3-bebe-4a41-bb5d-dcc1943097b9`
+- These job IDs are the source of truth for subsequent visual review. Reject any outputs that alter the cyan staff or costume before installing them.
+
+- Mishakal replacements accepted: attack SE `e44566ad-87be-43d9-b5c5-ee32e4506e7d` and SW `75c9e4ee-f0da-4934-81b0-3f06cdc0aa5e` preserve the cyan staff and show a small free-hand healing effect. Accepted block SW `e55c40d9-2a23-4970-8467-9aa62ceed6b4`, NW `2bcce22a-9bb1-4f9f-8134-ed661ccef0ed`, and SE `c378a558-5be6-4336-afc8-2f93224c9af0` using only source indices 0-3 because index 4 turns the ward green. Accepted hit SE `7e3e98f6-14cc-4ed9-a5ae-dc8deec04050` and SW `b0309ff3-bebe-4a41-bb5d-dcc1943097b9`. These clips are installed.
+- Block NE `3294f99e-ea81-477e-b6c3-5ed5321e9d84` has a duplicated hand in the generated ward and is rejected; regenerate. Still needed: hit NE/NW, four death directions, and NE block replacement. Shared PixelLab queue is full with other active work; keep retrying slots.
+- Hit NE job `78c2fb7b-4654-4617-90cb-92d0e16c6d07` queued; NW hit, four deaths, and NE block replacement still need queue slots.
+- Hit NE job `78c2fb7b-4654-4617-90cb-92d0e16c6d07` was visually checked and installed; 18 of 24 Mishakal clips are now installed. Remaining: block NE replacement, hit NW, and four death clips.

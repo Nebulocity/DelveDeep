@@ -429,3 +429,7 @@ Further Flint jobs. All four walking and four attack clips have been inspected a
 - Commit `f917aec` (`Integrate Slime Cave and Thornbriar enemy updates`) was pushed successfully to `origin/0.1.2-3dSprites` at `https://github.com/Nebulocity/DelveDeep.git`. It includes all substantive staged project changes, including Thornbriar assets/data/tests and the Slime Cave sprites. Temporary `work/` scratch remains local and untracked.
 - All 15 maintained JavaScript tests and `npm run build` passed before the commit. The staged diff passed `git diff --cached --check`. Physical Android/in-game visual review remains to be done.
 - This checkpoint supersedes earlier in-progress notes that say Slime Cave runtime integration or push is pending.
+
+### Slime Cave scale follow-up (2026-10-01)
+
+- Visual feedback found all three Slime Cave monsters too small. `data/slimeSprites.js` scales were doubled to Cave Slime 2, Elder Slime 2.2 and Slime Sovereign 3.3; sheet assets remain unchanged. Focused test now asserts the exact scales. The focused sprite test and production build passed; device visual review remains.

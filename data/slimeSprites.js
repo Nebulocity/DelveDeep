@@ -57,9 +57,9 @@ function createSlimeSprite(id, urls, scale, columns = defaultColumns) {
 }
 
 export const SLIME_SPRITES = {
-  caveSlime: createSlimeSprite('caveSlime', sheets.caveSlime, 1, { ...defaultColumns, attack: 5 }),
-  elderSlime: createSlimeSprite('elderSlime', sheets.elderSlime, 1.1),
-  slimeSovereign: createSlimeSprite('slimeSovereign', sheets.slimeSovereign, 1.65)
+  caveSlime: createSlimeSprite('caveSlime', sheets.caveSlime, 2, { ...defaultColumns, attack: 5 }),
+  elderSlime: createSlimeSprite('elderSlime', sheets.elderSlime, 2.2),
+  slimeSovereign: createSlimeSprite('slimeSovereign', sheets.slimeSovereign, 3.3)
 };
 
 export function preloadSlimeSprites(scene) {

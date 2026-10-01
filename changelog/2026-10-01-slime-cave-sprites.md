@@ -5,3 +5,4 @@
 - Added `scripts/pack-slime-cave.py` to reproduce 192px transparent runtime sheets from PixelLab object archives. Rejected morphing Cave Slime attack frames and replaced opaque Elder Slime background colors after visual review.
 - Registered the three sprite definitions in `data/slimeSprites.js` and wired stable enemy type lookup and preloading into combat. Cave Slime is the smallest, Elder Slime is larger, and Slime Sovereign is the largest.
 - Added `tests/slime-cave-sprites.test.js` for sheet dimensions, clips, preload entries, names, and enemy strength ordering. Focused tests and `npm run build` passed. Physical Android combat review remains pending.
+- Doubled in-game sprite scale after visual feedback: Cave Slime 1 -> 2, Elder Slime 1.1 -> 2.2, and Slime Sovereign 1.65 -> 3.3. The sprite sheets and frame dimensions are unchanged.

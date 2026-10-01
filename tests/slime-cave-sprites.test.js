@@ -38,6 +38,7 @@ assert.equal(enemies.elderSlime.name, 'Elder Slime');
 assert.equal(enemies.slimeSovereign.name, 'Slime Sovereign');
 assert.ok(enemies.caveSlime.maxHp < enemies.elderSlime.maxHp);
 assert.ok(enemies.elderSlime.maxHp < enemies.slimeSovereign.maxHp);
+assert.deepEqual(ids.map(id => SLIME_SPRITES[id].scale), [2, 2.2, 3.3]);
 assert.ok(SLIME_SPRITES.caveSlime.scale < SLIME_SPRITES.elderSlime.scale);
 assert.ok(SLIME_SPRITES.elderSlime.scale < SLIME_SPRITES.slimeSovereign.scale);
 const loaded = [];

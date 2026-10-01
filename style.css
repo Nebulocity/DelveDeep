@@ -43,3 +43,101 @@ body {
   margin: 0 !important;
   touch-action: none;
 }
+
+/* This small, inline-art overlay is visible before the game bundle starts. */
+.loading-screen {
+  position: absolute;
+  top: env(safe-area-inset-top, 0px);
+  right: env(safe-area-inset-right, 0px);
+  bottom: env(safe-area-inset-bottom, 0px);
+  left: env(safe-area-inset-left, 0px);
+  z-index: 10;
+  overflow: hidden;
+  color: #fff5df;
+  background: #294b4b;
+  pointer-events: auto;
+  opacity: 1;
+}
+
+.loading-screen[data-mode="delve"] { background: #1b4146; }
+.loading-screen.is-hidden { opacity: 0; pointer-events: none; visibility: hidden; }
+
+.loading-art,
+.loading-vignette {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  inset: 0;
+}
+
+.loading-art { image-rendering: pixelated; }
+.loading-world-art,
+.loading-delve-art { transition: opacity 180ms ease; }
+.loading-delve-art,
+.loading-screen[data-mode="delve"] .loading-world-art { opacity: 0; }
+.loading-screen[data-mode="delve"] .loading-delve-art { opacity: 1; }
+
+.loading-vignette {
+  background: linear-gradient(180deg, rgba(12, 31, 36, .57), transparent 36%, transparent 58%, rgba(10, 27, 33, .88));
+}
+
+.loading-copy {
+  position: absolute;
+  top: 9%;
+  width: 100%;
+  text-align: center;
+  text-shadow: 0 3px 0 #173139, 0 7px 18px #112c31;
+}
+
+.loading-kicker {
+  color: #f7d69a;
+  font-size: clamp(13px, 1.4vw, 24px);
+  font-weight: 800;
+  letter-spacing: .3em;
+}
+
+.loading-title {
+  margin-top: .15em;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(38px, 6vw, 98px);
+  font-weight: 900;
+  letter-spacing: .08em;
+  line-height: 1;
+}
+
+.loading-subtitle {
+  margin-top: .55em;
+  padding: 0 6vw;
+  font-size: clamp(17px, 2vw, 32px);
+  font-weight: 700;
+  letter-spacing: .04em;
+}
+
+.loading-footer {
+  position: absolute;
+  bottom: max(7%, 18px);
+  left: 50%;
+  width: min(66%, 880px);
+  transform: translateX(-50%);
+  font-size: clamp(16px, 1.6vw, 27px);
+  font-weight: 700;
+  text-shadow: 0 2px 4px #10282e;
+}
+
+.loading-status { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 11px; }
+.loading-track { height: clamp(10px, 1.3vw, 18px); border: 3px solid #e7c98f; background: #193439; box-shadow: 0 3px 0 #10292f; }
+.loading-progress { width: 0; height: 100%; background: linear-gradient(90deg, #8ec9b0, #f5d58e); transition: width 100ms linear; }
+
+.loading-beacon { animation: beacon-pulse 2.4s ease-in-out infinite; }
+.loading-portal { animation: portal-pulse 2.8s ease-in-out infinite; }
+
+@keyframes beacon-pulse { 50% { opacity: .35; } }
+@keyframes portal-pulse { 50% { opacity: .22; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-beacon,
+  .loading-portal { animation: none; }
+  .loading-world-art,
+  .loading-delve-art,
+  .loading-progress { transition: none; }
+}

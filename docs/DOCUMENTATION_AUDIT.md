@@ -34,7 +34,7 @@ Audited 2026-09-30 on branch `0.1.2-3dSprites`. This is a map of the material th
 
 | Candidate | Evidence | Decision |
 | --- | --- | --- |
-| `data/levels/_old_SlimeCave.js` | No import or scene registration; `data/delves.js` imports only `data/levels/SlimeCave.js`. Old definition duplicates the same persistent `slime-cave` ID and points to prior art. | Remove the unused JS definition. Git retains history. Do not remove associated art while Blender work is active. |
+| `data/levels/_old_SlimeCave.js` | No runtime import or scene registration; `data/delves.js` imports only `data/levels/SlimeCave.js`. The maintained environment test imported it only to compare stable ID, depth and difficulty. That test now asserts those saved values directly. The old definition duplicates `slime-cave` and points to prior art. | Remove the unused JS definition. Git retains history. Do not remove associated art while Blender work is active. |
 | `entities/`, `systems/`, `utils/` | Only `.gitkeep` files and no runtime modules. | Remove empty placeholders; directory layout in old README was misleading. |
 | `combat/BattlefieldTerrainEditor.js` | Imported and instantiated by `BattleScene.js`. | Keep; development tool is reachable. |
 | `combat/TacticsController.js`, `combat/LayeredEnvironment.js`, `combat/UnitSprite.js`, `combat/SpriteMotion.js` | Direct imports from active battle or sprite code and tests. | Keep. |

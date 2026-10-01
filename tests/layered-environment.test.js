@@ -1,13 +1,12 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import slimeCave from '../data/levels/SlimeCave.js';
-import oldSlimeCave from '../data/levels/_old_SlimeCave.js';
 import { getEnvironmentTransform, getEnvironmentFloor } from '../combat/LayeredEnvironment.js';
 
 const env = slimeCave.visuals.environment;
-assert.equal(slimeCave.id, oldSlimeCave.id, 'Saved progression keeps the same location ID');
-assert.equal(slimeCave.depth, oldSlimeCave.depth);
-assert.equal(slimeCave.difficulty, oldSlimeCave.difficulty);
+assert.equal(slimeCave.id, 'slime-cave', 'Saved progression keeps the same location ID');
+assert.equal(slimeCave.depth, 1);
+assert.equal(slimeCave.difficulty, 'Easy');
 for (const asset of [...env.layers, env.ambient]) {
   assert.ok(fs.existsSync(new URL(asset.url)), `Missing level asset: ${asset.key}`);
 }

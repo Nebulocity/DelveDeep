@@ -25,8 +25,10 @@ Thumbs.db
 
 # Blender authoring files stay local; ship only Phaser runtime exports.
 /assets/blender/*
-!/assets/blender/README.md
-!/assets/blender/export_phaser_stills.py
+!/assets/blender/the_slime_cave/
+/assets/blender/the_slime_cave/*
+!/assets/blender/the_slime_cave/README.md
+!/assets/blender/the_slime_cave/export_phaser_stills.py
 *.blend1
 *.blend2
 

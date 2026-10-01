@@ -6,6 +6,7 @@ import HapticsService from '../services/HapticsService.js';
 import { formatDuration } from '../game/ExpeditionProgression.js';
 import { saveProfile, clearSavedProfile } from '../game/GameStorage.js';
 import { clearLeaderProgression, grantLeaderLevels } from '../game/LeaderProgression.js';
+import { hideLoadingScreenAfterRender } from '../ui/LoadingScreen.js';
 
 const TOWNS = {
   pineshire: { id: 'pineshire', name: 'Pineshire', x: 0.091, y: 0.485, statusY: 0.57 },
@@ -66,6 +67,7 @@ export default class TitleScene extends Phaser.Scene {
     this.createPartyIndicator();
     addDetailsHint(this, 86, 'Long-press or hold-click a location for details.');
     this.createDevelopmentButton(width, height);
+    hideLoadingScreenAfterRender(this);
   }
 
   // This function places map interactions using positions relative to the

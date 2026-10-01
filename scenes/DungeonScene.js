@@ -6,6 +6,7 @@ import HapticsService from '../services/HapticsService.js';
 import { beginExpedition } from '../game/ExpeditionProgression.js';
 import { leaderAbilities } from '../game/LeaderProgression.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
+import { showLoadingScreen } from '../ui/LoadingScreen.js';
 
 export default class DungeonScene extends Phaser.Scene {
 
@@ -80,8 +81,15 @@ export default class DungeonScene extends Phaser.Scene {
     const button = this.add.rectangle(width / 2, height * 0.89, 760, 104, 0x7c2d12).setInteractive({ useHandCursor: true });
     this.add.text(width / 2, height * 0.89, 'DELVE DEEP!', { fontFamily: 'Arial', fontSize: '46px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
     button.on('pointerdown', () => {
-
-      HapticsService.confirm(); beginExpedition(); this.scene.start('BattleScene');
+      if (this.enteringBattle) return;
+      this.enteringBattle = true;
+      HapticsService.confirm();
+      showLoadingScreen('delve', GameState.currentDelve?.name ?? 'The Delve');
+      // Give the overlay one painted frame before the loader starts decoding art.
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        beginExpedition();
+        this.scene.start('BattleScene');
+      }));
     });
   }
 

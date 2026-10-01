@@ -1,6 +1,6 @@
 """One frame per static layer; never saves or animates the Blender source file."""
-import bpy, pathlib, json
-out=pathlib.Path(__file__).resolve().parent.parent/'environments'/'slime-cave'
+import bpy, pathlib
+out=pathlib.Path(__file__).resolve().parents[2]/'environments'/'slime-cave'
 out.mkdir(parents=True,exist_ok=True)
 s=bpy.data.scenes['DD_Export'];s.frame_set(1)
 bpy.context.window.scene=s

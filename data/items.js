@@ -1,10 +1,17 @@
-import { CLASS_DEFINITIONS, CLASS_MIGRATIONS } from './classes.js';
+import { CLASS_DEFINITIONS } from './classes.js';
 
 export const ITEM_RARITIES = {
   uncommon: { label: 'Uncommon', color: '#4ade80', level: 1 },
   rare: { label: 'Rare', color: '#60a5fa', level: 2 },
   epic: { label: 'Epic', color: '#c084fc', level: 3 },
   legendary: { label: 'Legendary', color: '#fb923c', level: 4 }
+};
+
+// Kit IDs remain stable because they are stored in player saves.
+const KIT_CLASS = {
+  Paladin: 'Dawnwarden', Rogue: 'Scoundrel', Wizard: 'Mage of the Umbral Veil',
+  Naturalist: 'Cleric of the Verdant Covenant', Priest: 'Cleric of the Everbright',
+  Bloodwarder: 'Cleric of the Sanguine Song'
 };
 
 // Each class has two alternative uncommon weapons, one uncommon armor,
@@ -26,7 +33,7 @@ const CLASS_KITS = {
 };
 
 export const EQUIPMENT_ITEMS = Object.entries(CLASS_KITS).flatMap(([kitId, names]) => {
-  const className = CLASS_MIGRATIONS[kitId] ?? kitId;
+  const className = KIT_CLASS[kitId] ?? kitId;
   const role = CLASS_DEFINITIONS[className].role;
   const power = role === 'Healer' ? 'healPower' : 'attackPower';
   const variants = [

@@ -221,20 +221,6 @@ function scene(party, enemies) {
   assert.equal(battle.manualTargets.get(tank.id).x, 120);
 }
 
-// Tanks close on distant targets, but a deliberate Hold still prevents it.
-{
-  const tank = unit('tank', 'Tank');
-  const enemy = unit('enemy', 'Enemy', 1300, 850);
-  const battle = scene([tank], [enemy]);
-  battle.updateTankUnit(tank, enemy, 0, 0.016);
-  assert.ok(Math.hypot(tank.lastMove.x - enemy.arenaX, tank.lastMove.y - enemy.arenaY) <= tank.attackRange);
-  assert.ok(tank.lastMove.stopDistance < tank.attackRange);
-  tank.lastMove = null;
-  battle.heldUnitIds.add(tank.id);
-  battle.updateTankUnit(tank, enemy, 0, 0.016);
-  assert.equal(tank.lastMove, null);
-}
-
 // Forced targeting persists despite higher threat, then expires after six seconds.
 {
   const tank = unit('tank', 'Tank');
@@ -386,30 +372,6 @@ function scene(party, enemies) {
   assert.equal(battle.earnedGold, 3);
 }
 
-// An explicit healer Attack waits for engagement and uses a basic attack.
-// Once its target dies, normal healing decisions resume automatically.
-{
-  const tank = unit('tank', 'Tank');
-  const healer = unit('healer', 'Healer');
-  const enemy = unit('enemy', 'Enemy', 10);
-  const battle = scene([tank, healer], [enemy]);
-  battle.attackTargets.set(healer.id, enemy.id);
-  battle.tryEvadeTelegraph = () => false;
-  battle.updateHealerUnit = () => {
-
-    battle.healingResumed = true; };
-  battle.updatePartyUnit(healer, 0, 0.016);
-  assert.equal(healer.pendingAction, null);
-  enemy.engagedByTank = true;
-  battle.updatePartyUnit(healer, 1, 0.016);
-  assert.equal(healer.pendingAction.name, 'Attack');
-  enemy.alive = false;
-  battle.timers.shift()();
-  battle.updatePartyUnit(healer, 2, 0.016);
-  assert.equal(battle.healingResumed, true);
-  assert.equal(battle.attackTargets.has(healer.id), false);
-}
-
 // No living enemies means no wasted new-class ability cooldowns.
 {
   const tank = unit('tank', 'Tank');
@@ -550,9 +512,6 @@ function fallenUnit(id, maxMana) {
   assert.equal(battle.attackTargets.has(healer.id), false);
   assert.equal(battle.manualTargets.has(healer.id), false);
   assert.equal(battle.heldUnitIds.has(healer.id), false);
-  battle.beginBasicHeal = (source, target) => { battle.healedTarget = target; };
-  battle.updateHealerUnit(healer, 0, 0.016);
-  assert.equal(battle.healedTarget, priority);
   priority.hp = priority.maxHp;
   assert.equal(battle.getHealerPriorityTarget(healer), null);
   assert.equal(battle.healerPriorityTargets.has(healer.id), false);

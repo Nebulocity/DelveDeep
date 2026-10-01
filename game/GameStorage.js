@@ -21,7 +21,7 @@ export function loadProfile(baseRoster) {
 
   // Index saved adventurers by stable ID so roster order changes do not
   // attach progress to the wrong character.
-  const savedRoster = new Map((saved?.roster ?? []).map((entry) => [entry.id, entry]));
+  const savedRoster = new Map((saved?.roster ?? []).map((entry) => [entry.id === 'aoth' ? 'fistandantilus' : entry.id, entry]));
 
   // Restore currencies, inventory, world state, and development options with
   // defaults for missing save fields.
@@ -31,7 +31,8 @@ export function loadProfile(baseRoster) {
     voidKeys: Math.max(0, saved?.inventory?.voidKeys ?? 0)
   };
   GameState.records = saved?.records ?? {};
-  GameState.lastPartyIds = Array.isArray(saved?.lastPartyIds) ? saved.lastPartyIds : [];
+  GameState.lastPartyIds = Array.isArray(saved?.lastPartyIds)
+    ? saved.lastPartyIds.map((id) => id === 'aoth' ? 'fistandantilus' : id) : [];
   GameState.development = {
     unlockAll: saved?.development?.unlockAll === true,
     replayCleared: saved?.development?.replayCleared === true

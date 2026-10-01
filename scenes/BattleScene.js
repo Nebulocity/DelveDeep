@@ -20,6 +20,7 @@ import { completeExpedition, failExpedition, fleeExpedition, formatDuration } fr
 import { saveProfile } from '../game/GameStorage.js';
 import { getBattleLayout } from '../ui/Layout.js';
 import { preloadEnvironment, createEnvironment, getEnvironmentFloor } from '../combat/LayeredEnvironment.js';
+import { trackLoading, hideLoadingScreenAfterRender } from '../ui/LoadingScreen.js';
 
 export default class BattleScene extends Phaser.Scene {
 
@@ -33,6 +34,7 @@ export default class BattleScene extends Phaser.Scene {
   // Encounter visual data supplies only the assets needed by the selected
   // delve. Other delves retain the existing battlefield presentation.
   preload() {
+    trackLoading(this);
     preloadCharacterSprites(this);
 
     const environment = GameState.currentDelve?.visuals?.environment;
@@ -122,6 +124,7 @@ export default class BattleScene extends Phaser.Scene {
     this.createHud(width, height);
     this.createTerrainEditorButton(width);
     this.startWave(0);
+    hideLoadingScreenAfterRender(this);
   }
 
 
@@ -1201,57 +1204,12 @@ export default class BattleScene extends Phaser.Scene {
   // hazard avoidance; the remaining decisions come from the unit's combat
   // role.
   updatePartyUnit(unit, time, deltaSeconds) {
-
     if (!unit?.alive) return;
-
-    if (unit.gridAbilities) {
-      this.classAbilitySystem ??= new ClassAbilitySystem(this);
-      this.classAbilitySystem.tick(unit, time);
-      if (this.applyManualMovement(unit, deltaSeconds)) return;
-      if (!this.isPositionLocked(unit) && this.tryEvadeTelegraph(unit, deltaSeconds)) return;
-      this.classAbilitySystem.update(unit, time, deltaSeconds);
-      return;
-    }
-    this.runClassPassive(unit, time);
-    if (unit.role === 'Tank') this.tryTankTaunts(unit, time);
-
+    this.classAbilitySystem ??= new ClassAbilitySystem(this);
+    this.classAbilitySystem.tick(unit, time);
     if (this.applyManualMovement(unit, deltaSeconds)) return;
     if (!this.isPositionLocked(unit) && this.tryEvadeTelegraph(unit, deltaSeconds)) return;
-
-    const ordered = this.getLivingEnemies().find((enemy) => enemy.id === this.attackTargets.get(unit.id));
-    if (!ordered) this.attackTargets.delete(unit.id);
-    if (ordered && unit.role !== 'Tank' && !this.isEnemyEngaged(ordered)) return;
-
-    // Explicit Attack orders chase the chosen enemy into usable range.
-    // Healers use basic attacks for this order, never healing spells as
-    // damage.
-    if (ordered && unit.canStartAction(time)) {
-      this.movement.moveToCombatPosition(unit, ordered, time, deltaSeconds);
-    }
-    if (ordered && unit.role === 'Healer') {
-      if (unit.distanceTo(ordered) <= unit.attackRange && unit.canAttack(time)) {
-        this.beginBasicAttack(unit, ordered, time, 'ranged');
-      }
-      return;
-    }
-
-    if (unit.role === 'Healer') {
-      this.updateHealerUnit(unit, time, deltaSeconds);
-      return;
-    }
-
-    const target = this.getPrimaryTarget(unit);
-    if (!target) return;
-
-    this.tryClassUtility(unit, target, time);
-
-    if (unit.role === 'Tank') {
-      this.updateTankUnit(unit, target, time, deltaSeconds);
-    } else if (unit.role === 'Melee DPS') {
-      this.updateMeleeUnit(unit, target, time, deltaSeconds);
-    } else {
-      this.updateRangedUnit(unit, target, time, deltaSeconds);
-    }
+    this.classAbilitySystem.update(unit, time, deltaSeconds);
   }
 
   // Melee reach is measured from centers in the combat data. Extend it only
@@ -1260,143 +1218,6 @@ export default class BattleScene extends Phaser.Scene {
   isWithinAttackReach(attacker, target, padding = 0) {
     const meleePadding = this.movement.isMelee(attacker) ? combatSpacing.meleeReachPadding : 0;
     return attacker.distanceTo(target) <= attacker.attackRange + meleePadding + padding;
-  }
-
-  // This function applies the Naturalist aura when its healing interval comes
-  // around.
-  runClassPassive(unit, time) {
-
-    if (unit.className !== 'Naturalist') return;
-    const passive = unit.abilities?.passive;
-    if (!passive || time - (unit.lastAbilityAt.natureAura ?? -Infinity) < passive.interval) return;
-
-    unit.lastAbilityAt.natureAura = time;
-    this.announceAbility(unit, passive.name, '#86efac');
-    this.partyUnits.filter((ally) => ally.alive).forEach((ally) => {
-
-      ally.heal(passive.power);
-      this.createFloatingText(ally.x, ally.y - 74, `+${passive.power}`, '#86efac');
-    });
-  }
-
-  // This function selects the support effect associated with the adventurer's
-  // class. Each branch checks its own conditions before spending mana,
-  // starting the utility cooldown, and applying the configured buff or
-  // debuff.
-  tryClassUtility(unit, target, time) {
-
-    const utility = unit.abilities?.utility;
-    if (!utility || !unit.abilityReady('utility', time)) return;
-
-    // Protect an injured eligible ally, while limiting this Paladin shield
-    // use to once per delve.
-    if (unit.className === 'Paladin') {
-      const ally = this.partyUnits
-        .filter((candidate) => candidate.alive && !candidate.delvesUsed?.protectiveShield)
-        .sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp))[0];
-      if (!ally || ally.hp / ally.maxHp > 0.42 || unit.delvesUsed.protectiveShield) return;
-      unit.delvesUsed.protectiveShield = true;
-      this.announceAbility(unit, utility.name, '#fde68a');
-      unit.markAbilityUsed('utility', time);
-      ally.status.shieldUntil = time + utility.duration;
-      this.createFloatingText(ally.x, ally.y - 100, 'PROTECTED', '#fde68a', true);
-      return;
-    }
-
-    // Apply a temporary blind that gives the target a chance to miss attacks.
-    if (unit.className === 'Gladiator') {
-      this.announceAbility(unit, utility.name, '#fde68a');
-      unit.markAbilityUsed('utility', time);
-      target.status.blindUntil = time + utility.duration;
-      target.status.blindChance = utility.missChance;
-      this.createFloatingText(target.x, target.y - 96, 'BLINDED', '#fde68a');
-      return;
-    }
-
-    // Reduce the target's outgoing damage for the configured duration.
-    if (unit.className === 'Guardian') {
-      this.announceAbility(unit, utility.name, '#86efac');
-      unit.markAbilityUsed('utility', time);
-      target.status.outgoingDamageReductionUntil = time + utility.duration;
-      target.status.outgoingDamageReduction = utility.damageReduction;
-      this.createFloatingText(target.x, target.y - 96, 'WITHERED', '#86efac');
-      return;
-    }
-
-    // Use the damage-boosting roar only when at least two living allies are
-    // in its radius.
-    if (unit.className === 'Barbarian') {
-      const nearbyAllies = this.partyUnits.filter((ally) => ally.alive && unit.distanceTo(ally) <= utility.radius);
-      if (nearbyAllies.length < 2) return;
-      this.announceAbility(unit, utility.name, '#fb923c');
-      unit.markAbilityUsed('utility', time);
-      nearbyAllies.forEach((ally) => {
-
-        ally.status.damageBoostUntil = time + utility.duration;
-        ally.status.damageBoost = utility.damageBoost;
-      });
-      this.createFloatingText(unit.x, unit.y - 105, 'WAR ROAR!', '#fb923c', true);
-      return;
-    }
-
-    // Use the emergency shield at low health and apply its accompanying spell
-    // lock.
-    if (unit.className === 'Wizard') {
-      if (unit.hp / unit.maxHp > 0.35) return;
-      this.announceAbility(unit, utility.name, '#93c5fd');
-      unit.markAbilityUsed('utility', time);
-      unit.status.arcaneShieldUntil = time + utility.duration;
-      unit.status.spellLockUntil = time + utility.silenceDuration;
-      this.createFloatingText(unit.x, unit.y - 105, 'ARCANE SHIELD', '#93c5fd', true);
-      return;
-    }
-
-    // Mark the enemy to increase the damage it takes during the effect.
-    if (unit.className === 'Ranger') {
-      this.announceAbility(unit, utility.name, '#fbbf24');
-      unit.markAbilityUsed('utility', time);
-      target.status.damageTakenBoostUntil = time + utility.duration;
-      target.status.damageTakenBoost = utility.damageTakenBoost;
-      this.createFloatingText(target.x, target.y - 96, "HUNTER'S MARK", '#fbbf24');
-      return;
-    }
-
-    // Apply both increased incoming damage and reduced outgoing damage to the
-    // cursed target.
-    if (unit.className === 'Bloodwarder') {
-      this.announceAbility(unit, utility.name, '#f87171');
-      unit.markAbilityUsed('utility', time);
-      target.status.damageTakenBoostUntil = time + utility.duration;
-      target.status.damageTakenBoost = utility.damageTakenBoost;
-      target.status.outgoingDamageReductionUntil = time + utility.duration;
-      target.status.outgoingDamageReduction = utility.damageReduction;
-      this.createFloatingText(target.x, target.y - 96, 'BLOOD CURSE', '#f87171');
-    }
-  }
-
-  // This function uses ready tank taunts to recover nearby enemies that are
-  // not already targeting the tank. A group pull takes priority when several
-  // enemies qualify; cooldowns start only after a successful pull.
-  tryTankTaunts(tank, time) {
-
-    if (!tank.canStartAction(time)) return;
-    const candidates = this.getLivingEnemies()
-      .filter((enemy) => enemy.currentTargetId !== tank.id)
-      .sort((a, b) => tank.distanceTo(a) - tank.distanceTo(b));
-
-    // Prefer the area taunt for groups, saving it for later when a single
-    // enemy can be handled by the shorter cooldown instead.
-    const area = tank.abilities.areaTaunt;
-    const nearby = candidates.filter((enemy) => tank.distanceTo(enemy) <= (area?.range ?? 0));
-    const single = tank.abilities.taunt;
-    if (nearby.length >= 2 && tank.abilityReady('areaTaunt', time)) {
-      this.applyTankTaunt(tank, nearby.slice(0, area.targets), 'areaTaunt', time);
-    } else if (single && tank.abilityReady('taunt', time)) {
-      const enemy = candidates.find((candidate) => tank.distanceTo(candidate) <= single.range);
-      if (enemy) this.applyTankTaunt(tank, [enemy], 'taunt', time);
-    } else if (nearby.length > 0 && tank.abilityReady('areaTaunt', time)) {
-      this.applyTankTaunt(tank, nearby.slice(0, area.targets), 'areaTaunt', time);
-    }
   }
 
   // This function raises the tank above each target's existing threat and
@@ -1425,240 +1246,6 @@ export default class BattleScene extends Phaser.Scene {
         .forEach((telegraph) => this.removeTelegraph(telegraph));
       this.setEnemyTarget(enemy, tank, tank.abilities[key].name);
     });
-  }
-
-  // This function lets tanks approach and attack while respecting held
-  // positions.
-  updateTankUnit(unit, target, time, deltaSeconds) {
-
-    // Approach a reserved position within attack range, never the target center.
-    if (!this.attackTargets.has(unit.id) && !this.isPositionLocked(unit) && unit.canStartAction(time)) {
-      this.movement.moveToCombatPosition(unit, target, time, deltaSeconds);
-    }
-
-    if (!this.isWithinAttackReach(unit, target, 24)) return;
-
-    const primary = unit.abilities?.primary;
-    if (primary && unit.abilityReady('primary', time)) {
-      if (primary.aoe) this.beginAoeDamageAbility(unit, target, 'primary', time, 'melee');
-      else this.beginDamageAbility(unit, target, 'primary', time, 'melee');
-    } else if (unit.canAttack(time)) {
-      this.beginBasicAttack(unit, target, time, 'melee');
-    }
-  }
-
-  // This function manages melee attacks and Rogue retreat windows for
-  // re-stealth.
-  updateMeleeUnit(unit, target, time, deltaSeconds) {
-
-    // Re-stealth depends on time since dealing or receiving damage. A
-    // retreating Rogue moves away to try to create that quiet window.
-    if (!this.attackTargets.has(unit.id) && unit.className === 'Rogue' && !unit.stealthed && unit.seekingRestealth) {
-      const quietFor = time - Math.max(unit.lastDealtDamageAt ?? -Infinity, unit.lastTakenDamageAt ?? -Infinity);
-      if (quietFor >= 5000) {
-        unit.setStealthed(true);
-        unit.seekingRestealth = false;
-        this.announceAbility(unit, 'STEALTH', '#c4b5fd');
-      } else if (!this.isPositionLocked(unit) && !unit.isBusy(time)) {
-        const nearest = this.getLivingEnemies().sort((a, b) => unit.distanceTo(a) - unit.distanceTo(b))[0];
-        if (nearest) unit.moveAwayFrom(nearest.arenaX, nearest.arenaY, deltaSeconds, 320);
-        return;
-      }
-    }
-
-    if (!this.attackTargets.has(unit.id)) {
-      this.movement.moveToCombatPosition(unit, target, time, deltaSeconds);
-    }
-
-    if (!this.isWithinAttackReach(unit, target, 28)) return;
-
-    const primary = unit.abilities?.primary;
-    if (primary && unit.abilityReady('primary', time)) {
-      if (primary.aoe) this.beginAoeDamageAbility(unit, target, 'primary', time, 'melee');
-      else this.beginDamageAbility(unit, target, 'primary', time, 'melee');
-    } else if (unit.canAttack(time)) {
-      this.beginBasicAttack(unit, target, time, 'melee');
-    }
-  }
-
-  // This function manages ranged positioning and chooses available attacks or
-  // spells.
-  updateRangedUnit(unit, target, time, deltaSeconds) {
-
-    if (!this.attackTargets.has(unit.id)) {
-      this.movement.moveToCombatPosition(unit, target, time, deltaSeconds);
-    }
-
-    if (unit.className === 'Ranger') this.tryRangerTrap(unit, target, time);
-    if (!this.isWithinAttackReach(unit, target)) return;
-    if (!unit.canCast(time) && unit.className === 'Wizard') return;
-
-    if (unit.className === 'Wizard') {
-      const close = unit.distanceTo(target) <= 145;
-      if (close && unit.abilityReady('close', time)) {
-        this.beginAoeDamageAbility(unit, target, 'close', time, 'spell');
-        return;
-      }
-      if (unit.abilityReady('primary', time)) {
-        this.beginAoeDamageAbility(unit, target, 'primary', time, 'spell');
-        return;
-      }
-      if (unit.abilityReady('secondary', time)) {
-        this.beginDamageAbility(unit, target, 'secondary', time, 'spell');
-        return;
-      }
-    } else {
-      const primary = unit.abilities?.primary;
-      if (primary && unit.abilityReady('primary', time)) {
-        if (primary.aoe) this.beginAoeDamageAbility(unit, target, 'primary', time, 'ranged');
-        else this.beginDamageAbility(unit, target, 'primary', time, 'ranged');
-        return;
-      }
-    }
-
-    if (unit.canAttack(time)) this.beginBasicAttack(unit, target, time, 'ranged');
-  }
-
-  // This function prioritizes wounded allies while keeping healers in
-  // supporting range.
-  updateHealerUnit(unit, time, deltaSeconds) {
-
-    const priorityTarget = this.getHealerPriorityTarget(unit);
-    const injured = priorityTarget ?? this.getMostInjuredPartyMember();
-    const nearestEnemy = this.getLivingEnemies().sort((a, b) => unit.distanceTo(a) - unit.distanceTo(b))[0];
-    const canReposition = !this.isPositionLocked(unit) && unit.canStartAction(time);
-    // Retreat from immediate danger even while supporting an injured ally.
-    const retreating = canReposition && nearestEnemy
-      && this.movement.maintainRange(unit, nearestEnemy, deltaSeconds, true);
-
-    if (injured && (priorityTarget || injured.hp / injured.maxHp < 0.84)) {
-      if (canReposition && !retreating && unit.distanceTo(injured) > unit.healRange * 0.9) {
-        unit.moveToward(injured.arenaX, injured.arenaY, deltaSeconds, unit.healRange * 0.72);
-      }
-
-      if (unit.distanceTo(injured) <= unit.healRange) {
-        const primary = unit.abilities?.primary;
-        if (primary && injured.hp / injured.maxHp < 0.62 && unit.abilityReady('primary', time)) {
-          if (unit.className === 'Naturalist') this.beginMultiHeal(unit, time, primary);
-          else this.beginHealAbility(unit, injured, 'primary', time);
-        } else if (unit.canHeal(time)) {
-          this.beginBasicHeal(unit, injured, time);
-        }
-      }
-      return;
-    }
-
-    if (nearestEnemy && canReposition && !retreating) {
-      this.movement.maintainRange(unit, nearestEnemy, deltaSeconds);
-    }
-
-    const target = this.getPrimaryTarget(unit);
-    if (!target) return;
-
-    this.tryClassUtility(unit, target, time);
-    if (unit.className === 'Priest' && unit.abilityReady('utility', time) && unit.canCast(time)) {
-      unit.markAbilityUsed('utility', time);
-      const burst = unit.abilities.utility;
-      this.beginInstantDamage(unit, target, burst.power, 'holy', burst.name);
-      return;
-    }
-
-    if (this.isWithinAttackReach(unit, target) && unit.canAttack(time)) {
-      this.beginBasicAttack(unit, target, time, unit.className === 'Bloodwarder' ? 'spell' : 'holy');
-    }
-  }
-
-  // This function lets Rangers control nearby enemies with their configured
-  // trap.
-  tryRangerTrap(unit, target, time) {
-
-    const trap = unit.abilities?.trap;
-    if (!trap || time - (unit.lastAbilityAt.trap ?? -Infinity) < trap.cooldown || unit.isBusy(time)) return;
-    if (!unit.spendMana(trap.manaCost ?? 0)) return;
-    unit.lastAbilityAt.trap = time;
-    unit.trapCycle = ((unit.trapCycle ?? -1) + 1) % 3;
-
-    if (unit.trapCycle === 0) {
-      this.announceAbility(unit, 'Freezing Trap', '#93c5fd');
-      target.status.stunnedUntil = time + 15000;
-      this.createFloatingText(target.x, target.y - 96, 'FROZEN', '#93c5fd');
-    } else if (unit.trapCycle === 1) {
-      this.announceAbility(unit, 'Explosive Trap', '#fb923c');
-      this.getLivingEnemies().filter((enemy) => enemy.distanceTo(target) <= 145).forEach((enemy) => {
-
-        this.resolveDamage(unit, enemy, 18, 'ranged', 0.6, 'Explosive Trap', false);
-      });
-    } else {
-      this.announceAbility(unit, 'Smoke Trap', '#cbd5e1');
-      this.getLivingEnemies().filter((enemy) => enemy.distanceTo(target) <= 145).forEach((enemy) => {
-
-        enemy.status.blindUntil = time + 15000;
-        enemy.status.blindChance = 0.5;
-      });
-      this.createFloatingText(target.x, target.y - 96, 'SMOKE TRAP', '#cbd5e1');
-    }
-  }
-
-  // This function winds up an area attack before resolving nearby victims.
-  beginAoeDamageAbility(attacker, target, key, time, attackType) {
-
-    const ability = attacker.abilities[key];
-    if (!ability || !attacker.startAction(ability.name, time, ability.windup)) return;
-
-    this.announceAbility(attacker, ability.name, attackType === 'spell' ? '#93c5fd' : '#fbbf24');
-    this.logActionStart(attacker, target, ability.name);
-    attacker.markAbilityUsed(key, time);
-    if (ability.healthCost) {
-      const cost = Math.max(1, Math.round(attacker.maxHp * ability.healthCost));
-      attacker.hp = Math.max(1, attacker.hp - cost);
-      attacker.updateHealthBar();
-      this.createFloatingText(attacker.x, attacker.y - 80, `-${cost}`, '#f87171');
-    }
-
-    const action = attacker.pendingAction;
-    this.time.delayedCall(ability.windup, () => {
-
-      if (!this.isActionCurrent(attacker, action)) return;
-      const victims = this.getLivingEnemies().filter((enemy) => enemy.distanceToPoint(target.arenaX, target.arenaY) <= ability.radius);
-      let total = 0;
-      victims.forEach((enemy) => {
-
-        this.resolveDamage(attacker, enemy, ability.power, attackType, ability.threatMultiplier ?? attacker.threatMultiplier, ability.name);
-        total += ability.power;
-      });
-      if (ability.lifeSteal && total > 0) attacker.heal(Math.max(1, Math.round(total * ability.lifeSteal)));
-      attacker.finishAction();
-    });
-  }
-
-  // This function winds up a group heal and chooses injured allies when it
-  // resolves.
-  beginMultiHeal(healer, time, ability) {
-
-    if (!healer.startAction(ability.name, time, ability.windup)) return;
-    this.announceAbility(healer, ability.name, '#86efac');
-    this.logActionStart(healer, null, ability.name);
-    healer.markAbilityUsed('primary', time);
-    const action = healer.pendingAction;
-    this.time.delayedCall(ability.windup, () => {
-
-      if (!this.isActionCurrent(healer, action)) return;
-      const targets = this.partyUnits
-        .filter((unit) => unit.alive && unit.hp < unit.maxHp)
-        .sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp))
-        .slice(0, ability.targets ?? 3);
-      targets.forEach((target) => this.resolveHeal(healer, target, ability.power, ability.name));
-      healer.finishAction();
-    });
-  }
-
-  // This function announces and resolves an attack that does not need a
-  // windup.
-  beginInstantDamage(attacker, target, power, attackType, abilityName) {
-
-    this.announceAbility(attacker, abilityName, attackType === 'holy' ? '#fde68a' : '#93c5fd');
-    this.logActionStart(attacker, target, abilityName);
-    this.resolveDamage(attacker, target, power, attackType, attacker.threatMultiplier, abilityName);
   }
 
   // This function drives enemy targeting, abilities, movement, and basic
@@ -1737,59 +1324,6 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
-  // This function commits a damage ability and resolves its hit after the
-  // windup.
-  beginDamageAbility(attacker, target, key, time, attackType) {
-
-    const ability = attacker.abilities[key];
-    if (!ability || !attacker.startAction(ability.name, time, ability.windup)) {
-      return;
-    }
-
-    this.announceAbility(attacker, ability.name, attackType === 'spell' ? '#93c5fd' : attackType === 'ranged' ? '#86efac' : '#fbbf24');
-    this.logActionStart(attacker, target, ability.name);
-    attacker.markAbilityUsed(key, time);
-    if (ability.healthCost) {
-      const cost = Math.max(1, Math.round(attacker.maxHp * ability.healthCost));
-      attacker.hp = Math.max(1, attacker.hp - cost);
-      attacker.updateHealthBar();
-      this.createFloatingText(attacker.x, attacker.y - 80, `-${cost}`, '#f87171');
-    }
-
-    const action = attacker.pendingAction;
-    this.time.delayedCall(ability.windup, () => {
-
-      if (!this.isActionCurrent(attacker, action, target)) return;
-      const rangePadding = attackType === 'spell' ? 50 : 30;
-      if (this.isWithinAttackReach(attacker, target, rangePadding)) {
-        this.resolveDamage(
-          attacker,
-          target,
-          ability.power,
-          attackType,
-          ability.threatMultiplier ?? attacker.threatMultiplier,
-          ability.name
-        );
-        if (ability.lifeSteal) attacker.heal(Math.max(1, Math.round(ability.power * ability.lifeSteal)));
-        if (ability.bleedPower && target.alive) this.applyBleed(attacker, target, ability);
-      }
-      attacker.finishAction();
-    });
-  }
-
-  // This function spreads bleed damage across timed ticks that cannot
-  // critically hit.
-  applyBleed(attacker, target, ability) {
-
-    for (let tick = 1; tick <= ability.bleedTicks; tick += 1) {
-      this.time.delayedCall(ability.bleedInterval * tick, () => {
-
-        if (!attacker.alive || !target.alive || this.battleOver) return;
-        this.resolveDamage(attacker, target, ability.bleedPower, 'melee', 0.35, 'Bleed', false);
-      });
-    }
-  }
-
   // This function announces an enemy cast and resolves it if the action
   // remains valid.
   beginEnemyAbility(attacker, target, key, time) {
@@ -1810,57 +1344,6 @@ export default class BattleScene extends Phaser.Scene {
       this.createProjectile(attacker, target, 0xa855f7);
       this.resolveDamage(attacker, target, ability.power, 'enemy', 1, ability.name);
       attacker.finishAction();
-    });
-  }
-
-  // This function pays for a basic heal and resolves it after its casting
-  // time.
-  beginBasicHeal(healer, target, time) {
-
-    if (healer.maxMana > 0 && healer.mana < healer.basicHealManaCost) return;
-    if (!healer.startAction('Mend', time, healer.healWindup)) {
-      return;
-    }
-    if (!healer.spendMana(healer.basicHealManaCost)) { healer.finishAction(); return; }
-    this.announceAbility(healer, 'Mend', '#86efac');
-    this.logActionStart(healer, target, 'Mend');
-    healer.lastHealAt = time;
-    const action = healer.pendingAction;
-    this.time.delayedCall(healer.healWindup, () => {
-
-      if (!this.isActionCurrent(healer, action, target)) return;
-      if (healer.distanceTo(target) <= healer.healRange + 30) {
-        this.resolveHeal(healer, target, healer.healPower, 'Mend');
-      }
-      healer.finishAction();
-    });
-  }
-
-  // This function commits a healing ability and checks its target after the
-  // windup.
-  beginHealAbility(healer, target, key, time) {
-
-    const ability = healer.abilities[key];
-    if (!ability || !healer.startAction(ability.name, time, ability.windup)) {
-      return;
-    }
-    this.announceAbility(healer, ability.name, '#86efac');
-    this.logActionStart(healer, target, ability.name);
-    healer.markAbilityUsed(key, time);
-    if (ability.healthCost) {
-      const cost = Math.max(1, Math.round(healer.maxHp * ability.healthCost));
-      healer.hp = Math.max(1, healer.hp - cost);
-      healer.updateHealthBar();
-      this.createFloatingText(healer.x, healer.y - 80, `-${cost}`, '#f87171');
-    }
-    const action = healer.pendingAction;
-    this.time.delayedCall(ability.windup, () => {
-
-      if (!this.isActionCurrent(healer, action, target)) return;
-      if (healer.distanceTo(target) <= healer.healRange + 40) {
-        this.resolveHeal(healer, target, ability.power, ability.name);
-      }
-      healer.finishAction();
     });
   }
 
@@ -2035,24 +1518,6 @@ export default class BattleScene extends Phaser.Scene {
     if (attacker.isEnemy && now < (attacker.status.outgoingDamageReductionUntil ?? 0)) {
       amount = Math.round(amount * Math.max(0, 1 - (attacker.status.outgoingDamageReduction ?? 0)));
     }
-    if (!attacker.isEnemy && attackType === 'melee' && now < (target.status.armorExposeUntil ?? 0)) {
-      amount = Math.round(amount * (1 + (target.status.armorReduction ?? 0)));
-    }
-
-    // Consume a stealthed Rogue opener, expose the target, and begin seeking
-    // the next re-stealth opportunity.
-    if (!attacker.isEnemy && attacker.className === 'Rogue' && attacker.stealthed) {
-      const opener = attacker.abilities?.opener;
-      if (opener) {
-        amount = Math.round(amount * opener.multiplier);
-        target.status.armorExposeUntil = now + opener.duration;
-        target.status.armorReduction = opener.armorReduction;
-        attacker.setStealthed(false);
-        attacker.seekingRestealth = true;
-        this.createFloatingText(attacker.x, attacker.y - 110, 'AMBUSH!', '#c4b5fd', true);
-      }
-    }
-
     if (now < (attacker.status.enrageUntil ?? 0)) amount = Math.round(amount * attacker.status.enrageDamage);
     else if (now < (attacker.status.exhaustedUntil ?? 0)) amount = Math.round(amount * attacker.status.exhaustedDamage);
     if (attackType !== 'reflection' && now < (attacker.status.honorDamageUntil ?? 0)) amount = Math.round(amount * (1 + attacker.status.honorDamageBoost));
@@ -2074,8 +1539,7 @@ export default class BattleScene extends Phaser.Scene {
         || now < (target.status.damageReductionUntil ?? 0) });
     const actualDamage = hpBefore - target.hp;
 
-    // Update the combat interaction timestamps used by the Rogue quiet-time
-    // rule.
+    // Record recent combat interaction timestamps.
     if (amount > 0) {
       attacker.lastCombatActionAt = now;
       target.lastCombatActionAt = now;

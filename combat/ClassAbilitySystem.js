@@ -163,6 +163,11 @@ export default class ClassAbilitySystem {
     if (!unit.canStartAction(time) || !unit.canCast(time)) return;
     const enemies = this.enemies(unit), allies = this.allies();
     const injured = allies.filter(a => a.hp < a.maxHp).sort((a,b) => a.hp/a.maxHp - b.hp/b.maxHp);
+    const healingPriority = unit.role === 'Healer' ? scene.getHealerPriorityTarget?.(unit) : null;
+    if (healingPriority) {
+      const index = injured.indexOf(healingPriority);
+      if (index >= 0) injured.unshift(...injured.splice(index, 1));
+    }
     if (!scene.getLivingEnemies().some(e => e.id === scene.attackTargets.get(unit.id))) scene.attackTargets.delete(unit.id);
     const ordered = scene.attackTargets.get(unit.id);
     const preferred = scene.getPrimaryTarget(unit);

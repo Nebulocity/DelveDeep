@@ -172,3 +172,22 @@ console.log('Exact roster, Barmaid line/AoE, Oathwarden vow, parry and sacrifice
 // Reassigned retained characters keep gear; removed characters cannot remain selected.
 globalThis.localStorage={getItem:()=>JSON.stringify({lastPartyIds:['justarius','sturm','tika'],roster:[{id:'sturm',level:3,equipment:{weapon:'s'}},{id:'tika',level:2,equipment:{weapon:'t'}}],inventory:{equipment:[{id:'s',itemId:'paladin-weapon'},{id:'t',itemId:'rogue-weapon'}]}})};
 loadProfile(roster);assert.deepEqual(GameState.lastPartyIds,['sturm','tika']);assert.equal(GameState.roster.find(u=>u.id==='sturm').equipment.weapon,'s');assert.equal(GameState.roster.find(u=>u.id==='tika').equipment.weapon,'t');assert.deepEqual(GameState.inventory.equipment.map(e=>e.itemId),['oathwarden-weapon','barmaid-weapon']);
+// Fistandantilus keeps progression, party selection, and equipment from the old roster ID.
+globalThis.localStorage={getItem:()=>JSON.stringify({lastPartyIds:['aoth'],roster:[{id:'aoth',level:5,xp:17,happiness:63,equipment:{weapon:'bloodstaff'}}],inventory:{equipment:[{id:'bloodstaff',itemId:'bloodwarder-weapon'}]}})};
+loadProfile(roster);
+const fistandantilus=GameState.roster.find(u=>u.id==='fistandantilus');
+assert.ok(fistandantilus);assert.equal(fistandantilus.level,5);assert.equal(fistandantilus.xp,17);
+assert.equal(fistandantilus.happiness,63);assert.equal(fistandantilus.equipment.weapon,'bloodstaff');
+assert.deepEqual(GameState.lastPartyIds,['fistandantilus']);
+
+// The current ability system honors an assigned healer priority ahead of a more injured ally.
+const priorityHealer=make('Cleric of the Everbright');
+priorityHealer.abilities={ray:classes['Cleric of the Everbright'].abilities.ray};
+const priorityAlly=make('Scoundrel',1), lowerAlly=make('Barmaid',2);
+priorityAlly.hp=80;lowerAlly.hp=5;
+s=scene([priorityHealer,priorityAlly,lowerAlly],[]);
+s.getHealerPriorityTarget=()=>priorityAlly;
+system=new System(s);
+system.cast=(unit,target)=>{s.selectedHealTarget=target;};
+system.update(priorityHealer,0,0.016);
+assert.equal(s.selectedHealTarget,priorityAlly);

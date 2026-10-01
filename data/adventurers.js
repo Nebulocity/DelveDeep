@@ -87,7 +87,7 @@ const adventurers = [
     critChance: 0.16,
     happiness: 79
   }),
-  createAdventurer('aoth', 'Fistandantilus', 'Cleric of the Sanguine Song', {
+  createAdventurer('fistandantilus', 'Fistandantilus', 'Cleric of the Sanguine Song', {
     maxHp: 126,
     attackPower: 10,
     healPower: 26,

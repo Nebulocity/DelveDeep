@@ -1,5 +1,4 @@
 // Powers and unspecified durations are provisional balance values; see docs/CLASS_ABILITIES.md.
-export const CLASS_MIGRATIONS = { Paladin: 'Dawnwarden', Rogue: 'Scoundrel', Guardian: 'Dawnwarden', Wizard: 'Mage of the Umbral Veil', Priest: 'Cleric of the Everbright', 'Cleric of the Holy Light': 'Cleric of the Everbright', Naturalist: 'Cleric of the Verdant Covenant', Bloodwarder: 'Cleric of the Sanguine Song' };
 const spell = (name, cooldown, range, effect, extra = {}) => ({ name, cooldown: cooldown * 1000, range, effect, windup: 300, ...extra });
 const mage = (shortName, color, abilities) => ({ role: 'Ranged DPS', shortName, color, maxHp: 80, maxMana: 120, manaRegen: 8, moveSpeed: 130, attackPower: 15, attackRange: 345, attackCooldown: 1500, attackWindup: 400, critChance: 0.15, critMultiplier: 1.75, gridAbilities: true, abilities });
 const cleric = (shortName, color, abilities) => ({ role: 'Healer', shortName, color, armor: 0.08, maxHp: 110, maxMana: 120, manaRegen: 8, moveSpeed: 140, attackPower: 7, attackRange: 300, attackCooldown: 1600, attackWindup: 400, healPower: 22, healRange: 600, gridAbilities: true, abilities });
@@ -109,7 +108,6 @@ export const CLASS_DEFINITIONS = {
 };
 
 export function createAdventurer(id, name, className, overrides = {}) {
-  className = CLASS_MIGRATIONS[className] ?? className;
   const definition = CLASS_DEFINITIONS[className];
   if (!definition) throw new Error(`Unknown class: ${className}`);
   return { id, name, className, level: 1, ...definition, abilities: { ...definition.abilities }, ...overrides };

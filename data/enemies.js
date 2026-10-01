@@ -83,6 +83,33 @@ const enemies = {
       }
     }
   },
+  banditWhip: {
+    id: 'bandit-whip', name: 'Briar Whip', maxHp: 125, moveSpeed: 142,
+    attackPower: 9, attackRange: 90, attackCooldown: 1150, attackWindup: 290,
+    critChance: 0.09, critMultiplier: 1.5, color: 0x4d7c0f,
+    goldMin: 6, goldMax: 10
+  },
+  banditKnives: {
+    id: 'bandit-knives', name: 'Hollow Knives', maxHp: 105, moveSpeed: 170,
+    attackPower: 8, attackRange: 68, attackCooldown: 850, attackWindup: 220,
+    critChance: 0.14, critMultiplier: 1.6, color: 0xb91c1c,
+    goldMin: 7, goldMax: 11
+  },
+  banditHexer: {
+    id: 'bandit-hexer', name: 'Briar Hexer', maxHp: 110, moveSpeed: 112,
+    attackPower: 7, attackRange: 210, attackCooldown: 1500, attackWindup: 550,
+    critChance: 0.07, critMultiplier: 1.5, color: 0x7e22ce,
+    goldMin: 9, goldMax: 14,
+    abilities: { secondary: { name: 'Briar Bolt', cooldown: 6200, windup: 800, power: 15 } }
+  },
+  banditChief: {
+    id: 'bandit-chief', name: 'Thornbriar Chief', boss: true,
+    maxHp: 2600, bodyRadius: 56, moveSpeed: 95,
+    attackPower: 16, attackRange: 90, attackCooldown: 1450, attackWindup: 380,
+    critChance: 0.08, critMultiplier: 1.6, color: 0x92400e,
+    goldMin: 65, goldMax: 85,
+    abilities: { primary: { name: 'Mace Sweep', cooldown: 5800, telegraph: 1250, radius: 145, power: 22 } }
+  },
   voidStalker: {
     id: 'void-stalker',
     name: 'Void Stalker',

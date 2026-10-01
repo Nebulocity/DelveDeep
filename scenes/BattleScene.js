@@ -1,7 +1,9 @@
+import { preloadSlimeSprites } from '../data/slimeSprites.js';
 import { bindSelectionDetails, characterDetails, TONIC_DESCRIPTION } from '../ui/SelectionDetails.js';
 import Phaser from 'phaser';
 import ClassAbilitySystem from '../combat/ClassAbilitySystem.js';
 import { preloadCharacterSprites } from '../data/characterSprites.js';
+import { preloadEnemySprites } from '../data/enemySprites.js';
 import GameState from '../game/GameState.js';
 import { getEquippedAdventurer } from '../game/Equipment.js';
 import enemies from '../data/enemies.js';
@@ -36,6 +38,8 @@ export default class BattleScene extends Phaser.Scene {
   preload() {
     trackLoading(this);
     preloadCharacterSprites(this);
+    preloadEnemySprites(this);
+    preloadSlimeSprites(this);
 
     const environment = GameState.currentDelve?.visuals?.environment;
     if (environment) preloadEnvironment(this, environment);
@@ -1040,6 +1044,7 @@ export default class BattleScene extends Phaser.Scene {
     const enemy = new BattleUnit(this, {
       ...definition,
       id: `${definition.id}-${this.currentWaveIndex}-${spawnIndex}-${serial}`,
+      spriteId: type,
       battlefield: this.battlefield,
       arenaX: spawn.arenaX + Phaser.Math.Between(-30, 30),
       arenaY: spawn.arenaY + Phaser.Math.Between(-22, 22),
@@ -1332,6 +1337,7 @@ export default class BattleScene extends Phaser.Scene {
     if (!ability || !attacker.startAction(ability.name, time, ability.windup)) {
       return;
     }
+    attacker.spriteVisual?.play('attack', target);
     this.announceAbility(attacker, ability.name, '#c084fc');
     this.setEnemyTarget(attacker, target, 'highest threat');
     this.logActionStart(attacker, target, ability.name);
@@ -1355,6 +1361,7 @@ export default class BattleScene extends Phaser.Scene {
     if (!attacker.startAction(ability.name, time, ability.telegraph)) {
       return;
     }
+    attacker.spriteVisual?.play('attack', target);
     this.announceAbility(attacker, ability.name, '#f87171');
     this.setEnemyTarget(attacker, target, 'highest threat');
     this.logActionStart(attacker, target, ability.name);

@@ -17,6 +17,10 @@ export default class DungeonScene extends Phaser.Scene {
     super('DungeonScene');
   }
 
+  init() {
+    this.enteringBattle = false;
+  }
+
   // This function builds the final battle overview so the player can review
   // the selected adventurers and equipped leadership abilities. The start
   // button records the expedition starting resources and time before entering

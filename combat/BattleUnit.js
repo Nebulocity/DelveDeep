@@ -13,6 +13,7 @@ export default class BattleUnit {
     this.scene = scene;
     this.battlefield = config.battlefield;
     this.id = config.id;
+    this.spriteId = config.spriteId;
     this.name = config.name;
     this.className = config.className ?? '';
     this.shortName = config.shortName;

@@ -1,4 +1,6 @@
+import { SLIME_SPRITES } from '../data/slimeSprites.js';
 import { CHARACTER_SPRITES } from '../data/characterSprites.js';
+import { ENEMY_SPRITES } from '../data/enemySprites.js';
 import { SpriteMotion, movementDirection } from './SpriteMotion.js';
 
 // Presentation only: animation never changes arena positions, reach, or stats.
@@ -15,7 +17,7 @@ export default class UnitSprite {
   }
 
   static create(unit) {
-    const definition = CHARACTER_SPRITES[unit.id];
+    const definition = unit.isEnemy ? (SLIME_SPRITES[unit.spriteId] ?? ENEMY_SPRITES[unit.spriteId]) : CHARACTER_SPRITES[unit.id];
     if (!definition?.textures || !unit.scene.textures) return null;
     if (!definition.textures.every(({ key }) => unit.scene.textures.exists(key))) return null;
     definition.textures.forEach(({ key }) => {

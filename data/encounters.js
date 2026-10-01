@@ -38,13 +38,35 @@ const finalWaves = {
   ]
 };
 
-// This function creates independent wave data for the selected difficulty.
-// Existing waves stay intact, with the new boss encounter at the end.
+const thornbriarWaves = [
+  { name: 'Roadside Ambush', enemies: [
+    { type: 'banditWhip', arenaX: 460, arenaY: 790 },
+    { type: 'banditKnives', arenaX: 880, arenaY: 790 }
+  ] },
+  { name: 'The Hidden Knives', enemies: [
+    { type: 'banditKnives', arenaX: 400, arenaY: 760 },
+    { type: 'banditWhip', arenaX: 700, arenaY: 830 },
+    { type: 'banditKnives', arenaX: 980, arenaY: 760 }
+  ] },
+  { name: 'Briar Hex', enemies: [
+    { type: 'banditWhip', arenaX: 440, arenaY: 770 },
+    { type: 'banditHexer', arenaX: 700, arenaY: 860 },
+    { type: 'banditKnives', arenaX: 960, arenaY: 770 }
+  ] },
+  { name: 'The Thornbriar Chief', boss: true, enemies: [
+    { type: 'banditChief', arenaX: 700, arenaY: 810 }
+  ] }
+];
+
+// This function creates independent wave data for the selected delve.
+// Thornbriar uses bandits; other delves retain their difficulty waves.
 export function createEncounterWaves(delve = {}) {
 
   const difficulty = delve.type === 'void' ? 'Void' : delve.difficulty ?? 'Easy';
   const base = difficulty === 'Void' ? voidPortalWaves : forgottenCavernWaves;
-  const waves = [...base, ...(finalWaves[difficulty] ?? finalWaves.Easy)];
+  const waves = delve.id === 'thornbriar-hollow'
+    ? [...thornbriarWaves]
+    : [...base, ...(finalWaves[difficulty] ?? finalWaves.Easy)];
 
   // Preserve the fifth-depth guardian rule before the final boss so the
   // difficulty's advertised boss group still closes the encounter.

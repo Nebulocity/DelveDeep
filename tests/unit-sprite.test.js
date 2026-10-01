@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import UnitSprite from '../combat/UnitSprite.js';
+import { SLIME_SPRITES } from '../data/slimeSprites.js';
 const directions = ['south','south-east','east','north-east','north','north-west','west','south-west'];
 const definition = { scale: 1.5, footY: 30, clips: {} };
 for (const state of ['idle','walk']) {
@@ -54,3 +55,20 @@ visual.update(500);assert.equal(image.key,'death-west-2');
 visual.play('attack');visual.update(500);assert.equal(image.key,'death-west-2');
 unit.alive=true;unit.scene.battleOver=false;visual.reset();assert.equal(image.key,'idle-west-0');
 console.log('Action playback: facing, interruption, pause, persistent corpse, battle-end fall and revival passed.');
+
+// Spawn IDs vary each encounter, while the enemy type selects its sprite.
+const originalCaveSprite = SLIME_SPRITES.caveSlime;
+SLIME_SPRITES.caveSlime = { ...definition, textures: [{ key: 'cave-slime-test' }] };
+const enemyTexture = { setFilter(value) { this.filter = value; } };
+const enemyUnit = {
+  ...unit,
+  id: 'cave-slime-2-1-7', spriteId: 'caveSlime', isEnemy: true, alive: true,
+  scene: {
+    add: { image: () => image },
+    textures: { exists: key => key === 'cave-slime-test', get: () => enemyTexture }
+  }
+};
+assert.equal(UnitSprite.create(enemyUnit)?.definition, SLIME_SPRITES.caveSlime);
+assert.equal(enemyTexture.filter, 1);
+assert.equal(UnitSprite.create({ ...enemyUnit, spriteId: 'unknown' }), null);
+SLIME_SPRITES.caveSlime = originalCaveSprite;

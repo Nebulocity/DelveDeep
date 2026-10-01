@@ -90,6 +90,13 @@ for (const delve of delves) {
   waves[0].enemies[0].arenaX = -999;
   assert.notEqual(createEncounterWaves(delve)[0].enemies[0].arenaX, -999);
 }
+const thornbriar = delves.find((delve) => delve.id === 'thornbriar-hollow');
+const banditWaves = createEncounterWaves(thornbriar);
+assert.deepEqual(banditWaves.flatMap((wave) => wave.enemies.map((spawn) => spawn.type)).filter((type, index, all) => all.indexOf(type) === index), [
+  'banditWhip', 'banditKnives', 'banditHexer', 'banditChief'
+]);
+assert.equal(banditWaves.at(-1).enemies[0].type, 'banditChief');
+assert.equal(createEncounterWaves(slimeCave).at(-1).enemies[0].type, 'slimeSovereign');
 const milestone = createEncounterWaves({ difficulty: 'Easy', depth: 5 });
 assert.equal(milestone.length, 5);
 assert.equal(milestone.at(-2).milestoneBoss, true);

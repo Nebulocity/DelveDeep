@@ -61,6 +61,9 @@ function load(path, name) {
   vm.runInContext(source, context);
   return context[name];
 }
+vm.runInContext(fs.readFileSync(new URL('../ui/ReturnButton.js', import.meta.url), 'utf8')
+  .replace(/^import .*;\r?\n/gm, '')
+  .replace('export function addReturnButton', 'globalThis.addReturnButton = function addReturnButton'), context);
 load('../ui/InventoryScene.js', 'InventoryScene');
 const Blacksmith = load('../scenes/BlacksmithScene.js', 'BlacksmithScene');
 const Roster = load('../scenes/RosterScene.js', 'RosterScene');
@@ -90,6 +93,18 @@ function confirm(scene) {
 const smith = new Blacksmith();
 smith.create();
 assert.ok(hasText(smith, 'BLACKSMITH'));
+Object.assign(smith, { kind: 'materials', classIndex: 2, rarity: 'rare', page: 3 });
+smith.change('mode', 'sell');
+assert.equal(smith.kind, 'equipment');
+assert.equal(smith.classIndex, 0);
+assert.equal(smith.rarity, 'all');
+assert.equal(smith.page, 0);
+Object.assign(smith, { classIndex: 2, rarity: 'rare', page: 3 });
+smith.change('kind', 'materials');
+assert.equal(smith.classIndex, 0);
+assert.equal(smith.rarity, 'all');
+assert.equal(smith.page, 0);
+smith.create();
 // Empty/insufficient-funds screens still render and navigate.
 tap(smith, 'SELL');
 assert.ok(hasText(smith, 'No items match'));
@@ -138,6 +153,21 @@ for (const mode of ['buy', 'sell', 'craft']) {
 
 const gear = new Roster();
 gear.create();
+const abilityRowRight = 1945 + 804 / 2;
+const rightActions = gear.objects.filter((object) => object.type === 'text' && ['TRAIN', 'UNLOCK'].includes(object.value));
+assert.ok(rightActions.length > 0);
+let checkedActionGaps = 0;
+for (const action of rightActions) {
+  const box = gear.objects.find((object) => object.type === 'rectangle' && object.x === action.x && object.y === action.y);
+  assert.ok(box && box.x + box.value / 2 <= abilityRowRight - 20, `${action.value} extends past its ability card`);
+  const leftAction = gear.objects.find((object) => object.type === 'text' && object.y === action.y && ['EQUIP', 'UNEQUIP'].includes(object.value));
+  if (leftAction) {
+    const leftBox = gear.objects.find((object) => object.type === 'rectangle' && object.x === leftAction.x && object.y === leftAction.y);
+    assert.ok(leftBox && box.x - box.value / 2 - (leftBox.x + leftBox.value / 2) >= 20, 'Ability actions need a gap');
+    checkedActionGaps++;
+  }
+}
+assert.ok(checkedActionGaps > 0);
 gear.role = 'Tank';
 gear.heroId = 'laurana';
 gear.render();
@@ -151,17 +181,25 @@ pressAt(gear, 845, 971);
 pressAt(gear, 1740, 395);
 const inventory = new Items();
 inventory.create();
-assert.ok(hasText(inventory, 'No battle items owned'));
-tap(inventory, 'Equipment');
+assert.ok(hasText(inventory, 'No armor owned'));
+tap(inventory, 'Weapons');
 assert.ok(hasText(inventory, 'Equipped by Laurana'));
-tap(inventory, 'Crafting Material');
+tap(inventory, 'Materials');
 assert.ok(hasText(inventory, 'No crafting materials owned'));
+tap(inventory, 'Void');
+assert.ok(hasText(inventory, 'No Void Keys owned'));
 GameState.inventory.healingTonic = 3;
 GameState.inventory.voidKeys = 2;
-tap(inventory, 'Battle Items');
+tap(inventory, 'Items');
 assert.ok(hasText(inventory, 'Owned: 3'));
+assert.equal(hasText(inventory, 'Void Key'), false);
+tap(inventory, 'Void');
+assert.ok(hasText(inventory, 'Owned: 2'));
 assert.ok(hasText(inventory, 'Void Key'));
-tap(inventory, '< HALL');
+const returnButton = inventory.objects.find((object) => object.type === 'rectangle' && object.x === 312 && object.y === 52);
+assert.ok(returnButton?.handlers.pointerdown);
+assert.ok(hasText(inventory, "Return to Adventurer's Hall"));
+returnButton.handlers.pointerdown();
 assert.equal(inventory.destination, 'AdventurersHallScene');
 assert.ok(saves >= 8);
 
@@ -190,6 +228,9 @@ const Tactics = load('../scenes/RaidLeaderScene.js', 'RaidLeaderScene');
 const tactics = new Tactics();
 GameState.leader = leaderProgression.loadLeaderProgression();
 GameState.leader.tacticsPoints = 2;
+assert.deepEqual(new Set(leaderProgression.leaderAbilities.map((entry) => entry.category)), new Set(['Assault', 'Protect', 'Restore', 'Prepare']));
+tactics.create();
+for (const category of ['ASSAULT', 'PROTECT', 'RESTORE', 'PREPARE']) assert.ok(hasText(tactics, category));
 const ability = leaderProgression.leaderAbilities.find((entry) => entry.id === 'brace');
 const tacticTap = () => {
   tactics.createAbilityCard(ability, 500, 400, 680, 190);

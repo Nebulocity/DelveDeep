@@ -30,6 +30,8 @@
 - Do not place the class label over the battlefield character.
 - Do not place a mana bar above the battlefield character.
 - Show each battlefield health bar above its character or monster sprite, with the name above the bar.
+- Place cast bars 1px below battlefield health bars, clear of the sprites.
+- Do not outline battlefield tiles for character abilities. Keep enemy area warnings visible.
 - Keep character health information in the bottom party card as well.
 
 ### Bottom Party List
@@ -92,5 +94,5 @@ Developer/testing UI should:
 - Support unlock-all / testing mode behavior.
 - Include a control to add a Void Key.
 - Arrange controls in labeled rows for Dev mode, leader levels (+1/+5), Void Keys (+1/+5), gold (+100/+500), battlefield grid lines (on/off), and progress reset, with a separate Close button.
-- Keep battlefield tile interaction active when grid lines are hidden. Save the grid preference with the profile and show grid lines for older saves without that preference.
+- Never shade the battlefield floor. Hide the battlefield border with the grid lines while keeping tile interaction active. Save the grid preference with the profile and show grid lines for older saves without that preference.
 - Replace the previous Dev Tools feedback toast when another action is tapped before it fades.

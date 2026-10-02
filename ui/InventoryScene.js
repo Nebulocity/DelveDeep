@@ -4,6 +4,7 @@ import HapticsService from '../services/HapticsService.js';
 import { saveProfile } from '../game/GameStorage.js';
 import { bindSelectionDetails } from './SelectionDetails.js';
 import { addHallBackground } from './HallBackground.js';
+import { addReturnButton } from './ReturnButton.js';
 
 // Shared large controls for the three inventory screens. Pages keep every
 // row reachable without small scrollbars or off-screen mobile touch targets.
@@ -41,7 +42,7 @@ export default class InventoryScene extends Phaser.Scene {
     if (returnScene === 'AdventurersHallScene') addHallBackground(this, 0.62);
     // Flush with the usable game area; CSS owns device safe-area insets.
     this.add.rectangle(width / 2, 52, width, 104, hall ? 0x180d09 : 0x1e293b, hall ? 0.86 : 1);
-    this.button(222, 52, 330, `< ${returnLabel}`, () => this.scene.start(returnScene));
+    addReturnButton(this, returnLabel, () => this.scene.start(returnScene), { y: 52 });
     this.text(width / 2, 52, title, 52, hall ? '#fff1d2' : '#f8fafc').setOrigin(0.5);
     this.text(width - 68, 52, `${GameState.gold} GOLD`, 36, '#fbbf24').setOrigin(1, 0.5);
     if (this.message) this.text(width / 2, height - 93, this.message, 30, '#fde68a', width - 140).setOrigin(0.5);

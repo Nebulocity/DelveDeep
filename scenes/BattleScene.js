@@ -65,6 +65,7 @@ export default class BattleScene extends Phaser.Scene {
     this.waveTransitioning = false;
     this.waveRetreating = false;
     this.waveReturnPositions = new Map();
+    this.waveReturnTargets = new Map();
     this.activeTelegraphs = [];
     this.currentWaveIndex = -1;
     this.enemySerial = 0;
@@ -1605,23 +1606,6 @@ export default class BattleScene extends Phaser.Scene {
     return allowCrit && Math.random() < (attacker.critChance ?? 0);
   }
 
-  // This function flashes the perspective-grid cell containing a targeted unit.
-  flashTargetCell(target, color = 0xffffff) {
-
-    if (!target?.alive || !this.battlefield) return;
-    const cell = this.battlefield.arenaPointToCell(target.arenaX, target.arenaY);
-    const polygon = this.battlefield.getCellPolygon(cell.column, cell.row);
-    const graphics = this.add.graphics().setDepth(39);
-
-    graphics.lineStyle(10, color, 1);
-    graphics.strokePoints(polygon, true);
-    graphics.setAlpha(1);
-
-    this.time.delayedCall(2000, () => {
-      if (graphics.active) graphics.destroy();
-    });
-  }
-
   // This function resolves an attack from its base damage through critical
   // hits, status effects, and the target defenses. It updates combat
   // timestamps, threat, visual feedback, and the log, then handles any
@@ -1632,11 +1616,6 @@ export default class BattleScene extends Phaser.Scene {
     // cannot pull an untouched enemy while the tank is approaching.
     if (!attacker.isEnemy && attacker.role !== 'Tank' && target.isEnemy && !this.isEnemyEngaged(target)) return;
     const now = this.time.now;
-
-    // Flash only non-basic abilities that target another unit, using the target's slot color.
-    if (attacker !== target && abilityName !== 'Attack' && abilityName !== 'Bleed') {
-      this.flashTargetCell(target, target.color ?? 0xffffff);
-    }
 
     // Resolve blindness before damage modifiers; a miss stops the rest of the
     // hit processing.
@@ -1765,11 +1744,6 @@ export default class BattleScene extends Phaser.Scene {
   // how much health was actually restored for feedback and the combat log.
   // Healing generates threat only on enemies already engaged by a tank.
   resolveHeal(healer, target, baseAmount, abilityName, allowCrit = true) {
-
-    // Flash only named healing abilities cast on someone else, not routine Mend casts or self-targets.
-    if (healer !== target && abilityName !== 'Mend') {
-      this.flashTargetCell(target, target.color ?? 0xffffff);
-    }
 
     const critical = this.rollCritical(healer, allowCrit);
     const healingBoost = this.time.now < (healer.status.healingBoostUntil ?? 0) ? 1 + healer.status.healingBoost : 1;
@@ -2033,6 +2007,16 @@ export default class BattleScene extends Phaser.Scene {
     this.waveTransitioning = true;
     this.waveRetreating = true;
     this.waveReturnReadyAt = null;
+    this.waveReturnStartedAt = this.time.now;
+    this.waveReturnTimedOut = false;
+    this.waveReturnProgress = new Map();
+    this.waveReturnSettled = new Set();
+    this.waveReturnTargets = new Map(this.partyUnits.filter(unit => unit.alive).map(unit => {
+      const home = this.waveReturnPositions.get(unit.id);
+      if (!home) return [unit.id, { x: unit.arenaX, y: unit.arenaY }];
+      const clear = this.movement.clearCorpseDestination(unit, home);
+      return [unit.id, this.movement.clamp(clear.x, clear.y, unit)];
+    }));
     if (this.currentWaveIndex + 1 < this.waves.length) {
       this.partyUnits.filter(unit => unit.alive).forEach(unit => {
         const halfway = Math.ceil(unit.maxHp * 0.5);
@@ -2066,28 +2050,35 @@ export default class BattleScene extends Phaser.Scene {
 
     const living = this.partyUnits.filter((unit) => unit.alive);
     for (const unit of living) {
-      const home = this.waveReturnPositions.get(unit.id);
-      if (!home) continue;
-      const destination = this.movement.clearCorpseDestination(unit, home);
+      const destination = this.waveReturnTargets.get(unit.id);
+      if (!destination) continue;
       const distance = Math.hypot(unit.arenaX - destination.x, unit.arenaY - destination.y);
-      if (distance > 6) {
+      if (distance > 6 && !this.waveReturnTimedOut && !this.waveReturnSettled.has(unit.id)) {
         unit.moveToward(destination.x, destination.y, deltaSeconds * 2, 0, false);
-      } else if (distance > 0) {
+      } else if (distance > 0 && distance <= 6) {
         unit.setArenaPosition(destination.x, destination.y);
+      }
+      const remaining = Math.hypot(unit.arenaX - destination.x, unit.arenaY - destination.y);
+      const progress = this.waveReturnProgress.get(unit.id);
+      if (!progress || remaining < progress.bestDistance - 6) {
+        this.waveReturnProgress.set(unit.id, { bestDistance: remaining, lastProgressAt: time });
+      } else if (remaining > 6 && time - progress.lastProgressAt >= 2000) {
+        this.waveReturnSettled.add(unit.id);
       }
       unit.spriteVisual?.update(delta);
     }
 
     const allHome = living.every((unit) => {
-      const home = this.waveReturnPositions.get(unit.id);
-      const destination = home && this.movement.clearCorpseDestination(unit, home);
-      return destination && Math.hypot(unit.arenaX - destination.x, unit.arenaY - destination.y) <= 6;
+      const destination = this.waveReturnTargets.get(unit.id);
+      return destination && (this.waveReturnSettled.has(unit.id)
+        || Math.hypot(unit.arenaX - destination.x, unit.arenaY - destination.y) <= 6);
     });
-    if (!allHome) {
+    if (!allHome && time - this.waveReturnStartedAt < 10000) {
       this.waveReturnReadyAt = null;
       return;
     }
 
+    if (!allHome) this.waveReturnTimedOut = true;
     this.waveReturnReadyAt ??= time + 2000;
     if (time < this.waveReturnReadyAt) return;
     this.waveRetreating = false;

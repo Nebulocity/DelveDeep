@@ -20,6 +20,14 @@ export default class BlacksmithScene extends InventoryScene {
   }
 
   change(field, value) {
+    if (field === 'mode') {
+      this.kind = 'equipment';
+      this.classIndex = 0;
+      this.rarity = 'all';
+    } else if (field === 'kind') {
+      this.classIndex = 0;
+      this.rarity = 'all';
+    }
     this[field] = value;
     this.page = 0;
     this.message = '';
@@ -27,7 +35,7 @@ export default class BlacksmithScene extends InventoryScene {
   }
 
   render() {
-    this.frame('BLACKSMITH', 'TownScene', 'TOWN');
+    this.frame('BLACKSMITH', 'TownScene', 'Town');
     this.tabs([['buy', 'BUY'], ['sell', 'SELL'], ['craft', 'CRAFT']], this.mode, 155, (id) => this.change('mode', id));
     if (this.mode !== 'craft') {
       this.tabs([['equipment', 'Equipment'], ['materials', 'Materials']], this.kind, 250, (id) => this.change('kind', id), 70, 740);

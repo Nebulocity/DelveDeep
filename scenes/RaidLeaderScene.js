@@ -11,6 +11,7 @@ import {
 } from '../game/LeaderProgression.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
 import { addHallBackground } from '../ui/HallBackground.js';
+import { addReturnButton } from '../ui/ReturnButton.js';
 
 export default class RaidLeaderScene extends Phaser.Scene {
 
@@ -31,11 +32,7 @@ export default class RaidLeaderScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor('#11100f');
     addHallBackground(this, 0.62);
 
-    this.add.text(70, UI_SAFE_TOP + 10, "< ADVENTURER'S HALL", { fontFamily:'Arial', fontSize:'39px', color:'#d6d3d1' })
-      .setInteractive({ useHandCursor:true }).on('pointerdown', () => {
-
-        HapticsService.tap(); this.scene.start('AdventurersHallScene');
-      });
+    addReturnButton(this, "Adventurer's Hall", () => this.scene.start('AdventurersHallScene'), { y: UI_SAFE_TOP + 32 });
 
     this.add.text(width/2, UI_SAFE_TOP + 14, 'BATTLE TACTICS', { fontFamily:'Arial', fontSize:'72px', fontStyle:'bold', color:'#f5f5f4' }).setOrigin(0.5);
     this.add.text(width/2, UI_SAFE_TOP + 66, `Tactics Rank ${leader.level}  •  ${leader.tacticsPoints} Tactics Points available`, { fontFamily:'Arial', fontSize:'34px', color:'#d6d3d1' }).setOrigin(0.5);

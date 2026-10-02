@@ -115,7 +115,7 @@ export default class BattleUnit {
     const motionMargin = motion
       ? (motion.lift ?? 0) + Math.abs(spriteTop - (visual.definition.footY ?? 0)) * (motion.squish ?? 0) / 2
       : 0;
-    const barY = Math.min(-this.bodyRadius, spriteTop) - (this.isEnemy ? 30 : 14) - motionMargin;
+    const barY = Math.min(-this.bodyRadius, spriteTop) - (this.isEnemy ? 30 : 18) - motionMargin;
     const nameY = barY - (this.isEnemy ? 34 : 28);
     this.label = scene.add.text(0, nameY, this.name, {
       fontFamily: 'Arial',
@@ -153,11 +153,12 @@ export default class BattleUnit {
       .setVisible(!this.isEnemy);
     this.hpBack = scene.add.rectangle(0, barY, barWidth, 12, 0x1c1917);
     this.hpFill = scene.add.rectangle(-barWidth / 2, barY, barWidth, 12, 0x22c55e).setOrigin(0, 0.5);
+    const castY = barY + (12 + 7) / 2 + 1;
 
     // Create the cast bar hidden; starting an action reveals it until the
     // action finishes.
-    this.castBack = scene.add.rectangle(0, this.isEnemy ? barY + 18 : 54, barWidth, 7, 0x0c0a09).setVisible(false);
-    this.castFill = scene.add.rectangle(-barWidth / 2, this.isEnemy ? barY + 18 : 54, barWidth, 7, 0xfbbf24)
+    this.castBack = scene.add.rectangle(0, castY, barWidth, 7, 0x0c0a09).setVisible(false);
+    this.castFill = scene.add.rectangle(-barWidth / 2, castY, barWidth, 7, 0xfbbf24)
       .setOrigin(0, 0.5)
       .setVisible(false);
 

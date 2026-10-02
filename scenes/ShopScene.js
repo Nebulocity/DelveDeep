@@ -5,6 +5,7 @@ import GameState from '../game/GameState.js';
 import HapticsService from '../services/HapticsService.js';
 import { saveProfile } from '../game/GameStorage.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
+import { addReturnButton } from '../ui/ReturnButton.js';
 
 export default class ShopScene extends Phaser.Scene {
 
@@ -103,20 +104,7 @@ export default class ShopScene extends Phaser.Scene {
   // This function provides a return to town with touch feedback.
   createBackButton() {
 
-    const y = UI_SAFE_TOP + 18;
-    const button = this.add.rectangle(172, y, 270, 64, 0x44403c)
-      .setInteractive({ useHandCursor: true });
-    this.add.text(172, y, '< TOWN', {
-      fontFamily: 'Arial',
-      fontSize: '33px',
-      fontStyle: 'bold',
-      color: '#ffffff'
-    }).setOrigin(0.5);
-    button.on('pointerdown', () => {
-
-      HapticsService.tap();
-      this.scene.start('TownScene');
-    });
+    addReturnButton(this, 'Town', () => this.scene.start('TownScene'), { y: UI_SAFE_TOP + 32 });
   }
 
   // This function exchanges enough gold for one tonic and saves the updated

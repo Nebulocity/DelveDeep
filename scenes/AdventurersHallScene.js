@@ -3,10 +3,11 @@ import { bindSelectionDetails, addDetailsHint } from '../ui/SelectionDetails.js'
 import HapticsService from '../services/HapticsService.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
 import { addHallBackground } from '../ui/HallBackground.js';
+import { addReturnButton } from '../ui/ReturnButton.js';
 
 const DESTINATIONS = [
   { label: 'ADVENTURERS', subtitle: 'Meet your party', scene: 'RosterScene', description: 'Browse adventurers, their equipment, stats, and battle abilities.' },
-  { label: 'ITEMS', subtitle: 'Supplies and inventory', scene: 'ItemsScene', description: 'View battle items, crafting materials, and owned equipment.' },
+  { label: 'ITEMS', subtitle: 'Supplies and inventory', scene: 'ItemsScene', description: 'View armor, items, materials, weapons, and Void Keys.' },
   { label: 'TACTICS', subtitle: 'Plan your next battle', scene: 'RaidLeaderScene', description: 'Spend TP to unlock tactics, then equip up to five for combat.' }
 ];
 
@@ -25,15 +26,7 @@ export default class AdventurersHallScene extends Phaser.Scene {
     this.add.rectangle(width / 2, 0, width, UI_SAFE_TOP + 152, 0x180d09, 0.84).setOrigin(0.5, 0);
     this.add.rectangle(width / 2, height, width, 320, 0x180d09, 0.78).setOrigin(0.5, 1);
 
-    const back = this.add.rectangle(160, UI_SAFE_TOP + 32, 250, 76, 0x382014, 0.92)
-      .setStrokeStyle(3, 0xd4a15e).setInteractive({ useHandCursor: true });
-    this.add.text(160, UI_SAFE_TOP + 32, '< TOWN', {
-      fontFamily: 'Arial', fontSize: '36px', fontStyle: 'bold', color: '#fff1d2'
-    }).setOrigin(0.5);
-    back.on('pointerdown', () => {
-      HapticsService.tap();
-      this.scene.start('TownScene');
-    });
+    addReturnButton(this, 'Town', () => this.scene.start('TownScene'), { y: UI_SAFE_TOP + 32 });
 
     this.add.text(width / 2, UI_SAFE_TOP + 24, "ADVENTURER'S HALL", {
       fontFamily: 'Arial', fontSize: '70px', fontStyle: 'bold', color: '#fff1d2',

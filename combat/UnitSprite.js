@@ -109,6 +109,16 @@ export default class UnitSprite {
       return;
     }
     this.motion.update(unit.arenaX, unit.arenaY, delta, unit.moveSpeed * (scene.waveRetreating ? 2 : 1), unit.alive, frozen);
+
+    // Idle allies face the incoming wave from their current screen lane.
+    if (!unit.isEnemy && unit.alive && !frozen && scene.waveTransitioning
+      && this.motion.state === 'idle' && unit.battlefield && scene.scale?.width) {
+      const position = unit.battlefield.arenaToScreen(unit.arenaX, unit.arenaY);
+      const centerX = scene.scale.width / 2;
+      const centerWidth = position.widthAtDepth / unit.battlefield.columns;
+      this.motion.direction = position.x < centerX - centerWidth ? 'north-east'
+        : position.x > centerX + centerWidth ? 'north-west' : 'north';
+    }
     const orderedPoint = scene.manualTargets?.get(unit.id);
     const followingOrder = orderedPoint && unit.distanceToPoint(orderedPoint.x, orderedPoint.y)
       > (scene.movement?.config.arrivalTolerance ?? 12);

@@ -117,6 +117,9 @@ function scene(party, enemies) {
   const battle = Object.assign(Object.create(BattleScene.prototype), {
     terrain: { nearestSafeUnitPoint: (unit, x, y) => ({ x, y }) },
     partyUnits: party, enemies, selectedUnitIds: new Set(),
+    waveReturnPositions: new Map(party.map(member => [member.id, { x: member.arenaX, y: member.arenaY }])),
+    waveReturnTargets: new Map(),
+    waveReturnProgress: new Map(), waveReturnSettled: new Set(),
     manualTargets: new Map(), heldUnitIds: new Set(), attackTargets: new Map(),
     enemyThreat: new Map(enemies.map(enemy => [enemy.id, new Map()])),
     commandMode: null, battleOver: false, activeTelegraphs: [], timers,
@@ -911,6 +914,8 @@ console.log('Battle behavior checks passed.');
   battle.currentWaveIndex = 0;
   battle.waveRetreating = true;
   battle.waveReturnPositions = new Map([['ally', { x: 0, y: 0 }], ['fallen', { x: 200, y: 0 }]]);
+  battle.waveReturnTargets = new Map([['ally', { x: 0, y: 0 }]]);
+  battle.waveReturnStartedAt = 0;
   let nextWave = null;
   battle.startWave = (index) => { nextWave = index; };
 
@@ -930,6 +935,37 @@ console.log('Battle behavior checks passed.');
   battle.updateWaveRetreat(arrivedAt + 2000, 0.05, 50);
   assert.equal(nextWave, 1);
   assert.equal(battle.waveRetreating, false);
+}
+
+// Return targets stay fixed, and a blocked unit cannot delay the next wave indefinitely.
+{
+  const ally = unit('ally', 'Melee DPS', 300, 100);
+  ally.moveToward = function (x, y) { this.lastReturnTarget = { x, y }; };
+  const battle = scene([ally], []);
+  battle.waves = [{}, {}];
+  battle.currentWaveIndex = 0;
+  battle.updateHud = () => {};
+  battle.waveReturnPositions.set('ally', { x: 100, y: 100 });
+  let clears = 0;
+  battle.movement.clearCorpseDestination = () => {
+    clears += 1;
+    return { x: 100 + clears * 20, y: 100 };
+  };
+  battle.completeWave();
+  assert.equal(clears, 1);
+  assert.equal(battle.waveReturnTargets.get('ally').x, 120);
+  battle.updateWaveRetreat(500, 0.05, 50);
+  assert.equal(ally.lastReturnTarget.x, 120);
+  assert.equal(clears, 1);
+  let nextWave = null;
+  battle.startWave = index => { nextWave = index; };
+  battle.updateWaveRetreat(2500, 0.05, 50);
+  assert.equal(battle.waveReturnSettled.has('ally'), true);
+  assert.equal(ally.arenaX, 300, 'a blocked unit is not teleported');
+  battle.updateWaveRetreat(4499, 0.05, 50);
+  assert.equal(nextWave, null);
+  battle.updateWaveRetreat(4500, 0.05, 50);
+  assert.equal(nextWave, 1);
 }
 
 // Return movement ignores living allies while retaining corpse and terrain checks.
@@ -960,6 +996,8 @@ console.log('Battle behavior checks passed.');
   battle.currentWaveIndex = 0;
   battle.waveRetreating = true;
   battle.waveReturnPositions = new Map([['ally', { x: 0, y: 0 }]]);
+  battle.waveReturnTargets = new Map([['ally', { x: 0, y: 0 }]]);
+  battle.waveReturnStartedAt = 0;
   let victories = 0;
   battle.finishVictory = () => { victories += 1; };
   battle.updateWaveRetreat(100, 0.05, 50);

@@ -3,6 +3,7 @@ import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
 import HapticsService from '../services/HapticsService.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
+import { addReturnButton } from '../ui/ReturnButton.js';
 
 export default class DelveSelectScene extends Phaser.Scene {
 
@@ -68,12 +69,6 @@ export default class DelveSelectScene extends Phaser.Scene {
   // This function gives the player a way back to the world map.
   createWorldMapButton() {
 
-    const y = UI_SAFE_TOP + 18;
-    const button = this.add.rectangle(180, y, 300, 64, 0x3f3f46).setInteractive({ useHandCursor: true });
-    this.add.text(180, y, '< WORLD MAP', { fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
-    button.on('pointerdown', () => {
-
-      HapticsService.tap(); this.scene.start('TitleScene');
-    });
+    addReturnButton(this, 'World Map', () => this.scene.start('TitleScene'), { y: UI_SAFE_TOP + 32 });
   }
 }

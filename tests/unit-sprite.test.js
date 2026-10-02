@@ -70,6 +70,17 @@ visual.play('hit');visual.update(110);visual.play('hit');
 assert.equal(image.key,'hit-west-1','repeated hits do not restart reaction');
 visual.reset();unit.scene.waveTransitioning=true;unit.scene.waveRetreating=false;
 visual.update(110);assert.equal(image.key,'idle-west-1','idle continues during the wave countdown');
+unit.scene.scale = { width: 1000 };
+unit.battlefield = { columns: 10, arenaToScreen: (x) => ({ x, widthAtDepth: 1000 }) };
+for (const [x, direction] of [[250, 'north-east'], [500, 'north'], [750, 'north-west']]) {
+  unit.arenaX = x;
+  visual.reset();
+  visual.update(16);
+  assert.equal(image.key, `idle-${direction}-0`, `wave preparation faces ${direction} at x=${x}`);
+}
+unit.arenaX -= 4;
+visual.update(32);
+assert.equal(image.key, 'walk-west-0', 'walking home retains movement facing');
 unit.scene.waveTransitioning=false;
 visual.play('death');unit.alive=false;unit.scene.battleOver=true;
 visual.update(500);assert.equal(image.key,'death-west-2');

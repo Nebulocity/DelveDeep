@@ -20,6 +20,7 @@ class Scene {
         object.on = (event, callback) => { object.handlers[event] = callback; return object; };
         object.setInteractive = () => object;
         object.setOrigin = () => object;
+        object.setStrokeStyle = () => object;
         this.objects.push(object);
         return object;
       };
@@ -38,6 +39,9 @@ const context = vm.createContext({
   beginExpedition() { expeditionCount++; },
   requestAnimationFrame(callback) { frames.push(callback); }
 });
+vm.runInContext(fs.readFileSync(new URL('../ui/ReturnButton.js', import.meta.url), 'utf8')
+  .replace(/^import .*;\r?\n/gm, '')
+  .replace('export function addReturnButton', 'globalThis.addReturnButton = function addReturnButton'), context);
 const source = fs.readFileSync(new URL('../scenes/DungeonScene.js', import.meta.url), 'utf8')
   .replace(/^import .*;\r?\n/gm, '')
   .replace('export default class DungeonScene', 'globalThis.DungeonScene = class DungeonScene');

@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
-import HapticsService from '../services/HapticsService.js';
 import { formatDuration } from '../game/ExpeditionProgression.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
+import { addReturnButton } from '../ui/ReturnButton.js';
 
 export default class RewardScene extends Phaser.Scene {
 
@@ -57,15 +57,11 @@ export default class RewardScene extends Phaser.Scene {
 
     // Clear temporary party and reward display state when returning to the
     // map. Saved progression remains available.
-    const returnButton = this.add.rectangle(width / 2, height * 0.87, 760, 94, 0x44403c).setInteractive({ useHandCursor: true });
-    this.add.text(width / 2, height * 0.87, 'RETURN TO WORLD MAP', { fontFamily: 'Arial', fontSize: '39px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
-    returnButton.on('pointerdown', () => {
-
-      HapticsService.confirm();
+    addReturnButton(this, 'World Map', () => {
       GameState.activeParty = [];
       GameState.currentRoom = 0;
       GameState.rewards = [];
       this.scene.start('TitleScene');
-    });
+    }, { x: width / 2, y: height * 0.87, feedback: 'confirm' });
   }
 }

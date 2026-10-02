@@ -5,6 +5,7 @@ import { getEquippedAdventurer } from '../game/Equipment.js';
 import HapticsService from '../services/HapticsService.js';
 import { happinessLabel } from '../game/AdventurerProgression.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
+import { addReturnButton } from '../ui/ReturnButton.js';
 import { saveProfile } from '../game/GameStorage.js';
 
 const MAX_PARTY_SIZE = 5;
@@ -107,14 +108,7 @@ export default class PartySelectScene extends Phaser.Scene {
   // feedback.
   createBackButton() {
 
-    const y = UI_SAFE_TOP + 18;
-    const button = this.add.rectangle(180, y, 300, 64, 0x334155).setInteractive({ useHandCursor: true });
-    this.add.text(180, y, '< OVERVIEW', { fontFamily: 'Arial', fontSize: '33px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
-    button.on('pointerdown', () => {
-
-      HapticsService.tap();
-      this.scene.start('DelveSelectScene');
-    });
+    addReturnButton(this, 'Delve Overview', () => this.scene.start('DelveSelectScene'), { y: UI_SAFE_TOP + 32 });
   }
 
   // This function restores a valid previous party while leaving first-time

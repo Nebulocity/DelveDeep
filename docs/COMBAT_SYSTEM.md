@@ -30,7 +30,7 @@ Tactical commands should override or strongly influence default behavior where a
 
 ## Wave Transitions and Movement
 
-Adventurers and enemies move at 1.5 times their configured movement speed during combat. When a wave ends, living adventurers walk back to their initial positions at twice their combat movement speed. Their return paths ignore ally spacing so they do not oscillate around each other. After everyone arrives, the party remains in place for two seconds before the next wave countdown begins. Idle sprite animations continue during the wave announcement. The final wave also returns the party home before victory appears.
+Adventurers and enemies move at 1.5 times their configured movement speed during combat. When a wave ends, living adventurers walk back to their initial positions at twice their combat movement speed. Their return paths ignore ally spacing, and each return target stays fixed through the transition. A unit that makes no progress for two seconds settles at its current safe position; the return phase also has a ten-second limit. After everyone arrives or settles, the party remains in place for two seconds before the next wave countdown begins. Idle sprite animations continue during the wave announcement. The final wave follows the same return and settle rules before victory appears.
 
 ## Player Movement Commands
 

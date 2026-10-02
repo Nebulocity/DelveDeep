@@ -6,4 +6,6 @@ Every monster death should play its death clip, flicker briefly, fade out, and f
 
 Use supplied character references and PixelLab for new sprites. `scripts/pack-sprite-sheets.py <id>` packs accepted frames; `scripts/build-sprite-catalog.mjs` rebuilds the runtime catalog after sheets exist. The active PixelLab chat owns unfinished outputs and its root `SPRITE_CONTINUATION.md` handoff. Do not move or rename those files until that work finishes.
 
+`scripts/clean-character-sprites.py` applies the confirmed Tasslehoff crop and passive hand-effect cleanup to accepted source frames before repacking Tasslehoff, Palin, Tika, and Hedge Mage. Keep future PixelLab replacements in sync with that cleanup or revise the script's targeted masks before repacking.
+
 Environment runtime exports live in `assets/environments/<level>/`. The current Slime Cave uses `reference.png`, `background.png`, `battlefield.png`, `foreground.png` and `ambient.mp4`, referenced by URL in `data/levels/SlimeCave.js`. Check string keys and URL construction before declaring an asset unused. Blender authoring source lives separately under `assets/blender/`; see [Blender pipeline](BLENDER_PIPELINE.md). Keep source art, accepted frame sets, packed sheets and runtime catalog in sync. Validate with `node tests/sprite-assets.test.js` and `npm run build` when sprite integration changes.

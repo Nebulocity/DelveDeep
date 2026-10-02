@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
-import HapticsService from '../services/HapticsService.js';
 import { formatDuration } from '../game/ExpeditionProgression.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
+import { addReturnButton } from '../ui/ReturnButton.js';
 
 export default class EncounterSummaryScene extends Phaser.Scene {
 
@@ -33,15 +33,11 @@ export default class EncounterSummaryScene extends Phaser.Scene {
 
     // Offer a return to the map and clear the temporary encounter display
     // state.
-    const button = this.add.rectangle(width / 2, height * 0.80, 650, 94, 0x334155).setInteractive({ useHandCursor: true });
-    this.add.text(width / 2, height * 0.80, 'RETURN TO WORLD MAP', { fontFamily: 'Arial', fontSize: '37px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
-    button.on('pointerdown', () => {
-
-      HapticsService.confirm();
+    addReturnButton(this, 'World Map', () => {
       GameState.activeParty = [];
       GameState.currentRoom = 0;
       GameState.rewards = [];
       this.scene.start('TitleScene');
-    });
+    }, { x: width / 2, y: height * 0.80, feedback: 'confirm' });
   }
 }

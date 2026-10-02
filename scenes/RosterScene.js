@@ -10,6 +10,7 @@ import { showConfirmation } from '../ui/ConfirmationDialog.js';
 import { addHallBackground } from '../ui/HallBackground.js';
 import HapticsService from '../services/HapticsService.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
+import { addReturnButton } from '../ui/ReturnButton.js';
 
 const ROLES = [
   ['Tank', 'TANKS'],
@@ -17,6 +18,9 @@ const ROLES = [
   ['Melee DPS', 'MELEE DPS'],
   ['Ranged DPS', 'RANGED DPS']
 ];
+
+const heroesForRole = (role) => GameState.roster.filter((hero) => hero.role === role)
+  .sort((a, b) => a.name.localeCompare(b.name));
 
 const formatNumber = (value, suffix = '') => Number.isFinite(value) ? `${Math.round(value * 100) / 100}${suffix}` : '—';
 const percent = (value) => Number.isFinite(value) ? `${Math.round(value * 100)}%` : '—';
@@ -28,7 +32,7 @@ export default class RosterScene extends Phaser.Scene {
 
   create() {
     this.role = ROLES[0][0];
-    this.heroId = GameState.roster.find((hero) => hero.role === this.role)?.id;
+    this.heroId = heroesForRole(this.role)[0]?.id;
     this.message = '';
     this.abilityScroll = 0;
     this.input.on('wheel', (pointer, objects, dx, dy) => {
@@ -41,6 +45,7 @@ export default class RosterScene extends Phaser.Scene {
       dragY = pointer.y;
     });
     this.input.on('pointerup', () => { dragY = null; });
+    this.events.once('shutdown', () => this.abilityMaskShape?.destroy());
     this.render();
   }
 
@@ -63,7 +68,7 @@ export default class RosterScene extends Phaser.Scene {
     this.add.rectangle(width / 2, 0, width, UI_SAFE_TOP + 146, 0x180d09, 0.86).setOrigin(0.5, 0);
     this.add.rectangle(width / 2, height, width, 64, 0x180d09, 0.8).setOrigin(0.5, 1);
 
-    this.button(160, UI_SAFE_TOP + 27, 250, 72, '< HALL', () => this.scene.start('AdventurersHallScene'));
+    addReturnButton(this, "Adventurer's Hall", () => this.scene.start('AdventurersHallScene'), { y: UI_SAFE_TOP + 27 });
     this.add.text(width / 2, UI_SAFE_TOP + 19, 'ADVENTURERS', {
       fontFamily: 'Arial', fontSize: '68px', fontStyle: 'bold', color: '#fff1d2'
     }).setOrigin(0.5);
@@ -113,13 +118,13 @@ export default class RosterScene extends Phaser.Scene {
       const y = 345 + Math.floor(index / 2) * 67;
       this.button(x, y, 230, 58, label, () => {
         this.role = role;
-        this.heroId = GameState.roster.find((hero) => hero.role === role)?.id;
+        this.heroId = heroesForRole(role)[0]?.id;
+        this.abilityScroll = 0;
         this.message = '';
         this.render();
       }, true, this.role === role);
     });
-    const heroes = GameState.roster.filter((hero) => hero.role === this.role)
-      .sort((a, b) => a.name.localeCompare(b.name));
+    const heroes = heroesForRole(this.role);
     heroes.forEach((hero, index) => {
       const y = 525 + index * 119;
       const selected = hero.id === this.heroId;
@@ -135,6 +140,7 @@ export default class RosterScene extends Phaser.Scene {
       card.on('pointerdown', () => {
         HapticsService.tap();
         this.heroId = hero.id;
+        this.abilityScroll = 0;
         this.message = '';
         this.render();
       });
@@ -257,32 +263,38 @@ export default class RosterScene extends Phaser.Scene {
       fontFamily: 'Arial', fontSize: '25px', color: '#e8c89f'
     }).setOrigin(0.5);
     const firstRow = this.children.list.length;
-    abilityEntries(hero).forEach(([key, ability], index) => {
+    const entries = abilityEntries(hero);
+    entries.forEach(([key, ability], index) => {
       const rank = hero.abilityRanks?.[key] ?? 0;
       const equipped = loadout.includes(key);
-      const y = 465 + index * 108;
-      const row = this.add.rectangle(1945, y, 804, 100, equipped ? 0x4a3420 : 0x302119, 0.96)
+      const y = 480 + index * 132;
+      const row = this.add.rectangle(1945, y, 804, 124, equipped ? 0x4a3420 : 0x302119, 0.96)
         .setStrokeStyle(2, equipped ? 0xe8b35e : 0x795637);
       bindSelectionDetails(this, row, {
         title: ability.name,
         description: `${ability.effect} ability. Range ${Number.isFinite(ability.range) ? ability.range : 'any'} cells. Cooldown ${ability.cooldown / 1000}s.${ability.power != null ? ` Base power ${ability.power}.` : ''}\n\nRanks improve power and duration by 20% and 15% per rank, reduce cooldown by 10% per rank, and improve reactive chance when applicable.`
       }, () => {});
-      this.add.text(1560, y - 37, ability.name, {
+      this.add.text(1560, y - 51, ability.name, {
         fontFamily: 'Arial', fontSize: '27px', fontStyle: 'bold', color: '#fff1d2',
         wordWrap: { width: 415 }
       });
       const nextRank = rank + 1;
       const level = nextRank <= MAX_ABILITY_RANK ? abilityLevelRequired(hero, key, nextRank) : null;
       const cost = nextRank <= MAX_ABILITY_RANK ? abilityGoldCost(hero, key, nextRank) : null;
-      this.add.text(1560, y + 13, rank
-        ? `R${rank}/${MAX_ABILITY_RANK} ${equipped ? 'EQUIPPED' : 'UNEQUIPPED'}${nextRank <= MAX_ABILITY_RANK ? '  •  TRAINING COMING SOON' : ''}`
+      this.add.text(1560, y - 3, rank
+        ? `R${rank}/${MAX_ABILITY_RANK} ${equipped ? 'EQUIPPED' : 'UNEQUIPPED'}`
         : `LOCKED  •  Level ${level}  •  ${cost}g`, {
-        fontFamily: 'Arial', fontSize: '22px', color: equipped ? '#fcd38b' : '#d4b798'
+        fontFamily: 'Arial', fontSize: '22px', color: equipped ? '#fcd38b' : '#d4b798',
+        wordWrap: { width: 415 }
       });
-      if (rank) this.button(2070, y, 170, 62, equipped ? 'UNEQUIP' : 'EQUIP', () => this.commit(toggleAdventurerAbility(hero.id, key)));
+      if (rank && nextRank <= MAX_ABILITY_RANK) this.add.text(1560, y + 31, '•  TRAINING COMING SOON', {
+        fontFamily: 'Arial', fontSize: '22px', color: equipped ? '#fcd38b' : '#d4b798',
+        wordWrap: { width: 750 }
+      });
+      if (rank) this.button(2050, y - 18, 170, 62, equipped ? 'UNEQUIP' : 'EQUIP', () => this.commit(toggleAdventurerAbility(hero.id, key)));
       if (nextRank <= MAX_ABILITY_RANK) {
-        if (rank) this.button(2270, y, 170, 62, 'TRAIN', () => {}, false);
-        else this.button(2270, y, 170, 62, 'UNLOCK', () => {
+        if (rank) this.button(2240, y - 18, 170, 62, 'TRAIN', () => {}, false);
+        else this.button(2240, y - 18, 170, 62, 'UNLOCK', () => {
           showConfirmation(this, {
             title: `Unlock ${ability.name}`,
             description: `Spend ${cost} gold for rank ${nextRank}?\n\nRequires adventurer level ${level}. Current level: ${hero.level}. Gold available: ${GameState.gold}.`,
@@ -293,7 +305,7 @@ export default class RosterScene extends Phaser.Scene {
     });
     const rowObjects = this.children.list.slice(firstRow);
     this.abilityList = this.add.container(0, -this.abilityScroll, rowObjects);
-    this.abilityScrollMax = Math.max(0, abilityEntries(hero).length * 108 + 465 - 55 - 990);
+    this.abilityScrollMax = Math.max(0, 480 + (entries.length - 1) * 132 + 62 - 990);
     this.abilityScroll = Math.min(this.abilityScroll, this.abilityScrollMax);
     this.abilityList.y = -this.abilityScroll;
     const maskShape = this.make.graphics({ x: 0, y: 0, add: false });

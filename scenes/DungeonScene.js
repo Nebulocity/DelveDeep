@@ -7,6 +7,7 @@ import { beginExpedition } from '../game/ExpeditionProgression.js';
 import { leaderAbilities } from '../game/LeaderProgression.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
 import { showLoadingScreen } from '../ui/LoadingScreen.js';
+import { addReturnButton } from '../ui/ReturnButton.js';
 
 export default class DungeonScene extends Phaser.Scene {
 
@@ -37,16 +38,8 @@ export default class DungeonScene extends Phaser.Scene {
     });
     this.cameras.main.setBackgroundColor('#15120f');
 
-    this.add.text(70, UI_SAFE_TOP + 14, '< PARTY SELECT', { fontFamily: 'Arial', fontSize: '34px', color: '#d6d3d1' })
-      .setInteractive({ useHandCursor: true }).on('pointerdown', () => {
-
-        HapticsService.tap(); this.scene.start('PartySelectScene');
-      });
-    this.add.text(width - 70, UI_SAFE_TOP + 14, 'WORLD MAP', { fontFamily: 'Arial', fontSize: '34px', color: '#d6d3d1' }).setOrigin(1, 0)
-      .setInteractive({ useHandCursor: true }).on('pointerdown', () => {
-
-        HapticsService.tap(); this.scene.start('TitleScene');
-      });
+    addReturnButton(this, 'Party Select', () => this.scene.start('PartySelectScene'), { y: UI_SAFE_TOP + 32 });
+    addReturnButton(this, 'World Map', () => this.scene.start('TitleScene'), { x: width - 312, y: UI_SAFE_TOP + 32 });
 
     this.add.text(width / 2, UI_SAFE_TOP + 18, 'BATTLE OVERVIEW', { fontFamily: 'Arial', fontSize: '68px', fontStyle: 'bold', color: '#f5f5f4' }).setOrigin(0.5);
     this.add.text(width / 2, UI_SAFE_TOP + 75, GameState.currentDelve?.name ?? 'The Delve', { fontFamily: 'Arial', fontSize: '38px', color: '#a8a29e' }).setOrigin(0.5);

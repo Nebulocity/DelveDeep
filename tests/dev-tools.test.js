@@ -147,10 +147,11 @@ vm.runInContext(geometrySource, geometryContext);
 const drawings = [];
 const battlefield = new geometryContext.BattlefieldGeometry({
   add: { graphics() {
-    const graphic = { strokes: 0, paths: 0 };
-    for (const method of ['fillStyle', 'fillPoints', 'lineStyle', 'beginPath', 'moveTo', 'lineTo']) {
+    const graphic = { fills: 0, strokes: 0, paths: 0 };
+    for (const method of ['lineStyle', 'beginPath', 'moveTo', 'lineTo']) {
       graphic[method] = () => graphic;
     }
+    graphic.fillPoints = () => { graphic.fills++; return graphic; };
     graphic.strokePoints = () => { graphic.strokes++; return graphic; };
     graphic.strokePath = () => { graphic.paths++; return graphic; };
     drawings.push(graphic);
@@ -163,8 +164,11 @@ const battlefield = new geometryContext.BattlefieldGeometry({
 });
 battlefield.drawPerspectiveFloor(false);
 battlefield.drawPerspectiveFloor(true);
-assert.equal(drawings[0].strokes, 1);
+assert.equal(drawings[0].fills, 0);
+assert.equal(drawings[0].strokes, 0);
 assert.equal(drawings[0].paths, 0);
+assert.equal(drawings[1].fills, 0);
+assert.equal(drawings[1].strokes, 1);
 assert.equal(drawings[1].paths, 12);
 assert.equal(battlefield.getCellPolygon(0, 0).length, 4);
 console.log('Development tools grants and saved grid preference passed.');

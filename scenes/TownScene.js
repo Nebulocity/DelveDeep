@@ -3,6 +3,7 @@ import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
 import HapticsService from '../services/HapticsService.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
+import { addReturnButton } from '../ui/ReturnButton.js';
 
 export default class TownScene extends Phaser.Scene {
 
@@ -74,13 +75,7 @@ export default class TownScene extends Phaser.Scene {
   // This function provides a return to the world map with touch feedback.
   createBackButton() {
 
-    const y = this.headerY;
-    const button = this.add.rectangle(176, y, 276, 64, 0x44403c).setInteractive({ useHandCursor: true });
-    this.add.text(176, y, '< WORLD MAP', { fontFamily: 'Arial', fontSize: '33px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
-    button.on('pointerdown', () => {
-
-      HapticsService.tap(); this.scene.start('TitleScene');
-    });
+    addReturnButton(this, 'World Map', () => this.scene.start('TitleScene'), { y: this.headerY });
   }
 
   // This function connects a town destination card to its scene with touch

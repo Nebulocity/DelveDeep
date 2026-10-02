@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
-import HapticsService from '../services/HapticsService.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
+import { addReturnButton } from '../ui/ReturnButton.js';
 
 export default class FacilityScene extends Phaser.Scene {
 
@@ -16,7 +16,7 @@ export default class FacilityScene extends Phaser.Scene {
 
     this.title = data?.title ?? 'Town Facility';
     this.returnScene = data?.returnScene ?? 'TownScene';
-    this.returnLabel = data?.returnLabel ?? 'TOWN';
+    this.returnLabel = data?.returnLabel ?? 'Town';
   }
 
   // This function identifies this future town facility and provides a route
@@ -28,11 +28,7 @@ export default class FacilityScene extends Phaser.Scene {
 
     // Use the supplied return destination so the placeholder works from
     // either the town or the hall.
-    this.add.text(70, UI_SAFE_TOP + 15, `< ${this.returnLabel}`, { fontFamily: 'Arial', fontSize: '38px', color: '#d6d3d1' }).setInteractive({ useHandCursor: true })
-      .on('pointerdown', () => {
-
-        HapticsService.tap(); this.scene.start(this.returnScene);
-      });
+    addReturnButton(this, this.returnLabel, () => this.scene.start(this.returnScene), { y: UI_SAFE_TOP + 32 });
 
     // Display the selected facility name and explain that its systems are
     // still planned.

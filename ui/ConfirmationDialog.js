@@ -5,6 +5,7 @@ import HapticsService from '../services/HapticsService.js';
 export function showConfirmation(scene, { title, description, confirmLabel = 'CONFIRM', onConfirm }) {
   scene.selectionDetailsClose?.();
   const { width, height } = scene.scale;
+  const hall = ['RosterScene', 'RaidLeaderScene'].includes(scene.scene?.key);
   const objects = [];
   const depth = 11000;
   const panelWidth = Math.min(1200, width - 120);
@@ -20,19 +21,20 @@ export function showConfirmation(scene, { title, description, confirmLabel = 'CO
   scene.events.once('shutdown', close);
   const add = (object) => { objects.push(object); return object; };
   const body = add(scene.add.text(width / 2 - panelWidth / 2 + 52, 0, description, {
-    fontFamily: 'Arial', fontSize: '36px', color: '#e2e8f0', wordWrap: { width: panelWidth - 104 }
+    fontFamily: 'Arial', fontSize: '36px', color: hall ? '#f1dfca' : '#e2e8f0', wordWrap: { width: panelWidth - 104 }
   }).setDepth(depth + 2));
   const panelHeight = Math.max(420, body.height + 240);
   const top = (height - panelHeight) / 2;
   body.setY(top + 110);
   const stop = (pointer, x, y, event) => event?.stopPropagation?.();
-  for (const [index, [w, h, color, alpha]] of [[width, height, 0x000000, 0.75], [panelWidth, panelHeight, 0x111827, 1]].entries()) {
+  for (const [index, [w, h, color, alpha]] of [[width, height, 0x000000, 0.75], [panelWidth, panelHeight, hall ? 0x21130d : 0x111827, 1]].entries()) {
     const box = add(scene.add.rectangle(width / 2, height / 2, w, h, color, alpha).setDepth(depth + index).setInteractive());
+    if (hall && index === 1) box.setStrokeStyle(3, 0xd9a662);
     box.on('pointerdown', stop);
     box.on('pointerup', stop);
   }
   add(scene.add.text(width / 2, top + 52, title, {
-    fontFamily: 'Arial', fontSize: '42px', fontStyle: 'bold', color: '#f8fafc',
+    fontFamily: 'Arial', fontSize: '42px', fontStyle: 'bold', color: hall ? '#fff1d2' : '#f8fafc',
     wordWrap: { width: panelWidth - 104 }, align: 'center'
   }).setOrigin(0.5).setDepth(depth + 2));
 
@@ -40,6 +42,7 @@ export function showConfirmation(scene, { title, description, confirmLabel = 'CO
     const y = top + panelHeight - 72;
     const box = add(scene.add.rectangle(x, y, (panelWidth - 156) / 2, 96, color)
       .setDepth(depth + 2).setInteractive({ useHandCursor: true }));
+    if (hall) box.setStrokeStyle(3, 0xd9a662);
     add(scene.add.text(x, y, label, { fontFamily: 'Arial', fontSize: '34px', fontStyle: 'bold', color: '#ffffff' })
       .setOrigin(0.5).setDepth(depth + 3));
     let press = null;
@@ -69,7 +72,7 @@ export function showConfirmation(scene, { title, description, confirmLabel = 'CO
       if (accept) onConfirm();
     });
   };
-  button(width / 2 - panelWidth / 4, 'CANCEL', 0x334155, false);
-  button(width / 2 + panelWidth / 4, confirmLabel, 0x166534, true);
+  button(width / 2 - panelWidth / 4, 'CANCEL', hall ? 0x3a2418 : 0x334155, false);
+  button(width / 2 + panelWidth / 4, confirmLabel, hall ? 0x6b4527 : 0x166534, true);
   return close;
 }

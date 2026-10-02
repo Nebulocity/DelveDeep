@@ -1,10 +1,11 @@
 # Current state
 
-Updated 2026-10-01. Source and data should be checked before treating a feature below as complete.
+Updated 2026-10-02. Source and data should be checked before treating a feature below as complete.
 
 ## Working now
 
 - Landscape Phaser game with world map, town and facility navigation, roster, leader tactics, shop, delve and party selection, battle, and victory/defeat summaries.
+- The Adventurer's Hall uses its supplied interior artwork across its menus and links to Adventurers, Equipment, Items, and Tactics. The Adventurers screen groups the roster by role, shows full stats and worn gear, and manages gold-funded class ability ranks with four battle slots.
 - Five-member party limits, role-based combat behavior, direct orders, abilities, enemy waves, boss finales, healing tonics, equipment, rewards and local saved progression.
 - Four current map delves. The Slime Cave, Thornbriar Hollow, and Dolmark Den are Easy with six authored waves each. The Murmuring Abyss displays Unknown and currently has six waves. The Slime Cave uses layered static art plus a masked ambient loop; other delves use the shared battlefield presentation.
 - Battles use a centered 6-row by 10-column tactical grid with a wider logical arena; Slime Cave floor bounds follow its environment art.

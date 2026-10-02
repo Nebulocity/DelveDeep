@@ -92,6 +92,8 @@ export default class ClassAbilitySystem {
     }
   }
   tickWorld(time) {
+
+    // Apply overdue poison ticks so frame timing cannot skip damage.
     for (const enemy of this.scene.getLivingEnemies()) {
       const poison = enemy.status.poison;
       while (poison && enemy.alive && poison.next <= time && poison.next <= poison.until) {
@@ -164,6 +166,8 @@ export default class ClassAbilitySystem {
   update(unit, time, delta) {
     const scene = this.scene;
     if (!unit.canStartAction(time) || !unit.canCast(time)) return;
+
+    // Ability order follows the class data; healing takes priority for injured allies.
     const enemies = this.enemies(unit), allies = this.allies();
     const injured = allies.filter(a => a.hp < a.maxHp).sort((a,b) => a.hp/a.maxHp - b.hp/b.maxHp);
     const healingNeeded = unit.role === 'Healer' && allies.some(a => a.hp / a.maxHp < 0.8);
@@ -287,6 +291,8 @@ export default class ClassAbilitySystem {
     scene.announceAbility(unit,a.name,'#fde68a');
     scene.logActionStart(unit,target===unit||a.zone?null:target,a.name);
     const action=unit.pendingAction;
+
+    // Recheck action identity and range after windup because targets may move or die.
     scene.time.delayedCall(a.windup,()=>{
       if(!scene.isActionCurrent(unit,action)) return;
       if(unit.role === 'Healer' && (a.effect === 'damage' || a.effect === 'mark')
@@ -350,6 +356,8 @@ export default class ClassAbilitySystem {
   }
   resolve(unit,target,a,time,skipChargeMove=false) {
     const scene=this.scene,s=unit.status,allies=this.allies();
+
+    // Movement effects resolve before damage so range and terrain use the landing cell.
     if(a.requiresStealth && !unit.stealthed) return;
     if((a.charge && !skipChargeMove) || a.behind) {
       if(scene.isPositionLocked(unit) || s.rootedUntil > time) return;
@@ -406,6 +414,8 @@ export default class ClassAbilitySystem {
       if(a.temporaryHp) s.temporaryHp=(s.temporaryHp??0)+healed*a.temporaryHp;
     }
     if(a.effect!=='damage') return;
+
+    // Select targets from the ability shape before applying shared damage modifiers.
     let targets=this.enemies(unit);
     if(a.zone) targets=targets.filter(t=>zoneContains(scene,t,target,a.zone));
     else if(a.radius) targets=targets.filter(t=>this.distance(unit,t)<=a.radius);

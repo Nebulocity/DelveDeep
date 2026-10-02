@@ -5,6 +5,7 @@ import OrientationService from '../services/OrientationService.js';
 import { loadLeaderProgression } from '../game/LeaderProgression.js';
 import { loadProfile } from '../game/GameStorage.js';
 import worldMapUrl from '../assets/map.png?url';
+import adventurersHallUrl from '../assets/adventurerhall.png?url';
 import { trackLoading } from '../ui/LoadingScreen.js';
 
 export default class BootScene extends Phaser.Scene {
@@ -21,6 +22,7 @@ export default class BootScene extends Phaser.Scene {
 
     trackLoading(this);
     this.load.image('world-map', worldMapUrl);
+    this.load.image('adventurers-hall', adventurersHallUrl);
   }
 
   // This function restores the session and enters the world map in landscape.

@@ -5,6 +5,12 @@ The active catalog contains thirteen classes and exactly fourteen characters.
 AI and effects. Old class names survive only as save/equipment aliases, not
 selectable classes or ability kits.
 
+## Adventurer ability progression
+
+New adventurers begin with the first two abilities in their class definition unlocked and equipped. Other abilities unlock with gold at levels 2, 4, and 6 where applicable. Each ability has three ranks; rank 2 requires level 3 and rank 3 requires level 6. Rank purchases cost gold and apply to that adventurer only. Up to four unlocked abilities can be equipped for battle. Existing saved adventurers without ability progression fields retain rank 1 access to their previous full class kit; a fifth ability must be selected into one of the four slots.
+
+Ranks increase configured power by 20% and duration by 15% per rank, shorten nonzero cooldowns by 10% per rank, and increase configured reactive chance by five percentage points per rank. Battle units receive only the equipped abilities and their purchased ranks. Base attacks and heals remain available independently of the ability loadout.
+
 ## Squares and targeting
 
 Ranges use visible grid cells, with diagonal adjacency counting as one square.

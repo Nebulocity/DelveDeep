@@ -43,6 +43,7 @@ export default class BlacksmithScene extends InventoryScene {
     this.tabs([['all', 'All rarities'], ...Object.entries(ITEM_RARITIES).map(([id, rarity]) => [id, rarity.label])], this.rarity,
       345, (id) => this.change('rarity', id));
 
+    // Build one row shape for buying, selling, and crafting before filtering.
     let rows;
     if (this.mode === 'craft') rows = CRAFTING_RECIPES.map((recipe) => ({ item: EQUIPMENT_BY_ID[recipe.itemId], recipe }));
     else if (this.kind === 'materials') rows = Object.values(CRAFTING_MATERIALS)

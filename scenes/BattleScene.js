@@ -7,6 +7,7 @@ import { preloadCharacterSprites } from '../data/characterSprites.js';
 import { preloadEnemySprites } from '../data/enemySprites.js';
 import GameState from '../game/GameState.js';
 import { getEquippedAdventurer } from '../game/Equipment.js';
+import { battleAbilities } from '../game/AdventurerAbilities.js';
 import enemies from '../data/enemies.js';
 import { createEncounterWaves } from '../data/encounters.js';
 import { leaderAbilities } from '../game/LeaderProgression.js';
@@ -225,13 +226,17 @@ export default class BattleScene extends Phaser.Scene {
       ? GameState.activeParty
       : GameState.roster.slice(0, 5);
 
-    this.partyUnits = party.map((adventurer) => new BattleUnit(this, {
-      ...getEquippedAdventurer(GameState.roster.find((hero) => hero.id === adventurer.id) ?? adventurer),
-      battlefield: this.battlefield,
-      arenaX: this.battlefield.logicalWidth / 2 - 200,
-      arenaY: 110,
-      isEnemy: false
-    }));
+    this.partyUnits = party.map((adventurer) => {
+      const hero = getEquippedAdventurer(GameState.roster.find((entry) => entry.id === adventurer.id) ?? adventurer);
+      return new BattleUnit(this, {
+        ...hero,
+        abilities: battleAbilities(hero),
+        battlefield: this.battlefield,
+        arenaX: this.battlefield.logicalWidth / 2 - 200,
+        arenaY: 110,
+        isEnemy: false
+      });
+    });
 
     this.tactics.registerParty(this.partyUnits);
     this.partyUnits.forEach((unit, index) => {

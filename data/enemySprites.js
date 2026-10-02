@@ -89,7 +89,7 @@ function createSprite(id, urls) {
   clips.dead = Object.fromEntries(Object.entries(clips.death).map(([direction, clip]) => [
     direction, { frameMs: 1000, frames: [clip.frames.at(-1)] }
   ]));
-  const scale = id === 'rongarTheCrusher' || id === 'silvanarkTheForestLord' ? 0.78
+  const scale = id === 'rongarTheCrusher' ? 1.17 : id === 'silvanarkTheForestLord' ? 0.78
     : id === 'denProtector' ? 1.2 : id === 'denWarden' ? 1.05 : 0.66;
   return { textures, clips, scale, footY: 0 };
 }

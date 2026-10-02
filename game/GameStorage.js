@@ -1,6 +1,7 @@
 import { migrateEquipmentId } from '../data/items.js';
 import GameState from './GameState.js';
 import { restoreEquipment } from './Equipment.js';
+import { restoreAdventurerAbilities } from './AdventurerAbilities.js';
 
 const STORAGE_KEY = 'delveDeep.profile.v2';
 
@@ -51,7 +52,7 @@ export function loadProfile(baseRoster) {
     const prior = savedRoster.get(base.id) ?? {};
     const level = Math.max(1, prior.level ?? base.level ?? 1);
     const levelBonus = Math.max(0, level - 1);
-    return {
+    return restoreAdventurerAbilities({
       ...base,
       level,
       xp: Math.max(0, prior.xp ?? 0),
@@ -60,7 +61,7 @@ export function loadProfile(baseRoster) {
       maxHp: base.maxHp + levelBonus * 6,
       attackPower: base.attackPower + levelBonus * 2,
       healPower: Number.isFinite(base.healPower) ? base.healPower + levelBonus * 2 : base.healPower
-    };
+    }, prior, Boolean(savedRoster.has(base.id) && !prior.abilityRanks));
   });
 
   const savedInventory = saved?.inventory ? { ...saved.inventory } : undefined;
@@ -101,6 +102,8 @@ export function saveProfile() {
     roster: GameState.roster.map((adventurer) => ({
       id: adventurer.id,
       equipment: adventurer.equipment ?? { weapon: null, armor: null },
+      abilityRanks: adventurer.abilityRanks ?? {},
+      abilityLoadout: adventurer.abilityLoadout ?? [],
       level: adventurer.level,
       xp: adventurer.xp ?? 0,
       happiness: adventurer.happiness ?? 70,

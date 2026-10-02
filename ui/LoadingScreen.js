@@ -1,5 +1,7 @@
 const screen = () => document.getElementById('loading-screen');
 let revealVersion = 0;
+const initialLoadingDeadline = performance.now() + 6000;
+let initialLoadingPending = true;
 
 function revealTextAfterImage() {
   const element = screen();
@@ -56,11 +58,18 @@ export function hideLoadingScreenAfterRender(scene) {
   scene.game.events.once('postrender', () => {
     const element = screen();
     if (!element) return;
+    const hide = () => {
+      const remaining = initialLoadingPending ? Math.max(0, initialLoadingDeadline - performance.now()) : 0;
+      setTimeout(() => {
+        element.classList.add('is-hidden');
+        initialLoadingPending = false;
+      }, remaining);
+    };
     if (element.classList.contains('is-art-ready')) {
-      element.classList.add('is-hidden');
+      hide();
     } else {
       element.addEventListener('loading-art-ready', () => {
-        requestAnimationFrame(() => requestAnimationFrame(() => element.classList.add('is-hidden')));
+        requestAnimationFrame(() => requestAnimationFrame(hide));
       }, { once: true });
     }
   });

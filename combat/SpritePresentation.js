@@ -1,5 +1,6 @@
 const TAU = Math.PI * 2;
 
+// Return offsets from the sheet pose so the same animation can vary by slime type.
 export function slimePose(style, state, elapsed, duration) {
   if (!style) return { x: 0, y: 0, scaleX: 1, scaleY: 1 };
   const phase = elapsed / style.period * TAU;
@@ -43,6 +44,7 @@ export function slimePose(style, state, elapsed, duration) {
 
 export const MONSTER_DEATH_MS = 1100;
 
+// Keep death timing shared across every monster sprite.
 export function monsterDeathPose(elapsed) {
   const time = Math.min(MONSTER_DEATH_MS, Math.max(0, elapsed));
   const flicker = time < 560 ? (Math.floor(time / 80) % 2 ? 0.38 : 1) : 1;

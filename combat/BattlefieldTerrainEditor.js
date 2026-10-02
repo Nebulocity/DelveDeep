@@ -11,7 +11,6 @@ export default class BattlefieldTerrainEditor {
     this.ui = [];
     this.pointLabels = [];
     this.overlay = null;
-    this.tapHandler = null;
     this.inputBlocker = null;
   }
 
@@ -25,6 +24,8 @@ export default class BattlefieldTerrainEditor {
     this.active = true;
     this.wasPaused = this.scene.combatPaused;
     this.scene.combatPaused = true;
+
+    // Edit a copy so closing the tool cannot change the active collision zones.
     this.zones = this.terrain.zones.map((zone) => ({
       id: zone.id,
       type: zone.type,
@@ -179,6 +180,8 @@ export default class BattlefieldTerrainEditor {
   }
 
   async copyData() {
+
+    // Only complete polygons can be pasted back into a level definition.
     const validZones = this.zones.filter((zone) => zone.points.length >= 3);
     const data = `terrain: ${JSON.stringify(validZones, null, 2)},`;
     let copied = false;

@@ -4,10 +4,16 @@ export const DETAILS_HINT = 'Long-press or hold-click a selection for details.';
 export const TONIC_DESCRIPTION = 'Restores 35% maximum HP to a living, injured ally. Tap their TONIC button in combat. Tonics are used only when you choose. All tonics share a 1.5-second cooldown.';
 
 export function addDetailsHint(scene, y, text = DETAILS_HINT) {
+  const hall = isHallMenu(scene);
   return scene.add.text(scene.scale.width / 2, y, text, {
-    fontFamily: 'Arial', fontSize: '26px', color: '#cbd5e1',
-    stroke: '#111827', strokeThickness: 4
+    fontFamily: 'Arial', fontSize: '26px', color: hall ? '#f4d5ab' : '#cbd5e1',
+    stroke: hall ? '#180d09' : '#111827', strokeThickness: 4
   }).setOrigin(0.5).setDepth(4800);
+}
+
+function isHallMenu(scene) {
+  return ['AdventurersHallScene', 'RosterScene', 'EquipmentScene', 'ItemsScene', 'RaidLeaderScene']
+    .includes(scene.scene?.key);
 }
 
 export function characterDetails(unit) {
@@ -32,6 +38,7 @@ export function delveDetails(delve) {
 export function showSelectionDetails(scene, details) {
   scene.selectionDetailsClose?.();
   const { width, height } = scene.scale;
+  const hall = isHallMenu(scene);
   const objects = [];
   const wasPaused = scene.combatPaused;
   const clockPaused = scene.time.paused;
@@ -53,7 +60,7 @@ export function showSelectionDetails(scene, details) {
   const depth = 10000;
   const panelWidth = Math.min(1100, width - 120);
   const body = scene.add.text(width / 2 - panelWidth / 2 + 44, 0, details.description, {
-    fontFamily: 'Arial', fontSize: '30px', color: '#e2e8f0',
+    fontFamily: 'Arial', fontSize: '30px', color: hall ? '#f1dfca' : '#e2e8f0',
     wordWrap: { width: panelWidth - 88 }
   }).setDepth(depth + 2);
   const panelHeight = Math.min(height - 140, Math.max(340, body.height + 210));
@@ -63,8 +70,8 @@ export function showSelectionDetails(scene, details) {
   if (body.height > panelHeight - 190) body.setScale((panelHeight - 190) / body.height);
   const shade = scene.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7)
     .setDepth(depth).setInteractive();
-  const panel = scene.add.rectangle(width / 2, height / 2, panelWidth, panelHeight, 0x111827)
-    .setStrokeStyle(3, 0x84cc16).setDepth(depth + 1).setInteractive();
+  const panel = scene.add.rectangle(width / 2, height / 2, panelWidth, panelHeight, hall ? 0x21130d : 0x111827)
+    .setStrokeStyle(3, hall ? 0xd9a662 : 0x84cc16).setDepth(depth + 1).setInteractive();
   panel.on('pointerdown', (pointer, x, y, event) => event.stopPropagation());
   const dismiss = (pointer, x, y, event) => {
     event.stopPropagation();
@@ -72,15 +79,16 @@ export function showSelectionDetails(scene, details) {
     close();
   };
   shade.on('pointerdown', dismiss);
-  const button = scene.add.rectangle(width / 2, top + panelHeight - 52, 300, 72, 0x334155)
+  const button = scene.add.rectangle(width / 2, top + panelHeight - 52, 300, 72, hall ? 0x6b4527 : 0x334155)
+    .setStrokeStyle(hall ? 3 : 0, hall ? 0xd9a662 : 0x334155)
     .setDepth(depth + 2).setInteractive({ useHandCursor: true });
   button.on('pointerdown', dismiss);
   objects.push(shade, panel, body, button,
     scene.add.text(width / 2, top + 44, details.title, {
-      fontFamily: 'Arial', fontSize: '36px', fontStyle: 'bold', color: '#bef264'
+      fontFamily: 'Arial', fontSize: '36px', fontStyle: 'bold', color: hall ? '#fff1d2' : '#bef264'
     }).setOrigin(0.5).setDepth(depth + 2),
     scene.add.text(width / 2, button.y, 'CLOSE', {
-      fontFamily: 'Arial', fontSize: '30px', color: '#ffffff'
+      fontFamily: 'Arial', fontSize: '30px', color: hall ? '#fff1d2' : '#ffffff'
     }).setOrigin(0.5).setDepth(depth + 3));
 }
 

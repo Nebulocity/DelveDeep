@@ -10,6 +10,7 @@ import {
   toggleLeaderLoadoutAbility
 } from '../game/LeaderProgression.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
+import { addHallBackground } from '../ui/HallBackground.js';
 
 export default class RaidLeaderScene extends Phaser.Scene {
 
@@ -28,6 +29,7 @@ export default class RaidLeaderScene extends Phaser.Scene {
     const leader = GameState.leader;
     leader.battleLoadout = Array.isArray(leader.battleLoadout) ? leader.battleLoadout : ['focusFire'];
     this.cameras.main.setBackgroundColor('#11100f');
+    addHallBackground(this, 0.62);
 
     this.add.text(70, UI_SAFE_TOP + 10, "< ADVENTURER'S HALL", { fontFamily:'Arial', fontSize:'39px', color:'#d6d3d1' })
       .setInteractive({ useHandCursor:true }).on('pointerdown', () => {

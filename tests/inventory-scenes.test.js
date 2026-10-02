@@ -8,6 +8,7 @@ import * as itemData from '../data/items.js';
 import * as equipment from '../game/Equipment.js';
 import { CLASS_DEFINITIONS } from '../data/classes.js';
 import * as leaderProgression from '../game/LeaderProgression.js';
+import { battleAbilities } from '../game/AdventurerAbilities.js';
 
 globalThis.localStorage = { getItem: () => null, setItem() {} };
 loadProfile(adventurers);
@@ -38,9 +39,9 @@ class Scene {
   }
 }
 const context = vm.createContext({
-  Phaser: { Scene }, GameState, ...itemData, ...equipment, ...leaderProgression, CLASS_DEFINITIONS, UI_SAFE_TOP: 132,
+  Phaser: { Scene }, GameState, ...itemData, ...equipment, ...leaderProgression, battleAbilities, CLASS_DEFINITIONS, UI_SAFE_TOP: 132,
   HapticsService: { tap() {}, confirm() {} }, saveProfile() { saves++; },
-  showConfirmation(scene, options) { scene.pendingConfirmation = options; },
+  showConfirmation(scene, options) { scene.pendingConfirmation = options; }, addHallBackground() {},
   bindSelectionDetails(scene, target, details, tap) { target.tap = tap ?? target.handlers?.pointerdown; },
   characterDetails: (hero) => ({ title: hero.name }), TONIC_DESCRIPTION: 'Healing Tonic',
   console

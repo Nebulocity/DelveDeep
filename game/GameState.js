@@ -1,3 +1,4 @@
+// Session state is rebuilt from saved profile data when the game boots.
 const GameState = {
   gold: 0,
   roster: [],

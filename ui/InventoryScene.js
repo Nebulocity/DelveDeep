@@ -3,6 +3,7 @@ import GameState from '../game/GameState.js';
 import HapticsService from '../services/HapticsService.js';
 import { saveProfile } from '../game/GameStorage.js';
 import { bindSelectionDetails } from './SelectionDetails.js';
+import { addHallBackground } from './HallBackground.js';
 
 // Shared large controls for the three inventory screens. Pages keep every
 // row reachable without small scrollbars or off-screen mobile touch targets.
@@ -34,13 +35,15 @@ export default class InventoryScene extends Phaser.Scene {
     this.children.removeAll(true);
     this.cameras.main.setBackgroundColor('#101827');
     const { width, height } = this.scale;
+    if (returnScene === 'AdventurersHallScene') addHallBackground(this, 0.62);
     // Flush with the usable game area; CSS owns device safe-area insets.
     this.add.rectangle(width / 2, 52, width, 104, 0x1e293b);
     this.button(222, 52, 330, `< ${returnLabel}`, () => this.scene.start(returnScene));
     this.text(width / 2, 52, title, 52, '#f8fafc').setOrigin(0.5);
     this.text(width - 68, 52, `${GameState.gold} GOLD`, 36, '#fbbf24').setOrigin(1, 0.5);
     if (this.message) this.text(width / 2, height - 93, this.message, 30, '#fde68a', width - 140).setOrigin(0.5);
-    this.text(width / 2, height - 59, 'Long-press or hold-click a selection for details.', 26, '#94a3b8').setOrigin(0.5);
+    this.text(width / 2, height - 59, 'Long-press or hold-click a selection for details.', 26,
+      returnScene === 'AdventurersHallScene' ? '#f4d5ab' : '#94a3b8').setOrigin(0.5);
   }
 
   tabs(labels, current, y, onChange, left = 70, width = this.scale.width - 140) {

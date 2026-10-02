@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { CHARACTER_SPRITES, preloadCharacterSprites } from '../data/characterSprites.js';
 
-const names = ['laurana', 'tika', 'tanis', 'sturm', 'goldmoon', 'raistlin', 'dalamar', 'palin', 'tasslehoff', 'flint', 'riverwind', 'fistandantilus', 'mishakal'];
+const names = ['laurana', 'tika', 'tanis', 'sturm', 'goldmoon', 'caramon-gladiator', 'raistlin', 'dalamar', 'palin', 'tasslehoff', 'flint', 'riverwind', 'fistandantilus', 'mishakal'];
 const states = ['idle', 'walk', 'attack', 'block', 'hit', 'death'];
 const loaded = [];
 for (const name of names) {

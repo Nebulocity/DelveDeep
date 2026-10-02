@@ -33,7 +33,7 @@ const rows = {
   'south-west': 1, west: 1, north: 2, 'north-east': 2, 'north-west': 3
 };
 
-function createSlimeSprite(id, urls, scale, columns = defaultColumns) {
+function createSlimeSprite(id, urls, scale, footFrameY, columns = defaultColumns) {
   const textures = urls.map((url, index) => ({
     key: `${id}-${states[index]}`, url, frameWidth: 192, frameHeight: 192
   }));
@@ -45,7 +45,7 @@ function createSlimeSprite(id, urls, scale, columns = defaultColumns) {
         frameMs: frameMs[state],
         frames: Array.from({ length: columns[state] }, (_, column) => ({
           key: `${id}-${state}`, frame: row * columns[state] + column,
-          originX: 0.5, originY: 184 / 192, flipX: false
+          originX: 0.5, originY: footFrameY / 192, flipX: false
         }))
       };
     }
@@ -56,10 +56,14 @@ function createSlimeSprite(id, urls, scale, columns = defaultColumns) {
   return { textures, clips, scale, footY: 30 };
 }
 
+// Foot anchors match the opaque base of each 192 pixel sheet frame.
 export const SLIME_SPRITES = {
-  caveSlime: createSlimeSprite('caveSlime', sheets.caveSlime, 2, { ...defaultColumns, attack: 5 }),
-  elderSlime: createSlimeSprite('elderSlime', sheets.elderSlime, 2.2),
-  slimeSovereign: createSlimeSprite('slimeSovereign', sheets.slimeSovereign, 3.3)
+  caveSlime: { ...createSlimeSprite('caveSlime', sheets.caveSlime, 2, 170, { ...defaultColumns, attack: 5 }),
+    motion: { kind: 'hop', period: 620, lift: 15, squish: 0.12, sway: 5 } },
+  elderSlime: { ...createSlimeSprite('elderSlime', sheets.elderSlime, 2.2, 168),
+    motion: { kind: 'hop', period: 760, lift: 19, squish: 0.15, sway: 6 } },
+  slimeSovereign: { ...createSlimeSprite('slimeSovereign', sheets.slimeSovereign, 3.3, 178),
+    motion: { kind: 'pulse', period: 940, lift: 8, squish: 0.13, sway: 8 } }
 };
 
 export function preloadSlimeSprites(scene) {

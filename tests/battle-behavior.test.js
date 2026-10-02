@@ -8,9 +8,10 @@ import { createEncounterWaves } from '../data/encounters.js';
 import { getBattleLayout } from '../ui/Layout.js';
 import CombatMovement from '../combat/CombatMovement.js';
 import combatSpacing from '../config/combatSpacing.js';
+import { chooseWaveLandings } from '../combat/WaveLanding.js';
 
 const context = vm.createContext({
-  ClassAbilitySystem, leaderAbilities, createEncounterWaves, getBattleLayout, CombatMovement, combatSpacing,
+  ClassAbilitySystem, leaderAbilities, createEncounterWaves, getBattleLayout, CombatMovement, combatSpacing, chooseWaveLandings,
   Phaser: {
     Scene: class {},
     Math: {
@@ -355,8 +356,7 @@ function scene(party, enemies) {
   assert.equal(battle.enemyThreat.get(enemy.id).size, 0);
 }
 
-// Enemy defeat pays its reward once and immediately removes only the enemy's
-// battlefield container; the dead record remains available to the wave flow.
+// Enemy defeat pays its reward once and keeps the container for its death animation.
 {
   const enemy = unit('enemy', 'Enemy');
   enemy.definition = { goldMin: 3, goldMax: 3 };
@@ -366,7 +366,7 @@ function scene(party, enemies) {
   battle.earnedGold = 0;
   BattleScene.prototype.handleEnemyDeath.call(battle, enemy);
   assert.equal(battle.earnedGold, 3);
-  assert.equal(enemy.container.destroyed, true);
+  assert.notEqual(enemy.container.destroyed, true);
   assert.equal(enemy.hitZone.disabled, true);
   BattleScene.prototype.handleEnemyDeath.call(battle, enemy);
   assert.equal(battle.earnedGold, 3);
@@ -725,4 +725,210 @@ console.log('Battle behavior checks passed.');
   const system=new ClassAbilitySystem(battle);
   system.update(oath,100,0);
   assert.equal(enemy.status.forcedTargetUntil,6100);assert.equal(oath.status.damageReduction,0.75);assert.equal(oath.status.damageReductionUntil,6100);
+}
+
+// Each wave waits through all three displayed seconds before its enemies spawn.
+{
+  const battle = scene([unit('ally', 'Tank')], []);
+  const titles = [];
+  const countdown = [];
+  const spawned = [];
+  battle.waves = [
+    { name: 'Cave Entrance', enemies: [{ type: 'caveSlime' }] },
+    { name: 'The Slime Sovereign', boss: true, enemies: [{ type: 'slimeSovereign' }] }
+  ];
+  Object.assign(battle, {
+    battlefield: {
+      rows: 6, columns: 10,
+      arenaPointToCell: () => ({ column: 0, row: 0 }),
+      getCellCenter: (column, row) => ({ x: column * 175 + 87.5, y: row * 150 + 75 })
+    },
+    terrain: { isBlocked: () => false, isUnitBlocked: () => false },
+    showWaveAnnouncement(title, isBoss) { titles.push({ title, isBoss }); },
+    updateWaveCountdown(seconds) { countdown.push(seconds); },
+    clearWaveAnnouncement() {},
+    updateEncounterStatus() {},
+    setTargetingInputState() {},
+    animateEnemyLanding() {},
+    createEnemy(type) { spawned.push(type); return { id: type }; },
+    combatLog: { add() {} }
+  });
+  for (const index of [0, 1]) {
+    battle.startWave(index);
+    assert.equal(battle.waveTransitioning, true);
+    assert.equal(spawned.length, index);
+    for (let second = 2; second >= 1; second--) {
+      battle.timers.shift()();
+      assert.equal(countdown.at(-1), second);
+      assert.equal(spawned.length, index);
+    }
+    battle.timers.shift()();
+    assert.equal(spawned.length, index + 1);
+    assert.equal(battle.waveTransitioning, false);
+  }
+  assert.deepEqual(titles, [
+    { title: 'WAVE 1', isBoss: false },
+    { title: 'The Slime Sovereign', isBoss: true }
+  ]);
+  assert.deepEqual(countdown, [3, 2, 1, 3, 2, 1]);
+}
+
+// Landing visuals bounce from above while the monster stays out of combat.
+{
+  const battle = scene([], []);
+  const image = { y: 30 };
+  const label = () => ({ setAlpha(value) { this.alpha = value; } });
+  const enemy = {
+    alive: true, arenaY: 600, container: { y: 500, active: true },
+    spriteVisual: { image }, hitZone: { setInteractive() { this.enabled = true; } },
+    label: label(), targetLabel: label(), actionLabel: label(),
+    hpBack: label(), hpFill: label(), castBack: label(), castFill: label()
+  };
+  battle.enemies = [enemy];
+  battle.battlefield = { topY: 200, getUnitScale: () => 1 };
+  let tween;
+  battle.tweens = { add(config) { tween = config; } };
+  battle.animateEnemyLanding(enemy);
+  assert.equal(enemy.landing, true);
+  assert.ok(image.y < 30);
+  assert.equal(tween.ease, 'Bounce.Out');
+  assert.equal(battle.getLivingEnemies().length, 0);
+  tween.onComplete();
+  assert.equal(enemy.landing, false);
+  assert.equal(enemy.hitZone.enabled, true);
+  assert.equal(enemy.label.alpha, 1);
+}
+
+// Crowded squares defer monsters until a legal landing opens.
+{
+  const battle = scene([unit('ally', 'Tank', 87.5, 75)], []);
+  let blocked = true;
+  const created = [];
+  battle.waves = [{ name: 'Crowded cave', enemies: [{ type: 'caveSlime' }] }];
+  battle.battlefield = {
+    rows: 6, columns: 10,
+    arenaPointToCell: (x, y) => ({ column: Math.floor(x / 175), row: Math.floor(y / 150) }),
+    getCellCenter: (column, row) => ({ x: (column + 0.5) * 175, y: (row + 0.5) * 150 })
+  };
+  battle.terrain = { isBlocked: () => blocked, isUnitBlocked: () => blocked };
+  battle.combatLog = { add() {} };
+  battle.setTargetingInputState = () => {};
+  battle.createEnemy = (type, point) => {
+    const enemy = { id: type, arenaX: point.x, arenaY: point.y };
+    created.push(enemy);
+    return enemy;
+  };
+  battle.animateEnemyLanding = () => {};
+  battle.spawnWave(0);
+  assert.equal(created.length, 0);
+  assert.equal(battle.pendingWaveSpawns.length, 1);
+  blocked = false;
+  battle.timers.shift()();
+  assert.equal(created.length, 1);
+  assert.equal(battle.pendingWaveSpawns.length, 0);
+}
+
+// The next countdown starts two seconds after every living ally returns home.
+{
+  const ally = unit('ally', 'Tank', 100, 0);
+  ally.moveSpeed = 150;
+  ally.moveToward = function (x, y, delta) {
+    this.lastReturnDelta = delta;
+    this.arenaX = Math.max(x, this.arenaX - this.moveSpeed * delta);
+  };
+  const fallen = unit('fallen', 'Healer', 300, 0);
+  fallen.alive = false;
+  const battle = scene([ally, fallen], []);
+  battle.waves = [{}, {}];
+  battle.currentWaveIndex = 0;
+  battle.waveRetreating = true;
+  battle.waveReturnPositions = new Map([['ally', { x: 0, y: 0 }], ['fallen', { x: 200, y: 0 }]]);
+  let nextWave = null;
+  battle.startWave = (index) => { nextWave = index; };
+
+  battle.updateWaveRetreat(0, 0.05, 50);
+  assert.equal(ally.lastReturnDelta, 0.1);
+  assert.equal(nextWave, null);
+  let time = 50;
+  while (ally.arenaX > 6) {
+    battle.updateWaveRetreat(time, 0.05, 50);
+    time += 50;
+  }
+  const arrivedAt = time - 50;
+  assert.equal(battle.waveReturnReadyAt, arrivedAt + 2000);
+  battle.updateWaveRetreat(arrivedAt + 1999, 0.05, 50);
+  assert.equal(nextWave, null);
+  battle.updateWaveRetreat(arrivedAt + 2000, 0.05, 50);
+  assert.equal(nextWave, 1);
+  assert.equal(battle.waveRetreating, false);
+}
+
+// The final wave also waits for the party to return before showing victory.
+{
+  const ally = unit('ally', 'Tank', 0, 0);
+  const battle = scene([ally], []);
+  battle.waves = [{}];
+  battle.currentWaveIndex = 0;
+  battle.waveRetreating = true;
+  battle.waveReturnPositions = new Map([['ally', { x: 0, y: 0 }]]);
+  let victories = 0;
+  battle.finishVictory = () => { victories += 1; };
+  battle.updateWaveRetreat(100, 0.05, 50);
+  battle.updateWaveRetreat(2099, 0.05, 50);
+  assert.equal(victories, 0);
+  battle.updateWaveRetreat(2100, 0.05, 50);
+  assert.equal(victories, 1);
+}
+
+// Victory and defeat keep their result visible until the player confirms.
+{
+  context.completeExpedition = () => ({});
+  context.failExpedition = () => {};
+  context.HapticsService.success = () => {};
+  context.GameState.currentDelve = { name: 'Slime Cave' };
+  context.GameState.gold = 0;
+
+  for (const [outcome, expectedTitle, destination] of [
+    ['victory', 'DELVE CLEARED!', 'RewardScene'],
+    ['defeat', 'DEFEATED', 'EncounterSummaryScene']
+  ]) {
+    const battle = scene([], []);
+    battle.waves = [{}];
+    battle.earnedGold = 10;
+    battle.combatLog = { finish() {} };
+    let overlay;
+    let openedScene;
+    battle.scene = { start(name) { openedScene = name; } };
+    battle.showResultOverlay = (title, subtitle, buttonLabel, callback) => {
+      overlay = { title, subtitle, buttonLabel, callback };
+    };
+
+    if (outcome === 'victory') battle.finishVictory();
+    else battle.finishDefeat();
+
+    assert.equal(battle.battleOver, true);
+    assert.equal(overlay.title, expectedTitle);
+    assert.equal(overlay.buttonLabel, 'CONFIRM');
+    assert.equal(openedScene, undefined);
+    overlay.callback();
+    assert.equal(openedScene, destination);
+  }
+}
+
+// The encounter status also hides ordinary wave names while showing boss names.
+{
+  context.formatDuration = () => '0:03';
+  context.GameState.run = { startedAt: Date.now() };
+  const battle = scene([], []);
+  battle.waves = [
+    { name: 'Cavern Vermin' },
+    { name: 'The Slime Sovereign', boss: true }
+  ];
+  battle.encounterStatusText = { setText(value) { this.value = value; } };
+  battle.currentWaveIndex = 0;
+  battle.updateEncounterStatus();
+  assert.equal(battle.encounterStatusText.value, '(0:03) Wave 1/2');
+  battle.currentWaveIndex = 1;
+  battle.updateEncounterStatus();
+  assert.equal(battle.encounterStatusText.value, '(0:03) The Slime Sovereign');
 }

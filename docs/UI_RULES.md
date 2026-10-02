@@ -91,3 +91,6 @@ Developer/testing UI should:
 - Support progress clearing.
 - Support unlock-all / testing mode behavior.
 - Include a control to add a Void Key.
+- Arrange controls in labeled rows for Dev mode, leader levels (+1/+5), Void Keys (+1/+5), gold (+100/+500), battlefield grid lines (on/off), and progress reset, with a separate Close button.
+- Keep battlefield tile interaction active when grid lines are hidden. Save the grid preference with the profile and show grid lines for older saves without that preference.
+- Replace the previous Dev Tools feedback toast when another action is tapped before it fades.

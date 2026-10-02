@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import enemies from '../data/enemies.js';
 import { SLIME_SPRITES, preloadSlimeSprites } from '../data/slimeSprites.js';
+import { slimePose, monsterDeathPose, MONSTER_DEATH_MS } from '../combat/SpritePresentation.js';
 
 const ids = ['caveSlime', 'elderSlime', 'slimeSovereign'];
 const directions = ['south-east', 'south-west', 'north-east', 'north-west'];
@@ -39,8 +40,25 @@ assert.equal(enemies.slimeSovereign.name, 'Slime Sovereign');
 assert.ok(enemies.caveSlime.maxHp < enemies.elderSlime.maxHp);
 assert.ok(enemies.elderSlime.maxHp < enemies.slimeSovereign.maxHp);
 assert.deepEqual(ids.map(id => SLIME_SPRITES[id].scale), [2, 2.2, 3.3]);
+assert.deepEqual(ids.map(id => SLIME_SPRITES[id].clips.idle.south.frames[0].originY),
+  [170, 168, 178].map(y => y / 192));
 assert.ok(SLIME_SPRITES.caveSlime.scale < SLIME_SPRITES.elderSlime.scale);
 assert.ok(SLIME_SPRITES.elderSlime.scale < SLIME_SPRITES.slimeSovereign.scale);
+for (const id of ids) {
+  const { motion } = SLIME_SPRITES[id];
+  const idle = slimePose(motion, 'idle', motion.period / 4, 600);
+  assert.ok(idle.scaleX !== 1 && idle.scaleY !== 1, `${id} visibly squishes at idle`);
+  assert.ok(idle.y < 0, `${id} lifts at idle`);
+  const attack = slimePose(motion, 'attack', 175, 350);
+  const hit = slimePose(motion, 'hit', 150, 300);
+  assert.ok(attack.y < 0 && attack.scaleX > 1, `${id} lunges on attack`);
+  assert.ok(hit.scaleY < 1, `${id} recoils on hit`);
+}
+assert.equal(monsterDeathPose(0).alpha, 1);
+assert.ok(monsterDeathPose(80).alpha < monsterDeathPose(160).alpha, 'death flickers');
+assert.ok(monsterDeathPose(850).alpha < monsterDeathPose(560).alpha, 'death fades');
+assert.ok(monsterDeathPose(960).scale > 1, 'death pops');
+assert.equal(monsterDeathPose(MONSTER_DEATH_MS).alpha, 0);
 const loaded = [];
 preloadSlimeSprites({ textures: { exists: () => false }, load: { spritesheet: (...args) => loaded.push(args) } });
 for (const id of ids) assert.equal(loaded.filter(([key]) => key.startsWith(`${id}-`)).length, 6);

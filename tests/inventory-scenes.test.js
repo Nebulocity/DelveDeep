@@ -209,6 +209,8 @@ context.BattleUnit = class {
 };
 const Battle = load('../scenes/BattleScene.js', 'BattleScene');
 const battle = new Battle();
+battle.battlefield = { logicalWidth: 1750 };
+battle.waveReturnPositions = new Map();
 battle.tactics = { registerParty() {}, getSpawnPosition: () => ({ x: 0, y: 0 }) };
 battle.movement = { validateUnitPosition() {} };
 battle.createParty();

@@ -1,5 +1,5 @@
 {
-  "bandit1": {
+  "lasher": {
     "idle": {
       "south-east": "d78053ef-6ec8-4fea-be08-8ba59a14c602",
       "south-west": "0e93e753-c65a-4d18-a304-04d26100fb62",
@@ -37,7 +37,7 @@
       "north-west": "8b32f50a-8964-4f88-b5fd-a8a392c47a07"
     }
   },
-  "bandit2": {
+  "ruffian": {
     "idle": {
       "south-east": "e1a8cd6c-d130-47b6-89c8-a4af0aa80cba",
       "south-west": "1fa4db12-e875-44ec-afd1-1c58d86bbf9f",
@@ -75,7 +75,7 @@
       "north-west": "0c3c7b06-e0cd-4cb6-9956-57a27e5e4052"
     }
   },
-  "bandit3": {
+  "hedgeMage": {
     "idle": {
       "south-east": "52c6c5a6-83d5-4035-9569-33733350897d",
       "south-west": "8a328fdf-c1da-4698-ba9b-72cc81544483",
@@ -113,7 +113,7 @@
       "north-west": "c1105fe9-c7e1-4a34-97fa-9a2ae9a19e38"
     }
   },
-  "banditBoss": {
+  "rongarTheCrusher": {
     "idle": {
       "south-east": "98ca0162-4bfa-4323-ada6-e0959243d738",
       "south-west": "29777c27-8e9a-4b89-9a3e-4c9a1f9c7229",

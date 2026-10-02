@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import UnitSprite from './UnitSprite.js';
+import { monsterDeathPose } from './SpritePresentation.js';
 
 export default class BattleUnit {
 
@@ -28,7 +29,7 @@ export default class BattleUnit {
     this.mana = this.maxMana;
     this.manaRegen = Math.max(0, config.manaRegen ?? 0);
     this.basicHealManaCost = Math.max(0, config.basicHealManaCost ?? 0);
-    this.moveSpeed = config.moveSpeed;
+    this.moveSpeed = config.moveSpeed * 1.5;
     this.attackPower = config.attackPower;
     this.critChance = config.critChance ?? 0.1;
     this.critMultiplier = config.critMultiplier ?? 1.75;
@@ -95,9 +96,11 @@ export default class BattleUnit {
 
     this.spriteVisual = UnitSprite.create(this);
     if (this.spriteVisual) {
-      // Keep the old body as a ground selection/flash ring, beneath the sprite.
-      this.body.setFillStyle(this.color, 0).setPosition(0, 30).setScale(1, 0.4);
+      // Keep the body for selection and hit flashes without a permanent foot ring.
+      this.body.setFillStyle(this.color, 0).setStrokeStyle(4, this.isEnemy ? 0x365314 : 0x1c1917, this.isEnemy ? 1 : 0)
+        .setPosition(0, 30).setScale(1, 0.4);
     }
+    if (!this.isEnemy) this.shadow.setVisible(false);
 
     // Enlarge the invisible touch target to ease crowded melee taps.
     this.hitZone = this.spriteVisual
@@ -468,9 +471,27 @@ export default class BattleUnit {
     this.finishAction();
     this.spriteVisual?.play('death');
     this.body.setFillStyle(0x44403c, this.spriteVisual ? 0 : 1);
-    this.spriteVisual?.image.setTint(0x777777);
-    this.container.setAlpha(0.5);
+    if (this.isEnemy) {
+      this.deathElapsed = 0;
+      this.hitZone.disableInteractive();
+      for (const visual of [this.label, this.targetLabel, this.actionLabel,
+        this.hpBack, this.hpFill, this.castBack, this.castFill, this.hitZone]) {
+        visual?.setVisible(false);
+      }
+    } else {
+      this.spriteVisual?.image.setTint(0x777777);
+      this.container.setAlpha(0.5);
+    }
     this.updateHealthBar();
+  }
+
+  updateDeathPresentation(delta) {
+    if (this.alive || !this.isEnemy || this.deathElapsed === undefined) return;
+    this.deathElapsed += Math.max(0, delta);
+    const pose = monsterDeathPose(this.deathElapsed);
+    this.shadow.setAlpha(pose.alpha * 0.28);
+    this.body.setAlpha(pose.alpha);
+    if (!this.spriteVisual) this.body.setScale(pose.scale, pose.scale * 0.4);
   }
 
   // This function revives a fallen ally with partial health and mana while
@@ -539,11 +560,14 @@ export default class BattleUnit {
     this.scene.time.delayedCall(100, () => {
 
       if (this.spriteVisual?.image.active) {
-        if (this.alive) this.spriteVisual.image.clearTint();
+        if (this.alive || this.isEnemy) this.spriteVisual.image.clearTint();
         else this.spriteVisual.image.setTint(0x777777);
       }
       if (this.body?.active) {
-        this.body.setStrokeStyle(4, this.isEnemy ? 0x365314 : 0x1c1917);
+        const selected = !this.isEnemy && this.scene.selectedUnitIds?.has(this.id);
+        this.body.setStrokeStyle(selected ? 7 : 4,
+          selected ? 0x60a5fa : (this.isEnemy ? 0x365314 : 0x1c1917),
+          selected || !this.spriteVisual || this.isEnemy ? 1 : 0);
       }
     });
   }

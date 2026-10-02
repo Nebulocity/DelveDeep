@@ -6,3 +6,5 @@
 - Registered the three sprite definitions in `data/slimeSprites.js` and wired stable enemy type lookup and preloading into combat. Cave Slime is the smallest, Elder Slime is larger, and Slime Sovereign is the largest.
 - Added `tests/slime-cave-sprites.test.js` for sheet dimensions, clips, preload entries, names, and enemy strength ordering. Focused tests and `npm run build` passed. Physical Android combat review remains pending.
 - Doubled in-game sprite scale after visual feedback: Cave Slime 1 -> 2, Elder Slime 1.1 -> 2.2, and Slime Sovereign 1.65 -> 3.3. The sprite sheets and frame dimensions are unchanged.
+- Doubled the three in-game sprite scales again: Cave Slime 2 -> 4, Elder Slime 2.2 -> 4.4, and Slime Sovereign 3.3 -> 6.6.
+- Corrected the second doubling: Cave Slime 4 -> 2, Elder Slime 4.4 -> 2.2, and Slime Sovereign 6.6 -> 3.3. Each now renders at twice its original scale.

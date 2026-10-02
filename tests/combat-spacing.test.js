@@ -119,7 +119,22 @@ for (const role of ['Ranged DPS', 'Healer']) {
   assert.deepEqual({ x: actor.arenaX, y: actor.arenaY }, position);
   target.arenaY = 800;
   simulate(scene, 6, (time, delta) => scene.movement.moveToCombatPosition(actor, target, 9000 + time, delta));
-  assert.ok(actor.distanceTo(target) <= (role === 'Healer' ? config.healerMax : config.rangedMax));
+  assert.ok(actor.distanceTo(target) <= actor.attackRange - config.arrival);
+  const reachable = { x: actor.arenaX, y: actor.arenaY };
+  simulate(scene, 2, (time, delta) => scene.movement.moveToCombatPosition(actor, target, 15000 + time, delta));
+  assert.deepEqual({ x: actor.arenaX, y: actor.arenaY }, reachable);
+}
+
+// Once ranged allies can attack, a target drifting beyond their preferred band does not cause pacing.
+{
+  const actor = unit('caster', 'Ranged DPS', 700, 400);
+  const target = unit('enemy', 'Enemy', 700, 650, true);
+  const scene = setup([actor], [target]);
+  simulate(scene, 1, (time, delta) => scene.movement.moveToCombatPosition(actor, target, time, delta));
+  const settled = { x: actor.arenaX, y: actor.arenaY };
+  target.arenaY += 55;
+  simulate(scene, 3, (time, delta) => scene.movement.moveToCombatPosition(actor, target, 1000 + time, delta));
+  assert.deepEqual({ x: actor.arenaX, y: actor.arenaY }, settled);
 }
 
 // Commands retain unique positions even at an edge; Stack remains tighter than Spread.

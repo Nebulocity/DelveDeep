@@ -53,7 +53,7 @@ export default class TitleScene extends Phaser.Scene {
       fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: '#94a3b8'
     }).setDepth(1001);
 
-    this.add.text(width - 58, 26, `Gold: ${GameState.gold}   Void Keys: ${GameState.inventory.voidKeys ?? 0}`, {
+    this.currencyText = this.add.text(width - 58, 26, `Gold: ${GameState.gold}   Void Keys: ${GameState.inventory.voidKeys ?? 0}`, {
       fontFamily: 'Arial', fontSize: '31px', fontStyle: 'bold', color: '#fbbf24'
     }).setOrigin(1, 0).setDepth(1001);
 
@@ -211,12 +211,12 @@ export default class TitleScene extends Phaser.Scene {
     const enabled = GameState.development.unlockAll && GameState.development.replayCleared;
     const x = 190;
     const y = height - 52;
-    const button = this.add.rectangle(x, y, 300, 64, enabled ? 0x7c2d12 : 0x1e293b, 0.94)
-      .setStrokeStyle(3, enabled ? 0xfb923c : 0x64748b)
+    const button = this.add.rectangle(x, y, 300, 64, enabled ? 0x00f2fa : 0x08192e, 0.94)
+      .setStrokeStyle(3, 0x00f2fa)
       .setInteractive({ useHandCursor: true })
       .setDepth(1000);
     this.add.text(x, y, enabled ? 'DEV MODE: ON' : 'DEV TOOLS', {
-      fontFamily: 'Arial', fontSize: '26px', fontStyle: 'bold', color: '#ffffff'
+      fontFamily: 'Arial', fontSize: '26px', fontStyle: 'bold', color: enabled ? '#08192e' : '#ffffff'
     }).setOrigin(0.5).setDepth(1001);
     button.on('pointerdown', () => {
 
@@ -225,10 +225,8 @@ export default class TitleScene extends Phaser.Scene {
     });
   }
 
-  // This function opens the development tools dialog with testing-mode
-  // controls, a Void Key grant, and a progress-reset entry point. Changes are
-  // saved immediately, while resetting progress opens a separate confirmation
-  // dialog.
+  // This function opens the development controls in labeled rows. Grants and
+  // display preferences save immediately; progress reset asks for confirmation.
   showDevelopmentTools() {
 
     const { width, height } = this.scale;
@@ -236,82 +234,46 @@ export default class TitleScene extends Phaser.Scene {
     const shade = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.72)
       .setInteractive()
       .setDepth(depth);
-    const panelWidth = Math.min(1180, width * 0.68);
-    const panelHeight = Math.min(720, height * 0.76);
+    const panelWidth = Math.min(1280, width * 0.82);
+    const panelHeight = Math.min(850, height * 0.84);
+    const panelTop = (height - panelHeight) / 2;
+    const panelLeft = (width - panelWidth) / 2;
+    const rowY = (index) => panelTop + 180 + index * 105;
+    const labelX = panelLeft + 100;
+    const firstX = panelLeft + 720;
+    const secondX = panelLeft + 995;
+    const buttonWidth = 220;
+    const objects = [shade];
     const panel = this.add.rectangle(width / 2, height / 2, panelWidth, panelHeight, 0x0b0f16, 0.99)
       .setStrokeStyle(5, 0x475569)
       .setDepth(depth + 1);
-
-    const title = this.add.text(width / 2, height * 0.29, 'DEVELOPMENT TOOLS', {
+    objects.push(panel);
+    objects.push(this.add.text(width / 2, panelTop + 72, 'DEV TOOLS', {
       fontFamily: 'Arial', fontSize: '48px', fontStyle: 'bold', color: '#f8fafc'
-    }).setOrigin(0.5).setDepth(depth + 2);
+    }).setOrigin(0.5).setDepth(depth + 2));
 
-    const enabled = GameState.development.unlockAll && GameState.development.replayCleared;
-    const description = this.add.text(width / 2, height * 0.38,
-      enabled
-        ? 'All map locations are unlocked. Cleared Delves and Void Portals can be replayed, and Void Keys are ignored.'
-        : 'Enable testing mode to unlock the whole map, replay cleared encounters, and bypass Void Key requirements.', {
-        fontFamily: 'Arial', fontSize: '29px', color: '#cbd5e1', align: 'center', wordWrap: { width: Math.min(900, panelWidth - 140), useAdvancedWrap: true }
-      }).setOrigin(0.5).setDepth(depth + 2);
-
-    // Create the testing-mode toggle that controls map unlocks and
-    // cleared-encounter replays together.
-    const toggle = this.add.rectangle(width / 2, height * 0.48, 650, 78, enabled ? 0x9a3412 : 0x334155)
-      .setInteractive({ useHandCursor: true })
-      .setDepth(depth + 2);
-    const toggleText = this.add.text(width / 2, height * 0.48, enabled ? 'DISABLE TESTING MODE' : 'UNLOCK ALL + ENABLE REPLAYS', {
-      fontFamily: 'Arial', fontSize: '30px', fontStyle: 'bold', color: '#ffffff'
-    }).setOrigin(0.5).setDepth(depth + 3);
-
-    // Provide a separate key grant so portal entry can be tested with normal
-    // access rules.
-    const addVoidKey = this.add.rectangle(width / 2 - 175, height * 0.58, 320, 88, 0x312e81)
-      .setStrokeStyle(3, 0x818cf8)
-      .setInteractive({ useHandCursor: true })
-      .setDepth(depth + 2);
-    const addVoidKeyText = this.add.text(width / 2 - 175, height * 0.58, `+ VOID KEY\n${GameState.inventory.voidKeys ?? 0} owned`, {
-      fontFamily: 'Arial', fontSize: '30px', fontStyle: 'bold', color: '#ffffff'
-    }).setOrigin(0.5).setDepth(depth + 3);
-
-    // Grant one leader level using the normal five-level TP milestones.
-    // Show the resulting rank and balance directly on the button.
-    const addLevel = this.add.rectangle(width / 2 + 175, height * 0.58, 320, 88, 0x14532d)
-      .setStrokeStyle(3, 0x86efac).setInteractive({ useHandCursor: true }).setDepth(depth + 2);
-    const levelText = this.add.text(width / 2 + 175, height * 0.58,
-      '+ LEVEL\nLv ' + GameState.leader.level + ' / ' + GameState.leader.tacticsPoints + ' TP', {
-        fontFamily: 'Arial', fontSize: '27px', fontStyle: 'bold', color: '#ffffff', align: 'center'
+    const addLabel = (index, label) => {
+      objects.push(this.add.text(labelX, rowY(index), label, {
+        fontFamily: 'Arial', fontSize: '36px', fontStyle: 'bold', color: '#e2e8f0'
+      }).setOrigin(0, 0.5).setDepth(depth + 2));
+    };
+    const addButton = (x, y, label, color, stroke, action, textColor = '#ffffff') => {
+      const button = this.add.rectangle(x, y, buttonWidth, 74, color)
+        .setStrokeStyle(3, stroke).setInteractive({ useHandCursor: true }).setDepth(depth + 2);
+      const caption = this.add.text(x, y, label, {
+        fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: textColor
       }).setOrigin(0.5).setDepth(depth + 3);
-    addLevel.on('pointerdown', () => {
-
-      HapticsService.confirm();
-      const result = grantLeaderLevels(GameState.leader);
-      levelText.setText('+ LEVEL\nLv ' + GameState.leader.level + ' / ' + GameState.leader.tacticsPoints + ' TP');
-      this.showToast(result.tacticsPointsEarned > 0 ? '+1 Level / +1 Tactics Point' : '+1 Level / TP awarded every 5 levels');
-    });
-
-    // Keep the destructive reset behind its own confirmation screen.
-    const reset = this.add.rectangle(width / 2, height * 0.68, 650, 78, 0x7f1d1d)
-      .setStrokeStyle(3, 0xf87171)
-      .setInteractive({ useHandCursor: true })
-      .setDepth(depth + 2);
-    const resetText = this.add.text(width / 2, height * 0.68, 'RESET ALL PROGRESS', {
-      fontFamily: 'Arial', fontSize: '30px', fontStyle: 'bold', color: '#ffffff'
-    }).setOrigin(0.5).setDepth(depth + 3);
-
-    const close = this.add.rectangle(width / 2, height * 0.77, 360, 68, 0x334155)
-      .setInteractive({ useHandCursor: true })
-      .setDepth(depth + 2);
-    const closeText = this.add.text(width / 2, height * 0.77, 'CLOSE', {
-      fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: '#ffffff'
-    }).setOrigin(0.5).setDepth(depth + 3);
-
-    const objects = [shade, panel, title, description, toggle, toggleText, addVoidKey, addVoidKeyText, addLevel, levelText, reset, resetText, close, closeText];
+      button.on('pointerdown', action);
+      objects.push(button, caption);
+      return { button, caption };
+    };
 
     // This function removes all objects belonging to this development dialog.
     const destroy = () => objects.forEach((object) => object?.destroy());
 
-    toggle.on('pointerdown', () => {
-
+    addLabel(0, 'Dev mode');
+    const enabled = GameState.development.unlockAll && GameState.development.replayCleared;
+    addButton(firstX, rowY(0), enabled ? 'ON' : 'OFF', enabled ? 0x00f2fa : 0x08192e, 0x00f2fa, () => {
       HapticsService.confirm();
       const next = !enabled;
       GameState.development.unlockAll = next;
@@ -319,27 +281,59 @@ export default class TitleScene extends Phaser.Scene {
       saveProfile();
       destroy();
       this.scene.restart();
-    });
+    }, enabled ? '#08192e' : '#ffffff');
 
+    addLabel(1, 'Level up');
+    for (const [amount, x] of [[1, firstX], [5, secondX]]) {
+      addButton(x, rowY(1), `+${amount}`, 0x0e9c4b, 0x86efac, () => {
+        HapticsService.confirm();
+        const result = grantLeaderLevels(GameState.leader, amount);
+        this.showToast(`Leader level ${GameState.leader.level}  (+${result.tacticsPointsEarned} TP)`);
+      });
+    }
 
-    addVoidKey.on('pointerdown', () => {
+    addLabel(2, 'Void Key');
+    for (const [amount, x] of [[1, firstX], [5, secondX]]) {
+      addButton(x, rowY(2), `+${amount}`, 0x4c0975, 0xc084fc, () => {
+        HapticsService.confirm();
+        GameState.inventory.voidKeys = (GameState.inventory.voidKeys ?? 0) + amount;
+        saveProfile();
+        this.currencyText.setText(`Gold: ${GameState.gold}   Void Keys: ${GameState.inventory.voidKeys}`);
+        this.showToast(`Added ${amount} Void Key${amount === 1 ? '' : 's'}.`);
+      });
+    }
 
-      HapticsService.confirm();
-      GameState.inventory.voidKeys = (GameState.inventory.voidKeys ?? 0) + 1;
-      saveProfile();
-      addVoidKeyText.setText(`ADD VOID KEY  (${GameState.inventory.voidKeys} owned)`);
-      this.showToast('Added 1 Void Key.');
-    });
+    addLabel(3, 'Gold');
+    for (const [amount, x] of [[100, firstX], [500, secondX]]) {
+      addButton(x, rowY(3), `+${amount}`, 0xb38c0c, 0xfde047, () => {
+        HapticsService.confirm();
+        GameState.gold += amount;
+        saveProfile();
+        this.currencyText.setText(`Gold: ${GameState.gold}   Void Keys: ${GameState.inventory.voidKeys ?? 0}`);
+        this.showToast(`Added ${amount} Gold.`);
+      });
+    }
 
-    reset.on('pointerdown', () => {
+    addLabel(4, 'Grid lines');
+    const gridVisible = GameState.development.showGridLines !== false;
+    const gridToggle = addButton(firstX, rowY(4), gridVisible ? 'ON' : 'OFF',
+      gridVisible ? 0xebed53 : 0x4e4f19, 0xebed53, () => {
+        HapticsService.confirm();
+        GameState.development.showGridLines = !GameState.development.showGridLines;
+        saveProfile();
+        gridToggle.caption.setText(GameState.development.showGridLines ? 'ON' : 'OFF');
+        gridToggle.button.setFillStyle(GameState.development.showGridLines ? 0xebed53 : 0x4e4f19);
+        gridToggle.caption.setColor(GameState.development.showGridLines ? '#1f2937' : '#ffffff');
+      }, gridVisible ? '#1f2937' : '#ffffff');
 
+    addLabel(5, 'Reset progress');
+    addButton(firstX, rowY(5), 'RESET', 0x7f1d1d, 0xf87171, () => {
       HapticsService.tap();
       destroy();
       this.showResetConfirmation();
     });
 
-    close.on('pointerdown', () => {
-
+    addButton(width / 2, panelTop + panelHeight - 52, 'CLOSE', 0x334155, 0x94a3b8, () => {
       HapticsService.tap();
       destroy();
     });
@@ -399,13 +393,19 @@ export default class TitleScene extends Phaser.Scene {
   showToast(message) {
 
     const { width, height } = this.scale;
+    this.activeToast?.tween?.stop();
+    this.activeToast?.panel?.destroy();
+    this.activeToast?.text?.destroy();
     const panel = this.add.rectangle(width / 2, height * 0.17, Math.min(1200, width * 0.65), 82, 0x0f172a, 0.96)
-      .setStrokeStyle(3, 0x64748b).setDepth(2000);
+      .setStrokeStyle(3, 0x64748b).setDepth(4200);
     const text = this.add.text(width / 2, height * 0.17, message, { fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#f8fafc' })
-      .setOrigin(0.5).setDepth(2001);
-    this.tweens.add({ targets: [panel, text], alpha: 0, delay: 1200, duration: 450, onComplete: () => {
-
-      panel.destroy(); text.destroy();
+      .setOrigin(0.5).setDepth(4201);
+    const toast = { panel, text, tween: null };
+    this.activeToast = toast;
+    toast.tween = this.tweens.add({ targets: [panel, text], alpha: 0, delay: 1200, duration: 450, onComplete: () => {
+      panel.destroy();
+      text.destroy();
+      if (this.activeToast === toast) this.activeToast = null;
     } });
   }
 

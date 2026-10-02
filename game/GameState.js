@@ -17,7 +17,8 @@ const GameState = {
   records: {},
   development: {
     unlockAll: false,
-    replayCleared: false
+    replayCleared: false,
+    showGridLines: true
   },
   world: {
     currentLocation: 'pineshire',

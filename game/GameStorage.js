@@ -35,7 +35,8 @@ export function loadProfile(baseRoster) {
     ? saved.lastPartyIds.map((id) => id === 'aoth' ? 'fistandantilus' : id) : [];
   GameState.development = {
     unlockAll: saved?.development?.unlockAll === true,
-    replayCleared: saved?.development?.replayCleared === true
+    replayCleared: saved?.development?.replayCleared === true,
+    showGridLines: saved?.development?.showGridLines !== false
   };
   GameState.world = {
     currentLocation: saved?.world?.currentLocation ?? 'pineshire',

@@ -28,6 +28,10 @@ Characters should generally:
 
 Tactical commands should override or strongly influence default behavior where appropriate.
 
+## Wave Transitions and Movement
+
+Adventurers and enemies move at 1.5 times their configured movement speed during combat. When a wave ends, living adventurers walk back to their initial positions at twice their combat movement speed. After everyone arrives, the party remains in place for two seconds before the next wave countdown begins. The final wave also returns the party home before victory appears.
+
 ## Player Movement Commands
 
 A known undesirable behavior is having every character move toward any battlefield click.
@@ -170,7 +174,10 @@ Melee attackers reserve one of six target-relative approach slots. Tank and
 melee preferred radii are 52 and 65, capped by the attacker's actual reach.
 Slots follow moving targets without changing sides every frame. Ranged units
 settle in a 180–250 distance band; healers prefer 220–290, capped by reach.
-Range hysteresis prevents repeated tiny corrections. Healers still prioritize
+Once settled, they stay put while their target remains within attack reach,
+unless a nearby threat forces a retreat. Idle ranged units and healers face the
+strongest living monster, with facing changes limited to once every 1.5 seconds;
+they can retreat while facing it. Healers still prioritize
 injured allies and Rogues retain their re-stealth retreat behavior.
 
 Move assigns distinct destinations around the clicked location. Stack and

@@ -1,0 +1,16 @@
+[
+  {
+    "character": "mishakal",
+    "state": "block",
+    "direction": "north-east",
+    "count": 5,
+    "job": "62d4a0ac-152c-468e-b5ed-9ab2a0244447"
+  },
+  {
+    "character": "mishakal",
+    "state": "death",
+    "direction": "north-west",
+    "count": 9,
+    "job": "c94a39ec-63b9-473a-bfc8-c97fbe0ddac0"
+  }
+]

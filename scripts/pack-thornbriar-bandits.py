@@ -8,7 +8,7 @@ from PIL import Image
 
 
 ROOT = Path('assets/enemies/thornbriar-hollow')
-NAMES = ('bandit1', 'bandit2', 'bandit3', 'banditBoss')
+NAMES = ('lasher', 'ruffian', 'hedgeMage', 'rongarTheCrusher')
 DIRECTIONS = ('south-east', 'south-west', 'north-east', 'north-west')
 STATES = ('idle', 'walk', 'attack', 'block', 'hit', 'death')
 

@@ -1,12 +1,21 @@
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import enemies from '../data/enemies.js';
 import { ENEMY_SPRITES, preloadEnemySprites } from '../data/enemySprites.js';
 
-const ids = ['banditWhip', 'banditKnives', 'banditHexer', 'banditChief'];
+const ids = ['lasher', 'ruffian', 'hedgeMage', 'rongarTheCrusher'];
+const portraits = ['Lasher.png', 'Ruffian.png', 'Hedge Mage.png', 'Rongar the Crusher.png'];
 const directions = ['south', 'south-east', 'east', 'south-west', 'west', 'north', 'north-east', 'north-west'];
 const counts = { idle: 4, walk: 8, attack: 9, block: 5, hit: 5, death: 9 };
+const manifest = JSON.parse(readFileSync(
+  new URL('../assets/enemies/thornbriar-hollow/pixellab-jobs.json', import.meta.url), 'utf8'));
+
+assert.deepEqual(Object.keys(manifest), ids);
+for (const [index, id] of ids.entries()) {
+  assert.equal(manifest[id].source, portraits[index]);
+  assert.ok(existsSync(fileURLToPath(new URL(`../assets/enemies/thornbriar-hollow/${portraits[index]}`, import.meta.url))));
+}
 
 for (const id of ids) {
   assert.ok(enemies[id]);
@@ -28,6 +37,10 @@ for (const id of ids) {
 const loaded = [];
 preloadEnemySprites({ textures: { exists: () => false }, load: { spritesheet: (...args) => loaded.push(args) } });
 assert.equal(loaded.length, 24);
-assert.ok(enemies.banditHexer.abilities.secondary);
-assert.ok(enemies.banditChief.abilities.primary.telegraph);
+assert.equal(enemies.lasher.name, 'Lasher');
+assert.equal(enemies.ruffian.name, 'Ruffian');
+assert.equal(enemies.hedgeMage.name, 'Hedge Mage');
+assert.equal(enemies.rongarTheCrusher.name, 'Rongar the Crusher');
+assert.ok(enemies.hedgeMage.abilities.secondary);
+assert.ok(enemies.rongarTheCrusher.abilities.primary.telegraph);
 console.log('Thornbriar enemy stats, sprites and preload checks passed.');

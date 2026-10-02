@@ -7,7 +7,7 @@ from PIL import Image
 DIRECTIONS = ['south-east', 'south-west', 'north-east', 'north-west']
 STATES = ['idle', 'walk', 'attack', 'block', 'hit', 'death']
 NAMES = [
-    'laurana', 'tika', 'tanis', 'sturm', 'goldmoon',
+    'laurana', 'tika', 'tanis', 'sturm', 'goldmoon', 'caramon-gladiator',
     'raistlin', 'dalamar', 'palin', 'tasslehoff', 'flint', 'riverwind', 'fistandantilus', 'mishakal',
 ]
 selected_names = sys.argv[1:] or NAMES

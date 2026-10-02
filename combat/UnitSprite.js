@@ -2,6 +2,7 @@ import { SLIME_SPRITES } from '../data/slimeSprites.js';
 import { CHARACTER_SPRITES } from '../data/characterSprites.js';
 import { ENEMY_SPRITES } from '../data/enemySprites.js';
 import { SpriteMotion, movementDirection } from './SpriteMotion.js';
+import { slimePose, monsterDeathPose } from './SpritePresentation.js';
 
 // Presentation only: animation never changes arena positions, reach, or stats.
 // Combat drives the frame clock, so Pause and inspection freeze the animation.
@@ -14,6 +15,7 @@ export default class UnitSprite {
     this.image = unit.scene.add.image(0, definition.footY, frame.key, frame.frame)
       .setScale(definition.scale);
     this.applyFrame(frame);
+    this.applyPose();
   }
 
   static create(unit) {
@@ -46,6 +48,7 @@ export default class UnitSprite {
     if (this.action?.state === state) return;
     this.action = { state, elapsed: 0 };
     this.applyFrame(this.currentFrame());
+    this.applyPose();
   }
 
   applyFrame(frame) {
@@ -58,10 +61,27 @@ export default class UnitSprite {
     this.image.setFlipX(frame.flipX === true);
   }
 
+  applyPose() {
+    const state = this.action?.state ?? this.motion.state;
+    const elapsed = this.action?.elapsed ?? this.motion.elapsed;
+    const clip = this.definition.clips[state]?.[this.motion.direction]
+      ?? this.definition.clips[state]?.south;
+    const duration = clip ? clip.frameMs * clip.frames.length : 1;
+    const pose = slimePose(this.definition.motion, state, elapsed, duration);
+    const death = this.unit.isEnemy && state === 'death' ? monsterDeathPose(elapsed) : null;
+    const size = death?.scale ?? 1;
+    this.image.setPosition(pose.x, this.definition.footY + pose.y);
+    this.image.setScale(this.definition.scale * pose.scaleX * size,
+      this.definition.scale * pose.scaleY * size);
+    if (death) this.image.setAlpha(death.alpha);
+  }
+
   update(delta) {
     const unit = this.unit;
+    if (this.image?.active === false || unit.container?.active === false) return;
+    if (unit.landing) return;
     const scene = unit.scene;
-    const frozen = scene.combatPaused || (this.action?.state !== 'death' && (scene.battleOver || scene.waveTransitioning));
+    const frozen = scene.combatPaused || (this.action?.state !== 'death' && (scene.battleOver || (scene.waveTransitioning && !scene.waveRetreating)));
     if (this.action) {
       this.motion.x = unit.arenaX;
       this.motion.y = unit.arenaY;
@@ -72,10 +92,32 @@ export default class UnitSprite {
         this.motion.reset(unit.arenaX, unit.arenaY);
       }
       this.applyFrame(this.currentFrame());
+      this.applyPose();
       return;
     }
-    this.motion.update(unit.arenaX, unit.arenaY, delta, unit.moveSpeed, unit.alive, frozen);
+    this.motion.update(unit.arenaX, unit.arenaY, delta, unit.moveSpeed * (scene.waveRetreating ? 2 : 1), unit.alive, frozen);
+    const orderedPoint = scene.manualTargets?.get(unit.id);
+    const followingOrder = orderedPoint && unit.distanceToPoint(orderedPoint.x, orderedPoint.y)
+      > (scene.movement?.config.arrivalTolerance ?? 12);
+    if (!unit.isEnemy && unit.alive && !frozen && ['Ranged DPS', 'Healer'].includes(unit.role)
+      && !followingOrder) {
+      const enemies = scene.getLivingEnemies?.() ?? [];
+      const target = enemies.slice().sort((a, b) => Number(b.isBoss) - Number(a.isBoss)
+        || (b.maxHp ?? 0) - (a.maxHp ?? 0)
+        || unit.distanceTo(a) - unit.distanceTo(b))[0];
+      if (target) {
+        const time = scene.time?.now ?? 0;
+        if (this.facingDirection === undefined || time - (this.lastFacingAt ?? -Infinity) >= 1500) {
+          this.facingDirection = movementDirection(target.arenaX - unit.arenaX, target.arenaY - unit.arenaY);
+          this.lastFacingAt = time;
+        }
+        this.motion.direction = this.facingDirection;
+      }
+    } else {
+      this.facingDirection = undefined;
+    }
     this.applyFrame(this.currentFrame());
+    this.applyPose();
   }
 
   reset() {
@@ -83,5 +125,7 @@ export default class UnitSprite {
     this.motion.reset(this.unit.arenaX, this.unit.arenaY);
     this.image.clearTint();
     this.applyFrame(this.currentFrame());
+    this.image.setAlpha(1);
+    this.applyPose();
   }
 }

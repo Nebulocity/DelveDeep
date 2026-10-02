@@ -11,7 +11,7 @@ export default class CombatMovement {
 
   getUnits() {
     return [...this.scene.partyUnits, ...this.scene.enemies]
-      .filter(unit => unit.alive && unit.container?.active !== false);
+      .filter(unit => unit.alive && !unit.landing && unit.container?.active !== false);
   }
 
   clamp(x, y, unit = null) {
@@ -142,8 +142,16 @@ export default class CombatMovement {
       const nearest = this.getUnits().filter(other => other.isEnemy !== unit.isEnemy)
         .sort((a, b) => unit.distanceTo(a) - unit.distanceTo(b))[0];
       const min = unit.role === 'Healer' ? this.config.healerMin : this.config.rangedMin;
+      const max = unit.role === 'Healer' ? this.config.healerMax : this.config.rangedMax;
       if (nearest && nearest !== target && unit.distanceTo(nearest) < min + this.config.rangeHysteresis
         && this.maintainRange(unit, nearest, delta, true)) return;
+      const settled = this.rangeStates.get(unit)?.settled;
+      if (!unit.isEnemy && (settled || unit.distanceTo(target) <= max)
+        && unit.distanceTo(target) >= min
+        && unit.distanceTo(target) <= unit.attackRange - this.config.arrival) {
+        this.rangeStates.set(unit, { target, direction: 0, settled: true });
+        return;
+      }
       this.maintainRange(unit, target, delta);
       return;
     }

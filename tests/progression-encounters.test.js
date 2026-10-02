@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import delves from '../data/delves.js';
 import enemies from '../data/enemies.js';
-import { createEncounterWaves } from '../data/encounters.js';
+import { createEncounterWaves, encounterWaveCounts } from '../data/encounters.js';
 import { getBattleLayout } from '../ui/Layout.js';
 import { loadLeaderProgression, saveLeaderProgression, grantLeaderLevels, recordDepthClear, purchaseLeaderAbility, toggleLeaderLoadoutAbility, leaderAbilities } from '../game/LeaderProgression.js';
 
@@ -66,21 +66,19 @@ assert.equal(toggleLeaderLoadoutAbility(leader, 'brace'), true);
 assert.equal(toggleLeaderLoadoutAbility(leader, 'arise'), true);
 assert.equal(leader.battleLoadout.length, 5);
 
-// Each difficulty retains its original waves and ends with the requested
-// boss group. Every spawn type resolves to real enemy data.
+// Each delve ends with its intended boss group, and every spawn resolves.
 const slimeCave = delves.find((delve) => delve.id === 'slime-cave');
 assert.ok(slimeCave.visuals?.environment?.layers.length);
 assert.ok(slimeCave.visuals?.environment?.ambient.url);
 assert.equal(delves.filter((delve) => delve.visuals?.environment).length, 1);
 for (const delve of delves) {
   const waves = createEncounterWaves(delve);
-  const counts = { Easy: 4, Moderate: 5, Void: 6 };
-  const finalCounts = { Easy: 1, Moderate: 3, Void: 4 };
-  assert.equal(waves.length, counts[delve.difficulty]);
+  const finalCounts = { 'slime-cave': 7, 'thornbriar-hollow': 10, 'dolmark-den': 6, 'murmuring-abyss': 4 };
+  assert.equal(waves.length, delve.difficulty === 'Unknown' ? 6 : encounterWaveCounts[delve.difficulty]);
   assert.equal(delve.rooms, waves.length);
   const final = waves.at(-1);
   assert.equal(final.boss, true);
-  assert.equal(final.enemies.length, finalCounts[delve.difficulty]);
+  assert.equal(final.enemies.length, finalCounts[delve.id]);
   assert.equal(final.enemies.filter((spawn) => enemies[spawn.type].boss).length, 1);
   assert.ok(enemies[final.enemies[0].type].maxHp >= 2600);
   assert.ok(enemies[final.enemies[0].type].bodyRadius > 45);
@@ -93,14 +91,57 @@ for (const delve of delves) {
 const thornbriar = delves.find((delve) => delve.id === 'thornbriar-hollow');
 const banditWaves = createEncounterWaves(thornbriar);
 assert.deepEqual(banditWaves.flatMap((wave) => wave.enemies.map((spawn) => spawn.type)).filter((type, index, all) => all.indexOf(type) === index), [
-  'banditWhip', 'banditKnives', 'banditHexer', 'banditChief'
+  'ruffian', 'lasher', 'hedgeMage', 'rongarTheCrusher'
 ]);
-assert.equal(banditWaves.at(-1).enemies[0].type, 'banditChief');
+assert.equal(banditWaves.at(-1).enemies[0].type, 'rongarTheCrusher');
+const thornbriarCounts = (random) => createEncounterWaves(thornbriar, 1400, random)
+  .map(wave => ['ruffian', 'lasher', 'hedgeMage', 'rongarTheCrusher']
+    .map(type => wave.enemies.filter(spawn => spawn.type === type).length));
+assert.deepEqual(thornbriarCounts(() => 0), [
+  [5, 0, 0, 0], [4, 2, 0, 0], [3, 1, 1, 0], [4, 2, 2, 0], [6, 3, 3, 0], [4, 3, 2, 1]
+]);
+assert.deepEqual(thornbriarCounts(() => 0.999), [
+  [8, 0, 0, 0], [10, 8, 0, 0], [6, 3, 1, 0], [6, 4, 2, 0], [8, 5, 3, 0], [4, 3, 2, 1]
+]);
+const thornbriarRolls = [0, 0, 0.999, 0, 0.999];
+assert.deepEqual(thornbriarCounts(() => thornbriarRolls.shift() ?? 0)[1], [7, 5, 0, 0]);
+const dolmark = delves.find((delve) => delve.id === 'dolmark-den');
+assert.equal(dolmark.difficulty, 'Easy');
+const dolmarkCounts = (random) => createEncounterWaves(dolmark, 1400, random)
+  .map(wave => ['denWarden', 'denProtector', 'silvanarkTheForestLord']
+    .map(type => wave.enemies.filter(spawn => spawn.type === type).length));
+assert.deepEqual(dolmarkCounts(() => 0), [
+  [5, 0, 0], [6, 0, 0], [4, 1, 0], [4, 2, 0], [4, 4, 0], [3, 2, 1]
+]);
+assert.deepEqual(dolmarkCounts(() => 0.999), [
+  [8, 0, 0], [12, 0, 0], [10, 1, 0], [4, 2, 0], [4, 4, 0], [3, 2, 1]
+]);
+const dolmarkRolls = [0, 0.999, 0, 0.999, 0, 0.999];
+assert.deepEqual(dolmarkCounts(() => dolmarkRolls.shift() ?? 0)[2], [7, 1, 0]);
+for (const [difficulty, count] of Object.entries(encounterWaveCounts)) {
+  const waves = createEncounterWaves({ difficulty });
+  assert.equal(waves.length, count);
+  assert.equal(waves.at(-1).boss, true);
+}
+assert.equal(createEncounterWaves({ type: 'void', difficulty: 'Unknown' }).length, 6);
 assert.equal(createEncounterWaves(slimeCave).at(-1).enemies[0].type, 'slimeSovereign');
+const slimeCounts = (random) => createEncounterWaves(slimeCave, 1400, random)
+  .map(wave => ['caveSlime', 'elderSlime', 'slimeSovereign']
+    .map(type => wave.enemies.filter(spawn => spawn.type === type).length));
+assert.deepEqual(slimeCounts(() => 0), [
+  [5, 0, 0], [6, 0, 0], [4, 1, 0], [4, 2, 0], [6, 3, 0], [4, 2, 1]
+]);
+assert.deepEqual(slimeCounts(() => 0.999), [
+  [8, 0, 0], [12, 0, 0], [10, 1, 0], [4, 2, 0], [6, 3, 0], [4, 2, 1]
+]);
+const rolls = [0, 0.25, 0.5, 0.75, 0];
+assert.deepEqual(slimeCounts(() => rolls.shift()), [
+  [5, 0, 0], [9, 0, 0], [7, 1, 0], [4, 2, 0], [6, 3, 0], [4, 2, 1]
+]);
 const oldBossX = createEncounterWaves(slimeCave).at(-1).enemies[0].arenaX;
 assert.equal(createEncounterWaves(slimeCave, 1750).at(-1).enemies[0].arenaX, oldBossX + 175);
 const milestone = createEncounterWaves({ difficulty: 'Easy', depth: 5 });
-assert.equal(milestone.length, 5);
+assert.equal(milestone.length, 7);
 assert.equal(milestone.at(-2).milestoneBoss, true);
 assert.equal(milestone.at(-1).enemies[0].type, 'slimeSovereign');
 

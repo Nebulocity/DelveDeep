@@ -1,12 +1,21 @@
 import { forgottenCavernWaves, voidPortalWaves } from './enemies.js';
 
+export const encounterWaveCounts = Object.freeze({
+  Easy: 6,
+  Difficult: 10,
+  Tough: 16,
+  'Very Tough': 24,
+  'Incredibly Tough': 34,
+  Impossible: 50
+});
+
 const finalWaves = {
   Easy: [
     { name: 'The Slime Sovereign', boss: true, enemies: [
       { type: 'slimeSovereign', arenaX: 700, arenaY: 790 }
     ] }
   ],
-  Moderate: [
+  Difficult: [
     { name: 'The Inner Guard', enemies: [
       { type: 'denGuard', arenaX: 480, arenaY: 770 },
       { type: 'denGuard', arenaX: 900, arenaY: 770 },
@@ -18,7 +27,7 @@ const finalWaves = {
       { type: 'denGuard', arenaX: 980, arenaY: 730 }
     ] }
   ],
-  Void: [
+  Unknown: [
     { name: 'Beyond the Rift', enemies: [
       { type: 'riftSentinel', arenaX: 450, arenaY: 760 },
       { type: 'riftSentinel', arenaX: 950, arenaY: 760 },
@@ -39,34 +48,110 @@ const finalWaves = {
 };
 
 const thornbriarWaves = [
-  { name: 'Roadside Ambush', enemies: [
-    { type: 'banditWhip', arenaX: 460, arenaY: 790 },
-    { type: 'banditKnives', arenaX: 880, arenaY: 790 }
-  ] },
-  { name: 'The Hidden Knives', enemies: [
-    { type: 'banditKnives', arenaX: 400, arenaY: 760 },
-    { type: 'banditWhip', arenaX: 700, arenaY: 830 },
-    { type: 'banditKnives', arenaX: 980, arenaY: 760 }
-  ] },
-  { name: 'Briar Hex', enemies: [
-    { type: 'banditWhip', arenaX: 440, arenaY: 770 },
-    { type: 'banditHexer', arenaX: 700, arenaY: 860 },
-    { type: 'banditKnives', arenaX: 960, arenaY: 770 }
-  ] },
-  { name: 'The Thornbriar Chief', boss: true, enemies: [
-    { type: 'banditChief', arenaX: 700, arenaY: 810 }
-  ] }
+  { name: 'Roadside Ambush', ruffians: { base: 4, dice: [4] } },
+  { name: 'The Lashers', ruffians: { base: 2, dice: [4, 4] }, lashers: { dice: [4, 4] } },
+  { name: 'Briar Hex', ruffians: { base: 2, dice: [4] }, lashers: { dice: [3] }, hedgeMages: 1 },
+  { name: 'Thornbriar Patrol', ruffians: { base: 3, dice: [3] }, lashers: { base: 1, dice: [3] }, hedgeMages: 2 },
+  { name: "Rongar's Guard", ruffians: { base: 5, dice: [3] }, lashers: { base: 2, dice: [3] }, hedgeMages: 3 },
+  { name: 'Rongar the Crusher', ruffians: { base: 4 }, lashers: { base: 3 }, hedgeMages: 2, rongar: 1, boss: true }
 ];
 
-// This function creates independent wave data for the selected delve.
-// Thornbriar uses bandits; other delves retain their difficulty waves.
-export function createEncounterWaves(delve = {}, arenaWidth = 1400) {
+const dolmarkWaves = [
+  { name: 'Den Wardens', wardens: { base: 4, dice: [4] } },
+  { name: 'The Warden Pack', wardens: { base: 4, dice: [4, 4] } },
+  { name: 'The First Protector', wardens: { base: 2, dice: [4, 4] }, protectors: 1 },
+  { name: 'The Den Guard', wardens: { base: 4 }, protectors: 2 },
+  { name: 'The Forest Guard', wardens: { base: 4 }, protectors: 4 },
+  { name: 'Silvanark the Forest Lord', wardens: { base: 3 }, protectors: 2, silvanark: 1, boss: true }
+];
 
-  const difficulty = delve.type === 'void' ? 'Void' : delve.difficulty ?? 'Easy';
-  const base = difficulty === 'Void' ? voidPortalWaves : forgottenCavernWaves;
-  const waves = delve.id === 'thornbriar-hollow'
-    ? [...thornbriarWaves]
-    : [...base, ...(finalWaves[difficulty] ?? finalWaves.Easy)];
+function rollCount({ base = 0, dice = [] } = {}, random) {
+  return base + dice.reduce((total, sides) => total + 1 + Math.floor(random() * sides), 0);
+}
+
+function buildThornbriarWaves(random) {
+  return thornbriarWaves.map(({ name, ruffians, lashers, hedgeMages = 0, rongar = 0, boss = false }) => {
+    const ruffianCount = rollCount(ruffians, random);
+    const lasherCount = rollCount(lashers, random);
+    const types = [
+      ...Array(rongar).fill('rongarTheCrusher'),
+      ...Array(hedgeMages).fill('hedgeMage'),
+      ...Array(lasherCount).fill('lasher'),
+      ...Array(ruffianCount).fill('ruffian')
+    ];
+    return {
+      name, boss,
+      enemies: types.map((type, index) => ({
+        type, arenaX: 350 + (index % 4) * 235, arenaY: 760 + Math.floor(index / 4) * 75
+      }))
+    };
+  });
+}
+
+function buildDolmarkWaves(random) {
+  return dolmarkWaves.map(({ name, wardens, protectors = 0, silvanark = 0, boss = false }) => {
+    const types = [
+      ...Array(silvanark).fill('silvanarkTheForestLord'),
+      ...Array(protectors).fill('denProtector'),
+      ...Array(rollCount(wardens, random)).fill('denWarden')
+    ];
+    return {
+      name, boss,
+      enemies: types.map((type, index) => ({
+        type, arenaX: 350 + (index % 4) * 235, arenaY: 760 + Math.floor(index / 4) * 75
+      }))
+    };
+  });
+}
+
+const slimeCaveWaves = [
+  { name: 'Cave Slimes', caveSlimes: 2, d4: 1 },
+  { name: 'The Slime Swarm', caveSlimes: 2, d4: 2 },
+  { name: 'The Elder Puddle', caveSlimes: 2, d4: 2, elderSlimes: 1 },
+  { name: 'The Elder Slimes', caveSlimes: 2, elderSlimes: 2 },
+  { name: 'The Slime Horde', caveSlimes: 4, elderSlimes: 3 },
+  { name: 'The Slime Sovereign', caveSlimes: 2, elderSlimes: 2, sovereigns: 1, boss: true }
+];
+
+function buildSlimeCaveWaves(random) {
+  return slimeCaveWaves.map(({ name, caveSlimes, d4 = 0, elderSlimes = 0, sovereigns = 0, boss = false }) => {
+    const slimeCount = rollCount({ base: caveSlimes, dice: Array(d4).fill(4) }, random);
+    const types = [
+      ...Array(sovereigns).fill('slimeSovereign'),
+      ...Array(elderSlimes).fill('elderSlime'),
+      ...Array(slimeCount).fill('caveSlime')
+    ];
+    return {
+      name, boss,
+      enemies: types.map((type, index) => ({
+        type, arenaX: 350 + (index % 4) * 235, arenaY: 760 + Math.floor(index / 4) * 75
+      }))
+    };
+  });
+}
+
+// This function creates independent wave data for the selected delve.
+// Slime Cave, Thornbriar, and Dolmark have authored waves; other delves use difficulty waves.
+export function createEncounterWaves(delve = {}, arenaWidth = 1400, random = Math.random) {
+
+  const isVoid = delve.type === 'void';
+  const difficulty = isVoid ? 'Unknown' : delve.difficulty ?? 'Easy';
+  const base = isVoid ? voidPortalWaves : forgottenCavernWaves;
+  const finale = isVoid ? finalWaves.Unknown
+    : difficulty === 'Easy' ? finalWaves.Easy : finalWaves.Difficult;
+  const targetCount = isVoid ? base.length + finale.length
+    : encounterWaveCounts[difficulty] ?? encounterWaveCounts.Easy;
+  const repeatable = base.filter(wave => !wave.boss);
+  const openingCount = targetCount - finale.length;
+  const difficultyWaves = Array.from({ length: openingCount }, (_, index) =>
+    index < base.length ? base[index] : repeatable[(index - base.length) % repeatable.length]);
+  const waves = delve.id === 'slime-cave'
+    ? buildSlimeCaveWaves(random)
+    : delve.id === 'thornbriar-hollow'
+      ? buildThornbriarWaves(random)
+      : delve.id === 'dolmark-den'
+        ? buildDolmarkWaves(random)
+        : [...difficultyWaves, ...finale];
 
   // Preserve the fifth-depth guardian rule before the final boss so the
   // difficulty's advertised boss group still closes the encounter.

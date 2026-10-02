@@ -1,4 +1,5 @@
 import { preloadSlimeSprites } from '../data/slimeSprites.js';
+import { chooseWaveLandings } from '../combat/WaveLanding.js';
 import { bindSelectionDetails, characterDetails, TONIC_DESCRIPTION } from '../ui/SelectionDetails.js';
 import Phaser from 'phaser';
 import ClassAbilitySystem from '../combat/ClassAbilitySystem.js';
@@ -51,7 +52,7 @@ export default class BattleScene extends Phaser.Scene {
 
   // This function starts a new battle by resetting encounter state, creating
   // the perspective arena and combatants, and building the tactical controls.
-  // It also starts the combat log and spawns the first enemy wave.
+  // It also starts the combat log and announces the first enemy wave.
   create() {
     this.classAbilitySystem = new ClassAbilitySystem(this);
 
@@ -61,6 +62,8 @@ export default class BattleScene extends Phaser.Scene {
     // leader cooldowns for a fresh battle.
     this.battleOver = false;
     this.waveTransitioning = false;
+    this.waveRetreating = false;
+    this.waveReturnPositions = new Map();
     this.activeTelegraphs = [];
     this.currentWaveIndex = -1;
     this.enemySerial = 0;
@@ -192,7 +195,7 @@ export default class BattleScene extends Phaser.Scene {
     const environment = GameState.currentDelve?.visuals?.environment;
     if (environment) {
       this.battlefieldVisualLayers = createEnvironment(this, environment);
-      this.battlefield.drawPerspectiveFloor();
+      this.battlefield.drawPerspectiveFloor(GameState.development.showGridLines !== false);
       return;
     }
     const background = GameState.currentDelve?.visuals?.battlefieldBackground;
@@ -210,7 +213,7 @@ export default class BattleScene extends Phaser.Scene {
       staticBackground,
       scenery: this.add.container(0, 0).setDepth(90)
     };
-    this.battlefield.drawPerspectiveFloor();
+    this.battlefield.drawPerspectiveFloor(GameState.development.showGridLines !== false);
   }
 
 
@@ -236,6 +239,7 @@ export default class BattleScene extends Phaser.Scene {
       const spawn = this.tactics.getSpawnPosition(unit, index);
       unit.setArenaPosition(spawn.x, spawn.y);
       this.movement.validateUnitPosition(unit);
+      this.waveReturnPositions.set(unit.id, { x: unit.arenaX, y: unit.arenaY });
     });
 
     this.partyUnits.forEach((unit) => {
@@ -668,7 +672,7 @@ export default class BattleScene extends Phaser.Scene {
 
     this.enemies?.forEach((enemy) => {
 
-      if (!enemy.alive) return;
+      if (!enemy.alive || enemy.landing) return;
       // Keep enemy inspection available even before allies are selected.
       enemy.hitZone.setInteractive({ useHandCursor: true });
     });
@@ -690,7 +694,11 @@ export default class BattleScene extends Phaser.Scene {
       const active=this.commandMode===label;
       box.setFillStyle(active?0x3b321d:0x1f2937).setStrokeStyle(3,active?0xfbbf24:0x475569);
     });
-    this.partyUnits?.forEach((u)=>u.body.setStrokeStyle(this.selectedUnitIds.has(u.id)?7:4,this.selectedUnitIds.has(u.id)?0x60a5fa:(u.isEnemy?0x365314:0x1c1917)));
+    this.partyUnits?.forEach((u) => u.body.setStrokeStyle(
+      this.selectedUnitIds.has(u.id) ? 7 : 4,
+      this.selectedUnitIds.has(u.id) ? 0x60a5fa : 0x1c1917,
+      this.selectedUnitIds.has(u.id) || !u.spriteVisual ? 1 : 0
+    ));
   }
 
   // This function interprets a battlefield tile tap using the current
@@ -1008,8 +1016,7 @@ export default class BattleScene extends Phaser.Scene {
       && this.time.now - (this.leaderAbilityCooldowns.get(id) ?? -Infinity) >= (ability.cooldown ?? 0));
   }
 
-  // This function introduces the next enemy group or finishes a fully cleared
-  // encounter.
+  // This function announces the next enemy group before it enters the arena.
   startWave(index) {
 
     if (index >= this.waves.length) {
@@ -1020,17 +1027,87 @@ export default class BattleScene extends Phaser.Scene {
     this.currentWaveIndex = index;
     GameState.currentRoom = index;
     const wave = this.waves[index];
+    this.waveTransitioning = true;
     this.updateEncounterStatus();
-    this.showBattleMessage(`WAVE ${index + 1}: ${wave.name}`, '#fb923c');
+    this.showWaveAnnouncement(wave.boss ? wave.name : `WAVE ${index + 1}`, Boolean(wave.boss));
+    let secondsRemaining = 3;
+    this.updateWaveCountdown(secondsRemaining);
+
+    const countDown = () => {
+
+      if (this.battleOver) return;
+      secondsRemaining -= 1;
+      if (secondsRemaining > 0) {
+        this.updateWaveCountdown(secondsRemaining);
+        this.time.delayedCall(1000, countDown);
+      } else {
+        this.clearWaveAnnouncement();
+        this.spawnWave(index);
+      }
+    };
+    this.time.delayedCall(1000, countDown);
+  }
+
+  // Keep the wave name and countdown readable over bright or detailed arenas.
+  showWaveAnnouncement(title, isBoss = false) {
+
+    const { width, height } = this.scale;
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const panelWidth = Math.min(1160, width - 660);
+    const backdrop = this.add.rectangle(0, 0, panelWidth, 248, 0x120e08, 0.97)
+      .setStrokeStyle(3, 0xc49a43);
+    const labelText = this.add.text(0, -76, isBoss ? 'BOSS WAVE' : '', {
+      fontFamily: 'Arial', fontSize: '31px', fontStyle: 'bold', color: '#d8b761'
+    }).setOrigin(0.5);
+    const titleText = this.add.text(0, isBoss ? -12 : -29, title, {
+      fontFamily: 'Arial', fontSize: '70px', fontStyle: 'bold', color: '#fff1cc',
+      stroke: '#211606', strokeThickness: 2, align: 'center'
+    }).setOrigin(0.5);
+    titleText.setScale(Math.min(1, (panelWidth - 96) / titleText.width));
+    const divider = this.add.rectangle(0, 48, panelWidth - 140, 2, 0x9c7c39, 0.65);
+    this.waveCountdownText = this.add.text(0, 85, '', {
+      fontFamily: 'Arial', fontSize: '36px', fontStyle: 'bold', color: '#e6d9b8'
+    }).setOrigin(0.5);
+    this.waveAnnouncement = this.add.container(centerX, centerY,
+      [backdrop, labelText, titleText, divider, this.waveCountdownText]).setDepth(9000);
+  }
+
+  updateWaveCountdown(secondsRemaining) {
+
+    this.waveCountdownText?.setText(`IN ${secondsRemaining} ${secondsRemaining === 1 ? 'SECOND' : 'SECONDS'}`);
+  }
+
+  clearWaveAnnouncement() {
+
+    this.waveAnnouncement?.destroy();
+    this.waveAnnouncement = null;
+    this.waveCountdownText = null;
+  }
+
+  // This function creates the announced enemies once the countdown ends.
+  spawnWave(index) {
+
+    const wave = this.waves[index];
     this.combatLog?.add('wave', `Wave ${index + 1} started: ${wave.name}`, { wave: index + 1 });
 
-    this.enemies = wave.enemies.map((spawn, spawnIndex) => this.createEnemy(spawn.type, spawn, spawnIndex));
+    const landings = chooseWaveLandings(wave, this.battlefield, this.terrain, this.partyUnits);
+    this.pendingWaveSpawns = [];
+    this.enemies = wave.enemies.map((spawn, spawnIndex) => {
+      const landing = landings[spawnIndex];
+      if (!landing) {
+        this.pendingWaveSpawns.push({ spawn, spawnIndex });
+        return null;
+      }
+      return this.createEnemy(spawn.type, landing, spawnIndex);
+    }).filter(Boolean);
+    this.enemies.forEach(enemy => this.animateEnemyLanding(enemy));
+    if (this.pendingWaveSpawns.length > 0) this.schedulePendingLandings();
     this.attackTargets.clear();
     this.setTargetingInputState(['ATTACK', 'FOCUS', 'INTERRUPT'].includes(this.commandMode));
     this.waveTransitioning = false;
 
     if (wave.boss) {
-      this.showBattleMessage('BOSS INCOMING', '#f97316');
       HapticsService.heavy();
     }
   }
@@ -1046,8 +1123,8 @@ export default class BattleScene extends Phaser.Scene {
       id: `${definition.id}-${this.currentWaveIndex}-${spawnIndex}-${serial}`,
       spriteId: type,
       battlefield: this.battlefield,
-      arenaX: spawn.arenaX + Phaser.Math.Between(-30, 30),
-      arenaY: spawn.arenaY + Phaser.Math.Between(-22, 22),
+      arenaX: spawn.x,
+      arenaY: spawn.y,
       isEnemy: true
     });
     enemy.enemyType = type;
@@ -1065,12 +1142,62 @@ export default class BattleScene extends Phaser.Scene {
     return enemy;
   }
 
+  // Retry crowded waves as characters move, without losing any monsters.
+  schedulePendingLandings() {
+
+    this.time.delayedCall(300, () => {
+      if (this.battleOver || this.pendingWaveSpawns.length === 0) return;
+      const wave = { enemies: this.pendingWaveSpawns.map(({ spawn }) => spawn) };
+      const reserved = this.enemies.map(enemy => this.battlefield.arenaPointToCell(enemy.arenaX, enemy.arenaY));
+      const landings = chooseWaveLandings(wave, this.battlefield, this.terrain,
+        this.partyUnits, Math.random, reserved);
+      this.pendingWaveSpawns = this.pendingWaveSpawns.filter(({ spawn, spawnIndex }, index) => {
+        if (!landings[index]) return true;
+        const enemy = this.createEnemy(spawn.type, landings[index], spawnIndex);
+        this.enemies.push(enemy);
+        this.animateEnemyLanding(enemy);
+        return false;
+      });
+      if (this.pendingWaveSpawns.length > 0) this.schedulePendingLandings();
+    });
+  }
+
+  // Keep combat and targeting paused for each monster until its feet bounce onto the floor.
+  animateEnemyLanding(enemy) {
+
+    enemy.landing = true;
+    const visual = enemy.spriteVisual?.image ?? enemy.body;
+    const floorY = visual.y;
+    const scale = this.battlefield.getUnitScale(enemy.arenaY);
+    visual.y = floorY - (enemy.container.y - this.battlefield.topY + 220) / scale;
+    for (const label of [enemy.label, enemy.targetLabel, enemy.actionLabel,
+      enemy.hpBack, enemy.hpFill, enemy.castBack, enemy.castFill]) label.setAlpha(0);
+    this.tweens.add({
+      targets: visual, y: floorY, duration: 720, ease: 'Bounce.Out',
+      onComplete: () => {
+        if (!enemy.container.active) return;
+        enemy.landing = false;
+        enemy.hitZone.setInteractive({ useHandCursor: true });
+        for (const label of [enemy.label, enemy.targetLabel, enemy.actionLabel,
+          enemy.hpBack, enemy.hpFill, enemy.castBack, enemy.castFill]) label.setAlpha(1);
+      }
+    });
+  }
+
   // This function advances one frame of combat while the encounter is active.
   // It updates resources and actions, runs party and enemy decisions,
   // separates crowded units, and checks for a cleared wave or defeated party.
   update(time, delta) {
 
     this.updateTonicHud();
+    if (!this.combatPaused) this.enemies?.filter(enemy => enemy.container?.active !== false).forEach((enemy) => {
+      enemy.spriteVisual?.update(delta);
+      enemy.updateDeathPresentation?.(delta);
+    });
+    if (this.waveRetreating && !this.combatPaused && !this.battleOver) {
+      this.updateWaveRetreat(time, Math.min(delta / 1000, 0.05), delta);
+      return;
+    }
     if (this.battleOver || this.waveTransitioning || this.combatPaused) {
       // Finish a fall even when its lethal hit ended the battle or wave.
       if (!this.combatPaused) this.partyUnits?.forEach(unit => {
@@ -1097,7 +1224,9 @@ export default class BattleScene extends Phaser.Scene {
 
     const livingEnemies = this.getLivingEnemies();
     if (livingEnemies.length === 0) {
-      this.completeWave();
+      if (this.pendingWaveSpawns?.length > 0) {
+        this.partyUnits.forEach(unit => this.updatePartyUnit(unit, time, deltaSeconds));
+      } else if (!this.enemies.some(enemy => enemy.alive && enemy.landing)) this.completeWave();
       return;
     }
 
@@ -1176,7 +1305,7 @@ export default class BattleScene extends Phaser.Scene {
   // This function excludes defeated enemies from active combat decisions.
   getLivingEnemies() {
 
-    return this.enemies.filter((enemy) => enemy.alive);
+    return this.enemies.filter((enemy) => enemy.alive && !enemy.landing);
   }
 
   // This function honors Focus first, then favors bosses and nearby enemies.
@@ -1673,11 +1802,9 @@ export default class BattleScene extends Phaser.Scene {
     const definition = enemy.definition;
     this.earnedGold += Phaser.Math.Between(definition.goldMin ?? 0, definition.goldMax ?? 0);
 
-    // Enemies remain in the wave array for reward accounting and delayed
-    // action checks, but their battlefield body should not occupy the scene
-    // after defeat. Floating damage text is separate and can finish normally.
+    // Keep the container until the death clip and shared fade/pop finish.
+    // Wave cleanup removes it after the animation.
     enemy.hitZone?.disableInteractive?.();
-    enemy.container?.destroy?.();
   }
 
   // This function checks whether allies may engage an enemy. A tank hit or
@@ -1896,6 +2023,11 @@ export default class BattleScene extends Phaser.Scene {
     // Stop active combat updates during the wave transition and clear
     // remaining ground warnings.
     this.waveTransitioning = true;
+    this.waveRetreating = true;
+    this.waveReturnReadyAt = null;
+    this.manualTargets.clear();
+    this.heldUnitIds.clear();
+    this.attackTargets.clear();
     this.activeTelegraphs.forEach((telegraph) => this.removeTelegraph(telegraph));
     this.showBattleMessage('WAVE CLEARED', '#bef264');
     this.combatLog?.add('wave', `Wave ${this.currentWaveIndex + 1} cleared`, { wave: this.currentWaveIndex + 1 });
@@ -1906,16 +2038,41 @@ export default class BattleScene extends Phaser.Scene {
       this.tweens.add({
         targets: enemy.container,
         alpha: 0,
-        duration: 500,
+        delay: enemy.alive ? 0 : Math.max(0, 1100 - (enemy.deathElapsed ?? 0)),
+        duration: 250,
         onComplete: () => enemy.container.destroy()
       });
     });
 
-    if (this.currentWaveIndex + 1 >= this.waves.length) {
-      this.time.delayedCall(900, () => this.finishVictory());
-    } else {
-      this.time.delayedCall(1200, () => this.startWave(this.currentWaveIndex + 1));
+  }
+
+  // Return living adventurers to their original positions before the next wave.
+  updateWaveRetreat(time, deltaSeconds, delta) {
+
+    const living = this.partyUnits.filter((unit) => unit.alive);
+    for (const unit of living) {
+      const destination = this.waveReturnPositions.get(unit.id);
+      if (!destination) continue;
+      if (Math.hypot(unit.arenaX - destination.x, unit.arenaY - destination.y) > 6) {
+        unit.moveToward(destination.x, destination.y, deltaSeconds * 2);
+      }
+      unit.spriteVisual?.update(delta);
     }
+
+    const allHome = living.every((unit) => {
+      const destination = this.waveReturnPositions.get(unit.id);
+      return destination && Math.hypot(unit.arenaX - destination.x, unit.arenaY - destination.y) <= 6;
+    });
+    if (!allHome) {
+      this.waveReturnReadyAt = null;
+      return;
+    }
+
+    this.waveReturnReadyAt ??= time + 2000;
+    if (time < this.waveReturnReadyAt) return;
+    this.waveRetreating = false;
+    if (this.currentWaveIndex + 1 >= this.waves.length) this.finishVictory();
+    else this.startWave(this.currentWaveIndex + 1);
   }
 
   // Watch the shared inventory so any source of Tonics restores the controls.
@@ -1981,15 +2138,14 @@ export default class BattleScene extends Phaser.Scene {
     return 0x22c55e;
   }
 
-  // This function shows the run timer beside the current wave and enemy
-  // group.
+  // Show the run timer with the wave number or the boss name.
   updateEncounterStatus() {
 
     if (!this.encounterStatusText || this.currentWaveIndex < 0) return;
     const elapsed = formatDuration(Date.now() - (GameState.run.startedAt || Date.now()));
     const wave = this.waves?.[this.currentWaveIndex];
-    const waveName = wave?.name ?? '';
-    this.encounterStatusText.setText(`(${elapsed}) Wave ${this.currentWaveIndex + 1}/${this.waves.length} - ${waveName}`);
+    const waveLabel = wave?.boss ? wave.name : `Wave ${this.currentWaveIndex + 1}/${this.waves.length}`;
+    this.encounterStatusText.setText(`(${elapsed}) ${waveLabel}`);
   }
 
   // This function draws attention to the party member taking enemy damage.
@@ -2032,7 +2188,7 @@ export default class BattleScene extends Phaser.Scene {
     const summary = completeExpedition();
     saveProfile();
     HapticsService.success();
-    this.showResultOverlay('VICTORY', `${GameState.currentDelve?.name ?? 'The Delve'} has been cleared.`, 'COLLECT REWARDS', () => {
+    this.showResultOverlay('DELVE CLEARED!', `${GameState.currentDelve?.name ?? 'The Delve'} has been cleared.`, 'CONFIRM', () => {
 
       HapticsService.confirm();
       this.scene.start('RewardScene');
@@ -2046,7 +2202,7 @@ export default class BattleScene extends Phaser.Scene {
     this.battleOver = true;
     this.combatLog?.finish('defeat');
     failExpedition();
-    this.showResultOverlay('DEFEAT', 'The party was driven back.', 'ENCOUNTER SUMMARY', () => {
+    this.showResultOverlay('DEFEATED', 'The party was driven back.', 'CONFIRM', () => {
 
       HapticsService.confirm();
       this.scene.start('EncounterSummaryScene');
@@ -2088,41 +2244,42 @@ export default class BattleScene extends Phaser.Scene {
 
     const { width, height } = this.scale;
     const centerY = height * 0.5;
+    const victory = title === 'DELVE CLEARED!';
 
     // Place an invisible input blocker behind the result panel so taps cannot
     // reach the battlefield.
     const inputBlocker = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.001)
       .setInteractive()
-      .setDepth(5999);
+      .setDepth(11999);
     inputBlocker.on('pointerdown', (pointer, localX, localY, event) => event?.stopPropagation?.());
 
     this.add.rectangle(width / 2, centerY, width * 0.78, 390, 0x0c0a09, 0.97)
-      .setStrokeStyle(5, title === 'VICTORY' ? 0x84cc16 : 0x991b1b)
-      .setDepth(6000);
+      .setStrokeStyle(5, victory ? 0x84cc16 : 0xdc2626)
+      .setDepth(12000);
 
     this.add.text(width / 2, centerY - 95, title, {
       fontFamily: 'Arial',
       fontSize: '78px',
       fontStyle: 'bold',
-      color: title === 'VICTORY' ? '#bef264' : '#fca5a5'
-    }).setOrigin(0.5).setDepth(6001);
+      color: victory ? '#bef264' : '#ef4444'
+    }).setOrigin(0.5).setDepth(12001);
 
     this.add.text(width / 2, centerY - 22, subtitle, {
       fontFamily: 'Arial',
       fontSize: '36px',
       color: '#d6d3d1'
-    }).setOrigin(0.5).setDepth(6001);
+    }).setOrigin(0.5).setDepth(12001);
 
     const button = this.add.rectangle(width / 2, centerY + 90, width * 0.58, 96, 0x44403c)
       .setInteractive({ useHandCursor: true })
-      .setDepth(6001);
+      .setDepth(12001);
 
     this.add.text(width / 2, centerY + 90, buttonLabel, {
       fontFamily: 'Arial',
       fontSize: '38px',
       fontStyle: 'bold',
       color: '#ffffff'
-    }).setOrigin(0.5).setDepth(6002);
+    }).setOrigin(0.5).setDepth(12002);
 
     button.on('pointerdown', callback);
     button.on('pointerover', () => button.setFillStyle(0x57534e));

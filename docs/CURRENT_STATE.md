@@ -6,10 +6,12 @@ Updated 2026-10-01. Source and data should be checked before treating a feature 
 
 - Landscape Phaser game with world map, town and facility navigation, roster, leader tactics, shop, delve and party selection, battle, and victory/defeat summaries.
 - Five-member party limits, role-based combat behavior, direct orders, abilities, enemy waves, boss finales, healing tonics, equipment, rewards and local saved progression.
-- Four current map delves with difficulty-based waves. The Slime Cave uses layered static art plus a masked ambient loop; other delves use the shared battlefield presentation.
+- Four current map delves. The Slime Cave, Thornbriar Hollow, and Dolmark Den are Easy with six authored waves each. The Murmuring Abyss displays Unknown and currently has six waves. The Slime Cave uses layered static art plus a masked ambient loop; other delves use the shared battlefield presentation.
 - Battles use a centered 6-row by 10-column tactical grid with a wider logical arena; Slime Cave floor bounds follow its environment art.
+- Every wave selects clear grid squares away from characters, reserves upper-center squares for its strongest monsters, and drops monsters in with a short bounce. Slime sprite feet align with their ground shadows.
 - The Slime Cave now uses distinct Cave Slime, Elder Slime and Slime Sovereign PixelLab sheets for its weak, tough and final boss enemies.
-- Thornbriar Hollow has four bandit waves with whip, knife, hexer and chief enemy types using the supplied PixelLab sprites.
+- Those slimes have pronounced idle motion and visible attack and hit reactions. Monster deaths now flicker, fade, and pop after the death clip begins.
+- Thornbriar Hollow uses Lasher, Ruffian, Hedge Mage and Rongar the Crusher sprites in six waves, with independent dice rolls in the first five waves.
 - Web production build and JavaScript test scripts. Android project is present for Capacitor sync and Gradle builds.
 
 ## In progress or awaiting review

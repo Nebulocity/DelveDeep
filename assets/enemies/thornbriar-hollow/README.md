@@ -1,16 +1,16 @@
 # Thornbriar Hollow bandit sprites
 
-The four supplied portraits are preserved here as `Bandit1.png`, `Bandit2.png`,
-`Bandit3.png`, and `BanditBoss.png`. Matching PixelLab conversions are saved as
-`bandit1-pixel.png`, `bandit2-pixel.png`, `bandit3-pixel.png`, and
-`banditBoss-pixel.png`.
+The four supplied portraits are preserved here as `Lasher.png`, `Ruffian.png`,
+`Hedge Mage.png`, and `Rongar the Crusher.png`. Matching PixelLab conversions are saved as
+`lasher-pixel.png`, `ruffian-pixel.png`, `hedgeMage-pixel.png`, and
+`rongarTheCrusher-pixel.png`.
 
 | Sprite ID | Design | Weapon |
 | --- | --- | --- |
-| `bandit1` | Olive-cloaked rogue | Whip |
-| `bandit2` | Red-lined hooded rogue | Two daggers |
-| `bandit3` | Witch-hatted hexer | Purple crystal staff |
-| `banditBoss` | Fur-cloaked chief | Spiked mace |
+| `lasher` | Olive-cloaked rogue | Whip |
+| `ruffian` | Red-lined hooded rogue | Two daggers |
+| `hedgeMage` | Witch-hatted hexer | Purple crystal staff |
+| `rongarTheCrusher` | Fur-cloaked chief | Spiked mace |
 
 Each `<id>/reference-v2/` folder contains four authored facings in `rotations/`,
 source frames under `<state>/<direction>/`, and six transparent sheets in

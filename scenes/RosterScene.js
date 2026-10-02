@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
 import { saveProfile } from '../game/GameStorage.js';
-import { equippedItem, getEquippedAdventurer } from '../game/Equipment.js';
-import { equipmentStatsText } from '../data/items.js';
+import { equippedItem, getEquippedAdventurer, ownedEquipment, equipmentOwner, equipItem, unequipItem } from '../game/Equipment.js';
+import { EQUIPMENT_BY_ID, ITEM_RARITIES, equipmentDetails, equipmentStatsText } from '../data/items.js';
 import { abilityEntries, abilityGoldCost, abilityLevelRequired, MAX_ABILITY_RANK, MAX_EQUIPPED_ABILITIES, purchaseAdventurerAbility, toggleAdventurerAbility } from '../game/AdventurerAbilities.js';
 import { happinessLabel, xpRequired } from '../game/AdventurerProgression.js';
 import { bindSelectionDetails } from '../ui/SelectionDetails.js';
@@ -30,11 +30,32 @@ export default class RosterScene extends Phaser.Scene {
     this.role = ROLES[0][0];
     this.heroId = GameState.roster.find((hero) => hero.role === this.role)?.id;
     this.message = '';
+    this.abilityScroll = 0;
+    this.input.on('wheel', (pointer, objects, dx, dy) => {
+      if (pointer.x >= 1535 && pointer.y >= 415 && pointer.y <= 990) this.scrollAbilities(dy);
+    });
+    let dragY = null;
+    this.input.on('pointermove', (pointer) => {
+      if (!pointer.isDown || pointer.x < 1535 || pointer.y < 415 || pointer.y > 990) { dragY = null; return; }
+      if (dragY !== null) this.scrollAbilities(dragY - pointer.y);
+      dragY = pointer.y;
+    });
+    this.input.on('pointerup', () => { dragY = null; });
     this.render();
+  }
+
+  scrollAbilities(delta) {
+    if (!this.abilityList || !this.abilityScrollMax) return;
+    const next = Phaser.Math.Clamp(this.abilityScroll + delta, 0, this.abilityScrollMax);
+    if (next === this.abilityScroll) return;
+    this.abilityScroll = next;
+    this.abilityList.y = -next;
   }
 
   render() {
     this.selectionDetailsClose?.();
+    this.equipmentModalClose?.();
+    this.abilityMaskShape?.destroy();
     this.children.removeAll(true);
     const { width, height } = this.scale;
     this.cameras.main.setBackgroundColor('#1b0e09');
@@ -163,18 +184,68 @@ export default class RosterScene extends Phaser.Scene {
     });
     const weapon = equippedItem(hero, 'weapon');
     const armor = equippedItem(hero, 'armor');
-    this.add.text(650, 844, `WEAPON  ${weapon?.name ?? 'None'}`, {
-      fontFamily: 'Arial', fontSize: '27px', color: '#ffe0a7'
+    [['weapon', weapon, 845], ['armor', armor, 1265]].forEach(([slot, item, x]) => {
+      this.add.text(x, 837, slot.toUpperCase(), { fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: '#ffe0a7' }).setOrigin(0.5);
+      this.add.text(x, 872, item?.name ?? 'Empty slot', {
+        fontFamily: 'Arial', fontSize: '25px', color: item ? ITEM_RARITIES[item.rarity].color : '#c7a982',
+        wordWrap: { width: 390 }, align: 'center'
+      }).setOrigin(0.5);
+      this.add.text(x, 915, item ? equipmentStatsText(item.stats) : 'No bonuses', {
+        fontFamily: 'Arial', fontSize: '21px', color: '#c7a982', wordWrap: { width: 390 }, align: 'center'
+      }).setOrigin(0.5);
+      this.button(x, 971, 210, 64, 'EQUIP', () => this.openEquipment(hero, slot));
     });
-    this.add.text(650, 876, weapon ? equipmentStatsText(weapon.stats) : 'No weapon bonuses', {
-      fontFamily: 'Arial', fontSize: '23px', color: '#c7a982'
+  }
+
+  openEquipment(hero, slot, page = 0) {
+    this.equipmentModalClose?.();
+    const { width, height } = this.scale;
+    const entries = ownedEquipment().filter((instance) => {
+      const item = EQUIPMENT_BY_ID[instance.itemId];
+      return item?.className === hero.className && item.slot === slot && !equipmentOwner(instance.id);
     });
-    this.add.text(650, 910, `ARMOR  ${armor?.name ?? 'None'}`, {
-      fontFamily: 'Arial', fontSize: '27px', color: '#ffe0a7'
+    const pages = Math.max(1, Math.ceil(entries.length / 3));
+    page = Math.max(0, Math.min(page, pages - 1));
+    const objects = [];
+    const add = (object, depth = 2002) => { object.setDepth(depth); objects.push(object); return object; };
+    const close = () => { objects.forEach((object) => object.destroy()); this.equipmentModalClose = null; };
+    this.equipmentModalClose = close;
+    add(this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.76).setInteractive(), 2000)
+      .on('pointerdown', (pointer, x, y, event) => event.stopPropagation());
+    add(this.add.rectangle(width / 2, height / 2, 1390, 790, 0x21130d, 0.98).setStrokeStyle(4, 0xd9a662).setInteractive(), 2001)
+      .on('pointerdown', (pointer, x, y, event) => event.stopPropagation());
+    add(this.add.text(width / 2, 199, `${hero.name.toUpperCase()}  •  ${slot.toUpperCase()}`, {
+      fontFamily: 'Arial', fontSize: '42px', fontStyle: 'bold', color: '#fff1d2'
+    }).setOrigin(0.5));
+    const modalButton = (x, y, label, callback, enabled = true, buttonWidth = 220) => {
+      const box = add(this.add.rectangle(x, y, buttonWidth, 68, 0x6b4527, enabled ? 1 : 0.45).setStrokeStyle(3, 0xd9a662));
+      add(this.add.text(x, y, label, { fontFamily: 'Arial', fontSize: '27px', fontStyle: 'bold', color: '#fff1d2' }).setOrigin(0.5));
+      if (enabled) box.setInteractive({ useHandCursor: true }).on('pointerdown', (pointer, localX, localY, event) => {
+        event.stopPropagation(); HapticsService.tap(); callback();
+      });
+    };
+    modalButton(1780, 200, 'CLOSE', close);
+    const current = equippedItem(hero, slot);
+    add(this.add.text(625, 256, `Currently equipped: ${current?.name ?? 'None'}`, {
+      fontFamily: 'Arial', fontSize: '29px', color: '#ffe0a7'
+    }));
+    if (current) modalButton(1740, 258, 'UNEQUIP', () => { close(); this.commit(unequipItem(hero.id, slot)); });
+    if (!entries.length) add(this.add.text(width / 2, 525, 'No available matching gear. Buy or craft gear at the Blacksmith.', {
+      fontFamily: 'Arial', fontSize: '32px', color: '#e8c89f', wordWrap: { width: 1130 }, align: 'center'
+    }).setOrigin(0.5));
+    entries.slice(page * 3, page * 3 + 3).forEach((instance, index) => {
+      const item = EQUIPMENT_BY_ID[instance.itemId];
+      const y = 350 + index * 172;
+      add(this.add.rectangle(width / 2, y + 45, 1260, 146, 0x382315, 0.96).setStrokeStyle(2, 0x9b6b3b));
+      add(this.add.text(630, y + 10, item.name, { fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: ITEM_RARITIES[item.rarity].color }));
+      add(this.add.text(630, y + 56, `${ITEM_RARITIES[item.rarity].label}  •  ${equipmentStatsText(item.stats)}`, {
+        fontFamily: 'Arial', fontSize: '26px', color: '#e8c89f', wordWrap: { width: 820 }
+      }));
+      modalButton(1740, y + 45, 'EQUIP', () => { close(); this.commit(equipItem(hero.id, instance.id)); });
     });
-    this.add.text(650, 944, armor ? equipmentStatsText(armor.stats) : 'No armor bonuses', {
-      fontFamily: 'Arial', fontSize: '23px', color: '#c7a982'
-    });
+    modalButton(770, 866, '< PREV', () => this.openEquipment(hero, slot, page - 1), page > 0);
+    add(this.add.text(width / 2, 866, `${page + 1} / ${pages}`, { fontFamily: 'Arial', fontSize: '29px', color: '#fff1d2' }).setOrigin(0.5));
+    modalButton(1630, 866, 'NEXT >', () => this.openEquipment(hero, slot, page + 1), page < pages - 1);
   }
 
   renderAbilities(hero) {
@@ -182,9 +253,10 @@ export default class RosterScene extends Phaser.Scene {
     this.add.text(1945, 330, 'BATTLE ABILITIES', {
       fontFamily: 'Arial', fontSize: '43px', fontStyle: 'bold', color: '#fff1d2'
     }).setOrigin(0.5);
-    this.add.text(1945, 380, `EQUIPPED ${loadout.length}/${MAX_EQUIPPED_ABILITIES}   •   Unlock and rank up with gold`, {
+    this.add.text(1945, 380, `EQUIPPED ${loadout.length}/${MAX_EQUIPPED_ABILITIES}   •   Unlock with gold`, {
       fontFamily: 'Arial', fontSize: '25px', color: '#e8c89f'
     }).setOrigin(0.5);
+    const firstRow = this.children.list.length;
     abilityEntries(hero).forEach(([key, ability], index) => {
       const rank = hero.abilityRanks?.[key] ?? 0;
       const equipped = loadout.includes(key);
@@ -203,21 +275,34 @@ export default class RosterScene extends Phaser.Scene {
       const level = nextRank <= MAX_ABILITY_RANK ? abilityLevelRequired(hero, key, nextRank) : null;
       const cost = nextRank <= MAX_ABILITY_RANK ? abilityGoldCost(hero, key, nextRank) : null;
       this.add.text(1560, y + 13, rank
-        ? `R${rank}/${MAX_ABILITY_RANK} ${equipped ? 'EQUIPPED' : 'UNEQUIPPED'}${nextRank <= MAX_ABILITY_RANK ? `  •  NEXT L${level} ${cost}g` : ''}`
+        ? `R${rank}/${MAX_ABILITY_RANK} ${equipped ? 'EQUIPPED' : 'UNEQUIPPED'}${nextRank <= MAX_ABILITY_RANK ? '  •  TRAINING COMING SOON' : ''}`
         : `LOCKED  •  Level ${level}  •  ${cost}g`, {
         fontFamily: 'Arial', fontSize: '22px', color: equipped ? '#fcd38b' : '#d4b798'
       });
-      if (rank) this.button(2070, y, 145, 62, equipped ? 'REMOVE' : 'EQUIP', () => this.commit(toggleAdventurerAbility(hero.id, key)));
+      if (rank) this.button(2070, y, 170, 62, equipped ? 'UNEQUIP' : 'EQUIP', () => this.commit(toggleAdventurerAbility(hero.id, key)));
       if (nextRank <= MAX_ABILITY_RANK) {
-        this.button(2270, y, 170, 62, rank ? `RANK UP` : 'UNLOCK', () => {
+        if (rank) this.button(2270, y, 170, 62, 'TRAIN', () => {}, false);
+        else this.button(2270, y, 170, 62, 'UNLOCK', () => {
           showConfirmation(this, {
-            title: rank ? `Rank up ${ability.name}` : `Unlock ${ability.name}`,
+            title: `Unlock ${ability.name}`,
             description: `Spend ${cost} gold for rank ${nextRank}?\n\nRequires adventurer level ${level}. Current level: ${hero.level}. Gold available: ${GameState.gold}.`,
             onConfirm: () => this.commit(purchaseAdventurerAbility(hero.id, key))
           });
         }, hero.level >= level && GameState.gold >= cost);
       }
     });
+    const rowObjects = this.children.list.slice(firstRow);
+    this.abilityList = this.add.container(0, -this.abilityScroll, rowObjects);
+    this.abilityScrollMax = Math.max(0, abilityEntries(hero).length * 108 + 465 - 55 - 990);
+    this.abilityScroll = Math.min(this.abilityScroll, this.abilityScrollMax);
+    this.abilityList.y = -this.abilityScroll;
+    const maskShape = this.make.graphics({ x: 0, y: 0, add: false });
+    maskShape.fillRect(1535, 415, 820, 575);
+    this.abilityList.setMask(maskShape.createGeometryMask());
+    this.abilityMaskShape = maskShape;
+    if (this.abilityScrollMax > 0) this.add.text(1945, 1002, 'SCROLL FOR MORE ABILITIES', {
+      fontFamily: 'Arial', fontSize: '22px', color: '#e8c89f'
+    }).setOrigin(0.5);
   }
 
   commit(result) {

@@ -21,17 +21,22 @@ class Scene {
     this.objects = [];
     this.scale = { width: 2400, height: 1080 };
     this.cameras = { main: { setBackgroundColor() {} } };
-    this.scene = { start: (name) => { this.destination = name; }, restart() {} };
+    this.scene = { key: this.constructor.name, start: (name) => { this.destination = name; }, restart() {} };
     this.time = { delayedCall() {} };
-    this.children = { removeAll: () => { this.objects = []; } };
+    this.children = { list: this.objects, removeAll: () => { this.objects = []; this.children.list = this.objects; } };
+    this.events = { once() {}, off() {} };
+    this.input = { on() {} };
+    this.make = { graphics: () => ({ fillRect() {}, createGeometryMask: () => ({}), destroy() {} }) };
     this.add = {};
-    for (const type of ['rectangle', 'circle', 'text']) {
+    for (const type of ['rectangle', 'circle', 'text', 'image', 'container']) {
       this.add[type] = (x, y, value, height, color) => {
         const object = { type, x, y, value, height, color };
         object.handlers = {};
         object.on = (event, callback) => { object.handlers[event] = callback; return object; };
         object.setText = (text) => { object.value = text; return object; };
-        for (const method of ['setStrokeStyle', 'setOrigin', 'setAlpha', 'setInteractive']) object[method] = () => object;
+        for (const method of ['setStrokeStyle', 'setOrigin', 'setAlpha', 'setInteractive', 'setDepth', 'setMask', 'setScale']) object[method] = () => object;
+        object.destroy = () => { object.destroyed = true; };
+        object.width = 2400; object.height = 1080;
         this.objects.push(object);
         return object;
       };
@@ -39,11 +44,14 @@ class Scene {
   }
 }
 const context = vm.createContext({
-  Phaser: { Scene }, GameState, ...itemData, ...equipment, ...leaderProgression, battleAbilities, CLASS_DEFINITIONS, UI_SAFE_TOP: 132,
+  Phaser: { Scene, Math: { Clamp: (value, min, max) => Math.max(min, Math.min(max, value)) } }, GameState, ...itemData, ...equipment, ...leaderProgression, battleAbilities, CLASS_DEFINITIONS, UI_SAFE_TOP: 132,
   HapticsService: { tap() {}, confirm() {} }, saveProfile() { saves++; },
   showConfirmation(scene, options) { scene.pendingConfirmation = options; }, addHallBackground() {},
   bindSelectionDetails(scene, target, details, tap) { target.tap = tap ?? target.handlers?.pointerdown; },
   characterDetails: (hero) => ({ title: hero.name }), TONIC_DESCRIPTION: 'Healing Tonic',
+  abilityEntries: (hero) => Object.entries(CLASS_DEFINITIONS[hero.className]?.abilities ?? {}),
+  abilityGoldCost: () => 80, abilityLevelRequired: () => 1, MAX_ABILITY_RANK: 3, MAX_EQUIPPED_ABILITIES: 4,
+  purchaseAdventurerAbility() {}, toggleAdventurerAbility() {}, happinessLabel: () => 'Content', xpRequired: () => 100,
   console
 });
 function load(path, name) {
@@ -55,7 +63,7 @@ function load(path, name) {
 }
 load('../ui/InventoryScene.js', 'InventoryScene');
 const Blacksmith = load('../scenes/BlacksmithScene.js', 'BlacksmithScene');
-const Equipment = load('../scenes/EquipmentScene.js', 'EquipmentScene');
+const Roster = load('../scenes/RosterScene.js', 'RosterScene');
 const Items = load('../scenes/ItemsScene.js', 'ItemsScene');
 function tap(scene, label, occurrence = 0) {
   const text = scene.objects.filter((object) => object.type === 'text' && object.value === label)[occurrence];
@@ -63,6 +71,11 @@ function tap(scene, label, occurrence = 0) {
   const button = scene.objects.find((object) => object.type === 'rectangle' && object.x === text.x && object.y === text.y && object.tap);
   assert.ok(button, `Disabled or missing control: ${label}`);
   button.tap();
+}
+function pressAt(scene, x, y) {
+  const button = scene.objects.findLast((object) => object.type === 'rectangle' && object.x === x && object.y === y && !object.destroyed);
+  assert.ok(button?.handlers.pointerdown, `Missing control at ${x}, ${y}`);
+  button.handlers.pointerdown({}, 0, 0, { stopPropagation() {} });
 }
 function hasText(scene, phrase) {
   return scene.objects.some((object) => object.type === 'text' && String(object.value).includes(phrase));
@@ -123,17 +136,19 @@ for (const mode of ['buy', 'sell', 'craft']) {
   }
 }
 
-const gear = new Equipment();
+const gear = new Roster();
 gear.create();
-tap(gear, 'Tanks');
-const sturmLabel = gear.objects.find((object) => object.type === 'text' && object.value === 'Laurana');
-gear.objects.find((object) => object.type === 'rectangle' && object.y === sturmLabel.y + 28 && object.tap).tap();
-tap(gear, 'EQUIP');
+gear.role = 'Tank';
+gear.heroId = 'laurana';
+gear.render();
+pressAt(gear, 845, 971);
+pressAt(gear, 1740, 395);
 assert.ok(GameState.roster.find((hero) => hero.id === 'laurana').equipment.weapon);
-assert.ok(hasText(gear, 'Equipped by Laurana'));
-tap(gear, 'UNEQUIP WEAPON');
+pressAt(gear, 845, 971);
+pressAt(gear, 1740, 258);
 assert.equal(GameState.roster.find((hero) => hero.id === 'laurana').equipment.weapon, null);
-tap(gear, 'EQUIP');
+pressAt(gear, 845, 971);
+pressAt(gear, 1740, 395);
 const inventory = new Items();
 inventory.create();
 assert.ok(hasText(inventory, 'No battle items owned'));

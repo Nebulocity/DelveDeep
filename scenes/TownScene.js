@@ -20,12 +20,17 @@ export default class TownScene extends Phaser.Scene {
   }
 
   // This function builds the current town screen with its name, currencies,
-  // and five facility cards. The Hall and Blacksmith have their own screens;
+  // and four facility cards. The Hall and Blacksmith have their own screens;
   // other destinations currently use the shared facility placeholder.
   create() {
 
     const { width, height } = this.scale;
     this.cameras.main.setBackgroundColor('#1c1917');
+
+    // Fill the game area with the town artwork and darken it behind the menu.
+    const background = this.add.image(width / 2, height / 2, 'town');
+    background.setScale(Math.max(width / background.width, height / background.height));
+    this.add.rectangle(width / 2, height / 2, width, height, 0x100e0c, 0.28);
 
     // Build the top currency banner and the return link to the world map.
     this.headerY = UI_SAFE_TOP + 48;
@@ -33,6 +38,7 @@ export default class TownScene extends Phaser.Scene {
     this.createBackButton();
     this.createHeader(width);
 
+    this.add.rectangle(width / 2, UI_SAFE_TOP + 183, 1800, 162, 0x17120f, 0.72);
     this.add.text(width / 2, UI_SAFE_TOP + 154, this.townName.toUpperCase(), {
       fontFamily: 'Arial', fontSize: '72px', fontStyle: 'bold', color: '#f5f5f4'
     }).setOrigin(0.5);
@@ -44,16 +50,15 @@ export default class TownScene extends Phaser.Scene {
 
     // List each facility with its card label, subtitle, and destination.
     const labels = [
-      ['TAVERN', 'Stories and rest', 'Tavern'],
       ["ADVENTURER'S HALL", 'Adventurers, gear, items, tactics', 'AdventurersHallScene'],
       ['ALCHEMIST', 'Potions and mixtures', 'Alchemist'],
       ['BLACKSMITH', 'Buy, sell, and craft gear', 'BlacksmithScene'],
       ['ENCHANTER', 'Arcane improvements', 'Enchanter']
     ];
 
-    // Arrange the five facility cards across a single horizontal row.
+    // Arrange the four facility cards across a centered horizontal row.
     const gap = 410;
-    const startX = width / 2 - gap * 2;
+    const startX = width / 2 - gap * (labels.length - 1) / 2;
     labels.forEach(([label, subtitle, target], index) => this.createButton(startX + gap * index, height * 0.58, label, subtitle, target));
   }
 

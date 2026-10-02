@@ -1,7 +1,14 @@
 const screen = () => document.getElementById('loading-screen');
 let revealVersion = 0;
-const initialLoadingDeadline = performance.now() + 6000;
+const initialLoadingStartedAt = performance.now();
+const initialLoadingDuration = 5000;
+const initialLoadingDeadline = initialLoadingStartedAt + initialLoadingDuration;
 let initialLoadingPending = true;
+let initialLoadProgress = 0;
+let initialLoadComplete = false;
+let initialDisplayedProgress = 0;
+let initialLoadCompletedAt = 0;
+let initialProgressAtCompletion = 0;
 
 function revealTextAfterImage() {
   const element = screen();
@@ -41,11 +48,36 @@ function updateLoadingProgress(value) {
   element.querySelector('#loading-progress').style.width = `${percent}%`;
 }
 
+function animateInitialLoadingProgress() {
+  if (!initialLoadingPending) return;
+  const now = performance.now();
+  const elapsed = Math.min(1, (now - initialLoadingStartedAt) / initialLoadingDuration);
+  if (initialLoadComplete) {
+    const remaining = Math.max(1, initialLoadingDeadline - initialLoadCompletedAt);
+    const finishProgress = Math.min(1, (now - initialLoadCompletedAt) / remaining);
+    initialDisplayedProgress = initialProgressAtCompletion + (1 - initialProgressAtCompletion) * finishProgress;
+  } else {
+    initialDisplayedProgress = Math.min(elapsed * 0.95, initialLoadProgress);
+  }
+  updateLoadingProgress(initialDisplayedProgress);
+  requestAnimationFrame(animateInitialLoadingProgress);
+}
+
+requestAnimationFrame(animateInitialLoadingProgress);
+
 export function trackLoading(scene) {
-  const progress = (value) => updateLoadingProgress(value);
+  const progress = (value) => {
+    if (initialLoadingPending) initialLoadProgress = value;
+    else updateLoadingProgress(value);
+  };
   const complete = () => {
     scene.load.off('progress', progress);
-    updateLoadingProgress(1);
+    if (initialLoadingPending) {
+      initialLoadComplete = true;
+      initialLoadCompletedAt = performance.now();
+      initialProgressAtCompletion = initialDisplayedProgress;
+    }
+    else updateLoadingProgress(1);
     const message = screen()?.querySelector('#loading-message');
     if (message) message.textContent = 'Opening the scene';
   };
@@ -61,6 +93,7 @@ export function hideLoadingScreenAfterRender(scene) {
     const hide = () => {
       const remaining = initialLoadingPending ? Math.max(0, initialLoadingDeadline - performance.now()) : 0;
       setTimeout(() => {
+        updateLoadingProgress(1);
         element.classList.add('is-hidden');
         initialLoadingPending = false;
       }, remaining);

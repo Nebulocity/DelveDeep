@@ -9,6 +9,7 @@ import { addHallBackground } from './HallBackground.js';
 // row reachable without small scrollbars or off-screen mobile touch targets.
 export default class InventoryScene extends Phaser.Scene {
   text(x, y, value, size = 34, color = '#e2e8f0', width = 0) {
+    if (this.scene.key === 'ItemsScene' && color === '#e2e8f0') color = '#f1dfca';
     return this.add.text(x, y, value, {
       fontFamily: 'Arial', fontSize: `${size}px`, color,
       ...(width ? { wordWrap: { width } } : {})
@@ -16,9 +17,10 @@ export default class InventoryScene extends Phaser.Scene {
   }
 
   button(x, y, width, label, callback, { selected = false, enabled = true, details } = {}) {
-    const box = this.add.rectangle(x, y, width, 78, selected ? 0x36536b : 0x273449)
-      .setStrokeStyle(2, selected ? 0x93c5fd : 0x475569).setAlpha(enabled ? 1 : 0.5);
-    this.text(x, y, label, 32, enabled ? '#ffffff' : '#94a3b8').setOrigin(0.5);
+    const hall = this.scene.key === 'ItemsScene';
+    const box = this.add.rectangle(x, y, width, 78, hall ? (selected ? 0x6b4527 : 0x3a2418) : (selected ? 0x36536b : 0x273449))
+      .setStrokeStyle(hall ? 3 : 2, hall ? (selected ? 0xffd58e : 0xb9874d) : (selected ? 0x93c5fd : 0x475569)).setAlpha(enabled ? 1 : 0.5);
+    this.text(x, y, label, 32, enabled ? (hall ? '#fff1d2' : '#ffffff') : '#ad9981').setOrigin(0.5);
     if (enabled) {
       const tap = () => { HapticsService.tap(); callback(); };
       if (details) bindSelectionDetails(this, box, details, tap);
@@ -33,13 +35,14 @@ export default class InventoryScene extends Phaser.Scene {
   frame(title, returnScene, returnLabel) {
     this.selectionDetailsClose?.();
     this.children.removeAll(true);
-    this.cameras.main.setBackgroundColor('#101827');
+    const hall = this.scene.key === 'ItemsScene';
+    this.cameras.main.setBackgroundColor(hall ? '#1b0e09' : '#101827');
     const { width, height } = this.scale;
     if (returnScene === 'AdventurersHallScene') addHallBackground(this, 0.62);
     // Flush with the usable game area; CSS owns device safe-area insets.
-    this.add.rectangle(width / 2, 52, width, 104, 0x1e293b);
+    this.add.rectangle(width / 2, 52, width, 104, hall ? 0x180d09 : 0x1e293b, hall ? 0.86 : 1);
     this.button(222, 52, 330, `< ${returnLabel}`, () => this.scene.start(returnScene));
-    this.text(width / 2, 52, title, 52, '#f8fafc').setOrigin(0.5);
+    this.text(width / 2, 52, title, 52, hall ? '#fff1d2' : '#f8fafc').setOrigin(0.5);
     this.text(width - 68, 52, `${GameState.gold} GOLD`, 36, '#fbbf24').setOrigin(1, 0.5);
     if (this.message) this.text(width / 2, height - 93, this.message, 30, '#fde68a', width - 140).setOrigin(0.5);
     this.text(width / 2, height - 59, 'Long-press or hold-click a selection for details.', 26,

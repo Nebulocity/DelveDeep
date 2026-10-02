@@ -1,13 +1,13 @@
 const STORAGE_KEY = 'delveDeep.leaderProgression.v1';
 
 export const leaderAbilities = [
-  { id: 'focusFire', name: 'Focus Fire', shortName: 'FOCUS FIRE', branch: 'Command', description: 'Choose a shared enemy target. Healers keep healing.', cost: 0, cooldown: 10000, unlockedByDefault: true },
-  { id: 'rally', name: 'Rally', shortName: 'RALLY', branch: 'Command', description: 'Gather all living allies at a point and hold there.', cost: 1, cooldown: 12000 },
-  { id: 'coordinatedAssault', name: 'Coordinated Assault', shortName: 'ASSAULT', branch: 'Command', description: 'All allies deal 20% more damage for 8 seconds.', cost: 1, cooldown: 24000, duration: 8000, damageBonus: 0.2 },
-  { id: 'encouragement', name: 'Encouragement', shortName: 'ENCOURAGE', branch: 'Morale', description: 'Restore 25% maximum health to every living ally.', cost: 1, cooldown: 20000, healFraction: 0.25 },
-  { id: 'brace', name: 'Brace!', shortName: 'BRACE!', branch: 'Survival', description: 'All allies take 30% less damage for 8 seconds.', cost: 1, cooldown: 24000, duration: 8000, damageReduction: 0.3 },
-  { id: 'preparedSupplies', name: 'Prepared Supplies', shortName: 'SUPPLIES', branch: 'Logistics', description: 'Add one Healing Tonic. Once per encounter.', cost: 1, oncePerEncounter: true, tonicAmount: 1 },
-  { id: 'arise', name: 'Arise!', shortName: 'ARISE!', branch: 'Survival', description: 'Revive all fallen allies at 50% HP and mana. Once per encounter.', cost: 2, oncePerEncounter: true, healthFraction: 0.5, manaFraction: 0.5 }
+  { id: 'focusFire', category: 'Assault', name: 'Focus Fire', shortName: 'FOCUS FIRE', branch: 'Command', description: 'Choose a shared enemy target. Healers keep healing.', cost: 0, cooldown: 10000, unlockedByDefault: true },
+  { id: 'rally', category: 'Protect', name: 'Rally', shortName: 'RALLY', branch: 'Command', description: 'Gather all living allies at a point and hold there.', cost: 1, cooldown: 12000 },
+  { id: 'coordinatedAssault', category: 'Assault', name: 'Coordinated Assault', shortName: 'ASSAULT', branch: 'Command', description: 'All allies deal 20% more damage for 8 seconds.', cost: 1, cooldown: 24000, duration: 8000, damageBonus: 0.2 },
+  { id: 'encouragement', category: 'Restore', name: 'Encouragement', shortName: 'ENCOURAGE', branch: 'Morale', description: 'Restore 25% maximum health to every living ally.', cost: 1, cooldown: 20000, healFraction: 0.25 },
+  { id: 'brace', category: 'Protect', name: 'Brace!', shortName: 'BRACE!', branch: 'Survival', description: 'All allies take 30% less damage for 8 seconds.', cost: 1, cooldown: 24000, duration: 8000, damageReduction: 0.3 },
+  { id: 'preparedSupplies', category: 'Prepare', name: 'Prepared Supplies', shortName: 'SUPPLIES', branch: 'Logistics', description: 'Add one Healing Tonic. Once per encounter.', cost: 1, oncePerEncounter: true, tonicAmount: 1 },
+  { id: 'arise', category: 'Restore', name: 'Arise!', shortName: 'ARISE!', branch: 'Survival', description: 'Revive all fallen allies at 50% HP and mana. Once per encounter.', cost: 2, oncePerEncounter: true, healthFraction: 0.5, manaFraction: 0.5 }
 ];
 
 // This function starts a new Raid Leader with Focus Fire available and
@@ -135,3 +135,4 @@ export function clearLeaderProgression() {
     console.warn('Could not clear Battle Tactics progression.', error);
   }
 }
+

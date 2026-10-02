@@ -12,7 +12,7 @@ export function addDetailsHint(scene, y, text = DETAILS_HINT) {
 }
 
 function isHallMenu(scene) {
-  return ['AdventurersHallScene', 'RosterScene', 'EquipmentScene', 'ItemsScene', 'RaidLeaderScene']
+  return ['AdventurersHallScene', 'RosterScene', 'ItemsScene', 'RaidLeaderScene']
     .includes(scene.scene?.key);
 }
 

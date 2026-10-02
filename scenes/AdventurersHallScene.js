@@ -6,7 +6,6 @@ import { addHallBackground } from '../ui/HallBackground.js';
 
 const DESTINATIONS = [
   { label: 'ADVENTURERS', subtitle: 'Meet your party', scene: 'RosterScene', description: 'Browse adventurers, their equipment, stats, and battle abilities.' },
-  { label: 'EQUIPMENT', subtitle: 'Weapons and armor', scene: 'EquipmentScene', description: 'Browse by role and equip one class weapon and one armor per adventurer.' },
   { label: 'ITEMS', subtitle: 'Supplies and inventory', scene: 'ItemsScene', description: 'View battle items, crafting materials, and owned equipment.' },
   { label: 'TACTICS', subtitle: 'Plan your next battle', scene: 'RaidLeaderScene', description: 'Spend TP to unlock tactics, then equip up to five for combat.' }
 ];
@@ -44,9 +43,9 @@ export default class AdventurersHallScene extends Phaser.Scene {
       fontFamily: 'Arial', fontSize: '31px', color: '#f4d5ab'
     }).setOrigin(0.5);
 
-    const cardWidth = Math.min(500, (width - 280) / 4);
+    const cardWidth = Math.min(600, (width - 280) / DESTINATIONS.length);
     const gap = 28;
-    const firstX = width / 2 - (cardWidth + gap) * 1.5;
+    const firstX = width / 2 - (cardWidth + gap) * (DESTINATIONS.length - 1) / 2;
     const cardY = height - 151;
     DESTINATIONS.forEach((entry, index) => {
       const x = firstX + index * (cardWidth + gap);

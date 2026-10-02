@@ -44,12 +44,24 @@ export default class RaidLeaderScene extends Phaser.Scene {
 
     this.add.text(width/2, UI_SAFE_TOP + 154, 'Tap to unlock / equip. Long-press or hold-click for details.', { fontFamily:'Arial', fontSize:'32px', color:'#a8a29e' }).setOrigin(0.5);
 
-    // Lay out the available leadership abilities in a three-column grid.
-    leaderAbilities.forEach((ability,index) => {
-
-      const col=index%3, row=Math.floor(index/3);
-      const x=width*(0.19+col*0.31), y=UI_SAFE_TOP+290+row*215;
-      this.createAbilityCard(ability,x,y,width*0.285,190);
+    const categories = [
+      ['Assault', 'Increase party offense'],
+      ['Protect', 'Increase party defense'],
+      ['Restore', 'Recover health and mana'],
+      ['Prepare', 'Provide items and gear']
+    ];
+    const columnWidth = (width - 180) / 4;
+    categories.forEach(([category, description], index) => {
+      const x = 90 + columnWidth * (index + 0.5);
+      this.add.text(x, UI_SAFE_TOP + 235, category.toUpperCase(), {
+        fontFamily: 'Arial', fontSize: '38px', fontStyle: 'bold', color: '#fff1d2'
+      }).setOrigin(0.5);
+      this.add.text(x, UI_SAFE_TOP + 277, description, {
+        fontFamily: 'Arial', fontSize: '24px', color: '#e8c89f'
+      }).setOrigin(0.5);
+      leaderAbilities.filter((ability) => ability.category === category).forEach((ability, row) => {
+        this.createAbilityCard(ability, x, UI_SAFE_TOP + 412 + row * 248, columnWidth - 24, 220);
+      });
     });
   }
 
@@ -74,11 +86,11 @@ export default class RaidLeaderScene extends Phaser.Scene {
     // label.
     const unlocked=hasLeaderAbility(leader,ability.id);
     const equipped=(leader.battleLoadout??[]).includes(ability.id);
-    const card=this.add.rectangle(x,y,cardWidth,cardHeight,equipped?0x243b2a:unlocked?0x292524:0x211f1d)
-      .setStrokeStyle(4,equipped?0x84cc16:unlocked?0xa8a29e:0x57534e).setInteractive({useHandCursor:true});
-    this.add.text(x-cardWidth*0.43,y-76,ability.name,{fontFamily:'Arial',fontSize:'34px',fontStyle:'bold',color:equipped?'#bef264':'#ffffff'});
-    this.add.text(x-cardWidth*0.43,y-25,ability.description,{fontFamily:'Arial',fontSize:'27px',color:'#d6d3d1',wordWrap:{width:cardWidth*0.84}});
-    const status=this.add.text(x+cardWidth*0.43,y+65,equipped?'EQUIPPED':unlocked?'UNLOCKED':`${ability.cost} TP`,{fontFamily:'Arial',fontSize:'28px',fontStyle:'bold',color:equipped?'#bef264':unlocked?'#93c5fd':'#fbbf24'}).setOrigin(1,0.5);
+    const card=this.add.rectangle(x,y,cardWidth,cardHeight,equipped?0x4a3420:unlocked?0x38291d:0x281a14)
+      .setStrokeStyle(4,equipped?0xffd58e:unlocked?0xb9874d:0x795637).setInteractive({useHandCursor:true});
+    this.add.text(x-cardWidth*0.43,y-cardHeight/2+18,ability.name,{fontFamily:'Arial',fontSize:'31px',fontStyle:'bold',color:equipped?'#ffe0a7':'#fff1d2',wordWrap:{width:cardWidth*0.86}});
+    this.add.text(x-cardWidth*0.43,y-cardHeight/2+70,ability.description,{fontFamily:'Arial',fontSize:'24px',color:'#e8c89f',wordWrap:{width:cardWidth*0.86}});
+    const status=this.add.text(x+cardWidth*0.43,y+cardHeight/2-24,equipped?'EQUIPPED':unlocked?'UNLOCKED':`${ability.cost} TP`,{fontFamily:'Arial',fontSize:'27px',fontStyle:'bold',color:equipped?'#ffe0a7':unlocked?'#e8c89f':'#fbbf24'}).setOrigin(1,0.5);
 
     // Attempt a purchase for locked abilities; otherwise toggle the loadout
     // and report insufficient Tactics Points or a full loadout.

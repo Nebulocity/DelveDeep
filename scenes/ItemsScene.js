@@ -13,9 +13,9 @@ export default class ItemsScene extends InventoryScene {
     this.frame('ITEMS', 'AdventurersHallScene', 'HALL');
     this.tabs([['battle', 'Battle Items'], ['materials', 'Crafting Material'], ['equipment', 'Equipment']], this.category, 155,
       (id) => { this.category = id; this.page = 0; this.render(); });
-    this.text(80, 250, this.category === 'equipment' ? 'All owned equipment, including items in use. Change loadouts in Equipment.'
+    this.text(80, 250, this.category === 'equipment' ? 'All owned equipment, including items in use. Change loadouts on an adventurer’s character sheet.'
       : this.category === 'materials' ? 'Craft at the Blacksmith. Buy starter supplies there; delve material drops will come later.'
-        : 'Tonics are used in combat. Void Keys open Void Portals from the world map.', 34, '#cbd5e1', 2200);
+        : 'Tonics are used in combat. Void Keys open Void Portals from the world map.', 34, '#e8c89f', 2200);
     let rows = [];
     if (this.category === 'battle') {
       rows = [
@@ -38,15 +38,15 @@ export default class ItemsScene extends InventoryScene {
     const start = this.pager(rows.length, 4, 'page', 1200, 927);
     if (!rows.length) this.text(1200, 550, this.category === 'battle' ? 'No battle items owned. Buy Healing Tonics from the Quartermaster.'
       : this.category === 'materials' ? 'No crafting materials owned. Visit the Blacksmith to buy supplies.'
-        : 'No equipment owned. Buy or craft gear at the Blacksmith.', 38, '#94a3b8', 2000).setOrigin(0.5);
+        : 'No equipment owned. Buy or craft gear at the Blacksmith.', 38, '#c7a982', 2000).setOrigin(0.5);
     rows.slice(start, start + 4).forEach((row, index) => {
       const y = 378 + index * 145;
-      const card = this.add.rectangle(1200, y, 2260, 130, 0x1e293b).setStrokeStyle(2, 0x334155);
+      const card = this.add.rectangle(1200, y, 2260, 130, 0x302018, 0.95).setStrokeStyle(3, 0x9b6b3b);
       bindSelectionDetails(this, card, row.details ?? { title: row.name, description: row.description });
       const rarity = ITEM_RARITIES[row.rarity];
-      this.text(100, y - 31, row.name, 40, rarity?.color ?? '#f8fafc');
-      this.text(2220, y - 31, row.count != null ? `Owned: ${row.count}` : row.status, 32, '#cbd5e1').setOrigin(1, 0.5);
-      this.text(100, y + 28, `${rarity ? rarity.label + '  |  ' : ''}${row.description}`, 30, '#cbd5e1', 2110);
+      this.text(100, y - 31, row.name, 40, rarity?.color ?? '#fff1d2');
+      this.text(2220, y - 31, row.count != null ? `Owned: ${row.count}` : row.status, 32, '#ffe0a7').setOrigin(1, 0.5);
+      this.text(100, y + 28, `${rarity ? rarity.label + '  |  ' : ''}${row.description}`, 30, '#e8c89f', 2110);
     });
   }
 }

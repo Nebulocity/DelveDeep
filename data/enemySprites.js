@@ -33,28 +33,28 @@ const sheets = {
     new URL('../assets/enemies/thornbriar-hollow/rongarTheCrusher/reference-v2/sheets/death.png', import.meta.url).href
   ],
   denWarden: [
-    new URL('../assets/enemies/dolmark-den/denWarden/sheets/idle.png', import.meta.url).href,
-    new URL('../assets/enemies/dolmark-den/denWarden/sheets/walk.png', import.meta.url).href,
-    new URL('../assets/enemies/dolmark-den/denWarden/sheets/attack.png', import.meta.url).href,
-    new URL('../assets/enemies/dolmark-den/denWarden/sheets/block.png', import.meta.url).href,
-    new URL('../assets/enemies/dolmark-den/denWarden/sheets/hit.png', import.meta.url).href,
-    new URL('../assets/enemies/dolmark-den/denWarden/sheets/death.png', import.meta.url).href
+    new URL('../assets/enemies/dolmark-den/denWarden/reference-v2/sheets/idle.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/denWarden/reference-v2/sheets/walk.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/denWarden/reference-v2/sheets/attack.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/denWarden/reference-v2/sheets/block.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/denWarden/reference-v2/sheets/hit.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/denWarden/reference-v2/sheets/death.png', import.meta.url).href
   ],
   denProtector: [
-    new URL('../assets/enemies/dolmark-den/denProtector/sheets/idle.png', import.meta.url).href,
-    new URL('../assets/enemies/dolmark-den/denProtector/sheets/walk.png', import.meta.url).href,
-    new URL('../assets/enemies/dolmark-den/denProtector/sheets/attack.png', import.meta.url).href,
-    new URL('../assets/enemies/dolmark-den/denProtector/sheets/block.png', import.meta.url).href,
-    new URL('../assets/enemies/dolmark-den/denProtector/sheets/hit.png', import.meta.url).href,
-    new URL('../assets/enemies/dolmark-den/denProtector/sheets/death.png', import.meta.url).href
+    new URL('../assets/enemies/dolmark-den/denProtector/reference-v2/sheets/idle.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/denProtector/reference-v2/sheets/walk.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/denProtector/reference-v2/sheets/attack.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/denProtector/reference-v2/sheets/block.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/denProtector/reference-v2/sheets/hit.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/denProtector/reference-v2/sheets/death.png', import.meta.url).href
   ],
   silvanarkTheForestLord: [
-    new URL('../assets/enemies/dolmark-den/silvanarkTheForestLord/sheets/idle.png', import.meta.url).href,
-    new URL('../assets/enemies/dolmark-den/silvanarkTheForestLord/sheets/walk.png', import.meta.url).href,
-    new URL('../assets/enemies/dolmark-den/silvanarkTheForestLord/sheets/attack.png', import.meta.url).href,
-    new URL('../assets/enemies/dolmark-den/silvanarkTheForestLord/sheets/block.png', import.meta.url).href,
-    new URL('../assets/enemies/dolmark-den/silvanarkTheForestLord/sheets/hit.png', import.meta.url).href,
-    new URL('../assets/enemies/dolmark-den/silvanarkTheForestLord/sheets/death.png', import.meta.url).href
+    new URL('../assets/enemies/dolmark-den/silvanarkTheForestLord/reference-v2/sheets/idle.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/silvanarkTheForestLord/reference-v2/sheets/walk.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/silvanarkTheForestLord/reference-v2/sheets/attack.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/silvanarkTheForestLord/reference-v2/sheets/block.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/silvanarkTheForestLord/reference-v2/sheets/hit.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/silvanarkTheForestLord/reference-v2/sheets/death.png', import.meta.url).href
   ]
 };
 
@@ -68,7 +68,7 @@ const rows = {
 };
 
 function createSprite(id, urls) {
-  const stateColumns = id in { denWarden: 1, denProtector: 1, silvanarkTheForestLord: 1 }
+  const stateColumns = ['denWarden', 'denProtector', 'silvanarkTheForestLord'].includes(id)
     ? dolmarkColumns : columns;
   const textures = urls.map((url, index) => ({
     key: `${id}-${states[index]}`, url, frameWidth: 256, frameHeight: 256
@@ -81,7 +81,7 @@ function createSprite(id, urls) {
         frameMs: frameMs[state],
         frames: Array.from({ length: stateColumns[state] }, (_, column) => ({
           key: `${id}-${state}`, frame: row * stateColumns[state] + column,
-          originX: 0.5, originY: 0.9296875, flipX: false
+          originX: 0.5, originY: id === 'silvanarkTheForestLord' ? 1 : 0.9296875, flipX: false
         }))
       };
     }
@@ -90,8 +90,8 @@ function createSprite(id, urls) {
     direction, { frameMs: 1000, frames: [clip.frames.at(-1)] }
   ]));
   const scale = id === 'rongarTheCrusher' || id === 'silvanarkTheForestLord' ? 0.78
-    : id === 'denProtector' ? 0.74 : 0.66;
-  return { textures, clips, scale, footY: 30 };
+    : id === 'denProtector' ? 1.2 : id === 'denWarden' ? 1.05 : 0.66;
+  return { textures, clips, scale, footY: 0 };
 }
 
 export const ENEMY_SPRITES = Object.fromEntries(

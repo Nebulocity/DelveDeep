@@ -11,7 +11,7 @@ const geometry = {
   arenaPointToCell(x,y) { return {column:Math.min(7,Math.floor(x/100)),row:Math.min(5,Math.floor(y/100))}; },
   getCellCenter(c,r) { return {x:c*100+50,y:r*100+50}; }
 };
-const make = (name,c=0,r=0) => ({...classes[name],className:name,id:name,arenaX:c*100+50,arenaY:r*100+50,hp:50,maxHp:100,alive:true,status:{},lastAbilityAt:{},canStartAction:()=>true,canCast:()=>true,canAttack:()=>false,abilityReady(k,t){return t-(this.lastAbilityAt[k]??-Infinity)>=this.abilities[k].cooldown;},markAbilityUsed(k,t){this.lastAbilityAt[k]=t;},setArenaPosition(x,y){this.arenaX=x;this.arenaY=y;}});
+const make = (name,c=0,r=0) => ({...classes[name],className:name,id:name,arenaX:c*100+50,arenaY:r*100+50,hp:50,maxHp:100,alive:true,status:{},lastAbilityAt:{},canStartAction:()=>true,canCast:()=>true,canAttack:()=>false,canHeal:()=>false,abilityReady(k,t){return t-(this.lastAbilityAt[k]??-Infinity)>=this.abilities[k].cooldown;},markAbilityUsed(k,t){this.lastAbilityAt[k]=t;},setArenaPosition(x,y){this.arenaX=x;this.arenaY=y;}});
 const enemy=(c,r=0)=>({...make('Scoundrel',c,r),id:`enemy-${c}-${r}`,isEnemy:true});
 function scene(party,enemies) {
   const s={partyUnits:party,enemies,battlefield:geometry,time:{now:0},attackTargets:new Map(),getLivingEnemies:()=>enemies.filter(e=>e.alive),isEnemyEngaged:()=>true,isPositionLocked:()=>false,getPrimaryTarget:()=>enemies.find(e=>e.alive),isWithinAttackReach:()=>false,announceAbility(){},movement:{moveToCombatPosition(){},maintainRange(){}},hits:[],heals:[],threat:[],resolveDamage(u,t,p,type,m,n){const actual=Math.min(t.hp,p);t.hp-=actual;this.hits.push({u,t,p,n});return actual;},resolveHeal(u,t,p,n){t.hp=Math.min(t.maxHp,t.hp+p);this.heals.push({u,t,p,n});},addThreat(e,u,n){this.threat.push(n);}};
@@ -111,6 +111,48 @@ assert.equal(slowUnit.canAttack(1000),false);assert.equal(slowUnit.canAttack(200
 const barbarian=make('Barbarian');s=scene([barbarian],[foe]);system=new System(s);
 system.resolve(barbarian,barbarian,barbarian.abilities.enrage,100);assert.equal(barbarian.status.enrageUntil,10100);assert.equal(barbarian.status.exhaustedUntil,20100);
 system.resolve(barbarian,foe,barbarian.abilities.charge,200);assert.equal(foe.status.hardStunUntil,6200);assert.equal(squareDistance(s,barbarian,foe),1);
+
+// Automatic Veilstep stays near its current side of the field.
+const escapingMage=make('Mage of the Umbral Veil');
+escapingMage.abilities={veilstep:classes['Mage of the Umbral Veil'].abilities.veilstep};
+s=scene([escapingMage],[enemy(1)]);system=new System(s);
+let escapeRange=null,escapeMinimum=null;
+system.escapePoint=(unit,range,minRange)=>{escapeRange=range;escapeMinimum=minRange;return null;};
+system.update(escapingMage,0,0.016);
+assert.equal(escapeRange,4);
+assert.equal(escapeMinimum,3);
+
+// Charge travels across the field before applying its hit and stun.
+const chargingBarbarian=make('Barbarian');
+const chargeTarget=enemy(5);
+chargingBarbarian.abilities={charge:classes.Barbarian.abilities.charge};
+s=scene([chargingBarbarian],[chargeTarget]);system=new System(s);
+const chargeCallbacks=[];
+let chargeTween=null;
+s.time.delayedCall=(delay,callback)=>chargeCallbacks.push(callback);
+s.tweens={addCounter(config){chargeTween={...config,timeScale:1};return chargeTween;}};
+s.logActionStart=()=>{};
+s.isActionCurrent=(unit,action,target)=>unit.pendingAction===action&&unit.alive&&(!target||target.alive);
+chargingBarbarian.startAction=()=>{chargingBarbarian.pendingAction={};return true;};
+chargingBarbarian.finishAction=()=>{chargingBarbarian.pendingAction=null;};
+system.cast(chargingBarbarian,chargeTarget,'charge',0);
+s.time.now=300;
+chargeCallbacks[0]();
+assert.ok(chargeTween);
+assert.equal(chargingBarbarian.arenaX,50);
+system.syncChargeTweens(true);
+assert.equal(chargeTween.timeScale,0);
+system.syncChargeTweens(false);
+assert.equal(chargeTween.timeScale,1);
+chargeTween.onUpdate({getValue:()=>0.5,stop(){}});
+assert.equal(chargingBarbarian.arenaX,250);
+assert.equal(s.hits.length,0);
+chargeTween.onUpdate({getValue:()=>1,stop(){}});
+chargeTween.onComplete();
+assert.equal(chargingBarbarian.arenaX,450);
+assert.equal(s.hits.length,1);
+assert.equal(chargeTarget.status.hardStunUntil,6300);
+assert.equal(chargingBarbarian.pendingAction,null);
 const ranger=make('Ranger');foe.arenaX=650;foe.hp=500;s=scene([ranger],[foe]);system=new System(s);
 system.resolve(ranger,foe,ranger.abilities.mark,0);assert.equal(foe.status.damageTakenBoost,0.25);assert.equal(foe.status.damageTakenBoostUntil,10000);
 const trapCell=system.trapPoint(ranger,[foe]);assert.equal(squareDistance(s,ranger,trapCell),1);
@@ -191,3 +233,74 @@ system=new System(s);
 system.cast=(unit,target)=>{s.selectedHealTarget=target;};
 system.update(priorityHealer,0,0.016);
 assert.equal(s.selectedHealTarget,priorityAlly);
+
+// A ready basic heal uses the selected injured ally before an ordinary attack.
+const mendingHealer=make('Cleric of the Everbright');
+const mendingAlly=make('Dawnwarden',1);
+const otherAlly=make('Scoundrel',2);
+mendingHealer.hp=100;
+mendingAlly.hp=75;
+otherAlly.hp=30;
+mendingHealer.abilities={};
+mendingHealer.canHeal=()=>true;
+mendingHealer.canAttack=()=>true;
+s=scene([mendingHealer,mendingAlly,otherAlly],[enemy(1)]);
+s.getHealerPriorityTarget=()=>mendingAlly;
+s.isWithinAttackReach=()=>true;
+s.beginBasicHeal=(unit,target)=>{s.basicHealTarget=target;};
+s.beginBasicAttack=()=>{s.basicAttacks=(s.basicAttacks??0)+1;};
+system=new System(s);
+system.update(mendingHealer,0,0.016);
+assert.equal(s.basicHealTarget,mendingAlly);
+assert.equal(s.basicAttacks??0,0);
+
+// Healers suspend even an explicit attack order while any living ally is below 80% HP.
+const guardingHealer=make('Cleric of the Everbright');
+const guardedTank=make('Dawnwarden',1);
+const orderedEnemy=enemy(2);
+guardingHealer.hp=100;
+guardedTank.hp=79;
+guardingHealer.abilities={ray:classes['Cleric of the Everbright'].abilities.ray};
+guardingHealer.canAttack=()=>true;
+s=scene([guardingHealer,guardedTank],[orderedEnemy]);
+s.attackTargets.set(guardingHealer.id,orderedEnemy.id);
+s.isWithinAttackReach=()=>true;
+s.beginBasicAttack=()=>{s.basicAttacks=(s.basicAttacks??0)+1;};
+system=new System(s);
+system.cast=(unit,target,key)=>{s.selectedHealTarget=target;s.selectedAbility=key;};
+system.update(guardingHealer,0,0.016);
+assert.equal(s.selectedAbility,'ray');
+assert.equal(s.selectedHealTarget,guardedTank);
+assert.equal(s.basicAttacks??0,0);
+assert.equal(s.attackTargets.get(guardingHealer.id),orderedEnemy.id);
+guardingHealer.abilities={judgement:classes['Cleric of the Everbright'].abilities.judgement};
+s.selectedAbility=null;
+system.update(guardingHealer,0,0.016);
+assert.equal(s.selectedAbility,null,'offensive abilities wait while an ally is below 80% HP');
+assert.equal(s.basicAttacks??0,0);
+guardedTank.hp=80;
+system.update(guardingHealer,0,0.016);
+assert.equal(s.selectedAbility,'judgement','the attack order resumes at exactly 80% HP');
+guardingHealer.abilities={};
+system.update(guardingHealer,0,0.016);
+assert.equal(s.basicAttacks,1,'basic attacks resume at exactly 80% HP');
+
+// A healer's queued offensive spell is canceled if an ally drops below the threshold during windup.
+const castingHealer=make('Cleric of the Everbright');
+const castingTank=make('Dawnwarden',1);
+const spellTarget=enemy(2);
+castingHealer.hp=100;
+castingTank.hp=80;
+s=scene([castingHealer,castingTank],[spellTarget]);
+system=new System(s);
+const healerCallbacks=[];
+s.time.delayedCall=(delay,callback)=>healerCallbacks.push(callback);
+s.logActionStart=()=>{};
+s.isActionCurrent=()=>true;
+castingHealer.startAction=()=>{castingHealer.pendingAction={};return true;};
+castingHealer.finishAction=()=>{castingHealer.pendingAction=null;};
+system.cast(castingHealer,spellTarget,'judgement',0);
+castingTank.hp=79;
+healerCallbacks[0]();
+assert.equal(s.hits.length,0);
+assert.equal(castingHealer.pendingAction,null);

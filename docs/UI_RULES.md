@@ -29,8 +29,8 @@
 
 - Do not place the class label over the battlefield character.
 - Do not place a mana bar above the battlefield character.
-- Health information should be shown in the designated character UI / card area rather than visually cluttering the sprite.
-- Mob health bars should be visible.
+- Show each battlefield health bar above its character or monster sprite, with the name above the bar.
+- Keep character health information in the bottom party card as well.
 
 ### Bottom Party List
 

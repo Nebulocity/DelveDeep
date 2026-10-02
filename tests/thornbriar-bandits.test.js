@@ -36,7 +36,7 @@ for (const id of ids) {
 
 const loaded = [];
 preloadEnemySprites({ textures: { exists: () => false }, load: { spritesheet: (...args) => loaded.push(args) } });
-assert.equal(loaded.length, 24);
+assert.equal(loaded.length, Object.keys(ENEMY_SPRITES).length * 6);
 assert.equal(enemies.lasher.name, 'Lasher');
 assert.equal(enemies.ruffian.name, 'Ruffian');
 assert.equal(enemies.hedgeMage.name, 'Hedge Mage');

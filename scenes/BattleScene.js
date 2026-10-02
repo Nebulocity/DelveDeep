@@ -1189,6 +1189,7 @@ export default class BattleScene extends Phaser.Scene {
   // separates crowded units, and checks for a cleared wave or defeated party.
   update(time, delta) {
 
+    this.classAbilitySystem?.syncChargeTweens?.(this.combatPaused);
     this.updateTonicHud();
     if (!this.combatPaused) this.enemies?.filter(enemy => enemy.container?.active !== false).forEach((enemy) => {
       enemy.spriteVisual?.update(delta);
@@ -1201,7 +1202,7 @@ export default class BattleScene extends Phaser.Scene {
     if (this.battleOver || this.waveTransitioning || this.combatPaused) {
       // Finish a fall even when its lethal hit ended the battle or wave.
       if (!this.combatPaused) this.partyUnits?.forEach(unit => {
-        if (!unit.alive) unit.spriteVisual?.update(delta);
+        unit.spriteVisual?.update(delta);
       });
       return;
     }
@@ -1243,7 +1244,6 @@ export default class BattleScene extends Phaser.Scene {
 
     this.partyUnits.forEach((unit) => unit.spriteVisual?.update(delta));
 
-    this.tryUseHealingTonic(time);
     this.updateHud();
 
     if (this.partyUnits.every((unit) => !unit.alive)) {
@@ -1257,28 +1257,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
 
-  // This function automatically spends a tonic on a critically injured party
-  // member.
-  tryUseHealingTonic(time) {
-
-    if (GameState.inventory.healingTonic <= 0 || time - this.lastTonicUseAt < 1500) {
-      return;
-    }
-
-    // Choose the living ally with the lowest health fraction among those at
-    // or below the tonic threshold.
-    const target = this.partyUnits
-      .filter((unit) => unit.alive && unit.hp / unit.maxHp <= 0.35)
-      .sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp))[0];
-
-    if (!target) {
-      return;
-    }
-
-    this.useHealingTonic(target, time);
-  }
-
-  // Manual and automatic use share validation, inventory and cooldown.
+  // Manual tonic use checks the target, inventory, and shared cooldown.
   canUseHealingTonic(target, time = this.time.now) {
     return !this.battleOver && !this.combatPaused && !this.waveTransitioning
       && this.partyUnits.includes(target) && target.alive && target.hp < target.maxHp
@@ -1439,6 +1418,7 @@ export default class BattleScene extends Phaser.Scene {
   // hit.
   beginBasicAttack(attacker, target, time, attackType) {
 
+    if (attacker.role === 'Healer' && this.partyUnits.some(unit => unit.alive && unit.hp / unit.maxHp < 0.8)) return;
     if (!attacker.startAction('Attack', time, attacker.attackWindup)) {
       return;
     }
@@ -1451,10 +1431,33 @@ export default class BattleScene extends Phaser.Scene {
     this.time.delayedCall(attacker.attackWindup, () => {
 
       if (!this.isActionCurrent(attacker, action, target)) return;
+      if (attacker.role === 'Healer' && this.partyUnits.some(unit => unit.alive && unit.hp / unit.maxHp < 0.8)) {
+        attacker.finishAction();
+        return;
+      }
       if (this.isWithinAttackReach(attacker, target, 28)) {
         this.resolveDamage(attacker, target, attacker.attackPower, attackType, attacker.threatMultiplier, 'Attack');
       }
       attacker.finishAction();
+    });
+  }
+
+  // A healer's basic action restores a small amount to one injured ally.
+  beginBasicHeal(healer, target, time) {
+    if (!target.alive || target.hp >= target.maxHp || !healer.canHeal(time)
+      || this.classAbilitySystem.distance(healer, target) > healer.basicHealRange
+      || !healer.startAction('Mend', time, healer.healWindup)) return;
+
+    healer.lastHealAt = time;
+    healer.spriteVisual?.play('block', target);
+    this.logActionStart(healer, target, 'Mend');
+    const action = healer.pendingAction;
+    this.time.delayedCall(healer.healWindup, () => {
+      if (!this.isActionCurrent(healer, action, target)) return;
+      if (target.hp < target.maxHp && this.classAbilitySystem.distance(healer, target) <= healer.basicHealRange) {
+        this.resolveHeal(healer, target, healer.basicHealPower, 'Mend');
+      }
+      healer.finishAction();
     });
   }
 
@@ -2025,6 +2028,13 @@ export default class BattleScene extends Phaser.Scene {
     this.waveTransitioning = true;
     this.waveRetreating = true;
     this.waveReturnReadyAt = null;
+    if (this.currentWaveIndex + 1 < this.waves.length) {
+      this.partyUnits.filter(unit => unit.alive).forEach(unit => {
+        const halfway = Math.ceil(unit.maxHp * 0.5);
+        if (unit.hp < halfway) unit.heal(halfway - unit.hp);
+      });
+      this.updateHud();
+    }
     this.manualTargets.clear();
     this.heldUnitIds.clear();
     this.attackTargets.clear();
@@ -2051,16 +2061,21 @@ export default class BattleScene extends Phaser.Scene {
 
     const living = this.partyUnits.filter((unit) => unit.alive);
     for (const unit of living) {
-      const destination = this.waveReturnPositions.get(unit.id);
-      if (!destination) continue;
-      if (Math.hypot(unit.arenaX - destination.x, unit.arenaY - destination.y) > 6) {
-        unit.moveToward(destination.x, destination.y, deltaSeconds * 2);
+      const home = this.waveReturnPositions.get(unit.id);
+      if (!home) continue;
+      const destination = this.movement.clearCorpseDestination(unit, home);
+      const distance = Math.hypot(unit.arenaX - destination.x, unit.arenaY - destination.y);
+      if (distance > 6) {
+        unit.moveToward(destination.x, destination.y, deltaSeconds * 2, 0, false);
+      } else if (distance > 0) {
+        unit.setArenaPosition(destination.x, destination.y);
       }
       unit.spriteVisual?.update(delta);
     }
 
     const allHome = living.every((unit) => {
-      const destination = this.waveReturnPositions.get(unit.id);
+      const home = this.waveReturnPositions.get(unit.id);
+      const destination = home && this.movement.clearCorpseDestination(unit, home);
       return destination && Math.hypot(unit.arenaX - destination.x, unit.arenaY - destination.y) <= 6;
     });
     if (!allHome) {

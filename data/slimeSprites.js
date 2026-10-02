@@ -53,17 +53,17 @@ function createSlimeSprite(id, urls, scale, footFrameY, columns = defaultColumns
   clips.dead = Object.fromEntries(Object.entries(clips.death).map(([direction, clip]) => [
     direction, { frameMs: 1000, frames: [clip.frames.at(-1)] }
   ]));
-  return { textures, clips, scale, footY: 30 };
+  return { textures, clips, scale, footY: 0 };
 }
 
 // Foot anchors match the opaque base of each 192 pixel sheet frame.
 export const SLIME_SPRITES = {
-  caveSlime: { ...createSlimeSprite('caveSlime', sheets.caveSlime, 2, 170, { ...defaultColumns, attack: 5 }),
-    motion: { kind: 'hop', period: 620, lift: 15, squish: 0.12, sway: 5 } },
-  elderSlime: { ...createSlimeSprite('elderSlime', sheets.elderSlime, 2.2, 168),
-    motion: { kind: 'hop', period: 760, lift: 19, squish: 0.15, sway: 6 } },
-  slimeSovereign: { ...createSlimeSprite('slimeSovereign', sheets.slimeSovereign, 3.3, 178),
-    motion: { kind: 'pulse', period: 940, lift: 8, squish: 0.13, sway: 8 } }
+  caveSlime: { ...createSlimeSprite('caveSlime', sheets.caveSlime, 2, 170, { ...defaultColumns, attack: 5 }), topFrameY: 115,
+    motion: { kind: 'bob', period: 620, lift: 3, squish: 0.08, sway: 5 } },
+  elderSlime: { ...createSlimeSprite('elderSlime', sheets.elderSlime, 2.2, 168), topFrameY: 65,
+    motion: { kind: 'bob', period: 760, lift: 4, squish: 0.1, sway: 6 } },
+  slimeSovereign: { ...createSlimeSprite('slimeSovereign', sheets.slimeSovereign, 3.3, 178), topFrameY: 54,
+    motion: { kind: 'bob', period: 940, lift: 4, squish: 0.1, sway: 8 } }
 };
 
 export function preloadSlimeSprites(scene) {

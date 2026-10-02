@@ -38,6 +38,8 @@ export default class BattleUnit {
     this.attackWindup = config.attackWindup ?? 250;
     this.healPower = config.healPower ?? 0;
     this.healRange = config.healRange ?? 0;
+    this.basicHealPower = config.basicHealPower ?? 0;
+    this.basicHealRange = config.basicHealRange ?? 0;
     this.healCooldown = config.healCooldown ?? 0;
     this.healWindup = config.healWindup ?? 400;
     this.threatMultiplier = config.threatMultiplier ?? 1;
@@ -90,25 +92,32 @@ export default class BattleUnit {
     // fading affect the whole unit.
     this.container = scene.add.container(0, 0);
 
-    this.shadow = scene.add.ellipse(0, 30, this.isEnemy ? 84 : 64, this.isEnemy ? 28 : 22, 0x000000, 0.28);
     this.body = scene.add.circle(0, 0, this.bodyRadius, this.color)
       .setStrokeStyle(4, this.isEnemy ? 0x365314 : 0x1c1917);
 
     this.spriteVisual = UnitSprite.create(this);
     if (this.spriteVisual) {
-      // Keep the body for selection and hit flashes without a permanent foot ring.
-      this.body.setFillStyle(this.color, 0).setStrokeStyle(4, this.isEnemy ? 0x365314 : 0x1c1917, this.isEnemy ? 1 : 0)
-        .setPosition(0, 30).setScale(1, 0.4);
+      this.body.setVisible(false);
     }
-    if (!this.isEnemy) this.shadow.setVisible(false);
 
     // Enlarge the invisible touch target to ease crowded melee taps.
     this.hitZone = this.spriteVisual
       ? scene.add.rectangle(0, -35, 120, 180, 0xffffff, 0.001)
       : scene.add.circle(0, 0, Math.max(this.bodyRadius + 20, this.isEnemy ? 68 : 58), 0xffffff, 0.001);
+    this.spriteVisual?.syncHitZone();
 
-    const bossOffset = this.isEnemy ? Math.max(0, this.bodyRadius - 45) : (this.spriteVisual ? 60 : 0);
-    this.label = scene.add.text(0, (this.isEnemy ? -70 : -82) - bossOffset, this.name, {
+    const visual = this.spriteVisual;
+    const topInset = visual?.definition.topFrameY ?? 0;
+    const spriteTop = visual
+      ? visual.image.y - (visual.image.originY * visual.image.height - topInset) * visual.definition.scale
+      : -this.bodyRadius;
+    const motion = visual?.definition.motion;
+    const motionMargin = motion
+      ? (motion.lift ?? 0) + Math.abs(spriteTop - (visual.definition.footY ?? 0)) * (motion.squish ?? 0) / 2
+      : 0;
+    const barY = Math.min(-this.bodyRadius, spriteTop) - (this.isEnemy ? 30 : 14) - motionMargin;
+    const nameY = barY - (this.isEnemy ? 34 : 28);
+    this.label = scene.add.text(0, nameY, this.name, {
       fontFamily: 'Arial',
       fontSize: this.isEnemy ? '34px' : '30px',
       fontStyle: 'bold',
@@ -118,7 +127,7 @@ export default class BattleUnit {
     }).setOrigin(0.5);
 
     // Keep the current enemy target visible above its nameplate.
-    this.targetLabel = scene.add.text(0, -106 - bossOffset, '', {
+    this.targetLabel = scene.add.text(0, nameY - 36, '', {
       fontFamily: 'Arial',
       fontSize: '25px',
       fontStyle: 'bold',
@@ -127,7 +136,7 @@ export default class BattleUnit {
       strokeThickness: 3
     }).setOrigin(0.5).setVisible(this.isEnemy);
 
-    this.actionLabel = scene.add.text(0, (this.isEnemy ? -138 : -112) - bossOffset, '', {
+    this.actionLabel = scene.add.text(0, nameY - (this.isEnemy ? 68 : 30), '', {
       fontFamily: 'Arial',
       fontSize: this.isEnemy ? '27px' : '22px',
       fontStyle: 'bold',
@@ -138,8 +147,7 @@ export default class BattleUnit {
 
     const barWidth = this.isEnemy ? 116 : 92;
 
-    // Keep health below the name and above the body to avoid overlap.
-    const barY = -50 - bossOffset;
+    // Keep health below the name and above the visible sprite.
     this.hpGlow = scene.add.rectangle(0, barY, barWidth + 8, 18, 0x000000, 0)
       .setStrokeStyle(5, 0xf97316, 0)
       .setVisible(!this.isEnemy);
@@ -154,7 +162,6 @@ export default class BattleUnit {
       .setVisible(false);
 
     this.container.add([
-      this.shadow,
       this.hitZone,
       this.body,
       this.label,
@@ -167,7 +174,7 @@ export default class BattleUnit {
       this.castFill
     ]);
 
-    if (this.spriteVisual) this.container.addAt(this.spriteVisual.image, 3);
+    if (this.spriteVisual) this.container.addAt(this.spriteVisual.image, 2);
     this.setStealthed(this.stealthed);
     this.syncPresentation();
   }
@@ -296,7 +303,7 @@ export default class BattleUnit {
 
   // This function advances toward a destination without overshooting the stop
   // range.
-  moveToward(targetX, targetY, deltaSeconds, stopDistance = 0) {
+  moveToward(targetX, targetY, deltaSeconds, stopDistance = 0, avoidUnits = true) {
 
     const distance = Phaser.Math.Distance.Between(this.arenaX, this.arenaY, targetX, targetY);
     if (distance <= stopDistance || distance === 0) {
@@ -306,7 +313,7 @@ export default class BattleUnit {
     const direction = new Phaser.Math.Vector2(targetX - this.arenaX, targetY - this.arenaY).normalize();
     const travel = Math.min(this.moveSpeed * deltaSeconds, Math.max(0, distance - stopDistance));
 
-    this.moveBy(direction.x * travel, direction.y * travel);
+    this.moveBy(direction.x * travel, direction.y * travel, avoidUnits);
   }
 
   // This function retreats until the unit has the requested breathing room.
@@ -328,13 +335,15 @@ export default class BattleUnit {
     this.moveBy(direction.x * travel, direction.y * travel);
   }
 
-  // All voluntary movement shares soft personal-space steering before the
-  // normal arena projection. Teleports/revives still use setArenaPosition.
-  moveBy(dx, dy) {
+  // Combat movement shares personal-space steering. Wave returns ignore living
+  // allies while still steering around fallen characters and terrain.
+  moveBy(dx, dy, avoidUnits = true) {
     if (this.scene.time?.now < Math.max(this.status?.rootedUntil ?? 0, this.status?.stunnedUntil ?? 0)) return;
     const point = this.scene?.movement
-      ? this.scene.movement.steerStep(this, dx, dy)
-      : { x: this.arenaX + dx, y: this.arenaY + dy };
+      ? this.scene.movement.steerStep(this, dx, dy, avoidUnits)
+      : this.scene?.terrain?.resolveStep(this, this.arenaX + dx, this.arenaY + dy,
+        this.scene.movement?.config.terrainFootRadius)
+        ?? { x: this.arenaX + dx, y: this.arenaY + dy };
     this.setArenaPosition(point.x, point.y);
   }
 
@@ -357,7 +366,7 @@ export default class BattleUnit {
   // heal.
   canHeal(time) {
 
-    return this.canStartAction(time) && this.healPower > 0 && time - this.lastHealAt >= this.healCooldown;
+    return this.canStartAction(time) && this.basicHealPower > 0 && time - this.lastHealAt >= this.healCooldown;
   }
 
   // This function requires an available action, enough mana, and a ready
@@ -455,7 +464,7 @@ export default class BattleUnit {
 
     this.updateHealthBar();
 
-    // Cancel the action and fade a defeated unit.
+    // Cancel the action when a unit is defeated.
     if (this.hp <= 0) {
       this.defeat();
       return true;
@@ -479,8 +488,9 @@ export default class BattleUnit {
         visual?.setVisible(false);
       }
     } else {
+      this.setStealthed(false);
       this.spriteVisual?.image.setTint(0x777777);
-      this.container.setAlpha(0.5);
+      this.container.setAlpha(1);
     }
     this.updateHealthBar();
   }
@@ -489,7 +499,6 @@ export default class BattleUnit {
     if (this.alive || !this.isEnemy || this.deathElapsed === undefined) return;
     this.deathElapsed += Math.max(0, delta);
     const pose = monsterDeathPose(this.deathElapsed);
-    this.shadow.setAlpha(pose.alpha * 0.28);
     this.body.setAlpha(pose.alpha);
     if (!this.spriteVisual) this.body.setScale(pose.scale, pose.scale * 0.4);
   }

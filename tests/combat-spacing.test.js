@@ -58,7 +58,7 @@ function minDistance(units) {
   return Math.min(...units.flatMap((a, i) => units.slice(i + 1).map(b => a.distanceTo(b))));
 }
 
-// All factions resolve exact overlap; dead/inactive bodies do not push anyone.
+// All factions resolve exact overlap; dead monsters and inactive bodies do not push anyone.
 {
   const units = Array.from({ length: 10 }, (_, i) => unit(`u${i}`, 'Melee DPS', 700, 450, i >= 5));
   const scene = setup(units.slice(0, 5), units.slice(5));
@@ -70,6 +70,38 @@ function minDistance(units) {
   simulate(setup([solo], [dead, inactive]), 2);
   assert.equal(solo.arenaX, 700);
   assert.equal(solo.arenaY, 450);
+}
+
+// Fallen allies stay fixed and block both factions, including during wave returns.
+{
+  const corpse = unit('fallen', 'Healer', 700, 450);
+  corpse.alive = false;
+  const ally = unit('ally', 'Tank', 560, 450);
+  const enemy = unit('enemy', 'Enemy', 840, 450, true);
+  const scene = setup([corpse, ally], [enemy]);
+  const start = { x: corpse.arenaX, y: corpse.arenaY };
+  simulate(scene, 5, (time, delta) => {
+    ally.moveToward(840, 450, delta);
+    enemy.moveToward(560, 450, delta);
+  });
+  for (const mover of [ally, enemy]) {
+    assert.ok(mover.distanceTo(corpse) >= scene.movement.getSpacing(mover, corpse) - 1);
+  }
+  assert.ok(ally.arenaX > 700, 'ally passes around the body');
+  assert.ok(enemy.arenaX < 700, 'monster passes around the body');
+  assert.deepEqual({ x: corpse.arenaX, y: corpse.arenaY }, start);
+  const returner = unit('returner', 'Melee DPS', 560, 450);
+  const returnScene = setup([corpse, returner], []);
+  simulate(returnScene, 5, (time, delta) => returner.moveToward(840, 450, delta, 0, false));
+  assert.ok(returner.distanceTo(corpse) >= returnScene.movement.getSpacing(returner, corpse) - 1);
+  assert.ok(returner.arenaX > 700, 'return movement passes around the body');
+  const sprinter = unit('sprinter', 'Tank', 560, 450);
+  setup([corpse, sprinter], []);
+  sprinter.moveBy(280, 0);
+  assert.ok(sprinter.arenaX < 700, 'one large step cannot cross the body');
+  const clearedHome = returnScene.movement.clearCorpseDestination(returner, { x: 700, y: 450 });
+  assert.ok(Math.hypot(clearedHome.x - 700, clearedHome.y - 450)
+    >= returnScene.movement.getSpacing(returner, corpse) - 1);
 }
 
 // Tank and two melee reserve distinct stable slots and track a moving target.

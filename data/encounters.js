@@ -9,6 +9,10 @@ export const encounterWaveCounts = Object.freeze({
   Impossible: 50
 });
 
+function rollCount({ base = 0, dice = [] } = {}, random) {
+  return base + dice.reduce((total, sides) => total + 1 + Math.floor(random() * sides), 0);
+}
+
 const finalWaves = {
   Easy: [
     { name: 'The Slime Sovereign', boss: true, enemies: [
@@ -47,6 +51,15 @@ const finalWaves = {
   ]
 };
 
+const slimeCaveWaves = [
+  { name: 'Cave Slimes', caveSlimes: 2, d4: 1 },
+  { name: 'The Slime Swarm', caveSlimes: 2, d4: 2 },
+  { name: 'The Elder Puddle', caveSlimes: 2, d4: 2, elderSlimes: 1 },
+  { name: 'The Elder Slimes', caveSlimes: 2, elderSlimes: 2 },
+  { name: 'The Slime Horde', caveSlimes: 4, elderSlimes: 3 },
+  { name: 'The Slime Sovereign', caveSlimes: 2, elderSlimes: 2, sovereigns: 1, boss: true }
+];
+
 const thornbriarWaves = [
   { name: 'Roadside Ambush', ruffians: { base: 4, dice: [4] } },
   { name: 'The Lashers', ruffians: { base: 2, dice: [4, 4] }, lashers: { dice: [4, 4] } },
@@ -65,8 +78,22 @@ const dolmarkWaves = [
   { name: 'Silvanark the Forest Lord', wardens: { base: 3 }, protectors: 2, silvanark: 1, boss: true }
 ];
 
-function rollCount({ base = 0, dice = [] } = {}, random) {
-  return base + dice.reduce((total, sides) => total + 1 + Math.floor(random() * sides), 0);
+
+function buildSlimeCaveWaves(random) {
+  return slimeCaveWaves.map(({ name, caveSlimes, d4 = 0, elderSlimes = 0, sovereigns = 0, boss = false }) => {
+    const slimeCount = rollCount({ base: caveSlimes, dice: Array(d4).fill(4) }, random);
+    const types = [
+      ...Array(sovereigns).fill('slimeSovereign'),
+      ...Array(elderSlimes).fill('elderSlime'),
+      ...Array(slimeCount).fill('caveSlime')
+    ];
+    return {
+      name, boss,
+      enemies: types.map((type, index) => ({
+        type, arenaX: 350 + (index % 4) * 235, arenaY: 760 + Math.floor(index / 4) * 75
+      }))
+    };
+  });
 }
 
 function buildThornbriarWaves(random) {
@@ -104,31 +131,9 @@ function buildDolmarkWaves(random) {
   });
 }
 
-const slimeCaveWaves = [
-  { name: 'Cave Slimes', caveSlimes: 2, d4: 1 },
-  { name: 'The Slime Swarm', caveSlimes: 2, d4: 2 },
-  { name: 'The Elder Puddle', caveSlimes: 2, d4: 2, elderSlimes: 1 },
-  { name: 'The Elder Slimes', caveSlimes: 2, elderSlimes: 2 },
-  { name: 'The Slime Horde', caveSlimes: 4, elderSlimes: 3 },
-  { name: 'The Slime Sovereign', caveSlimes: 2, elderSlimes: 2, sovereigns: 1, boss: true }
-];
 
-function buildSlimeCaveWaves(random) {
-  return slimeCaveWaves.map(({ name, caveSlimes, d4 = 0, elderSlimes = 0, sovereigns = 0, boss = false }) => {
-    const slimeCount = rollCount({ base: caveSlimes, dice: Array(d4).fill(4) }, random);
-    const types = [
-      ...Array(sovereigns).fill('slimeSovereign'),
-      ...Array(elderSlimes).fill('elderSlime'),
-      ...Array(slimeCount).fill('caveSlime')
-    ];
-    return {
-      name, boss,
-      enemies: types.map((type, index) => ({
-        type, arenaX: 350 + (index % 4) * 235, arenaY: 760 + Math.floor(index / 4) * 75
-      }))
-    };
-  });
-}
+
+
 
 // This function creates independent wave data for the selected delve.
 // Slime Cave, Thornbriar, and Dolmark have authored waves; other delves use difficulty waves.

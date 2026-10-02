@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import adventurers from '../data/adventurers.js';
 import { CHARACTER_SPRITES, preloadCharacterSprites } from '../data/characterSprites.js';
 
 const names = ['laurana', 'tika', 'tanis', 'sturm', 'goldmoon', 'caramon-gladiator', 'raistlin', 'dalamar', 'palin', 'tasslehoff', 'flint', 'riverwind', 'fistandantilus', 'mishakal'];
 const states = ['idle', 'walk', 'attack', 'block', 'hit', 'death'];
 const loaded = [];
+for (const { id } of adventurers) assert.ok(CHARACTER_SPRITES[id], `missing combat sprite for roster ID ${id}`);
 for (const name of names) {
   const sprite = CHARACTER_SPRITES[name];
   assert.ok(sprite, `missing sprite for ${name}`);
@@ -38,6 +40,13 @@ for (const name of names) {
   }
   assert.notEqual(sprite.clips.block['south-east'].frames[0].frame, sprite.clips.block['south-west'].frames[0].frame);
   assert.notEqual(sprite.clips.block['north-east'].frames[0].frame, sprite.clips.block['north-west'].frames[0].frame);
+}
+for (const direction of ['south', 'south-east', 'east']) {
+  assert.deepEqual(
+    CHARACTER_SPRITES.tika.clips.idle[direction].frames.map(({ frame }) => frame),
+    [0, 1, 1, 0],
+    'Tika idle should avoid the frames with the bright pan trail',
+  );
 }
 preloadCharacterSprites({
   textures: { exists: () => false },

@@ -4,6 +4,13 @@ export function slimePose(style, state, elapsed, duration) {
   if (!style) return { x: 0, y: 0, scaleX: 1, scaleY: 1 };
   const phase = elapsed / style.period * TAU;
   if (state === 'idle') {
+    if (style.kind === 'bob') {
+      const pulse = Math.sin(phase);
+      return { x: Math.sin(phase * 0.5) * style.sway,
+        y: -pulse * style.lift,
+        scaleX: 1 + pulse * style.squish * 0.5,
+        scaleY: 1 - pulse * style.squish * 0.5 };
+    }
     if (style.kind === 'pulse') {
       const pulse = Math.sin(phase);
       return { x: Math.sin(phase * 0.5) * style.sway,

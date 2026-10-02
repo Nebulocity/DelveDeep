@@ -1,7 +1,7 @@
 import HapticsService from '../services/HapticsService.js';
 
 export const DETAILS_HINT = 'Long-press or hold-click a selection for details.';
-export const TONIC_DESCRIPTION = 'Restores 35% maximum HP to a living, injured ally. Tap their TONIC button in combat. Also auto-uses at 35% HP or below. All tonics share a 1.5-second cooldown.';
+export const TONIC_DESCRIPTION = 'Restores 35% maximum HP to a living, injured ally. Tap their TONIC button in combat. Tonics are used only when you choose. All tonics share a 1.5-second cooldown.';
 
 export function addDetailsHint(scene, y, text = DETAILS_HINT) {
   return scene.add.text(scene.scale.width / 2, y, text, {

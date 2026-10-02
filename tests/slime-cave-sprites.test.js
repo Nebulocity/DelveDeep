@@ -48,7 +48,10 @@ for (const id of ids) {
   const { motion } = SLIME_SPRITES[id];
   const idle = slimePose(motion, 'idle', motion.period / 4, 600);
   assert.ok(idle.scaleX !== 1 && idle.scaleY !== 1, `${id} visibly squishes at idle`);
-  assert.ok(idle.y < 0, `${id} lifts at idle`);
+  assert.ok(idle.y < 0 && Math.abs(idle.y) <= 4, `${id} gently bobs at idle`);
+  assert.ok(slimePose(motion, 'idle', motion.period * 3 / 4, 600).y > 0,
+    `${id} bobs down as well as up`);
+  assert.equal(SLIME_SPRITES[id].footY, 0, `${id} feet align with the floor`);
   const attack = slimePose(motion, 'attack', 175, 350);
   const hit = slimePose(motion, 'hit', 150, 300);
   assert.ok(attack.y < 0 && attack.scaleX > 1, `${id} lunges on attack`);

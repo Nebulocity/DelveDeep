@@ -8,10 +8,13 @@ Updated 2026-10-01. Source and data should be checked before treating a feature 
 - Five-member party limits, role-based combat behavior, direct orders, abilities, enemy waves, boss finales, healing tonics, equipment, rewards and local saved progression.
 - Four current map delves. The Slime Cave, Thornbriar Hollow, and Dolmark Den are Easy with six authored waves each. The Murmuring Abyss displays Unknown and currently has six waves. The Slime Cave uses layered static art plus a masked ambient loop; other delves use the shared battlefield presentation.
 - Battles use a centered 6-row by 10-column tactical grid with a wider logical arena; Slime Cave floor bounds follow its environment art.
-- Every wave selects clear grid squares away from characters, reserves upper-center squares for its strongest monsters, and drops monsters in with a short bounce. Slime sprite feet align with their ground shadows.
+- Every wave selects clear grid squares away from characters, reserves upper-center squares for its strongest monsters, and drops monsters in with a short bounce. Combat sprites align their feet to the projected floor without ground circles.
 - The Slime Cave now uses distinct Cave Slime, Elder Slime and Slime Sovereign PixelLab sheets for its weak, tough and final boss enemies.
-- Those slimes have pronounced idle motion and visible attack and hit reactions. Monster deaths now flicker, fade, and pop after the death clip begins.
+- Slimes bob gently at idle and have visible attack and hit reactions. Monster deaths now flicker, fade, and pop after the death clip begins.
+- After each nonfinal wave, living allies below 50% HP recover to 50%. Healing Tonics are used only on player command. Adventurers return home without steering around one another, and their idle animations continue during wave announcements.
 - Thornbriar Hollow uses Lasher, Ruffian, Hedge Mage and Rongar the Crusher sprites in six waves, with independent dice rolls in the first five waves.
+- Dolmark Den uses Den Warden, Den Protector, and Silvanark the Forest Lord sprites in six authored waves.
+- Caramon now has four authored directional facings and six packed PixelLab animation sheets, registered under his stable `caramon-gladiator` roster ID.
 - Web production build and JavaScript test scripts. Android project is present for Capacitor sync and Gradle builds.
 
 ## In progress or awaiting review

@@ -1,7 +1,7 @@
 // Powers and unspecified durations are provisional balance values; see docs/CLASS_ABILITIES.md.
 const spell = (name, cooldown, range, effect, extra = {}) => ({ name, cooldown: cooldown * 1000, range, effect, windup: 300, ...extra });
 const mage = (shortName, color, abilities) => ({ role: 'Ranged DPS', shortName, color, maxHp: 80, maxMana: 120, manaRegen: 8, moveSpeed: 130, attackPower: 15, attackRange: 345, attackCooldown: 1500, attackWindup: 400, critChance: 0.15, critMultiplier: 1.75, gridAbilities: true, abilities });
-const cleric = (shortName, color, abilities) => ({ role: 'Healer', shortName, color, armor: 0.08, maxHp: 110, maxMana: 120, manaRegen: 8, moveSpeed: 140, attackPower: 7, attackRange: 300, attackCooldown: 1600, attackWindup: 400, healPower: 22, healRange: 600, gridAbilities: true, abilities });
+const cleric = (shortName, color, abilities) => ({ role: 'Healer', shortName, color, armor: 0.08, maxHp: 110, maxMana: 120, manaRegen: 8, moveSpeed: 140, attackPower: 7, attackRange: 300, attackCooldown: 1600, attackWindup: 400, healPower: 22, healRange: 600, basicHealPower: 8, basicHealRange: 3, healCooldown: 1600, healWindup: 400, gridAbilities: true, abilities });
 export const CLASS_DEFINITIONS = {
   Gladiator: {
     role: 'Tank', color: 0xd99b35, maxHp: 185, moveSpeed: 150, attackPower: 15, attackRange: 74, attackCooldown: 1100, attackWindup: 280, armor: 0.22, threatMultiplier: 3.4, gridAbilities: true,

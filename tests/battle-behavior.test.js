@@ -44,6 +44,22 @@ const BattleScene = loadClass('../scenes/BattleScene.js', 'BattleScene');
 const BattleUnit = loadClass('../combat/BattleUnit.js', 'BattleUnit');
 context.HapticsService.confirm = () => {};
 
+// Fallen characters keep normal opacity, including when stealth was active.
+{
+  const image = { setTint() { return this; }, setAlpha(alpha) { this.alpha = alpha; return this; } };
+  const fallen = Object.assign(Object.create(BattleUnit.prototype), {
+    hp: 10, alive: true, isEnemy: false, stealthed: true,
+    body: { setFillStyle() { return this; } },
+    container: { setAlpha(alpha) { this.alpha = alpha; return this; } },
+    spriteVisual: { image, play() {} },
+    finishAction() {}, updateHealthBar() {}
+  });
+  fallen.defeat();
+  assert.equal(fallen.container.alpha, 1);
+  assert.equal(image.alpha, 1);
+  assert.equal(fallen.stealthed, false);
+}
+
 // This function supplies just the display methods needed by action timing.
 function display() {
 
@@ -343,6 +359,35 @@ function scene(party, enemies) {
   assert.equal(battle.enemyThreat.get(untouched.id).has(healer.id), false);
 }
 
+// A basic heal restores a small amount after its windup and observes cooldown.
+{
+  const healer = unit('healer', 'Healer');
+  const ally = unit('ally', 'Tank', 10);
+  healer.basicHealPower = 8;
+  healer.basicHealRange = 3;
+  healer.healCooldown = 1600;
+  healer.healWindup = 400;
+  healer.lastHealAt = -Infinity;
+  ally.hp = 50;
+  ally.maxHp = 100;
+  const battle = scene([healer, ally], []);
+  battle.classAbilitySystem = { distance: () => 1 };
+  battle.resolveHeal = (caster, target, amount) => { target.hp += amount; };
+  battle.beginBasicHeal(healer, ally, 0);
+  assert.equal(ally.hp, 50);
+  assert.equal(healer.canHeal(1600), false, 'the active windup blocks another action');
+  battle.time.now = 400;
+  battle.timers.shift()();
+  assert.equal(ally.hp, 58);
+  assert.equal(healer.canHeal(1599), false);
+  assert.equal(healer.canHeal(1600), true);
+  battle.beginBasicHeal(healer, ally, 1600);
+  ally.hp = 100;
+  battle.time.now = 2000;
+  battle.timers.shift()();
+  assert.equal(ally.hp, 100, 'the heal does not apply after the target recovers');
+}
+
 // Delayed or area damage cannot bypass engagement on untouched enemies.
 {
   const tank = unit('tank', 'Tank');
@@ -526,7 +571,7 @@ function fallenUnit(id, maxMana) {
   Object.assign(battle, {
     usedLeaderAbilities: new Set(), leaderAbilityCooldowns: new Map(),
     updatePartyUnit() {}, updateEnemies() {},
-    tryUseHealingTonic() {}, updateHud() {}, updateTonicHud() {},
+    updateHud() {}, updateTonicHud() {},
     finishDefeat() { battle.defeated = true; }
   });
   ally.clampToBattlefield = () => {};
@@ -586,8 +631,7 @@ function fallenUnit(id, maxMana) {
   assert.deepEqual(durations, [100, 260]);
 }
 
-// Manual tonic use targets only the chosen injured ally, never wastes stock,
-// and shares its cooldown with automatic emergency healing.
+// Manual tonic use targets only the chosen injured ally and never wastes stock.
 {
   const first = unit('first', 'Tank');
   const second = unit('second', 'Healer');
@@ -606,9 +650,9 @@ function fallenUnit(id, maxMana) {
   assert.equal(first.hp, 55);
   assert.equal(second.hp, 20);
   assert.equal(context.GameState.inventory.healingTonic, 2);
-  battle.tryUseHealingTonic(1499);
   assert.equal(second.hp, 20);
-  battle.tryUseHealingTonic(1500);
+  assert.equal(battle.useHealingTonic(second, 1499), false);
+  assert.equal(battle.useHealingTonic(second, 1500), true);
   assert.equal(second.hp, 55);
   assert.equal(context.GameState.inventory.healingTonic, 1);
   first.hp = 100;
@@ -828,12 +872,36 @@ console.log('Battle behavior checks passed.');
   assert.equal(battle.pendingWaveSpawns.length, 0);
 }
 
+// Clearing a wave restores only living allies below half HP without using tonics.
+{
+  const low = unit('low', 'Tank');
+  const healthy = unit('healthy', 'Healer');
+  const fallen = unit('fallen', 'Melee DPS');
+  low.maxHp = 101; low.hp = 12; low.updateHealthBar = () => {};
+  healthy.maxHp = 100; healthy.hp = 72; healthy.updateHealthBar = () => {};
+  fallen.maxHp = 100; fallen.hp = 0; fallen.alive = false;
+  const battle = scene([low, healthy, fallen], []);
+  battle.waves = [{}, {}];
+  battle.currentWaveIndex = 0;
+  battle.updateHud = () => {};
+  battle.tweens = { add() {} };
+  context.GameState.inventory = { healingTonic: 2 };
+  battle.completeWave();
+  assert.equal(low.hp, 51);
+  assert.equal(healthy.hp, 72);
+  assert.equal(fallen.hp, 0);
+  assert.equal(context.GameState.inventory.healingTonic, 2);
+  battle.completeWave();
+  assert.equal(low.hp, 51, 'repeated completion cannot heal again');
+}
+
 // The next countdown starts two seconds after every living ally returns home.
 {
   const ally = unit('ally', 'Tank', 100, 0);
   ally.moveSpeed = 150;
-  ally.moveToward = function (x, y, delta) {
+  ally.moveToward = function (x, y, delta, stopDistance, avoidUnits) {
     this.lastReturnDelta = delta;
+    this.lastReturnAvoidUnits = avoidUnits;
     this.arenaX = Math.max(x, this.arenaX - this.moveSpeed * delta);
   };
   const fallen = unit('fallen', 'Healer', 300, 0);
@@ -848,6 +916,7 @@ console.log('Battle behavior checks passed.');
 
   battle.updateWaveRetreat(0, 0.05, 50);
   assert.equal(ally.lastReturnDelta, 0.1);
+  assert.equal(ally.lastReturnAvoidUnits, false);
   assert.equal(nextWave, null);
   let time = 50;
   while (ally.arenaX > 6) {
@@ -861,6 +930,26 @@ console.log('Battle behavior checks passed.');
   battle.updateWaveRetreat(arrivedAt + 2000, 0.05, 50);
   assert.equal(nextWave, 1);
   assert.equal(battle.waveRetreating, false);
+}
+
+// Return movement ignores living allies while retaining corpse and terrain checks.
+{
+  const ally = unit('left', 'Melee DPS', 100, 0);
+  const battle = scene([ally], []);
+  ally.scene = battle;
+  let terrainChecked = false;
+  battle.terrain.resolveStep = (unit, x, y) => {
+    terrainChecked = true;
+    return { x, y };
+  };
+  const steerStep = battle.movement.steerStep.bind(battle.movement);
+  battle.movement.steerStep = (unit, dx, dy, includeLiving) => {
+    assert.equal(includeLiving, false);
+    return steerStep(unit, dx, dy, includeLiving);
+  };
+  ally.moveBy(-10, 0, false);
+  assert.equal(ally.arenaX, 90);
+  assert.equal(terrainChecked, true);
 }
 
 // The final wave also waits for the party to return before showing victory.

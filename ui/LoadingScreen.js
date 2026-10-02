@@ -1,17 +1,34 @@
 const screen = () => document.getElementById('loading-screen');
+let revealVersion = 0;
+
+function revealTextAfterImage() {
+  const element = screen();
+  const art = element?.querySelector('.loading-art');
+  if (!art) return;
+  const version = ++revealVersion;
+  const reveal = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (version !== revealVersion) return;
+    element.classList.add('is-art-ready');
+    element.dispatchEvent(new Event('loading-art-ready'));
+  }));
+  if (art.complete && art.naturalWidth) reveal();
+  else art.addEventListener('load', reveal, { once: true });
+}
+
+revealTextAfterImage();
 
 // Keep this DOM layer independent of Phaser assets so it can cover cold starts.
 export function showLoadingScreen(mode = 'world', title = '') {
   const element = screen();
   if (!element) return;
   const isDelve = mode === 'delve';
-  element.dataset.mode = isDelve ? 'delve' : 'world';
-  element.querySelector('#loading-kicker').textContent = isDelve ? 'THE PARTY DESCENDS' : 'THE JOURNEY BEGINS';
-  element.querySelector('#loading-title').textContent = isDelve ? 'INTO THE DEEP' : 'DELVE DEEP';
-  element.querySelector('#loading-subtitle').textContent = isDelve ? title : 'Charting the world beyond Pineshire';
-  element.querySelector('#loading-message').textContent = isDelve ? 'Preparing the battlefield' : 'Preparing the world map';
+  element.querySelector('#loading-message').textContent = isDelve
+    ? `Preparing ${title || 'the battlefield'}`
+    : 'Preparing the world map';
   updateLoadingProgress(0);
+  element.classList.remove('is-art-ready');
   element.classList.remove('is-hidden');
+  revealTextAfterImage();
 }
 
 function updateLoadingProgress(value) {
@@ -36,5 +53,15 @@ export function trackLoading(scene) {
 
 // The canvas must render its first frame before the overlay is dismissed.
 export function hideLoadingScreenAfterRender(scene) {
-  scene.game.events.once('postrender', () => screen()?.classList.add('is-hidden'));
+  scene.game.events.once('postrender', () => {
+    const element = screen();
+    if (!element) return;
+    if (element.classList.contains('is-art-ready')) {
+      element.classList.add('is-hidden');
+    } else {
+      element.addEventListener('loading-art-ready', () => {
+        requestAnimationFrame(() => requestAnimationFrame(() => element.classList.add('is-hidden')));
+      }, { once: true });
+    }
+  });
 }

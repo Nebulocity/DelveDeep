@@ -18,13 +18,14 @@ Existing tank-engagement gating still applies to enemy splash damage.
 
 Healers prioritize injured allies; an explicit Attack order prioritizes offense.
 Focus Fire does not disable healing. Basic attacks remain available between
-spell cooldowns; old healer basic Mend is replaced by the requested spells.
+spell cooldowns. Healers also use a small automatic Mend (8 HP, three squares,
+1.6-second cooldown) on an injured ally when no healing spell is ready.
 Hold permits casting but suppresses autonomous movement and escape teleports.
 
 Veilstep uses a Move/Hold destination more than three cells away when ready.
 Only living units occupy cells; blocked terrain also prevents teleporting.
 An unavailable teleport falls back to ordinary movement. Automatic Veilstep
-escapes adjacent enemies toward an empty cell with greater separation.
+escapes adjacent enemies to a safe cell up to four squares away.
 Bloodsong Ascendance grants one teleport of up to two cells during its eight
 seconds; Move consumes it, or an unheld cleric uses it immediately to escape.
 
@@ -94,7 +95,7 @@ Enrage replaces the old Barbarian passive bonuses/death escape: 3x outgoing and
 2x incoming damage for ten seconds, followed by 0.5x outgoing damage for ten.
 Stealth breaks on an attack, preserves threat, excludes direct enemy targeting,
 and still receives area damage. Surprise Attack uses a free rear-adjacent cell.
-Charge moves into a free adjacent cell. Hold suppresses those repositioning
+Charge visibly rushes into a free adjacent cell. Hold suppresses those repositioning
 attacks. Stuns interrupt pending actions and do not break on damage.
 
 ## Barmaid and Oathwarden

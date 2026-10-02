@@ -74,6 +74,19 @@ export default class UnitSprite {
     this.image.setScale(this.definition.scale * pose.scaleX * size,
       this.definition.scale * pose.scaleY * size);
     if (death) this.image.setAlpha(death.alpha);
+    this.syncHitZone();
+  }
+
+  syncHitZone() {
+    const hitZone = this.unit.hitZone;
+    if (!hitZone || !this.image.width || !this.image.height) return;
+    const spriteWidth = this.image.width * Math.abs(this.image.scaleX);
+    const spriteHeight = this.image.height * Math.abs(this.image.scaleY);
+    hitZone.setSize(Math.max(120, spriteWidth), Math.max(180, spriteHeight));
+    hitZone.setPosition(
+      this.image.x + (0.5 - this.image.originX) * spriteWidth,
+      this.image.y + (0.5 - this.image.originY) * spriteHeight
+    );
   }
 
   update(delta) {
@@ -81,7 +94,7 @@ export default class UnitSprite {
     if (this.image?.active === false || unit.container?.active === false) return;
     if (unit.landing) return;
     const scene = unit.scene;
-    const frozen = scene.combatPaused || (this.action?.state !== 'death' && (scene.battleOver || (scene.waveTransitioning && !scene.waveRetreating)));
+    const frozen = scene.combatPaused || (this.action?.state !== 'death' && scene.battleOver);
     if (this.action) {
       this.motion.x = unit.arenaX;
       this.motion.y = unit.arenaY;

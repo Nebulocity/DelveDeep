@@ -28,7 +28,10 @@ export function beamContains(scene, caster, target, point, range) {
 }
 
 export default class ClassAbilitySystem {
-  constructor(scene) { this.scene = scene; this.traps = []; }
+  constructor(scene) { this.scene = scene; this.traps = []; this.chargeTweens = new Set(); }
+  syncChargeTweens(paused) {
+    for (const tween of this.chargeTweens) tween.timeScale = paused ? 0 : 1;
+  }
   allies() { return this.scene.partyUnits.filter(u => u.alive); }
   enemies(unit) { return this.scene.getLivingEnemies().filter(e => unit.role === 'Tank' || this.scene.isEnemyEngaged(e)); }
   distance(a, b) { return squareDistance(this.scene, a, b); }
@@ -149,11 +152,11 @@ export default class ClassAbilitySystem {
     unit.setArenaPosition(point.x, point.y);
     return true;
   }
-  escapePoint(unit, range) {
+  escapePoint(unit, range, minRange = 0) {
     const scene = this.scene, enemies = scene.getLivingEnemies(), points = [];
     for (let c = 0; c < scene.battlefield.columns; c++) for (let r = 0; r < scene.battlefield.rows; r++) {
       const p = scene.battlefield.getCellCenter(c, r);
-      if (this.distance(unit, p) <= range && this.distance(unit, p) > 0 && this.canTeleport(unit, p)) points.push(p);
+      if (this.distance(unit, p) <= range && this.distance(unit, p) > minRange && this.canTeleport(unit, p)) points.push(p);
     }
     const safety = p => Math.min(...enemies.map(e => this.distance(e, p)));
     return points.sort((a, b) => safety(b) - safety(a))[0];
@@ -163,13 +166,14 @@ export default class ClassAbilitySystem {
     if (!unit.canStartAction(time) || !unit.canCast(time)) return;
     const enemies = this.enemies(unit), allies = this.allies();
     const injured = allies.filter(a => a.hp < a.maxHp).sort((a,b) => a.hp/a.maxHp - b.hp/b.maxHp);
+    const healingNeeded = unit.role === 'Healer' && allies.some(a => a.hp / a.maxHp < 0.8);
     const healingPriority = unit.role === 'Healer' ? scene.getHealerPriorityTarget?.(unit) : null;
     if (healingPriority) {
       const index = injured.indexOf(healingPriority);
       if (index >= 0) injured.unshift(...injured.splice(index, 1));
     }
     if (!scene.getLivingEnemies().some(e => e.id === scene.attackTargets.get(unit.id))) scene.attackTargets.delete(unit.id);
-    const ordered = scene.attackTargets.get(unit.id);
+    const ordered = !healingNeeded && scene.attackTargets.get(unit.id);
     const preferred = scene.getPrimaryTarget(unit);
     for (const [key, a] of Object.entries(unit.abilities)) {
       if (a.reactive || !unit.abilityReady(key, time)) continue;
@@ -190,7 +194,7 @@ export default class ClassAbilitySystem {
       }
       if (a.effect === 'teleport') {
         if (scene.isPositionLocked(unit) || !enemies.some(e => this.distance(unit, e) <= 1)) continue;
-        const point = this.escapePoint(unit, Infinity);
+        const point = this.escapePoint(unit, a.moveThreshold + 1, a.moveThreshold);
         if (point && this.distance(unit, point) > a.moveThreshold && this.move(unit, point, time)) return;
         continue;
       }
@@ -213,6 +217,7 @@ export default class ClassAbilitySystem {
         target = this.trapPoint(unit, enemies);
         if (!target) continue;
       } else if (a.effect === 'damage' || a.effect === 'mark') {
+        if (healingNeeded) continue;
         if (a.requiresStealth && !unit.stealthed) continue;
         if (unit.stealthed && !a.requiresStealth) continue;
         if ((a.charge || a.behind) && scene.isPositionLocked(unit)) continue;
@@ -235,7 +240,13 @@ export default class ClassAbilitySystem {
       this.cast(unit, target, key, time);
       return;
     }
-    if (!unit.stealthed && preferred && scene.isWithinAttackReach(unit, preferred) && unit.canAttack(time)) {
+    const basicHealTarget = unit.role === 'Healer' && !ordered
+      ? injured.find(target => this.distance(unit, target) <= unit.basicHealRange) : null;
+    if (basicHealTarget && unit.canHeal(time)) {
+      scene.beginBasicHeal(unit, basicHealTarget, time);
+      return;
+    }
+    if (!healingNeeded && !unit.stealthed && preferred && scene.isWithinAttackReach(unit, preferred) && unit.canAttack(time)) {
       scene.beginBasicAttack(unit, preferred, time, ['Tank', 'Melee DPS'].includes(unit.role) ? 'melee' : unit.className === 'Ranger' ? 'ranged' : 'spell');
     }
     if (scene.isPositionLocked(unit)) return;
@@ -278,14 +289,69 @@ export default class ClassAbilitySystem {
     const action=unit.pendingAction;
     scene.time.delayedCall(a.windup,()=>{
       if(!scene.isActionCurrent(unit,action)) return;
-      if(target.alive && (target===unit || this.distance(unit,target)<=(a.radius??a.range))) this.resolve(unit,target,a,scene.time.now);
+      if(unit.role === 'Healer' && (a.effect === 'damage' || a.effect === 'mark')
+        && this.allies().some(ally => ally.hp / ally.maxHp < 0.8)) {
+        unit.finishAction();
+        return;
+      }
+      if (target.alive && (target === unit || this.distance(unit, target) <= (a.radius ?? a.range))) {
+        if (a.charge) {
+          if (!this.startCharge(unit, target, a, action)) unit.finishAction();
+          return;
+        }
+        this.resolve(unit,target,a,scene.time.now);
+      }
       unit.finishAction();
     });
   }
-  resolve(unit,target,a,time) {
+  startCharge(unit, target, ability, action) {
+    const scene = this.scene;
+    if (scene.isPositionLocked(unit) || unit.status.rootedUntil > scene.time.now) return false;
+    const point = this.adjacentPoint(unit, target);
+    if (!point) return false;
+    const startX = unit.arenaX, startY = unit.arenaY;
+    const distance = Math.hypot(point.x - startX, point.y - startY);
+    const duration = Math.max(180, Math.min(900, distance / 1100 * 1000));
+    unit.busyUntil = scene.time.now + duration;
+    unit.spriteVisual?.play('walk', target);
+    const tween = scene.tweens.addCounter({
+      from: 0, to: 1, duration,
+      onUpdate: tween => {
+        if (!scene.isActionCurrent(unit, action, target)) {
+          tween.stop();
+          this.chargeTweens.delete(tween);
+          return;
+        }
+        const progress = tween.getValue();
+        const x = startX + (point.x - startX) * progress;
+        const y = startY + (point.y - startY) * progress;
+        if (scene.terrain?.isUnitBlocked(unit, x, y, 12)) {
+          tween.stop();
+          this.chargeTweens.delete(tween);
+          unit.finishAction();
+          return;
+        }
+        unit.setArenaPosition(x, y);
+      },
+      onComplete: () => {
+        this.chargeTweens.delete(tween);
+        if (!scene.isActionCurrent(unit, action, target)) return;
+        unit.setArenaPosition(point.x, point.y);
+        if (this.distance(unit, target) <= 1) {
+          unit.spriteVisual?.play('attack', target);
+          this.resolve(unit, target, ability, scene.time.now, true);
+        }
+        unit.finishAction();
+      }
+    });
+    this.chargeTweens.add(tween);
+    tween.timeScale = scene.combatPaused ? 0 : 1;
+    return true;
+  }
+  resolve(unit,target,a,time,skipChargeMove=false) {
     const scene=this.scene,s=unit.status,allies=this.allies();
     if(a.requiresStealth && !unit.stealthed) return;
-    if(a.charge || a.behind) {
+    if((a.charge && !skipChargeMove) || a.behind) {
       if(scene.isPositionLocked(unit) || s.rootedUntil > time) return;
       const point=this.adjacentPoint(unit,target,a.behind);
       if(!point) return;

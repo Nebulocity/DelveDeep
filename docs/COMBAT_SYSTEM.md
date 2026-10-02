@@ -30,7 +30,7 @@ Tactical commands should override or strongly influence default behavior where a
 
 ## Wave Transitions and Movement
 
-Adventurers and enemies move at 1.5 times their configured movement speed during combat. When a wave ends, living adventurers walk back to their initial positions at twice their combat movement speed. After everyone arrives, the party remains in place for two seconds before the next wave countdown begins. The final wave also returns the party home before victory appears.
+Adventurers and enemies move at 1.5 times their configured movement speed during combat. When a wave ends, living adventurers walk back to their initial positions at twice their combat movement speed. Their return paths ignore ally spacing so they do not oscillate around each other. After everyone arrives, the party remains in place for two seconds before the next wave countdown begins. Idle sprite animations continue during the wave announcement. The final wave also returns the party home before victory appears.
 
 ## Player Movement Commands
 
@@ -68,8 +68,9 @@ The shared inventory count appears above the party HUD. Manual use restores
 35% maximum HP and requires a living, injured party member. It cannot spend
 stock while paused, between waves, or after the encounter ends.
 
-Existing automatic use at 35% HP or below remains enabled. Manual and
-automatic use share a 1.5-second cooldown and the same saved inventory.
+Tonics are only used when the player taps a button. Uses share a 1.5-second
+cooldown and the same saved inventory. Between waves, living party members
+below 50% HP recover to 50% HP without using tonics.
 Holding a tonic button shows its rules without consuming a tonic.
 
 ## Mana
@@ -130,8 +131,10 @@ replaces that character's Move/Hold order and pursues the enemy into range.
 Tapping a tile defaults to Move and then Hold at the destination.
 
 Attack applies only to selected living characters. An explicitly commanded
-healer uses basic attacks until that enemy dies or another movement order
-replaces the attack. Afterwards, the healer resumes its normal role.
+healer attacks until that enemy dies or another movement order
+replaces the attack. If any living ally falls below 80% health, the healer
+pauses attacks and offensive abilities to heal, then resumes the order once
+all living allies reach at least 80% health.
 
 Focus Fire remains in the top leadership loadout and provides a shared
 target priority. Individual Attack orders take precedence over that target.
@@ -165,8 +168,9 @@ Combat positioning is shared by both armies through `combat/CombatMovement.js`.
 Tuning lives in `config/combatSpacing.js`; distances are logical arena units
 before perspective projection. Normal separation is 52, Stack is 28, and
 Spread is 105. A soft, speed-limited separation pass includes living allies
-and enemies together and resolves even exact overlaps. Dead/inactive bodies
-do not participate.
+and enemies together and resolves even exact overlaps. Fallen adventurers
+remain solid obstacles for both armies, including during wave returns. Dead
+monsters and inactive bodies do not participate.
 Both approach and retreat steps pass through the same soft avoidance helper
 before updating Phaser positions, so pursuit cannot overpower separation.
 

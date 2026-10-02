@@ -73,7 +73,7 @@ assert.ok(slimeCave.visuals?.environment?.ambient.url);
 assert.equal(delves.filter((delve) => delve.visuals?.environment).length, 1);
 for (const delve of delves) {
   const waves = createEncounterWaves(delve);
-  const finalCounts = { 'slime-cave': 7, 'thornbriar-hollow': 10, 'dolmark-den': 6, 'murmuring-abyss': 4 };
+  const finalCounts = { 'slime-cave': 5, 'thornbriar-hollow': 10, 'dolmark-den': 6, 'murmuring-abyss': 4 };
   assert.equal(waves.length, delve.difficulty === 'Unknown' ? 6 : encounterWaveCounts[delve.difficulty]);
   assert.equal(delve.rooms, waves.length);
   const final = waves.at(-1);
@@ -129,14 +129,14 @@ const slimeCounts = (random) => createEncounterWaves(slimeCave, 1400, random)
   .map(wave => ['caveSlime', 'elderSlime', 'slimeSovereign']
     .map(type => wave.enemies.filter(spawn => spawn.type === type).length));
 assert.deepEqual(slimeCounts(() => 0), [
-  [5, 0, 0], [6, 0, 0], [4, 1, 0], [4, 2, 0], [6, 3, 0], [4, 2, 1]
+  [3, 0, 0], [4, 0, 0], [4, 1, 0], [2, 2, 0], [4, 3, 0], [2, 2, 1]
 ]);
 assert.deepEqual(slimeCounts(() => 0.999), [
-  [8, 0, 0], [12, 0, 0], [10, 1, 0], [4, 2, 0], [6, 3, 0], [4, 2, 1]
+  [6, 0, 0], [10, 0, 0], [10, 1, 0], [2, 2, 0], [4, 3, 0], [2, 2, 1]
 ]);
 const rolls = [0, 0.25, 0.5, 0.75, 0];
 assert.deepEqual(slimeCounts(() => rolls.shift()), [
-  [5, 0, 0], [9, 0, 0], [7, 1, 0], [4, 2, 0], [6, 3, 0], [4, 2, 1]
+  [3, 0, 0], [7, 0, 0], [7, 1, 0], [2, 2, 0], [4, 3, 0], [2, 2, 1]
 ]);
 const oldBossX = createEncounterWaves(slimeCave).at(-1).enemies[0].arenaX;
 assert.equal(createEncounterWaves(slimeCave, 1750).at(-1).enemies[0].arenaX, oldBossX + 175);

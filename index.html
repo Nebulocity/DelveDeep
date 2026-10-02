@@ -9,72 +9,22 @@
   </head>
   <body>
     <div id="game"></div>
-    <div id="loading-screen" class="loading-screen" data-mode="world" role="status" aria-live="polite">
-      <!-- Inline vector art appears before Phaser and the large game textures load. -->
-      <svg class="loading-art" viewBox="0 0 1200 540" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-        <defs>
-          <linearGradient id="world-sky" x2="0" y2="1">
-            <stop stop-color="#193945"/><stop offset=".55" stop-color="#547478"/><stop offset="1" stop-color="#d09b62"/>
-          </linearGradient>
-          <linearGradient id="cave-glow" x2="0" y2="1">
-            <stop stop-color="#294f55"/><stop offset="1" stop-color="#116064"/>
-          </linearGradient>
-        </defs>
-        <g class="loading-world-art" shape-rendering="crispEdges">
-          <path fill="url(#world-sky)" d="M0 0h1200v540H0z"/>
-          <path fill="#cad7bd" opacity=".55" d="M0 305l120-120 66 43 112-95 115 92 93-70 162 122 98-88 139 96 96-65 199 97v233H0z"/>
-          <path fill="#395e5f" d="M0 342l118-91 82 56 128-115 99 95 126-76 124 109 93-65 150 75 97-59 183 85v184H0z"/>
-          <path fill="#213f42" d="M0 382l138-61 71 41 145-94 131 105 110-43 104 44 105-59 162 79 106-38 128 55v129H0z"/>
-          <path fill="#153437" d="M0 430l82-51 89 28 95-40 92 46 102-30 112 47 101-48 111 40 79-36 157 53 72-40 108 37v114H0z"/>
-          <path fill="#d6a765" d="M0 540v-45l188-21 167 10 125-58 70-16 75 24 110 47 164 16 301-4v47z"/>
-          <path fill="#9c754e" d="M0 540v-18l215-17 170-1 104-52 67-17 64 23 103 49 180 18 297-18v33z"/>
-          <path fill="#223e37" d="M130 455v-63h-17l30-48 31 48h-17v63zm720 11v-73h-20l34-55 35 55h-21v73zm80 8v-53h-15l27-42 27 42h-15v53z"/>
-          <path fill="#142e31" d="M267 461v-72h-18l32-50 33 50h-19v72zm686 18v-62h-17l31-49 31 49h-18v62z"/>
-          <path fill="#edc879" d="M481 395h42v-51h12v-22h-65v22h11zm-12-51v-10h66v10z"/>
-          <path fill="#3a5148" d="M479 395h48v-52h-48zm11-12v-25h25v25z"/>
-          <path class="loading-beacon" fill="#ffe1a2" d="M490 359h24v24h-24z"/>
-          <path fill="#f4d093" d="M524 462h13v8h-13zm100 16h13v8h-13zm94 25h13v8h-13z"/>
-          <!-- An original distant dragon silhouette, kept small like a rumor on the horizon. -->
-          <path fill="#274b50" opacity=".86" d="M861 157l60-18 37-40-7 34 38-20 22 9 33-16-11 23 53 14-56 7-27-6-24 15-33 2-34 19 10-25-32 3z"/>
-        </g>
-        <g class="loading-delve-art" shape-rendering="crispEdges">
-          <path fill="#17353c" d="M0 0h1200v540H0z"/>
-          <path fill="#29434a" d="M0 110l131-50 87 44 118-52 132 54 128-46 146 58 112-70 130 55 216-65v502H0z"/>
-          <path fill="#48615c" d="M0 218l144-63 88 38 120-57 115 47 131-67 139 52 114-49 127 59 222-41v403H0z"/>
-          <path fill="#223c43" d="M0 0h1200v113l-103 28-69-61-68 39-118-56-139 74-107-85-104 82-135-79-116 75-98-69L0 118z"/>
-          <path fill="#172e36" d="M0 0h1200v53l-105 38-66-54-72 49-114-48-134 68-110-85-104 81-131-77-117 77-99-73L0 79z"/>
-          <path fill="#102b33" d="M0 540V367l119-87 134 62 92-74 99 87 164-65 123 61 119-84 119 86 131-62v249z"/>
-          <path fill="#5b756a" d="M340 540V313l42-99 72-72 132-43 135 44 77 71 58 101v225z"/>
-          <path fill="#203f45" d="M372 540V319l45-95 68-57 100-32 106 32 71 62 62 95v216z"/>
-          <path fill="url(#cave-glow)" d="M418 540V326l38-73 56-44 76-21 77 23 58 47 54 75v207z"/>
-          <path class="loading-portal" fill="#8bd6bd" opacity=".55" d="M482 540V341l29-62 43-29 41-11 45 12 45 33 31 60v196z"/>
-          <path fill="#102f38" d="M0 540v-64l185-23 177 23 132 17 83-35 92 24 142 11 124-40 275 34v53z"/>
-          <path fill="#375a57" d="M0 540v-25l207-34 150 20 142 12 81-28 97 27 141 2 127-31 255 31v26z"/>
-          <path fill="#7ac9b0" d="M95 478l26-89 28 89zm13-32h26l-13-33zm933 41l33-120 36 120zm13-48h43l-22-37z"/>
-          <path fill="#a6e2c2" d="M153 486l17-60 19 60zm876 2l14-55 17 55z"/>
-          <path fill="#698c83" d="M250 540l48-69 44 69zm584 0l59-68 63 68z"/>
-          <path fill="#d5b678" d="M544 492h48v8h-48zm78 10h42v8h-42zm-103 24h55v8h-55z"/>
-          <!-- Five distinct adventurer silhouettes: staff, shield, blade, bow, and lantern. -->
-          <g fill="#112a31">
-            <path d="M517 447h12v14h8v32h-7v34h-8v-30h-5v30h-8v-34h-6v-32h7v-14zm-6-7h18v8h-18z"/>
-            <path d="M552 439h21v11h-21zm5 11h15v15h9v34h-8v28h-8v-27h-6v27h-8v-32h-9v-30h11z"/>
-            <path d="M591 445h18v12h-18zm3 12h14v13h8v29h-8v28h-7v-27h-5v27h-8v-29h-7v-29h9z"/>
-            <path d="M630 447h17v12h-17zm2 12h15v14h7v25h-8v29h-7v-29h-5v29h-8v-31h-6v-24h9z"/>
-            <path d="M670 451h16v12h-16zm2 12h13v12h7v23h-7v29h-8v-29h-4v29h-7v-30h-6v-24h9z"/>
-          </g>
-          <path fill="#c4d2a5" d="M503 410h4v86h-4zm53 54h20v21h-20zm59-18h34v4h-34zm39 19h4v32h-4zm42 4h14v15h-14z"/>
-          <path fill="#f5d88d" d="M700 471h7v11h-7z"/>
-        </g>
-      </svg>
-      <div class="loading-vignette"></div>
-      <div class="loading-copy">
-        <div class="loading-kicker" id="loading-kicker">THE JOURNEY BEGINS</div>
-        <div class="loading-title" id="loading-title">DELVE DEEP</div>
-        <div class="loading-subtitle" id="loading-subtitle">Charting the world beyond Pineshire</div>
-      </div>
-      <div class="loading-footer">
-        <div class="loading-status"><span id="loading-message">Preparing the world map</span><span id="loading-percent">0%</span></div>
-        <div class="loading-track"><div class="loading-progress" id="loading-progress"></div></div>
+    <div id="loading-screen" class="loading-screen" role="status" aria-live="polite">
+      <div class="loading-content">
+        <img class="loading-art" src="./assets/SplashScreen.png" alt="" aria-hidden="true" fetchpriority="high" />
+        <div class="loading-vignette"></div>
+        <svg class="loading-title" viewBox="0 0 1200 230" role="img" aria-label="Delve Deep!">
+          <defs>
+            <path id="loading-title-arc" d="M 110 170 Q 600 15 1090 170" />
+          </defs>
+          <text>
+            <textPath href="#loading-title-arc" startOffset="50%" text-anchor="middle">Delve Deep!</textPath>
+          </text>
+        </svg>
+        <div class="loading-footer">
+          <div class="loading-status"><span id="loading-message">Preparing the world map</span><span id="loading-percent">0%</span></div>
+          <div class="loading-track"><div class="loading-progress" id="loading-progress"></div></div>
+        </div>
       </div>
     </div>
     <script type="module" src="./main.js"></script>

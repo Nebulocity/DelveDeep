@@ -14,6 +14,10 @@ export default class CombatMovement {
       .filter(unit => unit.alive && !unit.landing && unit.container?.active !== false);
   }
 
+  getCorpses() {
+    return this.scene.partyUnits.filter(unit => !unit.alive && unit.container?.active !== false);
+  }
+
   clamp(x, y, unit = null) {
     const padding = this.config.edgePadding;
     const point = this.scene.battlefield.clampPoint(x, y, padding, padding);
@@ -59,19 +63,27 @@ export default class CombatMovement {
   }
 
   // Reduce inward travel before applying it, so pursuit cannot continually overpower gentle separation. Tangential travel stays smooth and lets units pass a neighbor instead of stopping head-on in a crowded approach.
-  steerStep(unit, dx, dy) {
+  steerStep(unit, dx, dy, includeLiving = true) {
     if (this.scene.time?.now < Math.max(unit.status?.rootedUntil ?? 0, unit.status?.stunnedUntil ?? 0)) return { x: unit.arenaX, y: unit.arenaY };
     const travel = Math.hypot(dx, dy);
-    for (const other of this.getUnits()) {
+    const corpses = this.getCorpses();
+    for (const other of [...(includeLiving ? this.getUnits() : []), ...corpses]) {
       if (other === unit) continue;
       const x = unit.arenaX - other.arenaX, y = unit.arenaY - other.arenaY;
       const distance = Math.hypot(x, y);
       // Spread is a formation preference, not a wide movement obstruction.
-      const spacing = Math.min(this.getSpacing(unit, other), this.config.normal);
-      if (distance < 0.001 || distance >= spacing + travel) continue;
+      const spacing = other.alive ? Math.min(this.getSpacing(unit, other), this.config.normal)
+        : this.getSpacing(unit, other);
+      if (distance < 0.001 || distance >= spacing + (other.alive ? travel : travel * 4)) continue;
       const nx = x / distance, ny = y / distance;
       const inward = dx * nx + dy * ny;
       if (inward >= 0) continue;
+      if (!other.alive) {
+        const side = x * dy - y * dx >= 0 ? 1 : -1;
+        dx = -ny * side * travel;
+        dy = nx * side * travel;
+        continue;
+      }
       const core = spacing * this.config.personalSpaceCore;
       const allowed = Math.max(0, Math.min(1, (distance - core) / (spacing - core)));
       dx -= nx * inward * (1 - allowed);
@@ -89,7 +101,56 @@ export default class CombatMovement {
       this.config.edgePadding,
       this.config.edgePadding
     );
-    return this.scene.terrain?.resolveStep(unit, desired.x, desired.y, this.config.terrainFootRadius) ?? desired;
+    const terrainPoint = this.scene.terrain?.resolveStep(unit, desired.x, desired.y, this.config.terrainFootRadius) ?? desired;
+    return this.resolveCorpseStep(unit, terrainPoint, corpses);
+  }
+
+  // Stop a movement segment at the first fallen character it would cross.
+  resolveCorpseStep(unit, desired, corpses = this.getCorpses()) {
+    let point = desired;
+    for (const corpse of corpses) {
+      if (corpse === unit) continue;
+      const radius = this.getSpacing(unit, corpse);
+      const startX = unit.arenaX - corpse.arenaX;
+      const startY = unit.arenaY - corpse.arenaY;
+      const dx = point.x - unit.arenaX;
+      const dy = point.y - unit.arenaY;
+      const lengthSquared = dx * dx + dy * dy;
+      if (lengthSquared < 0.000001) continue;
+      const startSquared = startX * startX + startY * startY;
+      if (startSquared < radius * radius) continue;
+      const projection = -(startX * dx + startY * dy) / lengthSquared;
+      const closest = Math.max(0, Math.min(1, projection));
+      const nearX = startX + dx * closest;
+      const nearY = startY + dy * closest;
+      if (nearX * nearX + nearY * nearY >= radius * radius) continue;
+      const discriminant = Math.max(0, (startX * dx + startY * dy) ** 2
+        - lengthSquared * (startSquared - radius * radius));
+      const entry = Math.max(0, (-(startX * dx + startY * dy) - Math.sqrt(discriminant)) / lengthSquared);
+      point = { x: unit.arenaX + dx * entry, y: unit.arenaY + dy * entry };
+    }
+    return point;
+  }
+
+  // Move an unreachable wave return target just outside a fallen ally.
+  clearCorpseDestination(unit, destination) {
+    let point = destination;
+    for (const corpse of this.getCorpses()) {
+      if (corpse === unit) continue;
+      const radius = this.getSpacing(unit, corpse);
+      let dx = point.x - corpse.arenaX;
+      let dy = point.y - corpse.arenaY;
+      let distance = Math.hypot(dx, dy);
+      if (distance >= radius) continue;
+      if (distance < 0.001) {
+        dx = unit.arenaX - corpse.arenaX;
+        dy = unit.arenaY - corpse.arenaY;
+        distance = Math.hypot(dx, dy) || 1;
+      }
+      point = { x: corpse.arenaX + dx / distance * radius,
+        y: corpse.arenaY + dy / distance * radius };
+    }
+    return point;
   }
 
   getMeleeApproachPosition(unit, target, time) {
@@ -186,8 +247,9 @@ export default class CombatMovement {
 
   // Apply every pair from the same snapshot, avoiding order-dependent pushes. Held allies yield only to another held ally; their settled anchors move with the small correction so Hold never pulls them back into overlap.
   separate(delta) {
-    const units = this.getUnits();
-    const offsets = new Map(units.map(unit => [unit, { x: 0, y: 0 }]));
+    const living = this.getUnits();
+    const units = [...living, ...this.getCorpses()];
+    const offsets = new Map(living.map(unit => [unit, { x: 0, y: 0 }]));
     const locked = unit => !unit.isEnemy && this.scene.isPositionLocked(unit);
     for (let i = 0; i < units.length; i += 1) {
       for (let j = i + 1; j < units.length; j += 1) {
@@ -201,15 +263,19 @@ export default class CombatMovement {
         const nx = distance > 0.001 ? dx / distance : Math.cos(angle);
         const ny = distance > 0.001 ? dy / distance : Math.sin(angle);
         const push = (spacing - distance) * (1 - Math.exp(-this.config.separationForce * delta));
-        const aLocked = locked(a), bLocked = locked(b);
+        const aLocked = !a.alive || locked(a), bLocked = !b.alive || locked(b);
         const shareA = aLocked && !bLocked ? 0 : bLocked && !aLocked ? 1 : 0.5;
-        offsets.get(a).x += nx * push * shareA;
-        offsets.get(a).y += ny * push * shareA;
-        offsets.get(b).x -= nx * push * (1 - shareA);
-        offsets.get(b).y -= ny * push * (1 - shareA);
+        if (a.alive) {
+          offsets.get(a).x += nx * push * shareA;
+          offsets.get(a).y += ny * push * shareA;
+        }
+        if (b.alive) {
+          offsets.get(b).x -= nx * push * (1 - shareA);
+          offsets.get(b).y -= ny * push * (1 - shareA);
+        }
       }
     }
-    for (const unit of units) {
+    for (const unit of living) {
       if (this.scene.time?.now < Math.max(unit.status?.rootedUntil ?? 0, unit.status?.stunnedUntil ?? 0)) continue;
       const offset = offsets.get(unit);
       const length = Math.hypot(offset.x, offset.y);

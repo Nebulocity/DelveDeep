@@ -7,6 +7,11 @@ const names = [
 ].filter(name => fs.existsSync(`assets/characters/${name}/reference-v2/sheets/layout.json`));
 const directions = ['south-east', 'south-west', 'north-east', 'north-west'];
 const timings = { idle: 150, walk: 75, attack: 70, block: 85, hit: 60, death: 110 };
+
+// Tika's later front-facing idle frames contain a bright baked-in pan trail.
+const frameOverrides = {
+  tika: { idle: { 'south-east': [0, 1, 1, 0] } },
+};
 const facing = {
   south: 'south-east', 'south-east': 'south-east', east: 'south-east',
   'south-west': 'south-west', west: 'south-west', north: 'north-east',
@@ -34,9 +39,10 @@ for (const name of names) {
       if (!Number.isInteger(count) || count < 4 || count > sheet.columns) {
         throw new Error(`Incomplete animation: ${name}/${state}/${direction}`);
       }
+      const columns = frameOverrides[name]?.[state]?.[direction] ?? Array.from({ length: count }, (_, column) => column);
       return [direction, {
         frameMs,
-        frames: Array.from({ length: count }, (_, column) => ({
+        frames: columns.map(column => ({
           key, frame: row * sheet.columns + column,
           originX: 0.5, originY: 238 / 256, flipX: false,
         })),

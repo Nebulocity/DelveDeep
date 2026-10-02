@@ -10,14 +10,32 @@ for (const state of ['idle','walk']) {
   }]));
 }
 const image = {
-  setScale(value){this.scale=value;return this;},
+  width: 192, height: 192,
+  setScale(x,y=x){this.scaleX=x;this.scaleY=y;return this;},
+  setPosition(x,y){this.x=x;this.y=y;return this;},
+  setAlpha(value){this.alpha=value;return this;},
   setTexture(key,frame){this.key=key;this.frame=frame;return this;},
-  setOrigin(x,y){this.origin=[x,y];return this;},
+  setOrigin(x,y){this.origin=[x,y];this.originX=x;this.originY=y;return this;},
   setFlipX(value){this.flipX=value;return this;},
   clearTint(){this.cleared=true;return this;}
 };
 const unit = {arenaX:10,arenaY:10,moveSpeed:140,alive:true,scene:{add:{image:()=>image}}};
 const visual = new UnitSprite(unit,definition);
+const hitZone = {
+  setSize(width,height){this.width=width;this.height=height;return this;},
+  setPosition(x,y){this.x=x;this.y=y;return this;}
+};
+unit.hitZone = hitZone;
+visual.syncHitZone();
+assert.equal(hitZone.width,288);
+assert.equal(hitZone.height,288);
+assert.equal(hitZone.y,30 + (0.5 - 0.9) * 288);
+image.setPosition(7,25).setScale(2,1);
+visual.syncHitZone();
+assert.equal(hitZone.width,384);
+assert.equal(hitZone.height,192);
+assert.equal(hitZone.x,7);
+assert.equal(hitZone.y,25 + (0.5 - 0.9) * 192);
 assert.equal(image.key,'idle-south-east-0');
 unit.arenaX+=4;visual.update(32);assert.equal(image.key,'walk-east-0');
 for(let i=0;i<4;i++){unit.arenaX+=4;visual.update(32);}
@@ -50,6 +68,9 @@ unit.scene.combatPaused=true;visual.update(500);assert.equal(image.key,'attack-w
 unit.scene.combatPaused=false;visual.update(200);assert.equal(image.key,'idle-west-0');
 visual.play('hit');visual.update(110);visual.play('hit');
 assert.equal(image.key,'hit-west-1','repeated hits do not restart reaction');
+visual.reset();unit.scene.waveTransitioning=true;unit.scene.waveRetreating=false;
+visual.update(110);assert.equal(image.key,'idle-west-1','idle continues during the wave countdown');
+unit.scene.waveTransitioning=false;
 visual.play('death');unit.alive=false;unit.scene.battleOver=true;
 visual.update(500);assert.equal(image.key,'death-west-2');
 visual.play('attack');visual.update(500);assert.equal(image.key,'death-west-2');

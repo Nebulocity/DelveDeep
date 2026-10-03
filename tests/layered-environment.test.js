@@ -7,9 +7,10 @@ const env = slimeCave.visuals.environment;
 assert.equal(slimeCave.id, 'slime-cave', 'Saved progression keeps the same location ID');
 assert.equal(slimeCave.depth, 1);
 assert.equal(slimeCave.difficulty, 'Easy');
-for (const asset of [...env.layers, env.ambient]) {
+for (const asset of env.layers) {
   assert.ok(fs.existsSync(new URL(asset.url)), `Missing level asset: ${asset.key}`);
 }
+assert.equal(env.pixelArt, true);
 for (const [width, height] of [[2400, 1080], [960, 432]]) {
   const t = getEnvironmentTransform(env, width, height);
   const floor = getEnvironmentFloor(env, width, height);
@@ -20,11 +21,24 @@ for (const [width, height] of [[2400, 1080], [960, 432]]) {
   assert.ok(floor.topY < floor.bottomY);
   assert.ok(floor.bottomY < height * 0.78, 'Floor remains above party HUD');
 }
-assert.ok(env.layers.find(l => l.key.endsWith('foreground')).depth > 4000);
-assert.ok(env.layers.find(l => l.key.endsWith('foreground')).depth < 4500);
-for (const region of env.ambient.regions) {
-  assert.ok(region.y >= env.ambient.sourceY, 'Do not expose the old flickering ceiling');
-  assert.ok(region.x >= 0 && region.x + region.width <= env.width);
-  assert.ok(region.y + region.height <= env.height);
+assert.ok(env.layers.some(layer => layer.key === env.foreground.sourceKey));
+assert.ok(env.foreground.depth > 4000 && env.foreground.depth < 4500);
+for (const polygon of env.foreground.polygons) {
+  assert.ok(polygon.length >= 3);
+  for (const [x, y] of polygon) {
+    assert.ok(x >= 0 && x <= env.width);
+    assert.ok(y >= 0 && y <= env.height);
+  }
 }
+for (const pool of env.pixelEffects.pools) {
+  assert.ok(pool.x >= 0 && pool.x + pool.width <= env.width);
+  assert.ok(pool.y >= 0 && pool.y <= env.height);
+}
+for (const effect of [...env.pixelEffects.crystals, ...env.pixelEffects.rockSlime,
+  ...env.pixelEffects.mushrooms]) {
+  assert.ok(effect.x >= 0 && effect.x <= env.width);
+  assert.ok(effect.y >= 0 && effect.y <= env.height);
+}
+assert.ok(env.pixelEffects.rockSlime.some(slime => slime.depth > env.foreground.depth));
+assert.ok(env.pixelEffects.mushrooms.length >= 2);
 console.log('Layered environment assets, projection and progression checks passed.');

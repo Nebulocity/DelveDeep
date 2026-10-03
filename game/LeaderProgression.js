@@ -6,7 +6,6 @@ export const leaderAbilities = [
   { id: 'coordinatedAssault', category: 'Assault', name: 'Coordinated Assault', shortName: 'ASSAULT', branch: 'Command', description: 'All allies deal 20% more damage for 8 seconds.', cost: 1, cooldown: 24000, duration: 8000, damageBonus: 0.2 },
   { id: 'encouragement', category: 'Restore', name: 'Encouragement', shortName: 'ENCOURAGE', branch: 'Morale', description: 'Restore 25% maximum health to every living ally.', cost: 1, cooldown: 20000, healFraction: 0.25 },
   { id: 'brace', category: 'Protect', name: 'Brace!', shortName: 'BRACE!', branch: 'Survival', description: 'All allies take 30% less damage for 8 seconds.', cost: 1, cooldown: 24000, duration: 8000, damageReduction: 0.3 },
-  { id: 'preparedSupplies', category: 'Prepare', name: 'Prepared Supplies', shortName: 'SUPPLIES', branch: 'Logistics', description: 'Add one Healing Tonic. Once per encounter.', cost: 1, oncePerEncounter: true, tonicAmount: 1 },
   { id: 'arise', category: 'Restore', name: 'Arise!', shortName: 'ARISE!', branch: 'Survival', description: 'Revive all fallen allies at 50% HP and mana. Once per encounter.', cost: 2, oncePerEncounter: true, healthFraction: 0.5, manaFraction: 0.5 }
 ];
 
@@ -36,16 +35,19 @@ export function loadLeaderProgression() {
     // writing only the new TP fields on the next save.
     const { inspirationPoints, spentInspiration, ...progress } = saved;
     const known = new Set(leaderAbilities.map((ability) => ability.id));
+    const removedSupplies = saved.unlockedAbilities?.includes('preparedSupplies') === true;
     const unlocked = Array.from(new Set(['focusFire', ...(saved.unlockedAbilities ?? [])]))
       .filter((id) => known.has(id));
-    return {
+    const leader = {
       ...fallback,
       ...progress,
-      tacticsPoints: Math.max(0, saved.tacticsPoints ?? inspirationPoints ?? 0),
-      spentTacticsPoints: Math.max(0, saved.spentTacticsPoints ?? spentInspiration ?? 0),
+      tacticsPoints: Math.max(0, saved.tacticsPoints ?? inspirationPoints ?? 0) + (removedSupplies ? 1 : 0),
+      spentTacticsPoints: Math.max(0, (saved.spentTacticsPoints ?? spentInspiration ?? 0) - (removedSupplies ? 1 : 0)),
       unlockedAbilities: unlocked,
       battleLoadout: Array.from(new Set(saved.battleLoadout ?? ['focusFire'])).filter((id) => unlocked.includes(id)).slice(0, 5)
     };
+    if (removedSupplies) saveLeaderProgression(leader);
+    return leader;
   } catch (error) {
     console.warn('Could not load Battle Tactics progression.', error);
     return fallback;

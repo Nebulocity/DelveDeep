@@ -60,14 +60,12 @@ Mana belongs in the bottom character / party UI, not floating over characters on
 - A hold opens details without also performing the normal tap action.
 - Dragging away, releasing, leaving the game, or changing scenes cancels a pending hold.
 - Combat pauses while selection details are open and restores its previous pause state on dismissal.
-- While Healing Tonics are in stock, the encounter HUD shows their count, a centered green healing hint below the battlefield, and a TONIC button below each character portrait. Unavailable uses are dimmed. At zero stock these controls are hidden; restocking restores them with a brief pulse on the hint and buttons.
 
 - Tapping a unit selects it.
 - Tapping the currently selected unit again should toggle it off / deselect it.
 - Tapping arbitrary battlefield space should not automatically cause the entire party to move unless that is the active command.
 - The bottom status card for each party member is a generous individual
   selection target: tapping its portrait, name, or class selects that member.
-  The separate TONIC button remains reserved for healing.
 
 ## World Map
 
@@ -92,7 +90,6 @@ Developer/testing UI should:
 - Clearly distinguish destructive actions.
 - Support progress clearing.
 - Support unlock-all / testing mode behavior.
-- Include a control to add a Void Key.
-- Arrange controls in labeled rows for Dev mode, leader levels (+1/+5), Void Keys (+1/+5), gold (+100/+500), battlefield grid lines (on/off), and progress reset, with a separate Close button.
+- Arrange controls in labeled rows for Dev mode, leader levels (+1/+5), gold (+100/+500), battlefield grid lines (on/off), and progress reset, with a separate Close button.
 - Never shade the battlefield floor. Hide the battlefield border with the grid lines while keeping tile interaction active. Save the grid preference with the profile and show grid lines for older saves without that preference.
 - Replace the previous Dev Tools feedback toast when another action is tapped before it fades.

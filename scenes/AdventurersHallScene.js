@@ -7,7 +7,7 @@ import { addReturnButton } from '../ui/ReturnButton.js';
 
 const DESTINATIONS = [
   { label: 'ADVENTURERS', subtitle: 'Meet your party', scene: 'RosterScene', description: 'Browse adventurers, their equipment, stats, and battle abilities.' },
-  { label: 'ITEMS', subtitle: 'Supplies and inventory', scene: 'ItemsScene', description: 'View armor, items, materials, weapons, and Void Keys.' },
+  { label: 'ITEMS', subtitle: 'Inventory', scene: 'ItemsScene', description: 'View equipment and other items when they become available.' },
   { label: 'TACTICS', subtitle: 'Plan your next battle', scene: 'RaidLeaderScene', description: 'Spend TP to unlock tactics, then equip up to five for combat.' }
 ];
 

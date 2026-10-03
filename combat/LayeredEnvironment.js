@@ -1,4 +1,9 @@
-// All artwork, video patches and the tactical grid share one camera-space transform.
+import { createPixelEnvironmentEffects } from './PixelEnvironmentEffects.js';
+import { createForestEnvironmentEffects } from './ForestEnvironmentEffects.js';
+import { createVoidEnvironmentEffects } from './VoidEnvironmentEffects.js';
+import { createDenEnvironmentEffects } from './DenEnvironmentEffects.js';
+
+// All artwork, ambient effects and the tactical grid share one camera-space transform.
 export function getEnvironmentTransform(environment, width, height) {
   const scale = Math.min(width / environment.width, height / environment.height);
   return { scale, x: (width - environment.width * scale) / 2,
@@ -25,8 +30,33 @@ export function preloadEnvironment(scene, environment) {
 export function createEnvironment(scene, environment) {
   const { width, height } = scene.scale;
   const t = getEnvironmentTransform(environment, width, height);
+  if (environment.pixelArt) {
+    for (const layer of environment.layers) scene.textures.get(layer.key).setFilter(1);
+  }
   const layers = environment.layers.map(layer => scene.add.image(t.x, t.y, layer.key)
     .setOrigin(0).setScale(t.scale).setDepth(layer.depth));
+  let foreground;
+  let foregroundMask;
+  let foregroundShape;
+  if (environment.foreground) {
+    const source = environment.layers.find(layer => layer.key === environment.foreground.sourceKey);
+    foregroundShape = scene.make.graphics({ x: 0, y: 0, add: false });
+    foregroundShape.fillStyle(0xffffff);
+    for (const polygon of environment.foreground.polygons) {
+      foregroundShape.fillPoints(polygon.map(([x, y]) => ({ x: t.x + x * t.scale,
+        y: t.y + y * t.scale })), true);
+    }
+    foregroundMask = foregroundShape.createGeometryMask();
+    foreground = scene.add.image(t.x, t.y, source.key).setOrigin(0).setScale(t.scale)
+      .setDepth(environment.foreground.depth).setMask(foregroundMask);
+  }
+  const effects = environment.denEffects
+    ? createDenEnvironmentEffects(scene, environment.denEffects, t)
+    : environment.voidEffects
+      ? createVoidEnvironmentEffects(scene, environment.voidEffects, t)
+      : environment.forestEffects
+        ? createForestEnvironmentEffects(scene, environment.forestEffects, t)
+        : createPixelEnvironmentEffects(scene, environment.pixelEffects, t);
   const a = environment.ambient;
   let video;
   let mask;
@@ -53,6 +83,9 @@ export function createEnvironment(scene, environment) {
     video?.clearMask();
     mask?.destroy();
     maskShape?.destroy();
+    foreground?.clearMask();
+    foregroundMask?.destroy();
+    foregroundShape?.destroy();
   });
-  return { layers, video, transform: t };
+  return { layers, foreground, effects, video, transform: t };
 }

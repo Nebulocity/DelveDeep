@@ -21,8 +21,7 @@ export default class TownScene extends Phaser.Scene {
   }
 
   // This function builds the current town screen with its name, currencies,
-  // and four facility cards. The Hall and Blacksmith have their own screens;
-  // other destinations currently use the shared facility placeholder.
+  // and four facility cards.
   create() {
 
     const { width, height } = this.scale;
@@ -53,7 +52,7 @@ export default class TownScene extends Phaser.Scene {
     const labels = [
       ["ADVENTURER'S HALL", 'Adventurers, gear, items, tactics', 'AdventurersHallScene'],
       ['ALCHEMIST', 'Potions and mixtures', 'Alchemist'],
-      ['BLACKSMITH', 'Buy, sell, and craft gear', 'BlacksmithScene'],
+      ['BLACKSMITH', 'Equipment shop', 'BlacksmithScene'],
       ['ENCHANTER', 'Arcane improvements', 'Enchanter']
     ];
 
@@ -63,11 +62,10 @@ export default class TownScene extends Phaser.Scene {
     labels.forEach(([label, subtitle, target], index) => this.createButton(startX + gap * index, height * 0.58, label, subtitle, target));
   }
 
-  // This function shows the gold and Void Keys available during this town
-  // visit.
+  // This function shows the gold available during this town visit.
   createHeader(width) {
 
-    this.add.text(width - 72, this.headerY, `Gold: ${GameState.gold}   Void Keys: ${GameState.inventory.voidKeys ?? 0}`, {
+    this.add.text(width - 72, this.headerY, `Gold: ${GameState.gold}`, {
       fontFamily: 'Arial', fontSize: '34px', color: '#fbbf24'
     }).setOrigin(1, 0.5);
   }
@@ -91,6 +89,6 @@ export default class TownScene extends Phaser.Scene {
       if (['AdventurersHallScene', 'BlacksmithScene'].includes(target)) this.scene.start(target);
       else this.scene.start('FacilityScene', { title: target, townName: this.townName });
     });
-    bindSelectionDetails(this, button, { title: label, description: subtitle + (target === 'AdventurersHallScene' ? '. Browse adventurers, equip gear and abilities, inspect inventory, and choose tactics.' : target === 'BlacksmithScene' ? '. Purchase class equipment and crafting supplies, sell unequipped items, or craft from starter recipes.' : '. This feature is planned and is not yet available.') });
+    bindSelectionDetails(this, button, { title: label, description: subtitle + (target === 'AdventurersHallScene' ? '. Browse adventurers, inspect equipment slots and abilities, and choose tactics.' : target === 'BlacksmithScene' ? '. Browse the buy, sell, and craft counters.' : target === 'Alchemist' ? '. Browse potions, supplies, and brewing.' : '. Browse enchantments and arcane wares.') });
   }
 }

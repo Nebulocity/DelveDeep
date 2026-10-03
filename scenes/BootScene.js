@@ -7,6 +7,9 @@ import { loadProfile } from '../game/GameStorage.js';
 import worldMapUrl from '../assets/screens/map.png?url';
 import townUrl from '../assets/screens/town.png?url';
 import adventurersHallUrl from '../assets/screens/adventurerhall.png?url';
+import alchemistUrl from '../assets/screens/alchemist.png?url';
+import blacksmithUrl from '../assets/screens/blacksmith.png?url';
+import enchanterUrl from '../assets/screens/enchanter.png?url';
 import { trackLoading } from '../ui/LoadingScreen.js';
 
 export default class BootScene extends Phaser.Scene {
@@ -25,6 +28,9 @@ export default class BootScene extends Phaser.Scene {
     this.load.image('world-map', worldMapUrl);
     this.load.image('town', townUrl);
     this.load.image('adventurers-hall', adventurersHallUrl);
+    this.load.image('alchemist', alchemistUrl);
+    this.load.image('blacksmith', blacksmithUrl);
+    this.load.image('enchanter', enchanterUrl);
   }
 
   // This function restores the session and enters the world map in landscape.
@@ -57,13 +63,12 @@ export default class BootScene extends Phaser.Scene {
     GameState.currentRoom = 0;
     GameState.rewards = [];
 
-    // Seed the snapshots used to compare and roll back run resources.
+    // Seed the snapshot used to roll back run gold.
     GameState.run = {
       startedAt: 0,
       elapsedMs: 0,
       summary: null,
-      startingGold: GameState.gold,
-      startingInventory: { ...GameState.inventory }
+      startingGold: GameState.gold
     };
   }
 }

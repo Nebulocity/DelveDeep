@@ -510,29 +510,18 @@ function fallenUnit(id, maxMana) {
   assert.equal(battle.usedLeaderAbilities.size, 0);
 }
 
-// Paused choices remain interactive: orders set their state immediately and
-// valid tactics wait until resume before changing encounter resources.
+// Paused choices remain interactive: orders set their state immediately.
 {
   const ally = unit('ally', 'Healer');
   ally.hp = 50;
   ally.maxHp = 100;
   const battle = scene([ally], []);
-  context.GameState.leader = { unlockedAbilities: ['preparedSupplies'], battleLoadout: ['preparedSupplies'] };
-  context.GameState.inventory = { healingTonic: 0 };
   battle.usedLeaderAbilities = new Set();
   battle.leaderAbilityCooldowns = new Map();
   battle.combatPaused = true;
   battle.selectedUnitIds.add(ally.id);
   battle.armCommand('HOLD');
   assert.equal(battle.heldUnitIds.has(ally.id), true);
-  battle.useLeaderAbility('preparedSupplies');
-  assert.equal(battle.pendingPausedTactics.length, 1);
-  assert.equal(battle.pendingPausedTactics[0], 'preparedSupplies');
-  assert.equal(context.GameState.inventory.healingTonic, 0);
-  battle.combatPaused = false;
-  battle.flushPausedTactics();
-  assert.equal(context.GameState.inventory.healingTonic, 1);
-  assert.equal(battle.pendingPausedTactics.length, 0);
 }
 
 // A healer-only selection assigns an ally healing priority, clears a stale
@@ -574,7 +563,7 @@ function fallenUnit(id, maxMana) {
   Object.assign(battle, {
     usedLeaderAbilities: new Set(), leaderAbilityCooldowns: new Map(),
     updatePartyUnit() {}, updateEnemies() {},
-    updateHud() {}, updateTonicHud() {},
+    updateHud() {},
     finishDefeat() { battle.defeated = true; }
   });
   ally.clampToBattlefield = () => {};
@@ -632,86 +621,6 @@ function fallenUnit(id, maxMana) {
   assert.equal(boss.pendingAction, null);
   assert.equal(battle.activeTelegraphs.length, 0);
   assert.deepEqual(durations, [100, 260]);
-}
-
-// Manual tonic use targets only the chosen injured ally and never wastes stock.
-{
-  const first = unit('first', 'Tank');
-  const second = unit('second', 'Healer');
-  for (const ally of [first, second]) {
-    ally.hp = 20;
-    ally.maxHp = 100;
-    ally.updateHealthBar = () => {};
-    ally.flash = () => {};
-  }
-  const battle = scene([first, second], []);
-  battle.lastTonicUseAt = -Infinity;
-  battle.createFloatingText = () => {};
-  battle.updateHud = () => {};
-  context.GameState.inventory = { healingTonic: 3 };
-  assert.equal(battle.useHealingTonic(first, 0), true);
-  assert.equal(first.hp, 55);
-  assert.equal(second.hp, 20);
-  assert.equal(context.GameState.inventory.healingTonic, 2);
-  assert.equal(second.hp, 20);
-  assert.equal(battle.useHealingTonic(second, 1499), false);
-  assert.equal(battle.useHealingTonic(second, 1500), true);
-  assert.equal(second.hp, 55);
-  assert.equal(context.GameState.inventory.healingTonic, 1);
-  first.hp = 100;
-  assert.equal(battle.useHealingTonic(first, 3000), false);
-  first.hp = 0;
-  first.alive = false;
-  assert.equal(battle.useHealingTonic(first, 3000), false);
-  battle.combatPaused = true;
-  assert.equal(battle.useHealingTonic(second, 3000), false);
-  battle.combatPaused = false;
-  second.hp = 90;
-  assert.equal(battle.useHealingTonic(second, 3000), true);
-  assert.equal(second.hp, 100);
-  assert.equal(context.GameState.inventory.healingTonic, 0);
-  second.hp = 20;
-  assert.equal(battle.useHealingTonic(second, 4500), false);
-}
-
-// Empty stock hides and disables controls; restocking pulses once and settles.
-{
-  const element = () => ({
-    input: { enabled: true },
-    setVisible(value) { this.visible = value; return this; },
-    setAlpha(value) { this.alpha = value; return this; },
-    setText(value) { this.text = value; return this; },
-    setFillStyle() { return this; }
-  });
-  const battle = scene([], []);
-  const tonicButton = element(), tonicLabel = element();
-  battle.tonicHintText = element();
-  battle.tonicCountText = element();
-  battle.partyHud = [{ unit: {}, tonicButton, tonicLabel }];
-  battle.canUseHealingTonic = () => true;
-  context.GameState.inventory = { healingTonic: 0 };
-  battle.updateTonicHud();
-  assert.equal(battle.tonicHintText.visible, false);
-  assert.equal(tonicButton.input.enabled, false);
-  context.GameState.inventory.healingTonic = 1;
-  battle.updateTonicHud();
-  assert.equal(tonicButton.visible, true);
-  assert.equal(tonicLabel.visible, true);
-  assert.equal(tonicButton.input.enabled, true);
-  battle.time.now = 250;
-  battle.updateTonicHud();
-  assert.ok(tonicButton.alpha < 1);
-  assert.ok(battle.tonicHintText.alpha < 1);
-  battle.time.now = 1600;
-  battle.updateTonicHud();
-  assert.equal(tonicButton.alpha, 1);
-  context.GameState.inventory.healingTonic = 0;
-  battle.updateTonicHud();
-  assert.equal(tonicLabel.visible, false);
-  assert.equal(tonicButton.input.enabled, false);
-  context.GameState.inventory.healingTonic = 2;
-  battle.updateTonicHud();
-  assert.equal(battle.tonicFlashUntil, 3100);
 }
 
 console.log('Battle behavior checks passed.');
@@ -875,7 +784,7 @@ console.log('Battle behavior checks passed.');
   assert.equal(battle.pendingWaveSpawns.length, 0);
 }
 
-// Clearing a wave restores only living allies below half HP without using tonics.
+// Clearing a wave restores only living allies below half HP.
 {
   const low = unit('low', 'Tank');
   const healthy = unit('healthy', 'Healer');
@@ -888,12 +797,10 @@ console.log('Battle behavior checks passed.');
   battle.currentWaveIndex = 0;
   battle.updateHud = () => {};
   battle.tweens = { add() {} };
-  context.GameState.inventory = { healingTonic: 2 };
   battle.completeWave();
   assert.equal(low.hp, 51);
   assert.equal(healthy.hp, 72);
   assert.equal(fallen.hp, 0);
-  assert.equal(context.GameState.inventory.healingTonic, 2);
   battle.completeWave();
   assert.equal(low.hp, 51, 'repeated completion cannot heal again');
 }

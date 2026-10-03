@@ -11,11 +11,10 @@ export function beginExpedition() {
   GameState.run.elapsedMs = 0;
   GameState.run.summary = null;
   GameState.run.startingGold = GameState.gold;
-  GameState.run.startingInventory = structuredClone(GameState.inventory);
 }
 
 // This function applies a successful expedition to persistent progression. It
-// awards party experience and happiness, checks Void Key rewards, updates
+// awards party experience and happiness, updates
 // clear records and map discoveries, advances the Raid Leader, and saves a
 // summary for the reward screen.
 export function completeExpedition() {
@@ -51,19 +50,6 @@ export function completeExpedition() {
   const isNewBest = elapsedMs > 0 && (previousBest == null || elapsedMs < previousBest);
   const depth = GameState.currentDelve?.depth ?? 1;
 
-  // Normal delves guarantee a key every fifth depth; other normal depths have
-  // a random key chance. Void runs do not award keys here.
-  let voidKeysAwarded = 0;
-  if (GameState.currentDelve?.type !== 'void') {
-    const milestoneKey = depth % 5 === 0;
-    const luckyKey = !milestoneKey && Math.random() < 0.20;
-    if (milestoneKey || luckyKey) {
-      voidKeysAwarded = 1;
-      GameState.inventory.voidKeys = (GameState.inventory.voidKeys ?? 0) + 1;
-      GameState.rewards.push({ type: 'voidKey', amount: 1, label: 'Void Key' });
-    }
-  }
-
   // Save the clear count, best time, and a copy of the latest reward list for
   // map reviews.
   GameState.records[delveId] = {
@@ -82,7 +68,8 @@ export function completeExpedition() {
     'slime-cave': ['thornbriar-hollow'],
     'thornbriar-hollow': ['duskfall'],
     'dolmark-den': [],
-    'murmuring-abyss': []
+    'murmuring-abyss': [],
+    'vibrant-tear': []
   };
   (revealMap[delveId] ?? []).forEach((id) => {
 
@@ -97,8 +84,7 @@ export function completeExpedition() {
     elapsedMs,
     isNewBest,
     adventurers: adventurerResults,
-    leaderResult,
-    voidKeysAwarded
+    leaderResult
   };
   saveProfile();
   return GameState.run.summary;
@@ -121,16 +107,13 @@ export function failExpedition() {
   saveProfile();
 }
 
-// This function handles retreat by restoring gold and inventory to their
-// starting snapshots and discarding run rewards. It deducts up to one
+// This function handles retreat by restoring gold and discarding run rewards. It deducts up to one
 // Tactics Points from the leader, saves the changes, and builds the retreat
 // summary.
 export function fleeExpedition() {
 
-  // Restore the resource snapshots from the start of the run, including the
-  // original inventory quantities.
+  // Restore gold from the start of the run.
   GameState.gold = GameState.run.startingGold ?? GameState.gold;
-  if (GameState.run.startingInventory) GameState.inventory = structuredClone(GameState.run.startingInventory);
   GameState.rewards = [];
   GameState.currentRoom = 0;
 

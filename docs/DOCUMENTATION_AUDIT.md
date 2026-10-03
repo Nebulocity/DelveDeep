@@ -26,7 +26,7 @@ Audited 2026-09-30 on branch `0.1.2-3dSprites`. This is a map of the material th
 
 - `PROJECT_CONTEXT.md` describes current tank roster including Gladiator, and `data/classes.js` confirms Gladiator is a Tank. Older README combat prose described generic tank taunts; current abilities are defined per class in `data/classes.js`. Treat class data and `CLASS_ABILITIES.md` as the tuning source.
 - Dawnwarden's Challenge, Defiant Stance, Sanctity Nova and Sunbrand Strike descriptions match `data/classes.js`; no class-name conflict was found there. Detailed values are duplicated across `CLASS_ABILITIES.md` and `COMBAT_SYSTEM.md`, so future tuning should update both or consolidate the values.
-- `TODO.md` calls for features already present in source (for example the dev controls and per-character tonic HUD). Remaining physical Android layout and interaction checks are unverified, not confirmed defects.
+- `TODO.md` calls for features already present in source (for example the dev controls). The former per-character tonic HUD has since been retired in favor of potion pack slots. Remaining physical Android layout and interaction checks are unverified, not confirmed defects.
 - The Blender authoring source is local and intentionally outside Git. Its exact camera transform and export procedure are being checked in a separate chat; do not infer them from the Phaser floor coordinates.
 - `docs/` and `AGENTS.md` were ignored by the current `.gitignore`, so local documentation was absent from fresh clones. This cleanup force-adds the selected authoritative files to Git without changing the other session's uncommitted `.gitignore` edit.
 

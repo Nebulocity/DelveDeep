@@ -71,10 +71,10 @@ function tap(label, y) {
 const panelTop = (1080 - 850) / 2;
 const row = (index) => panelTop + 180 + index * 105;
 const primaryButtons = [
-  getButton('OFF', row(0)), getButton('+1', row(1)), getButton('+1', row(2)),
-  getButton('+100', row(3)), getButton('ON', row(4)), getButton('RESET', row(5))
+  getButton('OFF', row(0)), getButton('+1', row(1)), getButton('+100', row(2)),
+  getButton('ON', row(3)), getButton('RESET', row(4))
 ];
-const secondaryButtons = [getButton('+5', row(1)), getButton('+5', row(2)), getButton('+500', row(3))];
+const secondaryButtons = [getButton('+5', row(1)), getButton('+500', row(2))];
 const closeButton = getButton('CLOSE', panelTop + 850 - 52);
 assert.ok(primaryButtons.every((button) => button.x === primaryButtons[0].x));
 assert.ok(secondaryButtons.every((button) => button.x > primaryButtons[0].x + primaryButtons[0].value));
@@ -82,27 +82,22 @@ assert.ok([...primaryButtons, ...secondaryButtons, closeButton].every((button) =
 assert.equal(closeButton.x, scene.scale.width / 2);
 assert.equal(getButton('OFF', row(0)).color, 0x08192e);
 assert.equal(getButton('+1', row(1)).color, 0x0e9c4b);
-assert.equal(getButton('+1', row(2)).color, 0x4c0975);
-assert.equal(getButton('+100', row(3)).color, 0xb38c0c);
-assert.equal(getButton('ON', row(4)).color, 0xebed53);
+assert.equal(getButton('+100', row(2)).color, 0xb38c0c);
+assert.equal(getButton('ON', row(3)).color, 0xebed53);
 tap('+1', row(1));
 tap('+5', row(1));
 assert.equal(GameState.leader.level, 7);
-tap('+1', row(2));
-tap('+5', row(2));
-assert.equal(GameState.inventory.voidKeys, 6);
-tap('+100', row(3));
-tap('+500', row(3));
+tap('+100', row(2));
+tap('+500', row(2));
 assert.equal(GameState.gold, 600);
-assert.match(scene.currencyText.value, /Gold: 600   Void Keys: 6/);
-tap('ON', row(4));
+assert.match(scene.currencyText.value, /Gold: 600/);
+tap('ON', row(3));
 assert.equal(GameState.development.showGridLines, false);
-assert.equal(getButton('OFF', row(4)).color, 0x4e4f19);
+assert.equal(getButton('OFF', row(3)).color, 0x4e4f19);
 assert.equal(JSON.parse(storage.get('delveDeep.profile.v2')).development.showGridLines, false);
 loadProfile(adventurers);
 assert.equal(GameState.development.showGridLines, false);
 assert.equal(GameState.gold, 600);
-assert.equal(GameState.inventory.voidKeys, 6);
 
 storage.set('delveDeep.profile.v2', JSON.stringify({ development: {} }));
 loadProfile(adventurers);

@@ -61,17 +61,11 @@ Player-character health should be clearly readable through the intended characte
 
 Avoid unnecessary duplicate bars that clutter the battlefield.
 
-## Healing Tonics
+## Potions
 
-Each party HUD portrait has a TONIC button for healing that character.
-The shared inventory count appears above the party HUD. Manual use restores
-35% maximum HP and requires a living, injured party member. It cannot spend
-stock while paused, between waves, or after the encounter ends.
-
-Tonics are only used when the player taps a button. Uses share a 1.5-second
-cooldown and the same saved inventory. Between waves, living party members
-below 50% HP recover to 50% HP without using tonics.
-Holding a tonic button shows its rules without consuming a tonic.
+Characters have an individual potion pack slot with up to three uses. Potion
+effects and combat use await the new item catalog. Between waves, living party
+members below 50% HP recover to 50% HP without spending items.
 
 ## Mana
 
@@ -107,11 +101,11 @@ separate rows for the title, guidance, wave status, and tactics heading.
 - Coordinated Assault: 20% more party damage for 8 seconds.
 - Encouragement: restore 25% maximum health to living allies.
 - Brace!: 30% less incoming damage for 8 seconds.
-- Prepared Supplies: add one Healing Tonic, once per encounter.
 - Arise!: revive every fallen ally at half maximum health and mana, once
   per encounter. Class cooldowns and once-per-delve usage remain spent.
 
-Arise costs 2 TP to unlock; Focus Fire is free; other tactics cost 1 TP.
+Arise costs 2 TP to unlock; Focus Fire is free; other current tactics cost 1 TP.
+Prepare remains a category with no current tactic.
 An equipped, unused Arise remains available after a full party wipe.
 Using Arise with no fallen allies does not consume it.
 

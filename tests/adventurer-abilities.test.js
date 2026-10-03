@@ -6,8 +6,7 @@ import adventurers from '../data/adventurers.js';
 import { loadProfile, saveProfile } from '../game/GameStorage.js';
 import { battleAbilities, purchaseAdventurerAbility, toggleAdventurerAbility } from '../game/AdventurerAbilities.js';
 import { abilityEntries, abilityGoldCost, abilityLevelRequired, MAX_ABILITY_RANK, MAX_EQUIPPED_ABILITIES } from '../game/AdventurerAbilities.js';
-import { equippedItem, getEquippedAdventurer, ownedEquipment, equipmentOwner, equipItem, unequipItem } from '../game/Equipment.js';
-import { EQUIPMENT_BY_ID, ITEM_RARITIES, equipmentDetails, equipmentStatsText } from '../data/items.js';
+import { equippedItem, getEquippedAdventurer, ownedEquipment, equipmentOwner, equipItem, unequipItem, equipmentStatsText } from '../game/Equipment.js';
 import { happinessLabel, xpRequired } from '../game/AdventurerProgression.js';
 
 const storage = new Map();
@@ -73,10 +72,10 @@ const source = fs.readFileSync(new URL('../scenes/RosterScene.js', import.meta.u
 const context = vm.createContext({
   Phaser: { Scene, Math: { Clamp: (value, min, max) => Math.max(min, Math.min(max, value)) } }, GameState,
   equippedItem, getEquippedAdventurer, ownedEquipment, equipmentOwner, equipItem, unequipItem,
-  EQUIPMENT_BY_ID, ITEM_RARITIES, equipmentDetails, equipmentStatsText,
+  equipmentStatsText,
   abilityEntries, abilityGoldCost, abilityLevelRequired, MAX_ABILITY_RANK, MAX_EQUIPPED_ABILITIES,
   purchaseAdventurerAbility, toggleAdventurerAbility, happinessLabel, xpRequired,
-  saveProfile, bindSelectionDetails() {}, showConfirmation() {}, addHallBackground() {},
+  saveProfile, bindSelectionDetails() {}, showConfirmation() {}, addHallBackground() {}, addReturnButton() {},
   HapticsService: { tap() {}, confirm() {} }, UI_SAFE_TOP: 132
 });
 vm.runInContext(source, context);

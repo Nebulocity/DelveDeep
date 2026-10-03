@@ -1,7 +1,6 @@
 import HapticsService from '../services/HapticsService.js';
 
 export const DETAILS_HINT = 'Long-press or hold-click a selection for details.';
-export const TONIC_DESCRIPTION = 'Restores 35% maximum HP to a living, injured ally. Tap their TONIC button in combat. Tonics are used only when you choose. All tonics share a 1.5-second cooldown.';
 
 export function addDetailsHint(scene, y, text = DETAILS_HINT) {
   const hall = isHallMenu(scene);
@@ -12,7 +11,7 @@ export function addDetailsHint(scene, y, text = DETAILS_HINT) {
 }
 
 function isHallMenu(scene) {
-  return ['AdventurersHallScene', 'RosterScene', 'ItemsScene', 'RaidLeaderScene']
+  return ['AdventurersHallScene', 'RosterScene', 'ItemsScene', 'RaidLeaderScene', 'FacilityScene', 'BlacksmithScene']
     .includes(scene.scene?.key);
 }
 
@@ -30,7 +29,7 @@ export function characterDetails(unit) {
 }
 
 export function delveDetails(delve) {
-  return { title: delve.name, description: `${delve.subtitle}\n\n${delve.difficulty} | Recommended level ${delve.recommendedLevel} | ${delve.rooms} waves\n\nPossible drops: ${(delve.possibleDrops ?? []).join(', ')}${delve.requiresVoidKey ? '\n\nRequires a Void Key.' : ''}` };
+  return { title: delve.name, description: `${delve.subtitle}\n\n${delve.difficulty} | Recommended level ${delve.recommendedLevel} | ${delve.rooms} waves\n\nRewards: ${(delve.possibleDrops ?? []).join(', ')}` };
 }
 
 // Modal details block underlying controls. Combat clocks and decisions pause

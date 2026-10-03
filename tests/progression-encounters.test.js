@@ -30,6 +30,20 @@ assert.equal(migrated.inspirationPoints, undefined);
 assert.equal(migrated.spentInspiration, undefined);
 assert.equal(loadLeaderProgression().tacticsPoints, 1);
 
+// Retired Prepared Supplies is removed and its purchase is refunded once.
+localStorage.setItem(key, JSON.stringify({
+  tacticsPoints: 0, spentTacticsPoints: 1,
+  unlockedAbilities: ['focusFire', 'preparedSupplies'],
+  battleLoadout: ['preparedSupplies']
+}));
+leader = loadLeaderProgression();
+assert.equal(leaderAbilities.some((ability) => ability.id === 'preparedSupplies'), false);
+assert.deepEqual(leader.battleLoadout, []);
+assert.equal(leader.tacticsPoints, 1);
+assert.equal(leader.spentTacticsPoints, 0);
+assert.deepEqual(JSON.parse(localStorage.getItem(key)).unlockedAbilities, ['focusFire']);
+assert.equal(loadLeaderProgression().tacticsPoints, 1);
+
 // Zero TP must not restore a legacy balance if both keys are present.
 localStorage.setItem(key, JSON.stringify({ tacticsPoints: 0, inspirationPoints: 9 }));
 assert.equal(loadLeaderProgression().tacticsPoints, 0);
@@ -69,12 +83,14 @@ assert.equal(leader.battleLoadout.length, 5);
 // Each delve ends with its intended boss group, and every spawn resolves.
 const slimeCave = delves.find((delve) => delve.id === 'slime-cave');
 assert.ok(slimeCave.visuals?.environment?.layers.length);
-assert.ok(slimeCave.visuals?.environment?.ambient.url);
-assert.equal(delves.filter((delve) => delve.visuals?.environment).length, 1);
+assert.ok(slimeCave.visuals?.environment?.pixelEffects.pools.length);
+assert.equal(delves.filter((delve) => delve.visuals?.environment).length, 5);
 for (const delve of delves) {
   const waves = createEncounterWaves(delve);
-  const finalCounts = { 'slime-cave': 5, 'thornbriar-hollow': 10, 'dolmark-den': 6, 'murmuring-abyss': 4 };
-  assert.equal(waves.length, delve.difficulty === 'Unknown' ? 6 : encounterWaveCounts[delve.difficulty]);
+  const finalCounts = { 'slime-cave': 5, 'thornbriar-hollow': 10, 'dolmark-den': 6,
+    'murmuring-abyss': 4, 'vibrant-tear': 3 };
+  assert.equal(waves.length, delve.id === 'vibrant-tear' ? 4
+    : delve.difficulty === 'Unknown' ? 6 : encounterWaveCounts[delve.difficulty]);
   assert.equal(delve.rooms, waves.length);
   const final = waves.at(-1);
   assert.equal(final.boss, true);

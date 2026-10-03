@@ -1,8 +1,7 @@
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
 import { saveProfile } from '../game/GameStorage.js';
-import { equippedItem, getEquippedAdventurer, ownedEquipment, equipmentOwner, equipItem, unequipItem } from '../game/Equipment.js';
-import { EQUIPMENT_BY_ID, ITEM_RARITIES, equipmentDetails, equipmentStatsText } from '../data/items.js';
+import { equippedItem, getEquippedAdventurer, ownedEquipment, equipmentOwner, equipItem, unequipItem, equipmentStatsText } from '../game/Equipment.js';
 import { abilityEntries, abilityGoldCost, abilityLevelRequired, MAX_ABILITY_RANK, MAX_EQUIPPED_ABILITIES, purchaseAdventurerAbility, toggleAdventurerAbility } from '../game/AdventurerAbilities.js';
 import { happinessLabel, xpRequired } from '../game/AdventurerProgression.js';
 import { bindSelectionDetails } from '../ui/SelectionDetails.js';
@@ -188,18 +187,24 @@ export default class RosterScene extends Phaser.Scene {
         fontFamily: 'Arial', fontSize: '25px', color: '#f1dfca'
       });
     });
-    const weapon = equippedItem(hero, 'weapon');
-    const armor = equippedItem(hero, 'armor');
-    [['weapon', weapon, 845], ['armor', armor, 1265]].forEach(([slot, item, x]) => {
+    const equipment = [
+      ['weapon', 725],
+      ['armor', 945],
+      ['accessory', 1165],
+      ['potion', 1385]
+    ];
+    equipment.forEach(([slot, x]) => {
+      const item = equippedItem(hero, slot);
       this.add.text(x, 837, slot.toUpperCase(), { fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: '#ffe0a7' }).setOrigin(0.5);
       this.add.text(x, 872, item?.name ?? 'Empty slot', {
-        fontFamily: 'Arial', fontSize: '25px', color: item ? ITEM_RARITIES[item.rarity].color : '#c7a982',
-        wordWrap: { width: 390 }, align: 'center'
+        fontFamily: 'Arial', fontSize: '23px', color: item ? '#fff1d2' : '#c7a982',
+        wordWrap: { width: 195 }, align: 'center'
       }).setOrigin(0.5);
-      this.add.text(x, 915, item ? equipmentStatsText(item.stats) : 'No bonuses', {
-        fontFamily: 'Arial', fontSize: '21px', color: '#c7a982', wordWrap: { width: 390 }, align: 'center'
+      this.add.text(x, 915, slot === 'potion' ? (item ? `${item.charges}/3 uses` : '3 uses per pack')
+        : item ? equipmentStatsText(item.stats) : 'No bonuses', {
+        fontFamily: 'Arial', fontSize: '20px', color: '#c7a982', wordWrap: { width: 195 }, align: 'center'
       }).setOrigin(0.5);
-      this.button(x, 971, 210, 64, 'EQUIP', () => this.openEquipment(hero, slot));
+      this.button(x, 971, 170, 64, 'EQUIP', () => this.openEquipment(hero, slot));
     });
   }
 
@@ -207,8 +212,9 @@ export default class RosterScene extends Phaser.Scene {
     this.equipmentModalClose?.();
     const { width, height } = this.scale;
     const entries = ownedEquipment().filter((instance) => {
-      const item = EQUIPMENT_BY_ID[instance.itemId];
-      return item?.className === hero.className && item.slot === slot && !equipmentOwner(instance.id);
+      return instance.slot === slot && (slot === 'potion'
+        || instance.className === hero.className || instance.usableBy?.includes(hero.className))
+        && !equipmentOwner(instance.id);
     });
     const pages = Math.max(1, Math.ceil(entries.length / 3));
     page = Math.max(0, Math.min(page, pages - 1));
@@ -236,15 +242,17 @@ export default class RosterScene extends Phaser.Scene {
       fontFamily: 'Arial', fontSize: '29px', color: '#ffe0a7'
     }));
     if (current) modalButton(1740, 258, 'UNEQUIP', () => { close(); this.commit(unequipItem(hero.id, slot)); });
-    if (!entries.length) add(this.add.text(width / 2, 525, 'No available matching gear. Buy or craft gear at the Blacksmith.', {
+    if (!entries.length) add(this.add.text(width / 2, 525, slot === 'potion'
+      ? 'No potion packs are available yet.' : 'No equipment is available yet.', {
       fontFamily: 'Arial', fontSize: '32px', color: '#e8c89f', wordWrap: { width: 1130 }, align: 'center'
     }).setOrigin(0.5));
     entries.slice(page * 3, page * 3 + 3).forEach((instance, index) => {
-      const item = EQUIPMENT_BY_ID[instance.itemId];
+      const item = instance;
       const y = 350 + index * 172;
       add(this.add.rectangle(width / 2, y + 45, 1260, 146, 0x382315, 0.96).setStrokeStyle(2, 0x9b6b3b));
-      add(this.add.text(630, y + 10, item.name, { fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: ITEM_RARITIES[item.rarity].color }));
-      add(this.add.text(630, y + 56, `${ITEM_RARITIES[item.rarity].label}  •  ${equipmentStatsText(item.stats)}`, {
+      add(this.add.text(630, y + 10, item.name, { fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#fff1d2' }));
+      add(this.add.text(630, y + 56, slot === 'potion' ? `${item.charges}/3 uses`
+        : equipmentStatsText(item.stats) || 'No bonuses', {
         fontFamily: 'Arial', fontSize: '26px', color: '#e8c89f', wordWrap: { width: 820 }
       }));
       modalButton(1740, y + 45, 'EQUIP', () => { close(); this.commit(equipItem(hero.id, instance.id)); });

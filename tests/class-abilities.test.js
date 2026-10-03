@@ -60,9 +60,9 @@ vm.runInContext(fs.readFileSync(new URL('../combat/BattleUnit.js',import.meta.ur
 const defender=Object.assign(Object.create(context.Unit.prototype),{alive:true,hp:100,maxHp:100,armor:0.1,damageTakenMultiplier:1,status:{armorUntil:8000,armorMultiplier:4,nextHitReduction:0.5,temporaryHp:2},updateHealthBar(){}});
 defender.takeDamage(20,{time:0});assert.equal(defender.hp,96);assert.equal(defender.status.nextHitReduction,0);assert.equal(defender.status.temporaryHp,0);
 defender.takeDamage(20,{time:8000});assert.equal(defender.hp,78);
-// Old tank gear migrates by catalog ID; instance IDs and progression stay intact.
+// Old gear is discarded while character progression stays intact.
 globalThis.localStorage={getItem:()=>JSON.stringify({roster:[{id:'caramon-gladiator',level:4,xp:9,equipment:{weapon:'gear-1'}}],lastPartyIds:['caramon-gladiator'],inventory:{equipment:[{id:'gear-1',itemId:'gladiator-weapon'}]}})};
-loadProfile(roster);const caramon=GameState.roster.find(u=>u.id==='caramon-gladiator');assert.equal(caramon.level,4);assert.equal(caramon.className,'Gladiator');assert.equal(caramon.equipment.weapon,'gear-1');assert.equal(GameState.inventory.equipment[0].itemId,'gladiator-weapon');
+loadProfile(roster);const caramon=GameState.roster.find(u=>u.id==='caramon-gladiator');assert.equal(caramon.level,4);assert.equal(caramon.className,'Gladiator');assert.equal(caramon.equipment.weapon,null);assert.equal(caramon.equipment.accessory,null);assert.deepEqual(GameState.inventory.equipment,[]);
 console.log('New class geometry, taunts, damage/healing, shields, roots, teleports, buffs, and save migration passed.');
 // Scripted Refuge provides exactly five timed ticks and a separately consumed shield.
 const white = make('Mage of the Luminous Archive');
@@ -158,9 +158,9 @@ system.resolve(ranger,foe,ranger.abilities.mark,0);assert.equal(foe.status.damag
 const trapCell=system.trapPoint(ranger,[foe]);assert.equal(squareDistance(s,ranger,trapCell),1);
 system.resolve(ranger,trapCell,ranger.abilities.trap,0);system.tickWorld(1);assert.equal(s.hits.length,0);
 foe.arenaX=trapCell.arenaX;foe.arenaY=trapCell.arenaY;system.tickWorld(2);assert.equal(s.hits[0].p,40);assert.equal(foe.status.hardStunUntil,10002);assert.equal(system.traps.length,0);
-// Previously equipped Caramon/Goldmoon gear keeps its instance identity and new class compatibility.
+// Previously equipped Caramon/Goldmoon gear is removed.
 globalThis.localStorage={getItem:()=>JSON.stringify({roster:[{id:'caramon-gladiator',equipment:{weapon:'c'}},{id:'goldmoon',equipment:{weapon:'g'}}],inventory:{equipment:[{id:'c',itemId:'paladin-weapon'},{id:'g',itemId:'priest-weapon'}]}})};
-loadProfile(roster);assert.equal(GameState.roster.find(u=>u.id==='goldmoon').equipment.weapon,'g');assert.equal(GameState.roster.find(u=>u.id==='caramon-gladiator').equipment.weapon,'c');assert.deepEqual(GameState.inventory.equipment.map(e=>e.itemId),['gladiator-weapon','naturalist-weapon']);
+loadProfile(roster);assert.equal(GameState.roster.find(u=>u.id==='goldmoon').equipment.weapon,null);assert.equal(GameState.roster.find(u=>u.id==='caramon-gladiator').equipment.weapon,null);assert.deepEqual(GameState.inventory.equipment,[]);
 console.log('Martial kits, poison cadence, trap entry, control durations and reassigned equipment passed.');
 // The active catalog contains only the requested roster and its classes.
 assert.deepEqual(Object.fromEntries(roster.map(u=>[u.name,u.className])), {
@@ -211,15 +211,15 @@ s=scene([secondOath,secondHealer,secondDps],[enemy(3)]);s.waves=[{boss:true}];s.
 assert.equal(system.sacrifice(secondOath,secondOath.abilities.sacrifice,100),true,'a DPS survivor can witness the sacrifice');
 assert.equal(secondOath.alive,false);assert.equal(secondHealer.alive,true);assert.equal(secondHealer.hp,100);assert.equal(secondHealer.mana,100);
 console.log('Exact roster, Barmaid line/AoE, Oathwarden vow, parry and sacrifice conditions passed.');
-// Reassigned retained characters keep gear; removed characters cannot remain selected.
+// Retained characters keep progression; removed characters cannot remain selected.
 globalThis.localStorage={getItem:()=>JSON.stringify({lastPartyIds:['justarius','sturm','tika'],roster:[{id:'sturm',level:3,equipment:{weapon:'s'}},{id:'tika',level:2,equipment:{weapon:'t'}}],inventory:{equipment:[{id:'s',itemId:'paladin-weapon'},{id:'t',itemId:'rogue-weapon'}]}})};
-loadProfile(roster);assert.deepEqual(GameState.lastPartyIds,['sturm','tika']);assert.equal(GameState.roster.find(u=>u.id==='sturm').equipment.weapon,'s');assert.equal(GameState.roster.find(u=>u.id==='tika').equipment.weapon,'t');assert.deepEqual(GameState.inventory.equipment.map(e=>e.itemId),['oathwarden-weapon','barmaid-weapon']);
-// Fistandantilus keeps progression, party selection, and equipment from the old roster ID.
+loadProfile(roster);assert.deepEqual(GameState.lastPartyIds,['sturm','tika']);assert.equal(GameState.roster.find(u=>u.id==='sturm').equipment.weapon,null);assert.equal(GameState.roster.find(u=>u.id==='tika').equipment.weapon,null);assert.deepEqual(GameState.inventory.equipment,[]);
+// Fistandantilus keeps progression and party selection from the old roster ID.
 globalThis.localStorage={getItem:()=>JSON.stringify({lastPartyIds:['aoth'],roster:[{id:'aoth',level:5,xp:17,happiness:63,equipment:{weapon:'bloodstaff'}}],inventory:{equipment:[{id:'bloodstaff',itemId:'bloodwarder-weapon'}]}})};
 loadProfile(roster);
 const fistandantilus=GameState.roster.find(u=>u.id==='fistandantilus');
 assert.ok(fistandantilus);assert.equal(fistandantilus.level,5);assert.equal(fistandantilus.xp,17);
-assert.equal(fistandantilus.happiness,63);assert.equal(fistandantilus.equipment.weapon,'bloodstaff');
+assert.equal(fistandantilus.happiness,63);assert.equal(fistandantilus.equipment.weapon,null);
 assert.deepEqual(GameState.lastPartyIds,['fistandantilus']);
 
 // The current ability system honors an assigned healer priority ahead of a more injured ally.

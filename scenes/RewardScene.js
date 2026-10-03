@@ -30,8 +30,7 @@ export default class RewardScene extends Phaser.Scene {
     this.add.text(width / 2, UI_SAFE_TOP + 18, 'DELVE CLEARED', { fontFamily: 'Arial', fontSize: '74px', fontStyle: 'bold', color: '#bef264' }).setOrigin(0.5);
     this.add.text(width / 2, UI_SAFE_TOP + 73, GameState.currentDelve?.name ?? 'Delve cleared', { fontFamily: 'Arial', fontSize: '36px', color: '#e7e5e4' }).setOrigin(0.5);
 
-    // Build the left results panel for gold, elapsed time, and leader or key
-    // rewards.
+    // Build the left results panel for gold, elapsed time, and leader rewards.
     const leftX = width * 0.30, rightX = width * 0.70, panelY = height * 0.51, panelWidth = width * 0.34;
     this.add.rectangle(leftX, panelY, panelWidth, 430, 0x292524).setStrokeStyle(4, 0x57534e);
     this.add.text(leftX, panelY - 165, 'DELVE RESULTS', { fontFamily: 'Arial', fontSize: '36px', fontStyle: 'bold', color: '#f5f5f4' }).setOrigin(0.5);
@@ -41,7 +40,6 @@ export default class RewardScene extends Phaser.Scene {
     if (summary?.isNewBest) this.add.text(leftX, panelY + 64, 'NEW BEST TIME', { fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#bef264' }).setOrigin(0.5);
     const tacticsReward = summary?.leaderResult?.tacticsPointsEarned > 0 ? `+${summary.leaderResult.tacticsPointsEarned} Tactics Points` : `Tactics Rank ${GameState.leader?.level ?? 1}`;
     this.add.text(leftX, panelY + 115, tacticsReward, { fontFamily: 'Arial', fontSize: '30px', color: '#c4b5fd' }).setOrigin(0.5);
-    if ((summary?.voidKeysAwarded ?? 0) > 0) this.add.text(leftX, panelY + 156, '+1 VOID KEY', { fontFamily: 'Arial', fontSize: '30px', fontStyle: 'bold', color: '#d8b4fe' }).setOrigin(0.5);
 
     // Build the right panel from the adventurer advancement entries in the
     // run summary.

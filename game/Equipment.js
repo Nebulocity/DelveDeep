@@ -1,141 +1,128 @@
 import GameState from './GameState.js';
-import { EQUIPMENT_BY_ID, CRAFTING_MATERIALS, CRAFTING_RECIPES, sellPrice } from '../data/items.js';
+import { getEquipmentDefinition, getMaterialDefinition } from '../data/items.js';
+
+export const EQUIPMENT_SLOTS = ['weapon', 'armor', 'accessory', 'potion'];
+export const EQUIPMENT_SCHEMA_VERSION = 1;
 
 export function ownedEquipment(state = GameState) {
   return state.inventory.equipment ?? [];
 }
 
+export function grantEquipment(itemId, state = GameState) {
+  const definition = getEquipmentDefinition(itemId);
+  if (!definition) return null;
+  const owned = ownedEquipment(state);
+  let next = Number.isSafeInteger(state.inventory.nextEquipmentId) && state.inventory.nextEquipmentId > 0
+    ? state.inventory.nextEquipmentId : 1;
+  while (owned.some((entry) => entry.id === `gear-${next}`)) next += 1;
+  const instance = {
+    id: `gear-${next}`,
+    itemId: definition.id,
+    name: definition.name,
+    slot: definition.slot,
+    rarity: definition.rarity,
+    usableBy: [...definition.usableBy],
+    stats: { ...definition.stats }
+  };
+  state.inventory.equipment.push(instance);
+  state.inventory.nextEquipmentId = next + 1;
+  return instance;
+}
+
+export function grantMaterial(materialId, amount = 1, state = GameState) {
+  if (!getMaterialDefinition(materialId) || !Number.isSafeInteger(amount) || amount <= 0) return false;
+  const current = state.inventory.materials?.[materialId] ?? 0;
+  if (!Number.isSafeInteger(current) || current < 0 || !Number.isSafeInteger(current + amount)) return false;
+  state.inventory.materials ??= {};
+  state.inventory.materials[materialId] = current + amount;
+  return true;
+}
+
 export function equipmentOwner(instanceId, state = GameState) {
-  return state.roster.find((hero) => ['weapon', 'armor'].some((slot) => hero.equipment?.[slot] === instanceId));
+  return state.roster.find((hero) => EQUIPMENT_SLOTS.some((slot) => hero.equipment?.[slot] === instanceId));
+}
+
+function canUseEquipment(hero, item) {
+  return hero && item && EQUIPMENT_SLOTS.includes(item.slot)
+    && (item.slot === 'potion'
+      ? Number.isInteger(item.charges) && item.charges > 0 && item.charges <= 3
+      : item.className === hero.className || item.usableBy?.includes(hero.className));
 }
 
 export function equippedItem(hero, slot, state = GameState) {
-  const instance = ownedEquipment(state).find((entry) => entry.id === hero.equipment?.[slot]);
-  const item = EQUIPMENT_BY_ID[instance?.itemId];
-  return item?.slot === slot && item.className === hero.className ? item : null;
+  if (!EQUIPMENT_SLOTS.includes(slot)) return null;
+  const item = ownedEquipment(state).find((entry) => entry.id === hero.equipment?.[slot]);
+  return item?.slot === slot && canUseEquipment(hero, item) ? item : null;
 }
 
-// Derived stats are copies, never written back to the roster or saved stats.
 export function getEquippedAdventurer(hero, state = GameState) {
   const result = { ...hero };
-  for (const slot of ['weapon', 'armor']) {
+  for (const slot of EQUIPMENT_SLOTS) {
+    if (slot === 'potion') continue;
     const item = equippedItem(hero, slot, state);
     for (const [stat, bonus] of Object.entries(item?.stats ?? {})) {
-      result[stat] = (result[stat] ?? 0) + bonus;
+      if (Number.isFinite(bonus)) result[stat] = (result[stat] ?? 0) + bonus;
     }
   }
   return result;
 }
 
-export function buyEquipment(itemId, state = GameState) {
-  const item = EQUIPMENT_BY_ID[itemId];
-  if (!item) return { ok: false, message: 'Item unavailable.' };
-  if (state.gold < item.price) return { ok: false, message: 'Not enough gold.' };
-  const instance = addEquipment(itemId, state);
-  state.gold -= item.price;
-  return { ok: true, message: `${item.name} purchased. Equip it in the Adventurer's Hall.`, instance };
-}
-
-function addEquipment(itemId, state) {
-  state.inventory.equipment ??= [];
-  let serial = Math.max(1, state.inventory.nextEquipmentId ?? 1);
-  while (state.inventory.equipment.some((entry) => entry.id === `gear-${serial}`)) serial++;
-  const instance = { id: `gear-${serial}`, itemId };
-  state.inventory.nextEquipmentId = serial + 1;
-  state.inventory.equipment.push(instance);
-  return instance;
-}
-
-export function buyMaterial(materialId, state = GameState) {
-  const material = CRAFTING_MATERIALS[materialId];
-  if (!material) return { ok: false, message: 'Material unavailable.' };
-  if (state.gold < material.price) return { ok: false, message: 'Not enough gold.' };
-  state.inventory.materials ??= {};
-  state.inventory.materials[materialId] = (state.inventory.materials[materialId] ?? 0) + 1;
-  state.gold -= material.price;
-  return { ok: true, message: `${material.name} purchased.` };
-}
-
-export function sellMaterial(materialId, state = GameState) {
-  const material = CRAFTING_MATERIALS[materialId];
-  if (!material || !(state.inventory.materials?.[materialId] > 0)) return { ok: false, message: 'Material is no longer owned.' };
-  state.inventory.materials[materialId]--;
-  state.gold += sellPrice(material);
-  return { ok: true, message: `${material.name} sold for ${sellPrice(material)} gold.` };
-}
-
-export function craftingRequirements(recipe, state = GameState) {
-  const ingredient = recipe.equipment ? ownedEquipment(state).find((entry) =>
-    entry.itemId === recipe.equipment && !equipmentOwner(entry.id, state)) : null;
-  const enoughMaterials = Object.entries(recipe.materials).every(([id, count]) => (state.inventory.materials?.[id] ?? 0) >= count);
-  return { ingredient, canCraft: enoughMaterials && state.gold >= recipe.gold && (!recipe.equipment || Boolean(ingredient)) };
-}
-
-export function craftEquipment(recipeId, state = GameState) {
-  const recipe = CRAFTING_RECIPES.find((entry) => entry.id === recipeId);
-  if (!recipe) return { ok: false, message: 'Recipe unavailable.' };
-  const { ingredient, canCraft } = craftingRequirements(recipe, state);
-  if (!canCraft) return { ok: false, message: 'Need the listed materials, gold, and unequipped ingredient.' };
-  // Validate everything before spending anything. Equipped copies are never consumed.
-  for (const [id, count] of Object.entries(recipe.materials)) state.inventory.materials[id] -= count;
-  if (ingredient) state.inventory.equipment = ownedEquipment(state).filter((entry) => entry.id !== ingredient.id);
-  state.gold -= recipe.gold;
-  const instance = addEquipment(recipe.itemId, state);
-  return { ok: true, instance, message: `${EQUIPMENT_BY_ID[recipe.itemId].name} crafted. Ingredients consumed.` };
-}
-
-export function sellEquipment(instanceId, state = GameState) {
-  const index = ownedEquipment(state).findIndex((entry) => entry.id === instanceId);
-  if (index < 0) return { ok: false, message: 'Item is no longer owned.' };
-  if (equipmentOwner(instanceId, state)) return { ok: false, message: 'Unequip this item before selling it.' };
-  const item = EQUIPMENT_BY_ID[state.inventory.equipment[index].itemId];
-  if (!item) return { ok: false, message: 'Item unavailable.' };
-  state.inventory.equipment.splice(index, 1);
-  state.gold += sellPrice(item);
-  return { ok: true, message: `${item.name} sold for ${sellPrice(item)} gold.` };
+export function equipmentStatsText(stats = {}) {
+  const labels = { maxHp: 'HP', attackPower: 'Attack', healPower: 'Healing', armor: 'Armor' };
+  return Object.entries(stats).filter(([, value]) => Number.isFinite(value)).map(([key, value]) =>
+    key === 'armor' ? `+${Math.round(value * 100)}% Armor` : `+${value} ${labels[key] ?? key}`
+  ).join('  / ');
 }
 
 export function equipItem(heroId, instanceId, state = GameState) {
   const hero = state.roster.find((entry) => entry.id === heroId);
-  const instance = ownedEquipment(state).find((entry) => entry.id === instanceId);
-  const item = EQUIPMENT_BY_ID[instance?.itemId];
-  if (!hero || !item || item.className !== hero.className) return { ok: false, message: 'This character cannot use that item.' };
+  const item = ownedEquipment(state).find((entry) => entry.id === instanceId);
+  if (!canUseEquipment(hero, item)) return { ok: false, message: 'This character cannot use that equipment.' };
   const owner = equipmentOwner(instanceId, state);
   if (owner && owner.id !== heroId) return { ok: false, message: `Unequip this item from ${owner.name} first.` };
-  hero.equipment ??= { weapon: null, armor: null };
+  hero.equipment ??= { weapon: null, armor: null, accessory: null, potion: null };
   hero.equipment[item.slot] = instanceId;
   return { ok: true, message: `${hero.name} equipped ${item.name}.` };
 }
 
 export function unequipItem(heroId, slot, state = GameState) {
   const hero = state.roster.find((entry) => entry.id === heroId);
-  if (!hero || !['weapon', 'armor'].includes(slot) || !hero.equipment?.[slot]) return { ok: false, message: 'That slot is empty.' };
+  if (!hero || !EQUIPMENT_SLOTS.includes(slot) || !hero.equipment?.[slot]) return { ok: false, message: 'That slot is empty.' };
   hero.equipment[slot] = null;
   return { ok: true, message: `${hero.name}'s ${slot} returned to equipment storage.` };
 }
 
-// Old profiles get empty slots. Invalid or duplicate instance references are
-// discarded so a single item can never grant bonuses to two adventurers.
+// Only the new empty-catalog schema can restore equipment. Old item IDs are discarded.
 export function restoreEquipment(savedInventory, savedRoster, state = GameState) {
   const ids = new Set();
-  state.inventory.equipment = (Array.isArray(savedInventory?.equipment) ? savedInventory.equipment : [])
-    .filter((entry) => {
-      if (!entry || typeof entry.id !== 'string' || !EQUIPMENT_BY_ID[entry.itemId] || ids.has(entry.id)) return false;
-      ids.add(entry.id);
+  state.inventory.equipment = savedInventory?.equipmentSchemaVersion === EQUIPMENT_SCHEMA_VERSION
+    ? (Array.isArray(savedInventory.equipment) ? savedInventory.equipment : []).filter((item) => {
+      if (!item || typeof item.id !== 'string' || !item.id || ids.has(item.id)
+        || typeof item.name !== 'string' || !EQUIPMENT_SLOTS.includes(item.slot)
+        || (item.slot === 'potion'
+          ? !Number.isInteger(item.charges) || item.charges < 1 || item.charges > 3
+          : typeof item.className !== 'string' && !Array.isArray(item.usableBy))) return false;
+      ids.add(item.id);
       return true;
-    }).map(({ id, itemId }) => ({ id, itemId }));
-  state.inventory.nextEquipmentId = Number.isSafeInteger(savedInventory?.nextEquipmentId)
-    ? Math.max(1, savedInventory.nextEquipmentId) : 1;
-  state.inventory.materials = Object.fromEntries(Object.entries(savedInventory?.materials ?? {})
-    .filter(([, count]) => Number.isSafeInteger(count) && count >= 0));
+    }).map((item) => ({
+      id: item.id, name: item.name, slot: item.slot,
+      itemId: typeof item.itemId === 'string' ? item.itemId : undefined,
+      rarity: typeof item.rarity === 'string' ? item.rarity : undefined,
+      className: item.className,
+      usableBy: Array.isArray(item.usableBy) ? item.usableBy.filter((name) => typeof name === 'string') : undefined,
+      charges: item.slot === 'potion' ? item.charges : undefined,
+      stats: Object.fromEntries(Object.entries(item.stats ?? {}).filter(([, value]) => Number.isFinite(value)))
+    })) : [];
+  state.inventory.equipmentSchemaVersion = EQUIPMENT_SCHEMA_VERSION;
+  state.inventory.nextEquipmentId = Number.isSafeInteger(savedInventory?.nextEquipmentId) && savedInventory.nextEquipmentId > 0
+    ? savedInventory.nextEquipmentId : 1;
   const assigned = new Set();
   for (const hero of state.roster) {
-    hero.equipment = { weapon: null, armor: null };
-    for (const slot of ['weapon', 'armor']) {
+    hero.equipment = { weapon: null, armor: null, accessory: null, potion: null };
+    for (const slot of EQUIPMENT_SLOTS) {
       const id = savedRoster.get(hero.id)?.equipment?.[slot];
-      const instance = state.inventory.equipment.find((entry) => entry.id === id);
-      const item = EQUIPMENT_BY_ID[instance?.itemId];
-      if (item?.slot !== slot || item.className !== hero.className || assigned.has(id)) continue;
+      const item = state.inventory.equipment.find((entry) => entry.id === id);
+      if (!item || item.slot !== slot || !canUseEquipment(hero, item) || assigned.has(id)) continue;
       hero.equipment[slot] = id;
       assigned.add(id);
     }

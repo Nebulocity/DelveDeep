@@ -1,0 +1,7 @@
+Use case: stylized-concept.
+Asset type: exploratory environment mockup for Delve Deep, a landscape mobile tactical RPG.
+Input images: existing Slime Cave reference.png as composition template; Tika and Slime Sovereign idle frames as style references only.
+Restyle the cave into hand-crafted chibi anime pixel art with coherent chunky pixel clusters, expressive shapes, crisp dark outlines, limited deliberate shading steps, and fantasy game detail scaled to the referenced sprites.
+Preserve the existing camera viewpoint, perspective, major composition, cavern walls, stalactites, glowing slime pools at the edges, and especially the broad empty playable floor in the lower center.
+Dark, gritty, ominous cave atmosphere with deep blue-black stone, restrained violet and toxic green glows, weathered rock, sparse mushrooms and crystals. Keep enough separation and light around the floor for colorful sprites to read.
+No characters, monsters, UI, text, grid, logos, or watermark. Wide landscape, approximately 16:9.

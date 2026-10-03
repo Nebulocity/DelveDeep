@@ -1,6 +1,6 @@
 import { preloadSlimeSprites } from '../data/slimeSprites.js';
 import { chooseWaveLandings } from '../combat/WaveLanding.js';
-import { bindSelectionDetails, characterDetails, TONIC_DESCRIPTION } from '../ui/SelectionDetails.js';
+import { bindSelectionDetails, characterDetails } from '../ui/SelectionDetails.js';
 import Phaser from 'phaser';
 import ClassAbilitySystem from '../combat/ClassAbilitySystem.js';
 import { preloadCharacterSprites } from '../data/characterSprites.js';
@@ -72,7 +72,6 @@ export default class BattleScene extends Phaser.Scene {
     this.earnedGold = 0;
     this.enemyThreat = new Map();
     this.enemies = [];
-    this.lastTonicUseAt = -Infinity;
     this.selectedUnitIds = new Set();
     this.manualTargets = new Map();
     this.attackTargets = new Map();
@@ -277,32 +276,15 @@ export default class BattleScene extends Phaser.Scene {
     const sectionWidth = usableWidth / 5;
     const hudBarWidth = sectionWidth - 175;
     const startX = 52 + 70;
-    this.tonicCountText = this.add.text(70, height * 0.75, '', {
-      fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: '#86efac'
-    }).setOrigin(0, 0.5).setDepth(4501);
-    this.tonicHintText = this.add.text(width / 2, height * 0.738, 'Tap TONIC to heal.', {
-      fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: '#86efac'
-    }).setOrigin(0.5).setDepth(4501);
-    this.hadHealingTonics = GameState.inventory.healingTonic > 0;
-    this.tonicFlashUntil = 0;
-
     this.partyUnits.forEach((unit, index) => {
 
       const x = startX + index * sectionWidth;
       // Give the whole portrait/name/class area one generous touch target.
-      // It sits behind the visible labels and stops above the separate TONIC
-      // button, so selecting a character never accidentally uses a tonic.
       const statusHitZone = this.add.rectangle(x + sectionWidth / 2 - 6, hudTop + 70, sectionWidth - 20, 116, 0xffffff, 0.001)
         .setDepth(4500);
       bindSelectionDetails(this, statusHitZone, () => characterDetails(unit), () => this.toggleUnitSelection(unit));
       const portrait = this.add.circle(x, hudTop + 72, 36, unit.color).setDepth(4501);
       bindSelectionDetails(this, portrait, () => characterDetails(unit), () => this.toggleUnitSelection(unit));
-      const tonicButton = this.add.rectangle(x, hudTop + 155, 120, 72, 0x14532d)
-        .setStrokeStyle(2, 0x86efac).setDepth(4502);
-      const tonicLabel = this.add.text(x, hudTop + 155, 'TONIC', {
-        fontFamily: 'Arial', fontSize: '25px', fontStyle: 'bold', color: '#ffffff'
-      }).setOrigin(0.5).setDepth(4503);
-      bindSelectionDetails(this, tonicButton, { title: 'Healing Tonic', description: TONIC_DESCRIPTION }, () => this.useHealingTonic(unit));
       const nameText = this.add.text(x + 85, hudTop + 38, unit.name, {
         fontFamily:'Arial', fontSize:'39px', fontStyle:'bold', color:'#f5f5f4'
       }).setOrigin(0,0.5).setDepth(4501);
@@ -345,9 +327,8 @@ export default class BattleScene extends Phaser.Scene {
         .setDepth(4501)
         .setVisible(false);
       bindSelectionDetails(this, nameText, () => characterDetails(unit), () => this.toggleUnitSelection(unit));
-      this.partyHud.push({statusHitZone,tonicButton,tonicLabel,unit,nameText,hpText,manaText,threatText,hpFill,hpGlow,manaBack,manaFill,hudBarWidth});
+      this.partyHud.push({statusHitZone,unit,nameText,hpText,manaText,threatText,hpFill,hpGlow,manaBack,manaFill,hudBarWidth});
     });
-    this.updateTonicHud();
   }
 
   // This function makes the perspective tiles usable as touch destinations.
@@ -378,8 +359,7 @@ export default class BattleScene extends Phaser.Scene {
     const right = ['MOVE', 'HOLD', 'SPREAD', 'STACK', 'ATTACK', 'INTERRUPT'];
     const firstY = height * 0.31;
     const gap = 76;
-    // Add All above the existing role rows so Pause, Flee, and the tonic
-    // inventory line keep their current spacing above the party HUD.
+    // Add All above the existing role rows and keep space above the party HUD.
     const leftFirstY = firstY - gap;
     this.roleButtons = [];
     this.commandButtons = [];
@@ -949,11 +929,6 @@ export default class BattleScene extends Phaser.Scene {
         this.createFloatingText(unit.x, unit.y - 80, '+' + (unit.hp - before), '#86efac');
       });
       this.showBattleMessage('ENCOURAGEMENT - party healed', '#bef264', false, 1.5);
-    } else if (id === 'preparedSupplies') {
-      GameState.inventory.healingTonic = Math.max(0, GameState.inventory.healingTonic ?? 0) + ability.tonicAmount;
-      saveProfile();
-      this.updateTonicHud();
-      this.showBattleMessage(`+${ability.tonicAmount} HEALING TONIC (${GameState.inventory.healingTonic} TOTAL)`, '#bef264', false, 1.5);
     } else if (id === 'arise') {
       fallen.forEach((unit) => {
 
@@ -1196,7 +1171,6 @@ export default class BattleScene extends Phaser.Scene {
   update(time, delta) {
 
     this.classAbilitySystem?.syncChargeTweens?.(this.combatPaused);
-    this.updateTonicHud();
     if (!this.combatPaused) this.enemies?.filter(enemy => enemy.container?.active !== false).forEach((enemy) => {
       enemy.spriteVisual?.update(delta);
       enemy.updateDeathPresentation?.(delta);
@@ -1262,30 +1236,6 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
-
-  // Manual tonic use checks the target, inventory, and shared cooldown.
-  canUseHealingTonic(target, time = this.time.now) {
-    return !this.battleOver && !this.combatPaused && !this.waveTransitioning
-      && this.partyUnits.includes(target) && target.alive && target.hp < target.maxHp
-      && GameState.inventory.healingTonic > 0 && time - this.lastTonicUseAt >= 1500;
-  }
-
-  useHealingTonic(target, time = this.time.now) {
-    if (!this.canUseHealingTonic(target, time)) return false;
-    this.lastTonicUseAt = time;
-    GameState.inventory.healingTonic -= 1;
-    const before = target.hp;
-    target.heal(Math.max(1, Math.round(target.maxHp * 0.35)));
-    const amount = target.hp - before;
-    target.flash(0x86efac);
-    this.createFloatingText(target.x, target.y - 100, `TONIC +${amount}`, '#86efac', true);
-    this.showBattleMessage(`${target.name} drinks a Healing Tonic`, '#86efac');
-    this.combatLog?.add('item', `${target.name} restored ${amount} HP with a Healing Tonic`, { target: target.name, healing: amount });
-    HapticsService.confirm();
-    saveProfile();
-    this.updateHud();
-    return true;
-  }
 
   // This function excludes defeated enemies from active combat decisions.
   getLivingEnemies() {
@@ -2086,32 +2036,11 @@ export default class BattleScene extends Phaser.Scene {
     else this.startWave(this.currentWaveIndex + 1);
   }
 
-  // Watch the shared inventory so any source of Tonics restores the controls.
-  // Three gentle pulses announce newly available stock without moving targets.
-  updateTonicHud() {
-    const hasTonics = GameState.inventory.healingTonic > 0;
-    const now = this.time.now;
-    if (hasTonics && this.hadHealingTonics === false) this.tonicFlashUntil = now + 1500;
-    if (!hasTonics) this.tonicFlashUntil = 0;
-    this.hadHealingTonics = hasTonics;
-    const remaining = Math.max(0, (this.tonicFlashUntil ?? 0) - now);
-    const alpha = remaining > 0 ? 0.7 + 0.3 * Math.cos(remaining * Math.PI * 2 / 500) : 1;
-    this.tonicHintText?.setVisible(hasTonics).setAlpha(alpha);
-    this.tonicCountText?.setText(`Healing Tonics: ${GameState.inventory.healingTonic}`).setVisible(hasTonics);
-    this.partyHud?.forEach(({ unit, tonicButton, tonicLabel }) => {
-      const ready = this.canUseHealingTonic(unit);
-      tonicButton?.setVisible(hasTonics).setAlpha(alpha).setFillStyle(ready ? 0x14532d : 0x292524);
-      if (tonicButton?.input) tonicButton.input.enabled = hasTonics;
-      tonicLabel?.setVisible(hasTonics).setAlpha(alpha * (ready ? 1 : 0.45));
-    });
-  }
-
   // This function refreshes party resources and encounter progress as combat
   // changes.
   updateHud() {
 
     this.updateLeaderLoadoutBar();
-    this.updateTonicHud();
     this.partyHud?.forEach(({ unit, hpText, manaText, threatText, hpFill, hpGlow, manaBack, manaFill, hudBarWidth }) => {
 
       const ratio = unit.maxHp > 0 ? Phaser.Math.Clamp(unit.hp / unit.maxHp, 0, 1) : 0;

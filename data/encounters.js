@@ -78,6 +78,29 @@ const dolmarkWaves = [
   { name: 'Silvanark the Forest Lord', wardens: { base: 3 }, protectors: 2, silvanark: 1, boss: true }
 ];
 
+const vibrantTearWaves = [
+  { name: 'Grass at the Threshold', enemies: [
+    { type: 'voidStalker', arenaX: 440, arenaY: 770 },
+    { type: 'voidStalker', arenaX: 940, arenaY: 770 },
+    { type: 'riftSentinel', arenaX: 700, arenaY: 820 }
+  ] },
+  { name: 'The Tear Widens', enemies: [
+    { type: 'voidWarden', arenaX: 700, arenaY: 800 },
+    { type: 'voidStalker', arenaX: 420, arenaY: 750 },
+    { type: 'voidStalker', arenaX: 980, arenaY: 750 }
+  ] },
+  { name: 'A Shadow Takes Shape', enemies: [
+    { type: 'abyssalMaw', arenaX: 700, arenaY: 810 },
+    { type: 'riftSentinel', arenaX: 400, arenaY: 750 },
+    { type: 'riftSentinel', arenaX: 1000, arenaY: 750 }
+  ] },
+  { name: 'The Unfinished Sovereign', boss: true, enemies: [
+    { type: 'abyssalSovereign', arenaX: 700, arenaY: 830 },
+    { type: 'riftSentinel', arenaX: 430, arenaY: 760 },
+    { type: 'riftSentinel', arenaX: 970, arenaY: 760 }
+  ] }
+];
+
 
 function buildSlimeCaveWaves(random) {
   return slimeCaveWaves.map(({ name, caveSlimes, d4 = 0, elderSlimes = 0, sovereigns = 0, boss = false }) => {
@@ -156,7 +179,9 @@ export function createEncounterWaves(delve = {}, arenaWidth = 1400, random = Mat
       ? buildThornbriarWaves(random)
       : delve.id === 'dolmark-den'
         ? buildDolmarkWaves(random)
-        : [...difficultyWaves, ...finale];
+        : delve.id === 'vibrant-tear'
+          ? vibrantTearWaves
+          : [...difficultyWaves, ...finale];
 
   // Preserve the fifth-depth guardian rule before the final boss so the
   // difficulty's advertised boss group still closes the encounter.

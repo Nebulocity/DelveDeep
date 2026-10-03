@@ -9,11 +9,10 @@ const GameState = {
   rewards: [],
   leader: null,
   inventory: {
-    healingTonic: 0,
-    voidKeys: 0,
     equipment: [],
+    materials: {},
     nextEquipmentId: 1,
-    materials: {}
+    equipmentSchemaVersion: 1
   },
   records: {},
   development: {
@@ -30,8 +29,7 @@ const GameState = {
     startedAt: 0,
     elapsedMs: 0,
     summary: null,
-    startingGold: 0,
-    startingInventory: null
+    startingGold: 0
   },
   tactics: {
     tankPosition: 'center',

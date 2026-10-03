@@ -1,7 +1,7 @@
-import { migrateEquipmentId } from '../data/items.js';
 import GameState from './GameState.js';
 import { restoreEquipment } from './Equipment.js';
 import { restoreAdventurerAbilities } from './AdventurerAbilities.js';
+import { CRAFTING_MATERIALS } from '../data/items.js';
 
 const STORAGE_KEY = 'delveDeep.profile.v2';
 
@@ -28,8 +28,12 @@ export function loadProfile(baseRoster) {
   // defaults for missing save fields.
   GameState.gold = Number.isFinite(saved?.gold) ? saved.gold : 0;
   GameState.inventory = {
-    healingTonic: Math.max(0, saved?.inventory?.healingTonic ?? 0),
-    voidKeys: Math.max(0, saved?.inventory?.voidKeys ?? 0)
+    equipment: [],
+    materials: saved?.inventory?.equipmentSchemaVersion === 1
+      ? Object.fromEntries(Object.entries(saved.inventory.materials ?? {}).filter(([id, count]) =>
+        CRAFTING_MATERIALS[id] && Number.isSafeInteger(count) && count > 0)) : {},
+    nextEquipmentId: 1,
+    equipmentSchemaVersion: 1
   };
   GameState.records = saved?.records ?? {};
   GameState.lastPartyIds = Array.isArray(saved?.lastPartyIds)
@@ -64,21 +68,7 @@ export function loadProfile(baseRoster) {
     }, prior, Boolean(savedRoster.has(base.id) && !prior.abilityRanks));
   });
 
-  const savedInventory = saved?.inventory ? { ...saved.inventory } : undefined;
-  if (Array.isArray(savedInventory?.equipment)) savedInventory.equipment = savedInventory.equipment.map(entry => entry && ({ ...entry, itemId: migrateEquipmentId(entry.itemId) }));
-  // Keep equipped items usable when these stable roster IDs change class.
-  // Unassigned inventory stays with its original class; instance IDs are unchanged.
-  const reassignedGear = new Map();
-  for (const [id, from, to] of [['caramon-gladiator', 'paladin-', 'gladiator-'], ['goldmoon', 'priest-', 'naturalist-'], ['sturm', 'paladin-', 'oathwarden-'], ['tika', 'rogue-', 'barmaid-']]) {
-    for (const instanceId of Object.values(savedRoster.get(id)?.equipment ?? {})) {
-      if (instanceId) reassignedGear.set(instanceId, {from, to});
-    }
-  }
-  for (const entry of savedInventory?.equipment ?? []) {
-    const migration = reassignedGear.get(entry?.id);
-    if (migration && entry.itemId?.startsWith(migration.from)) entry.itemId = migration.to + entry.itemId.slice(migration.from.length);
-  }
-  restoreEquipment(savedInventory, savedRoster);
+  restoreEquipment(saved?.inventory, savedRoster);
 
   // Discard saved party IDs that no longer exist in the current roster.
   GameState.lastPartyIds = GameState.lastPartyIds.filter((id) => GameState.roster.some((adventurer) => adventurer.id === id));
@@ -101,7 +91,7 @@ export function saveProfile() {
     world: GameState.world,
     roster: GameState.roster.map((adventurer) => ({
       id: adventurer.id,
-      equipment: adventurer.equipment ?? { weapon: null, armor: null },
+      equipment: adventurer.equipment ?? { weapon: null, armor: null, accessory: null, potion: null },
       abilityRanks: adventurer.abilityRanks ?? {},
       abilityLoadout: adventurer.abilityLoadout ?? [],
       level: adventurer.level,

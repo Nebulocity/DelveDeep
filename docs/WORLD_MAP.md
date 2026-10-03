@@ -10,6 +10,7 @@ After Duskfall, the path branches toward:
 
 - **Dolmark Den**
 - **The Murmuring Abyss**
+- **The Vibrant Tear**, a newer Void Portal on a grassy wilderness knoll near the early route
 
 ## Location Types
 
@@ -27,6 +28,7 @@ After Duskfall, the path branches toward:
 ### Void Portal
 
 - The Murmuring Abyss
+- The Vibrant Tear
 
 Earlier organizational categories also included:
 
@@ -64,12 +66,6 @@ Development tooling should allow:
 - Repeating content any number of times while testing.
 
 Testing mode should not permanently corrupt or confuse normal progression state.
-
-## Void Keys
-
-Developer tools should include a way to add a Void Key.
-
-Any Void Key count should be handled through the project's persistence system rather than temporary scene-only state.
 
 ## Void Portal Content
 

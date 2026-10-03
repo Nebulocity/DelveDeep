@@ -2,8 +2,7 @@
 
 The active catalog contains thirteen classes and exactly fourteen characters.
 `data/classes.js` owns tuning; `combat/ClassAbilitySystem.js` handles grid ability
-AI and effects. Old class names survive only as save/equipment aliases, not
-selectable classes or ability kits.
+AI and effects. Old class names are not selectable classes or ability kits.
 
 ## Adventurer ability progression
 

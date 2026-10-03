@@ -17,7 +17,8 @@ const LOCATION_STATUS_Y = {
   'slime-cave': 0.56,
   'thornbriar-hollow': 0.59,
   'dolmark-den': 0.34,
-  'murmuring-abyss': 0.86
+  'murmuring-abyss': 0.86,
+  'vibrant-tear': 0.88
 };
 
 export default class TitleScene extends Phaser.Scene {
@@ -53,7 +54,7 @@ export default class TitleScene extends Phaser.Scene {
       fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: '#94a3b8'
     }).setDepth(1001);
 
-    this.currencyText = this.add.text(width - 58, 26, `Gold: ${GameState.gold}   Void Keys: ${GameState.inventory.voidKeys ?? 0}`, {
+    this.currencyText = this.add.text(width - 58, 26, `Gold: ${GameState.gold}`, {
       fontFamily: 'Arial', fontSize: '31px', fontStyle: 'bold', color: '#fbbf24'
     }).setOrigin(1, 0).setDepth(1001);
 
@@ -112,7 +113,7 @@ export default class TitleScene extends Phaser.Scene {
       GameState.world.currentLocation = town.id;
       if (!GameState.world.discoveredLocations.includes(town.id)) GameState.world.discoveredLocations.push(town.id);
       if (town.id === 'duskfall') {
-        ['dolmark-den', 'murmuring-abyss'].forEach((id) => {
+        ['dolmark-den', 'murmuring-abyss', 'vibrant-tear'].forEach((id) => {
 
           if (!GameState.world.discoveredLocations.includes(id)) GameState.world.discoveredLocations.push(id);
         });
@@ -124,22 +125,24 @@ export default class TitleScene extends Phaser.Scene {
   }
 
   // This function adds a touch target and status marker for one delve. It
-  // checks discovery, prerequisites, location access, and Void Keys before
+  // checks discovery, prerequisites, and location access before
   // opening the overview, or shows the previous results for a cleared delve.
   createDelveHotspot(delve) {
 
     const { x, y } = this.mapPosition(delve.map.x, delve.map.y);
     const statusY = this.mapPosition(delve.map.x, LOCATION_STATUS_Y[delve.id] ?? delve.map.y + 0.08).y;
 
+    if (delve.id === 'vibrant-tear') this.createVibrantTearMarker(x, y);
+
     // Collect the access rules separately so taps can explain a missing
-    // discovery or key.
+    // discovery or progression.
     const devUnlock = GameState.development.unlockAll;
     const replayCleared = GameState.development.replayCleared;
-    const discovered = devUnlock || this.isDiscovered(delve.id);
+    const discovered = devUnlock || this.isDiscovered(delve.id)
+      || (delve.id === 'vibrant-tear' && this.isDiscovered('duskfall'));
     const cleared = this.isCleared(delve.id);
     const prerequisitesMet = devUnlock || (delve.prerequisites ?? []).every((id) => this.isCleared(id));
     const locationMet = devUnlock || !delve.requiresLocation || this.isDiscovered(delve.requiresLocation);
-    const keyMet = devUnlock || !delve.requiresVoidKey || (GameState.inventory.voidKeys ?? 0) > 0;
     const available = devUnlock || (discovered && prerequisitesMet && locationMet);
 
     const hit = this.add.circle(x, y, Math.max(75, this.scale.width * delve.map.radius), 0xffffff, 0.001).setDepth(900);
@@ -157,11 +160,6 @@ export default class TitleScene extends Phaser.Scene {
         this.showClearedReview(delve);
         return;
       }
-      if (!keyMet) {
-        this.showToast('A Void Key is required to enter this portal.');
-        return;
-      }
-
       // Store the chosen location and copy its definition into the new
       // encounter state before opening the overview.
       GameState.world.currentLocation = delve.id;
@@ -173,18 +171,30 @@ export default class TitleScene extends Phaser.Scene {
 
     bindSelectionDetails(this, hit, () => delveDetails(delve));
 
-    // Show the appropriate map marker for a cleared, key-gated, or
-    // unavailable location.
+    // Show the appropriate map marker for a cleared or unavailable location.
     if (cleared) {
       this.add.circle(x, statusY, 36, 0x14532d, 0.94).setStrokeStyle(5, 0x86efac).setDepth(905);
       this.add.text(x, statusY, '✓', { fontFamily: 'Arial', fontSize: '46px', fontStyle: 'bold', color: '#dcfce7' }).setOrigin(0.5).setDepth(906);
-    } else if (available && delve.requiresVoidKey && !keyMet) {
-      this.add.circle(x, statusY, 34, 0x3b0764, 0.94).setStrokeStyle(4, 0xc084fc).setDepth(905);
-      this.add.text(x, statusY, 'KEY', { fontFamily: 'Arial', fontSize: '20px', fontStyle: 'bold', color: '#f3e8ff' }).setOrigin(0.5).setDepth(906);
     } else if (!available) {
       this.add.circle(x, statusY, 28, 0x111827, 0.9).setStrokeStyle(3, 0x64748b).setDepth(905);
       this.add.text(x, statusY, '×', { fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#94a3b8' }).setOrigin(0.5).setDepth(906);
     }
+  }
+
+  // This function adds a visible map landmark for the new rift without
+  // changing the existing illustrated map asset.
+  createVibrantTearMarker(x, y) {
+
+    this.add.ellipse(x, y + 25, 158, 46, 0x4f6f30, 0.92)
+      .setStrokeStyle(3, 0x1b321d).setDepth(870);
+    this.add.ellipse(x, y - 9, 65, 90, 0x120b20, 0.98)
+      .setStrokeStyle(8, 0xb347ee).setDepth(871);
+    this.add.ellipse(x, y - 11, 34, 67, 0x05050e, 1).setDepth(872);
+    this.add.rectangle(x, y + 68, 332, 56, 0xd9b77d, 0.98)
+      .setStrokeStyle(4, 0x49301e).setDepth(873);
+    this.add.text(x, y + 68, 'The Vibrant Tear', {
+      fontFamily: 'Georgia', fontSize: '31px', fontStyle: 'bold', color: '#21150f'
+    }).setOrigin(0.5).setDepth(874);
   }
 
   // This function marks the party current location on the world map.
@@ -292,31 +302,20 @@ export default class TitleScene extends Phaser.Scene {
       });
     }
 
-    addLabel(2, 'Void Key');
-    for (const [amount, x] of [[1, firstX], [5, secondX]]) {
-      addButton(x, rowY(2), `+${amount}`, 0x4c0975, 0xc084fc, () => {
-        HapticsService.confirm();
-        GameState.inventory.voidKeys = (GameState.inventory.voidKeys ?? 0) + amount;
-        saveProfile();
-        this.currencyText.setText(`Gold: ${GameState.gold}   Void Keys: ${GameState.inventory.voidKeys}`);
-        this.showToast(`Added ${amount} Void Key${amount === 1 ? '' : 's'}.`);
-      });
-    }
-
-    addLabel(3, 'Gold');
+    addLabel(2, 'Gold');
     for (const [amount, x] of [[100, firstX], [500, secondX]]) {
-      addButton(x, rowY(3), `+${amount}`, 0xb38c0c, 0xfde047, () => {
+      addButton(x, rowY(2), `+${amount}`, 0xb38c0c, 0xfde047, () => {
         HapticsService.confirm();
         GameState.gold += amount;
         saveProfile();
-        this.currencyText.setText(`Gold: ${GameState.gold}   Void Keys: ${GameState.inventory.voidKeys ?? 0}`);
+        this.currencyText.setText(`Gold: ${GameState.gold}`);
         this.showToast(`Added ${amount} Gold.`);
       });
     }
 
-    addLabel(4, 'Grid lines');
+    addLabel(3, 'Grid lines');
     const gridVisible = GameState.development.showGridLines !== false;
-    const gridToggle = addButton(firstX, rowY(4), gridVisible ? 'ON' : 'OFF',
+    const gridToggle = addButton(firstX, rowY(3), gridVisible ? 'ON' : 'OFF',
       gridVisible ? 0xebed53 : 0x4e4f19, 0xebed53, () => {
         HapticsService.confirm();
         GameState.development.showGridLines = !GameState.development.showGridLines;
@@ -326,8 +325,8 @@ export default class TitleScene extends Phaser.Scene {
         gridToggle.caption.setColor(GameState.development.showGridLines ? '#1f2937' : '#ffffff');
       }, gridVisible ? '#1f2937' : '#ffffff');
 
-    addLabel(5, 'Reset progress');
-    addButton(firstX, rowY(5), 'RESET', 0x7f1d1d, 0xf87171, () => {
+    addLabel(4, 'Reset progress');
+    addButton(firstX, rowY(4), 'RESET', 0x7f1d1d, 0xf87171, () => {
       HapticsService.tap();
       destroy();
       this.showResetConfirmation();
@@ -352,7 +351,7 @@ export default class TitleScene extends Phaser.Scene {
     const title = this.add.text(width / 2, height * 0.41, 'RESET ALL PROGRESS?', {
       fontFamily: 'Arial', fontSize: '44px', fontStyle: 'bold', color: '#fecaca'
     }).setOrigin(0.5).setDepth(depth + 2);
-    const body = this.add.text(width / 2, height * 0.48, 'This clears map progress, loot, gold, adventurer progression, and Battle Tactics progression.', {
+    const body = this.add.text(width / 2, height * 0.48, 'This clears map progress, gold, adventurer progression, and Battle Tactics progression.', {
       fontFamily: 'Arial', fontSize: '27px', color: '#e5e7eb', align: 'center', wordWrap: { width: Math.min(760, panelWidth - 120), useAdvancedWrap: true }
     }).setOrigin(0.5).setDepth(depth + 2);
 

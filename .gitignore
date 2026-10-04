@@ -1,8 +1,12 @@
 node_modules/
 
-# Local Codex/ChatGPT guidance and project documentation
-AGENTS.md
+# Keep project notes, changelogs, and Codex instructions local.
+# The root README remains public.
+*.md
+!/README.md
 docs/
+changelog/
+
 .agents/
 .codex/
 
@@ -28,7 +32,6 @@ Thumbs.db
 /assets/blender/*
 !/assets/blender/the_slime_cave/
 /assets/blender/the_slime_cave/*
-!/assets/blender/the_slime_cave/README.md
 !/assets/blender/the_slime_cave/export_phaser_stills.py
 *.blend1
 *.blend2

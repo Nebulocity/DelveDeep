@@ -1,7 +1,0 @@
-# Blender pipeline
-
-The Slime Cave Blender scene is a retained earlier environment source. The current runtime uses the chibi pixel-art cave described in [Art direction](ART_DIRECTION.md). The local Blender source is `assets/blender/the_slime_cave/the_slime_cave_game_export_v1.blend`. `Scene` is the full scene; `DD_Export` contains export view layers. The production camera is named `CAM_SlimeCave_Game`. Preserve its framing and depth of field. A separate chat is checking its exact measurements; record verified values here after that work finishes.
-
-The source `.blend` and source ambient movie are local and not recoverable from a Git clone. Maintain a separate backup. The earlier checked-in exports are under `assets/environments/slime-cave/`. `assets/blender/the_slime_cave/export_phaser_stills.py` renders the static layers without saving scene changes. The earlier ambient source is a 240-frame, 24 fps loop cropped to the bottom 1920 x 540 region. Do not re-render or change the production camera merely to adjust game layout.
-
-The Blender composition was 1920 x 1080 with a 120-pixel upward offset. Its export command and local-source caveats are in the [source README](../assets/blender/the_slime_cave/README.md). The current `data/levels/SlimeCave.js` uses separate pixel-art dimensions and effect coordinates. A final on-device review should check the new floor alignment, foreground occlusion, and effect visibility.

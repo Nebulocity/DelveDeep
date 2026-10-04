@@ -14,6 +14,6 @@ Dolmark Den runtime art is `assets/environments/dolmark-den-pixel/den-v2.png`, a
 
 The Murmuring Abyss runtime art is `assets/environments/murmuring-abyss-pixel/portal.png`. `data/levels/MurmuringAbyss.js` defines its foreground corner rocks and Void Portal effect positions. `combat/VoidEnvironmentEffects.js` animates portal motes, swirling clouds, violet witchfire, embers, and timed lightning. Keep those effects behind combatants and below the HUD.
 
-The Vibrant Tear runtime art is `assets/environments/vibrant-tear-pixel/knoll.png`. `data/levels/VibrantTear.js` defines a compact portal with fewer motes, clouds, and lightning flashes. It shares the Void Portal effect system with The Murmuring Abyss.
+The Verdant Tear runtime art is `assets/environments/verdant-tear-pixel/knoll.png`. `data/levels/VerdantTear.js` defines a compact portal with fewer motes, clouds, and lightning flashes. It shares the Void Portal effect system with The Murmuring Abyss.
 
 UI uses large text, generous touch targets, strong contrast, and a top banner flush with the usable game area. See [UI rules](UI_RULES.md) for exact interaction constraints. A detailed color palette has not yet been established as an authoritative repository standard; sample the approved existing art rather than inventing one.

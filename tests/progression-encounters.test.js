@@ -88,8 +88,8 @@ assert.equal(delves.filter((delve) => delve.visuals?.environment).length, 5);
 for (const delve of delves) {
   const waves = createEncounterWaves(delve);
   const finalCounts = { 'slime-cave': 5, 'thornbriar-hollow': 10, 'dolmark-den': 6,
-    'murmuring-abyss': 4, 'vibrant-tear': 3 };
-  assert.equal(waves.length, delve.id === 'vibrant-tear' ? 4
+    'murmuring-abyss': 4, 'verdant-tear': 3 };
+  assert.equal(waves.length, delve.id === 'verdant-tear' ? 4
     : delve.difficulty === 'Unknown' ? 6 : encounterWaveCounts[delve.difficulty]);
   assert.equal(delve.rooms, waves.length);
   const final = waves.at(-1);

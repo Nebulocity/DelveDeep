@@ -5,7 +5,8 @@ import OrientationService from '../services/OrientationService.js';
 import { loadLeaderProgression } from '../game/LeaderProgression.js';
 import { loadProfile } from '../game/GameStorage.js';
 import { prepareBuildSave } from '../game/BuildSave.js';
-import worldMapUrl from '../assets/screens/map.png?url';
+import partyIdleUrl from '../assets/characters/caramon-gladiator/reference-v2/sheets/idle.png?url';
+import partyWalkUrl from '../assets/characters/caramon-gladiator/reference-v2/sheets/walk.png?url';
 import townUrl from '../assets/screens/town.png?url';
 import adventurersHallUrl from '../assets/screens/adventurerhall.png?url';
 import alchemistUrl from '../assets/screens/alchemist.png?url';
@@ -32,7 +33,8 @@ export default class BootScene extends Phaser.Scene {
   preload() {
 
     trackLoading(this);
-    this.load.image('world-map', worldMapUrl);
+    this.load.spritesheet('world-party-idle', partyIdleUrl, { frameWidth: 256, frameHeight: 256 });
+    this.load.spritesheet('world-party-walk', partyWalkUrl, { frameWidth: 256, frameHeight: 256 });
     this.load.image('town', townUrl);
     this.load.image('adventurers-hall', adventurersHallUrl);
     this.load.image('alchemist', alchemistUrl);

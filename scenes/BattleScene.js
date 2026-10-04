@@ -23,6 +23,7 @@ import CombatLog from '../combat/CombatLog.js';
 import HapticsService from '../services/HapticsService.js';
 import { completeExpedition, failExpedition, fleeExpedition, formatDuration } from '../game/ExpeditionProgression.js';
 import { saveProfile } from '../game/GameStorage.js';
+import { awardOrdinaryWave, getDelveCheckpoint, isOrdinaryDelve, WAVE_REWARDS } from '../game/DelveCheckpoints.js';
 import { getBattleLayout } from '../ui/Layout.js';
 import { preloadEnvironment, createEnvironment, getDelveGridFloor } from '../combat/LayeredEnvironment.js';
 import { trackLoading, hideLoadingScreenAfterRender } from '../ui/LoadingScreen.js';
@@ -132,7 +133,12 @@ export default class BattleScene extends Phaser.Scene {
     this.createLeaderLoadoutBar(width);
     this.createHud(width, height);
     this.createTerrainEditorButton(width);
-    this.startWave(0);
+    this.bossWaveIndex = Math.max(0, this.waves.findIndex((wave) => wave.boss));
+    const checkpoint = getDelveCheckpoint(GameState.currentDelve, this.bossWaveIndex);
+    const entry = GameState.run.entry;
+    if (entry === 'camp' && checkpoint?.campUnlocked) this.showDelveCamp();
+    else this.startWave(entry === 'boss' ? this.bossWaveIndex
+      : entry === 'farm' ? this.bossWaveIndex - 1 : checkpoint?.nextWave ?? 0);
     hideLoadingScreenAfterRender(this);
   }
 
@@ -1997,6 +2003,14 @@ export default class BattleScene extends Phaser.Scene {
     // Stop active combat updates during the wave transition and clear
     // remaining ground warnings.
     this.waveTransitioning = true;
+    let waveReward = null;
+    if (isOrdinaryDelve() && this.currentWaveIndex < this.bossWaveIndex) {
+      waveReward = awardOrdinaryWave(GameState.currentDelve, this.currentWaveIndex,
+        this.bossWaveIndex, GameState.run.entry === 'farm');
+      if (waveReward) {
+        this.earnedGold = 0;
+      }
+    }
     this.waveRetreating = true;
     this.waveReturnReadyAt = null;
     this.waveReturnStartedAt = this.time.now;
@@ -2020,7 +2034,9 @@ export default class BattleScene extends Phaser.Scene {
     this.heldUnitIds.clear();
     this.attackTargets.clear();
     this.activeTelegraphs.forEach((telegraph) => this.removeTelegraph(telegraph));
-    this.showBattleMessage('WAVE CLEARED', '#bef264');
+    this.showBattleMessage(waveReward
+      ? `+${waveReward.gold} GOLD  +${waveReward.materialCount} MATERIAL  +${waveReward.xp} XP`
+      : 'WAVE CLEARED', '#bef264');
     this.combatLog?.add('wave', `Wave ${this.currentWaveIndex + 1} cleared`, { wave: this.currentWaveIndex + 1 });
     this.combatLog?.persist();
 
@@ -2074,8 +2090,72 @@ export default class BattleScene extends Phaser.Scene {
     this.waveReturnReadyAt ??= time + 2000;
     if (time < this.waveReturnReadyAt) return;
     this.waveRetreating = false;
-    if (this.currentWaveIndex + 1 >= this.waves.length) this.finishVictory();
+    if (isOrdinaryDelve() && (GameState.run.entry === 'farm'
+      || this.currentWaveIndex + 1 === this.bossWaveIndex)) {
+      this.showDelveCamp();
+    } else if (this.currentWaveIndex + 1 >= this.waves.length) this.finishVictory();
     else this.startWave(this.currentWaveIndex + 1);
+  }
+
+  // Keep the camp choices on the battlefield at the saved pre-boss checkpoint.
+  showDelveCamp() {
+
+    this.waveTransitioning = true;
+    this.waveRetreating = false;
+    GameState.run.entry = 'camp';
+    GameState.currentRoom = this.bossWaveIndex;
+    this.clearBattleMessage();
+    const { width, height } = this.scale;
+    const delve = GameState.currentDelve;
+    const values = WAVE_REWARDS[delve.difficulty] ?? WAVE_REWARDS.Easy;
+    const farmIndex = this.bossWaveIndex - 1;
+    const farmGold = values.gold + values.goldStep * farmIndex;
+    const farmXp = Math.max(1, Math.floor(values.xp / 2));
+    const overlay = [];
+    overlay.push(this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.78)
+      .setInteractive().setDepth(11999));
+    overlay.push(this.add.rectangle(width / 2, height / 2, 1390, 770, 0x171b14, 0.96)
+      .setStrokeStyle(5, 0x84cc16).setDepth(12000));
+    overlay.push(this.add.text(width / 2, height * 0.24, 'DELVE CAMP', {
+      fontFamily: 'Arial', fontSize: '68px', fontStyle: 'bold', color: '#bef264'
+    }).setOrigin(0.5).setDepth(12001));
+    overlay.push(this.add.text(width / 2, height * 0.30,
+      `Waves 1-${this.bossWaveIndex} cleared • Rewards and camp saved`, {
+        fontFamily: 'Arial', fontSize: '29px', color: '#e7e5e4'
+      }).setOrigin(0.5).setDepth(12001));
+
+    const choice = (y, title, detail, action, color) => {
+      const button = this.add.rectangle(width / 2, y, 1180, 138, color)
+        .setStrokeStyle(3, 0x78716c).setInteractive({ useHandCursor: true }).setDepth(12001);
+      overlay.push(button);
+      overlay.push(this.add.text(width / 2, y - 25, title, {
+        fontFamily: 'Arial', fontSize: '38px', fontStyle: 'bold', color: '#ffffff'
+      }).setOrigin(0.5).setDepth(12002));
+      overlay.push(this.add.text(width / 2, y + 26, detail, {
+        fontFamily: 'Arial', fontSize: '27px', color: '#e7e5e4'
+      }).setOrigin(0.5).setDepth(12002));
+      button.on('pointerdown', () => {
+        HapticsService.confirm();
+        overlay.forEach((object) => object.destroy());
+        action();
+      });
+    };
+    choice(height * 0.42, 'RETURN TO TOWN', 'Keep all banked rewards', () => {
+      GameState.activeParty = [];
+      const townId = delve.requiresLocation === 'duskfall' ? 'duskfall' : 'pineshire';
+      GameState.world.currentLocation = townId;
+      saveProfile();
+      this.scene.start('TownScene', { townId, townName: townId === 'duskfall' ? 'Duskfall' : 'Pineshire' });
+    }, 0x365135);
+    choice(height * 0.59, `FARM WAVE ${this.bossWaveIndex}`,
+      `${farmGold} Gold • ${values.materialCount} material • ${farmXp} XP per adventurer`, () => {
+        GameState.run.entry = 'farm';
+        this.startWave(farmIndex);
+      }, 0x50432e);
+    choice(height * 0.76, 'FACE THE BOSS', 'Boss rewards and Delve completion', () => {
+      GameState.run.entry = 'boss';
+      this.startWave(this.bossWaveIndex);
+    }, 0x633328);
   }
 
   potionDetails(unit) {

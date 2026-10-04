@@ -3,6 +3,7 @@ import { restoreEquipment } from './Equipment.js';
 import { restoreAdventurerAbilities } from './AdventurerAbilities.js';
 import { CRAFTING_MATERIALS } from '../data/items.js';
 import { PROFILE_STORAGE_KEY } from './BuildSave.js';
+import { roads } from '../data/worldMap.js';
 
 const STORAGE_KEY = PROFILE_STORAGE_KEY;
 
@@ -37,6 +38,9 @@ export function loadProfile(baseRoster) {
     equipmentSchemaVersion: 1
   };
   GameState.records = saved?.records ?? {};
+  GameState.delveCheckpoints = Object.fromEntries(Object.entries(saved?.delveCheckpoints ?? {})
+    .filter(([id, entry]) => id && Number.isSafeInteger(entry?.nextWave) && entry.nextWave >= 0)
+    .map(([id, entry]) => [id, { nextWave: entry.nextWave, campUnlocked: entry.campUnlocked === true }]));
   GameState.lastPartyIds = Array.isArray(saved?.lastPartyIds)
     ? saved.lastPartyIds.map((id) => id === 'aoth' ? 'fistandantilus' : id) : [];
   GameState.development = {
@@ -47,7 +51,11 @@ export function loadProfile(baseRoster) {
   GameState.world = {
     currentLocation: saved?.world?.currentLocation ?? 'pineshire',
     discoveredLocations: Array.from(new Set(['pineshire', 'slime-cave', ...(saved?.world?.discoveredLocations ?? [])])),
-    clearedDelves: Array.from(new Set(saved?.world?.clearedDelves ?? []))
+    clearedDelves: Array.from(new Set(saved?.world?.clearedDelves ?? [])),
+    travel: roads.some((road) => road.id === saved?.world?.travel?.edgeId)
+      && Number.isFinite(saved.world.travel.t)
+      ? { edgeId: saved.world.travel.edgeId, t: Math.max(0, Math.min(1, saved.world.travel.t)) }
+      : null
   };
 
   // Rebuild stats from current base values and saved levels. Reusing saved
@@ -87,6 +95,7 @@ export function saveProfile() {
     gold: GameState.gold,
     inventory: GameState.inventory,
     records: GameState.records,
+    delveCheckpoints: GameState.delveCheckpoints,
     lastPartyIds: GameState.lastPartyIds,
     development: GameState.development,
     world: GameState.world,

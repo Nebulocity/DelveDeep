@@ -2,6 +2,7 @@ import GameState from './GameState.js';
 import { grantAdventurerXp, adjustHappiness } from './AdventurerProgression.js';
 import { recordDepthClear, saveLeaderProgression } from './LeaderProgression.js';
 import { saveProfile } from './GameStorage.js';
+import { isOrdinaryDelve } from './DelveCheckpoints.js';
 
 // This function snapshots the run start so timing and retreat costs stay
 // consistent.
@@ -67,9 +68,9 @@ export function completeExpedition() {
   const revealMap = {
     'slime-cave': ['thornbriar-hollow'],
     'thornbriar-hollow': ['duskfall'],
-    'dolmark-den': [],
+    'dolmark-den': ['murmuring-abyss', 'verdant-tear'],
     'murmuring-abyss': [],
-    'vibrant-tear': []
+    'verdant-tear': []
   };
   (revealMap[delveId] ?? []).forEach((id) => {
 
@@ -102,18 +103,18 @@ export function failExpedition() {
     result: 'defeat',
     elapsedMs: GameState.run.startedAt > 0 ? Date.now() - GameState.run.startedAt : 0,
     title: 'DEFEAT',
-    message: 'The party was driven back. The Delve remains uncleared.'
+    message: isOrdinaryDelve()
+      ? 'The party was driven back. Cleared wave rewards and the camp checkpoint remain saved.'
+      : 'The party was driven back. The encounter remains uncleared.'
   };
   saveProfile();
 }
 
-// This function handles retreat by restoring gold and discarding run rewards. It deducts up to one
-// Tactics Points from the leader, saves the changes, and builds the retreat
-// summary.
+// This function handles retreat, deducts up to one Tactics Point, and saves the summary.
 export function fleeExpedition() {
 
-  // Restore gold from the start of the run.
-  GameState.gold = GameState.run.startingGold ?? GameState.gold;
+  // Ordinary Delve waves bank their rewards when cleared.
+  if (!isOrdinaryDelve()) GameState.gold = GameState.run.startingGold ?? GameState.gold;
   GameState.rewards = [];
   GameState.currentRoom = 0;
 
@@ -127,7 +128,9 @@ export function fleeExpedition() {
     result: 'fled',
     elapsedMs: GameState.run.startedAt > 0 ? Date.now() - GameState.run.startedAt : 0,
     title: 'PARTY FLED',
-    message: 'The encounter was reset. Run rewards were abandoned and Tactics Points was reduced.'
+    message: isOrdinaryDelve()
+      ? 'Cleared wave rewards remain banked. Tactics Points was reduced.'
+      : 'The encounter was reset. Run rewards were abandoned and Tactics Points was reduced.'
   };
   saveProfile();
   return GameState.run.summary;

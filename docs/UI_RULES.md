@@ -81,7 +81,7 @@ Mana belongs in the bottom character / party UI, not floating over characters on
 - Each facility menu uses large, themed action cards with icons and a palette that reflects the room.
 - A brief tap swings the selected sign before navigation. A hold opens a matching wooden details plaque without navigating.
 - Keep descriptions in the details plaque instead of on the signs.
-- The Region Map sign hangs below the facilities from the same beam, with chains routed through the center gap. Place the hold hint at the bottom of the town screen.
+- The World Map sign hangs below the facilities from the same beam, with chains routed through the center gap. Place the hold hint at the bottom of the town screen.
 
 ## Persistent Messages
 

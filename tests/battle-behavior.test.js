@@ -28,6 +28,9 @@ const context = vm.createContext({
 
     } },
   GameState: {},
+  WAVE_REWARDS: { Easy: { gold: 12, goldStep: 3, xp: 8, materialCount: 1 } },
+  isOrdinaryDelve: () => false,
+  awardOrdinaryWave: () => null,
   saveProfile() {},
   console
 });
@@ -46,6 +49,36 @@ function loadClass(path, name) {
 const BattleScene = loadClass('../scenes/BattleScene.js', 'BattleScene');
 const BattleUnit = loadClass('../combat/BattleUnit.js', 'BattleUnit');
 context.HapticsService.confirm = () => {};
+
+// Camp choices stay in the battle scene and start the chosen wave in place.
+{
+  const buttons = [];
+  const visual = () => ({
+    setInteractive() { return this; }, setDepth() { return this; },
+    setStrokeStyle() { return this; }, setOrigin() { return this; },
+    on(event, callback) { if (event === 'pointerdown') buttons.push(callback); return this; },
+    destroy() {}
+  });
+  const battle = Object.create(BattleScene.prototype);
+  battle.scale = { width: 2400, height: 1080 };
+  battle.add = { rectangle: visual, text: visual };
+  battle.bossWaveIndex = 5;
+  battle.clearBattleMessage = () => {};
+  battle.startWave = index => { battle.startedWave = index; };
+  context.GameState.currentDelve = { id: 'slime-cave', difficulty: 'Easy' };
+  context.GameState.run = {};
+  battle.showDelveCamp();
+  assert.equal(battle.waveTransitioning, true);
+  assert.equal(buttons.length, 3);
+  buttons[1]();
+  assert.equal(battle.startedWave, 4);
+  assert.equal(context.GameState.run.entry, 'farm');
+  buttons.length = 0;
+  battle.showDelveCamp();
+  buttons[2]();
+  assert.equal(battle.startedWave, 5);
+  assert.equal(context.GameState.run.entry, 'boss');
+}
 
 // A guarded ally takes no damage, while the guarding tank receives one resolved hit.
 {

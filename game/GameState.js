@@ -15,6 +15,7 @@ const GameState = {
     equipmentSchemaVersion: 1
   },
   records: {},
+  delveCheckpoints: {},
   development: {
     unlockAll: false,
     replayCleared: false,
@@ -23,13 +24,15 @@ const GameState = {
   world: {
     currentLocation: 'pineshire',
     discoveredLocations: ['pineshire', 'slime-cave'],
-    clearedDelves: []
+    clearedDelves: [],
+    travel: null
   },
   run: {
     startedAt: 0,
     elapsedMs: 0,
     summary: null,
-    startingGold: 0
+    startingGold: 0,
+    entry: 'progress'
   },
   tactics: {
     tankPosition: 'center',

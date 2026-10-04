@@ -6,7 +6,7 @@ export default {
   mapLabel: 'The Slime Cave',
   subtitle: 'A damp, abandoned cave consumed by living slime.',
   difficulty: 'Easy', recommendedLevel: 1, depth: 1, type: 'delve',
-  possibleDrops: ['Gold', 'Adventurer XP'],
+  possibleDrops: ['Gold', 'Materials', 'Adventurer XP'],
   prerequisites: [],
   map: { x: 0.307, y: 0.475, radius: 0.055 },
   // The grid stays on the open floor; image details do not block combat movement.

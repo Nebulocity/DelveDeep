@@ -3,6 +3,7 @@ import GameState from '../game/GameState.js';
 import { formatDuration } from '../game/ExpeditionProgression.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
 import { addReturnButton } from '../ui/ReturnButton.js';
+import { getDelveCheckpoint } from '../game/DelveCheckpoints.js';
 
 export default class EncounterSummaryScene extends Phaser.Scene {
 
@@ -29,7 +30,10 @@ export default class EncounterSummaryScene extends Phaser.Scene {
     }).setOrigin(0.5);
     this.add.text(width / 2, height * 0.38, GameState.currentDelve?.name ?? 'The Delve', { fontFamily: 'Arial', fontSize: '46px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
     this.add.text(width / 2, height * 0.49, summary.message ?? '', { fontFamily: 'Arial', fontSize: '34px', color: '#d6d3d1', align: 'center', wordWrap: { width: width * 0.7 } }).setOrigin(0.5);
-    this.add.text(width / 2, height * 0.60, `Time in encounter: ${formatDuration(summary.elapsedMs)}\nRewards kept: none`, { fontFamily: 'Arial', fontSize: '31px', color: '#a8a29e', align: 'center', lineSpacing: 12 }).setOrigin(0.5);
+    const checkpoint = getDelveCheckpoint();
+    this.add.text(width / 2, height * 0.60,
+      `Time in encounter: ${formatDuration(summary.elapsedMs)}\n${checkpoint ? `Cleared rewards banked • ${checkpoint.campUnlocked ? 'Camp unlocked' : `Resume Wave ${checkpoint.nextWave + 1}`}` : 'Rewards kept: none'}`,
+      { fontFamily: 'Arial', fontSize: '31px', color: '#a8a29e', align: 'center', lineSpacing: 12 }).setOrigin(0.5);
 
     // Offer a return to the map and clear the temporary encounter display
     // state.

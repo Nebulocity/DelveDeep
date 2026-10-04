@@ -4,14 +4,14 @@ import delves from '../data/delves.js';
 import { createEncounterWaves } from '../data/encounters.js';
 import { getDelveGridFloor } from '../combat/LayeredEnvironment.js';
 
-const tear = delves.find(delve => delve.id === 'vibrant-tear');
+const tear = delves.find(delve => delve.id === 'verdant-tear');
 const abyss = delves.find(delve => delve.id === 'murmuring-abyss');
 const environment = tear.visuals.environment;
 const waves = createEncounterWaves(tear);
 
-assert.equal(tear.name, 'The Vibrant Tear');
+assert.equal(tear.name, 'The Verdant Tear');
 assert.equal(tear.type, 'void');
-assert.deepEqual(tear.prerequisites, ['thornbriar-hollow']);
+assert.deepEqual(tear.prerequisites, ['slime-cave', 'thornbriar-hollow', 'dolmark-den']);
 assert.equal(tear.requiresLocation, 'duskfall');
 assert.ok(fs.existsSync(new URL(environment.layers[0].url)));
 assert.equal(waves.length, 4);
@@ -28,4 +28,4 @@ for (const [width, height] of [[2400, 1080], [960, 432]]) {
   assert.ok(floor.bottomY < height * 0.78);
 }
 
-console.log('Vibrant Tear environment and encounter checks passed.');
+console.log('Verdant Tear environment and encounter checks passed.');

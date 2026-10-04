@@ -4,14 +4,14 @@ import slimeCave from './levels/SlimeCave.js';
 import thornbriarHollow from './levels/ThornbriarHollow.js';
 import dolmarkDen from './levels/DolmarkDen.js';
 import murmuringAbyss from './levels/MurmuringAbyss.js';
-import vibrantTear from './levels/VibrantTear.js';
+import verdantTear from './levels/VerdantTear.js';
 
 const delves = [
   slimeCave,
   thornbriarHollow,
   dolmarkDen,
   murmuringAbyss,
-  vibrantTear
+  verdantTear
 ];
 
 // This function looks up a delve definition by its persistent identifier.

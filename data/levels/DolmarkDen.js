@@ -4,7 +4,7 @@ export default {
   mapLabel: 'Dolmark Den',
   subtitle: 'An old den carved into the mountains beyond Duskfall.',
   difficulty: 'Easy', recommendedLevel: 2, depth: 3, type: 'delve',
-  possibleDrops: ['Gold', 'Adventurer XP'],
+  possibleDrops: ['Gold', 'Materials', 'Adventurer XP'],
   prerequisites: ['thornbriar-hollow'],
   requiresLocation: 'duskfall',
   map: { x: 0.855, y: 0.205, radius: 0.060 },

@@ -155,7 +155,7 @@ export default class TownScene extends Phaser.Scene {
     const signCenterY = 406;
     const attachmentY = signCenterY - 83 + 166 * 190 / 756;
     const art = this.add.image(0, signCenterY, 'town-sign-world-map').setDisplaySize(490, 166);
-    const label = this.add.text(0, signCenterY, 'REGION MAP', {
+    const label = this.add.text(0, signCenterY, 'WORLD MAP', {
       fontFamily: 'Georgia', fontSize: '40px', fontStyle: 'bold', color: '#fff1d2',
       stroke: '#241b17', strokeThickness: 4
     }).setOrigin(0.5);
@@ -164,7 +164,7 @@ export default class TownScene extends Phaser.Scene {
     this.createHangingChains(sign, 75, attachmentY);
 
     bindSelectionDetails(this, hit, {
-      title: 'REGION MAP', description: 'Return to the region map to choose another town or delve.'
+      title: 'WORLD MAP', description: 'Return to the world map to choose another town or delve.'
     }, this.animateSign(sign, 4, () => this.scene.start('TitleScene')));
   }
 

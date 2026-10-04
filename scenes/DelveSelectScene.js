@@ -4,6 +4,7 @@ import GameState from '../game/GameState.js';
 import HapticsService from '../services/HapticsService.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
 import { addReturnButton } from '../ui/ReturnButton.js';
+import { getDelveCheckpoint } from '../game/DelveCheckpoints.js';
 
 export default class DelveSelectScene extends Phaser.Scene {
 
@@ -26,6 +27,7 @@ export default class DelveSelectScene extends Phaser.Scene {
       this.scene.start('TitleScene');
       return;
     }
+    const checkpoint = getDelveCheckpoint(delve);
 
     this.cameras.main.setBackgroundColor(delve.type === 'void' ? '#160b24' : '#171717');
     this.createWorldMapButton();
@@ -50,6 +52,9 @@ export default class DelveSelectScene extends Phaser.Scene {
     this.add.text(width * 0.28, panelY - 68, delve.difficulty, { fontFamily: 'Arial', fontSize: '48px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
     this.add.text(width * 0.28, panelY + 10, `Recommended Level ${delve.recommendedLevel}`, { fontFamily: 'Arial', fontSize: '30px', color: '#d6d3d1' }).setOrigin(0.5);
     this.add.text(width * 0.28, panelY + 60, `${delve.rooms} waves expected`, { fontFamily: 'Arial', fontSize: '30px', color: '#d6d3d1' }).setOrigin(0.5);
+    if (checkpoint) this.add.text(width * 0.28, panelY + 112,
+      checkpoint.campUnlocked ? 'Camp unlocked' : `Next: Wave ${checkpoint.nextWave + 1}`,
+      { fontFamily: 'Arial', fontSize: '30px', color: '#bef264' }).setOrigin(0.5);
 
     this.add.text(width * 0.66, panelY - 120, 'POSSIBLE DROPS', { fontFamily: 'Arial', fontSize: '30px', fontStyle: 'bold', color: '#94a3b8' }).setOrigin(0.5);
     this.add.text(width * 0.66, panelY - 45, (delve.possibleDrops ?? ['Gold', 'Adventurer XP']).map((drop) => `• ${drop}`).join('\n'), {
@@ -59,10 +64,12 @@ export default class DelveSelectScene extends Phaser.Scene {
     // Continue to party selection without starting the expedition yet.
     const continueButton = this.add.rectangle(width / 2, height * 0.88, 650, 96, delve.type === 'void' ? 0x6b21a8 : 0x7c2d12)
       .setInteractive({ useHandCursor: true });
-    this.add.text(width / 2, height * 0.88, 'CONTINUE', { fontFamily: 'Arial', fontSize: '42px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
+    this.add.text(width / 2, height * 0.88, checkpoint?.campUnlocked ? 'ENTER CAMP' : 'CONTINUE', { fontFamily: 'Arial', fontSize: '42px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
     continueButton.on('pointerdown', () => {
 
-      HapticsService.confirm(); this.scene.start('PartySelectScene');
+      HapticsService.confirm();
+      GameState.run.entry = checkpoint?.campUnlocked ? 'camp' : 'progress';
+      this.scene.start('PartySelectScene');
     });
   }
 

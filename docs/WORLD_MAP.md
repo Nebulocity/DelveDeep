@@ -1,74 +1,25 @@
-# Delve Deep – World Map
+# Delve Deep - World Map
 
-## Current Map Progression
+## World layout
 
-The current early-world route is:
+The map is one scrolling 120-by-72-tile world, divided into nine seamless 40-by-24-tile areas. Its three columns are progression Regions rather than separate screens. `data/worldMap.js` owns the area positions, shared road seams, graph, and POIs. The provisional terrain and roads use reusable tile and line rendering; final PixelLab terrain and road tiles can replace their presentation without moving graph coordinates.
 
-**Pineshire → The Slime Cave → Thornbriar Hollow → Duskfall**
+| West: Pineshire Reach, levels 1-3 | Middle March, levels 4-6 | Eastern Verge, levels 7-9 |
+| --- | --- | --- |
+| Thornwood: Thornbriar Hollow | Northern March waypoint | Eastern Heights waypoint |
+| Pineshire Vale: Pineshire, The Slime Cave | Crossroads waypoint | Eastern Crossing waypoint |
+| Duskfall Foothills: Duskfall, Dolmark Den, The Murmuring Abyss | Southern March waypoint, The Verdant Tear | Far Verge waypoint |
 
-After Duskfall, the path branches toward:
+Roads join north-center-south within each column. The Murmuring Abyss blocks the southwest-to-south road, and The Verdant Tear blocks the south-to-southeast road. These are the only roads across Region boundaries. Clearing a Portal opens its road crossing; it does not move the party. The east edge remains a waypoint, with no committed distant story destination.
 
-- **Dolmark Den**
-- **The Murmuring Abyss**
-- **The Vibrant Tear**, a newer Void Portal on a grassy wilderness knoll near the early route
+## Progression and travel
 
-## Location Types
+The early route remains Pineshire, The Slime Cave, Thornbriar Hollow, Duskfall, then Dolmark Den. Clearing all three ordinary Delves makes both Void Portals eligible at the same time as the proposed opening Everdeep. The Murmuring Abyss must be cleared to reach The Verdant Tear, and The Verdant Tear must be cleared to travel into the eastern Region. Both Portals belong to the opening progression group for the proposed Everdeep, even though the second gate stands within the middle column.
 
-### Towns
+Drag the terrain to pan across distant areas, then tap a reachable POI to send the visible party along authored roads. Travel resumes camera follow within world bounds; Find Party recenters it. Hold a POI for details. Towns and Delves open on arrival; waypoints stop the party. POI labels remain above their icons, while the top banner and controls stay fixed to the usable game area. A blocked destination explains its requirement. The profile saves the party's current location or road edge position within the current build.
 
-- Pineshire
-- Duskfall
+## Art and interface
 
-### Delves / Dungeon Caves
+The map is landscape-first pixel art with large nameplates, generous touch targets, and haptics. The current renderer is provisional. Produce final terrain and road tiles as reusable PixelLab assets, with exact shared crossings at area boundaries; do not bake independent road ends into nine unrelated images. New party character art must use PixelLab and supplied references. Do not alter the combat floor: every Delve keeps the shared Slime Cave 10-by-6 tactical grid.
 
-- The Slime Cave
-- Thornbriar Hollow
-- Dolmark Den
-
-### Void Portal
-
-- The Murmuring Abyss
-- The Vibrant Tear
-
-Earlier organizational categories also included:
-
-- Town
-- Old Road
-- Delves
-- Void Portals
-
-The visible "Old Road" map text itself should not be displayed if it is still present.
-
-## Visual Direction
-
-- Pixel-art world map.
-- Inspired by classic tactical / console RPG overworld presentation.
-- Darker ambience is acceptable.
-- Current map is intended for horizontal / landscape presentation.
-
-## Map UI Rules
-
-- Location nameplates should remain readable.
-- Icons should appear below the location nameplates.
-- Avoid overlapping icons, labels, Android status areas, or top UI.
-- The world-map top banner should be flush with the top of the usable game area.
-
-## Progression
-
-Locations unlock through progression.
-
-Development tooling should allow:
-
-- Clearing map progress.
-- Unlocking all content.
-- Re-running delves.
-- Re-running Void Portals.
-- Repeating content any number of times while testing.
-
-Testing mode should not permanently corrupt or confuse normal progression state.
-
-## Void Portal Content
-
-Void Portal enemies and bosses should remain distinct from ordinary delve content where appropriate.
-
-Before adding or changing Void Portal enemies, inspect the current project data and use the established enemy / encounter system rather than creating unrelated one-off logic.
+Development tools retain progress reset, unlock-all, and encounter replay controls. Unlock-all opens both road gates only while the mode is active; it does not write permanent clears.

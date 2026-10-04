@@ -1,219 +1,28 @@
-import { bindSelectionDetails, addDetailsHint, delveDetails } from '../ui/SelectionDetails.js';
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
-import delves from '../data/delves.js';
 import HapticsService from '../services/HapticsService.js';
 import { formatDuration } from '../game/ExpeditionProgression.js';
 import { saveProfile, clearSavedProfile } from '../game/GameStorage.js';
 import { clearLeaderProgression, grantLeaderLevels } from '../game/LeaderProgression.js';
 import { hideLoadingScreenAfterRender } from '../ui/LoadingScreen.js';
-
-const TOWNS = {
-  pineshire: { id: 'pineshire', name: 'Pineshire', x: 0.091, y: 0.485, statusY: 0.57 },
-  duskfall: { id: 'duskfall', name: 'Duskfall', x: 0.704, y: 0.548, statusY: 0.64 }
-};
-
-const LOCATION_STATUS_Y = {
-  'slime-cave': 0.56,
-  'thornbriar-hollow': 0.59,
-  'dolmark-den': 0.34,
-  'murmuring-abyss': 0.86,
-  'vibrant-tear': 0.88
-};
+import { createScrollingWorldMap, updateScrollingWorldMap } from './ScrollingWorldMap.js';
 
 export default class TitleScene extends Phaser.Scene {
-
-  // This function registers TitleScene so the game can navigate to this
-  // screen.
   constructor() {
-
     super('TitleScene');
   }
 
-  // This function builds the world map screen from the current world
-  // progress. It displays currencies, adds town and delve touch targets,
-  // marks the party location, and provides access to development tools.
   create() {
-
-    const { width, height } = this.scale;
-    this.cameras.main.setBackgroundColor('#080b10');
-
-    // Scale the map to cover the game area before placing the interface over
-    // it.
-    const map = this.add.image(width / 2, height / 2, 'world-map');
-    const scale = Math.max(width / map.width, height / map.height);
-    map.setScale(scale);
-
-    // Draw the top banner with the game title, map label, and current
-    // currencies.
-    this.add.rectangle(width / 2, 58, width, 116, 0x070b10, 0.86).setDepth(1000);
-    this.add.text(58, 18, 'DELVE DEEP', {
-      fontFamily: 'Arial', fontSize: '54px', fontStyle: 'bold', color: '#f8fafc'
-    }).setDepth(1001);
-    this.add.text(58, 69, 'WORLD MAP', {
-      fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: '#94a3b8'
-    }).setDepth(1001);
-
-    this.currencyText = this.add.text(width - 58, 26, `Gold: ${GameState.gold}`, {
-      fontFamily: 'Arial', fontSize: '31px', fontStyle: 'bold', color: '#fbbf24'
-    }).setOrigin(1, 0).setDepth(1001);
-
-    // Add the starting town and unlock Duskfall according to discovery, clear
-    // progress, or testing mode.
-    this.createTownHotspot(TOWNS.pineshire, true);
-    const duskfallUnlocked = GameState.development.unlockAll || this.isDiscovered('duskfall') || this.isCleared('thornbriar-hollow');
-    this.createTownHotspot(TOWNS.duskfall, duskfallUnlocked);
-
-    delves.forEach((delve) => this.createDelveHotspot(delve));
-    this.createPartyIndicator();
-    addDetailsHint(this, 86, 'Long-press or hold-click a location for details.');
-    this.createDevelopmentButton(width, height);
+    createScrollingWorldMap(this);
     hideLoadingScreenAfterRender(this);
   }
 
-  // This function places map interactions using positions relative to the
-  // game area.
-  mapPosition(relativeX, relativeY) {
-
-    const { width, height } = this.scale;
-    return { x: width * relativeX, y: height * relativeY };
-  }
-
-  // This function checks whether the party has reached a map location.
-  isDiscovered(id) {
-
-    return GameState.world.discoveredLocations.includes(id);
-  }
-
-  // This function recognizes cleared delves from world progress or recorded
-  // victories.
-  isCleared(id) {
-
-    return GameState.world.clearedDelves.includes(id) || (GameState.records[id]?.clears ?? 0) > 0;
-  }
-
-  // This function makes reachable towns enterable and shows locked towns on
-  // the map.
-  createTownHotspot(town, unlocked) {
-
-    const { x, y } = this.mapPosition(town.x, town.y);
-    const statusY = this.mapPosition(town.x, town.statusY ?? town.y + 0.08).y;
-    const hit = this.add.circle(x, y, 105, 0xffffff, 0.001).setDepth(900);
-    if (!unlocked) {
-      this.add.circle(x, statusY, 48, 0x0f172a, 0.84).setStrokeStyle(4, 0x64748b).setDepth(901);
-      this.add.text(x, statusY, 'LOCKED', { fontFamily: 'Arial', fontSize: '24px', fontStyle: 'bold', color: '#cbd5e1' })
-        .setOrigin(0.5).setDepth(902);
-      bindSelectionDetails(this, hit, { title: town.name, description: 'This town has not been reached yet. Advance through the preceding delves to unlock it.' });
-      return;
-    }
-
-    hit.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
-
-      HapticsService.tap();
-      GameState.world.currentLocation = town.id;
-      if (!GameState.world.discoveredLocations.includes(town.id)) GameState.world.discoveredLocations.push(town.id);
-      if (town.id === 'duskfall') {
-        ['dolmark-den', 'murmuring-abyss', 'vibrant-tear'].forEach((id) => {
-
-          if (!GameState.world.discoveredLocations.includes(id)) GameState.world.discoveredLocations.push(id);
-        });
-      }
-      saveProfile();
-      this.scene.start('TownScene', { townId: town.id, townName: town.name });
-    });
-    bindSelectionDetails(this, hit, { title: town.name, description: "Visit town to prepare your party and choose leadership tactics at the Adventurer's Hall." });
-  }
-
-  // This function adds a touch target and status marker for one delve. It
-  // checks discovery, prerequisites, and location access before
-  // opening the overview, or shows the previous results for a cleared delve.
-  createDelveHotspot(delve) {
-
-    const { x, y } = this.mapPosition(delve.map.x, delve.map.y);
-    const statusY = this.mapPosition(delve.map.x, LOCATION_STATUS_Y[delve.id] ?? delve.map.y + 0.08).y;
-
-    if (delve.id === 'vibrant-tear') this.createVibrantTearMarker(x, y);
-
-    // Collect the access rules separately so taps can explain a missing
-    // discovery or progression.
-    const devUnlock = GameState.development.unlockAll;
-    const replayCleared = GameState.development.replayCleared;
-    const discovered = devUnlock || this.isDiscovered(delve.id)
-      || (delve.id === 'vibrant-tear' && this.isDiscovered('duskfall'));
-    const cleared = this.isCleared(delve.id);
-    const prerequisitesMet = devUnlock || (delve.prerequisites ?? []).every((id) => this.isCleared(id));
-    const locationMet = devUnlock || !delve.requiresLocation || this.isDiscovered(delve.requiresLocation);
-    const available = devUnlock || (discovered && prerequisitesMet && locationMet);
-
-    const hit = this.add.circle(x, y, Math.max(75, this.scale.width * delve.map.radius), 0xffffff, 0.001).setDepth(900);
-    hit.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
-
-      HapticsService.tap();
-      if (!available) {
-        this.showToast('This location has not been reached yet.');
-        return;
-      }
-
-      // Cleared locations show their recorded results unless development
-      // replay mode is enabled.
-      if (cleared && !replayCleared) {
-        this.showClearedReview(delve);
-        return;
-      }
-      // Store the chosen location and copy its definition into the new
-      // encounter state before opening the overview.
-      GameState.world.currentLocation = delve.id;
-      GameState.currentDelve = { ...delve };
-      GameState.currentRoom = 0;
-      saveProfile();
-      this.scene.start('DelveSelectScene');
-    });
-
-    bindSelectionDetails(this, hit, () => delveDetails(delve));
-
-    // Show the appropriate map marker for a cleared or unavailable location.
-    if (cleared) {
-      this.add.circle(x, statusY, 36, 0x14532d, 0.94).setStrokeStyle(5, 0x86efac).setDepth(905);
-      this.add.text(x, statusY, '✓', { fontFamily: 'Arial', fontSize: '46px', fontStyle: 'bold', color: '#dcfce7' }).setOrigin(0.5).setDepth(906);
-    } else if (!available) {
-      this.add.circle(x, statusY, 28, 0x111827, 0.9).setStrokeStyle(3, 0x64748b).setDepth(905);
-      this.add.text(x, statusY, '×', { fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#94a3b8' }).setOrigin(0.5).setDepth(906);
+  update(time, delta) {
+    updateScrollingWorldMap(this, delta);
+    for (const object of this.children.list) {
+      if (object.depth >= 1000 && object.scrollFactorX !== 0) object.setScrollFactor(0);
     }
   }
-
-  // This function adds a visible map landmark for the new rift without
-  // changing the existing illustrated map asset.
-  createVibrantTearMarker(x, y) {
-
-    this.add.ellipse(x, y + 25, 158, 46, 0x4f6f30, 0.92)
-      .setStrokeStyle(3, 0x1b321d).setDepth(870);
-    this.add.ellipse(x, y - 9, 65, 90, 0x120b20, 0.98)
-      .setStrokeStyle(8, 0xb347ee).setDepth(871);
-    this.add.ellipse(x, y - 11, 34, 67, 0x05050e, 1).setDepth(872);
-    this.add.rectangle(x, y + 68, 332, 56, 0xd9b77d, 0.98)
-      .setStrokeStyle(4, 0x49301e).setDepth(873);
-    this.add.text(x, y + 68, 'The Vibrant Tear', {
-      fontFamily: 'Georgia', fontSize: '31px', fontStyle: 'bold', color: '#21150f'
-    }).setOrigin(0.5).setDepth(874);
-  }
-
-  // This function marks the party current location on the world map.
-  createPartyIndicator() {
-
-    const lookup = {
-      pineshire: TOWNS.pineshire,
-      duskfall: TOWNS.duskfall,
-      ...Object.fromEntries(delves.map((delve) => [delve.id, { x: delve.map.x, y: delve.map.y }]))
-    };
-    const location = lookup[GameState.world.currentLocation] ?? TOWNS.pineshire;
-    const { x, y } = this.mapPosition(location.x, location.y);
-    const markerY = y - 88;
-    this.add.circle(x, markerY, 25, 0xf8fafc, 0.96).setStrokeStyle(5, 0x0f172a).setDepth(920);
-    this.add.triangle(x, markerY + 31, 0, 0, 18, 28, -18, 28, 0xf8fafc).setAngle(180).setDepth(919);
-    this.add.text(x, markerY - 41, 'PARTY', { fontFamily: 'Arial', fontSize: '22px', fontStyle: 'bold', color: '#ffffff', stroke: '#000000', strokeThickness: 4 })
-      .setOrigin(0.5).setDepth(921);
-  }
-
   // This function exposes testing controls and shows whether testing mode is
   // active.
   createDevelopmentButton(width, height) {

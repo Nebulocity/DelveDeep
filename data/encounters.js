@@ -78,7 +78,7 @@ const dolmarkWaves = [
   { name: 'Silvanark the Forest Lord', wardens: { base: 3 }, protectors: 2, silvanark: 1, boss: true }
 ];
 
-const vibrantTearWaves = [
+const verdantTearWaves = [
   { name: 'Grass at the Threshold', enemies: [
     { type: 'voidStalker', arenaX: 440, arenaY: 770 },
     { type: 'voidStalker', arenaX: 940, arenaY: 770 },
@@ -179,8 +179,8 @@ export function createEncounterWaves(delve = {}, arenaWidth = 1400, random = Mat
       ? buildThornbriarWaves(random)
       : delve.id === 'dolmark-den'
         ? buildDolmarkWaves(random)
-        : delve.id === 'vibrant-tear'
-          ? vibrantTearWaves
+        : delve.id === 'verdant-tear'
+          ? verdantTearWaves
           : [...difficultyWaves, ...finale];
 
   // Preserve the fifth-depth guardian rule before the final boss so the

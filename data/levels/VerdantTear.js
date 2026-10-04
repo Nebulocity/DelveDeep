@@ -1,11 +1,11 @@
 export default {
-  id: 'vibrant-tear',
-  name: 'The Vibrant Tear',
-  mapLabel: 'The Vibrant Tear',
+  id: 'verdant-tear',
+  name: 'The Verdant Tear',
+  mapLabel: 'The Verdant Tear',
   subtitle: 'A fresh wound in reality hangs over a grassy knoll. Small, unstable, and no less deadly.',
   difficulty: 'Unknown', recommendedLevel: 2, depth: 4, type: 'void',
   possibleDrops: ['Gold', 'Adventurer XP'],
-  prerequisites: ['thornbriar-hollow'],
+  prerequisites: ['slime-cave', 'thornbriar-hollow', 'dolmark-den'],
   requiresLocation: 'duskfall',
   map: { x: 0.40, y: 0.72, radius: 0.064 },
   terrain: [],
@@ -13,8 +13,8 @@ export default {
     environment: {
       width: 1536, height: 1024, offsetY: -36, pixelArt: true,
       layers: [
-        { key: 'vibrant-tear-pixel-art',
-          url: new URL('../../assets/environments/vibrant-tear-pixel/knoll.png', import.meta.url).href,
+        { key: 'verdant-tear-pixel-art',
+          url: new URL('../../assets/environments/verdant-tear-pixel/knoll.png', import.meta.url).href,
           depth: -1000 }
       ],
       voidEffects: {

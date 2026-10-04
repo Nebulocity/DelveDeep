@@ -7,7 +7,7 @@ const abyss = delves.find(delve => delve.id === 'murmuring-abyss');
 const environment = abyss.visuals.environment;
 assert.equal(abyss.type, 'void');
 assert.equal(abyss.depth, 4);
-assert.deepEqual(abyss.prerequisites, ['thornbriar-hollow']);
+assert.deepEqual(abyss.prerequisites, ['slime-cave', 'thornbriar-hollow', 'dolmark-den']);
 assert.equal(environment.pixelArt, true);
 assert.ok(fs.existsSync(new URL(environment.layers[0].url)));
 assert.equal(environment.foreground.sourceKey, environment.layers[0].key);

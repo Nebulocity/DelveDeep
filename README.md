@@ -4,7 +4,11 @@ You are the raid leader. Pick five adventurers, send them into dangerous delves,
 
 Delve Deep is a tactical, party-based RPG built around real-time battles. Tanks hold attention, healers keep the run alive, and melee and ranged fighters look for openings. You call the shots with movement, positioning, attack orders and leadership tactics while your adventurers use their own class abilities.
 
-The world map leads from early caves to tougher expeditions and boss encounters. Victories grow your roster and open the next path. The game is in development, with its first locations, party selection, combat, rewards and progression already playable. More art and encounter polish are on the way.
+The playable demo has one scrolling world with nine areas, regional pixel art, road travel, towns, party selection, real-time combat, bosses, rewards, and saved progression. Start with The Slime Cave; victories reveal the next Delves and the portals guarding later regions. Branch encounters reuse the current battle themes. Gear enchantments remain a preview.
+
+Drag the map to explore, tap a destination to travel, and hold it for details. Visit towns to manage your roster, train abilities and tactics, craft gear, and buy or brew potion packs. Choose five adventurers before entering a Delve. Cleared waves bank rewards; camp lets you farm, return to town, or challenge the boss. HOW TO PLAY explains the loop, FIND PARTY recenters the map, and NEW GAME asks before resetting progress.
+
+Progress is stored locally on the current device and origin. Each newly built version starts fresh; subsequent sessions of the same build preserve progress. Development tools are available on the development server with `?devTools=1` and are hidden in production.
 
 ## Screenshots
 

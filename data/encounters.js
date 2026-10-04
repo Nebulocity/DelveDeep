@@ -202,13 +202,14 @@ export function createEncounterWaves(delve = {}, arenaWidth = 1400, random = Mat
   const openingCount = targetCount - finale.length;
   const difficultyWaves = Array.from({ length: openingCount }, (_, index) =>
     index < base.length ? base[index] : repeatable[(index - base.length) % repeatable.length]);
-  const waves = delve.id === 'slime-cave'
+  const encounterId = delve.encounterId ?? delve.id;
+  const waves = encounterId === 'slime-cave'
     ? buildSlimeCaveWaves(random)
-    : delve.id === 'thornbriar-hollow'
+    : encounterId === 'thornbriar-hollow'
       ? buildThornbriarWaves(random)
-      : delve.id === 'dolmark-den'
+      : encounterId === 'dolmark-den'
         ? buildDolmarkWaves(random)
-        : delve.id === 'verdant-tear'
+        : encounterId === 'verdant-tear'
           ? verdantTearWaves
           : [...difficultyWaves, ...finale];
 

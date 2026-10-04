@@ -1,18 +1,9 @@
-import Phaser from 'phaser';
-import { FACILITIES, renderFacilityMenu } from '../ui/FacilityMenu.js';
+import FacilityScene from './FacilityScene.js';
 
-export default class BlacksmithScene extends Phaser.Scene {
+export default class BlacksmithScene extends FacilityScene {
   constructor() { super('BlacksmithScene'); }
 
-  create() {
-    this.mode = null;
-    this.render();
-  }
-
-  render() {
-    renderFacilityMenu(this, FACILITIES.Blacksmith, this.mode,
-      (mode) => { this.mode = mode; this.render(); },
-      () => this.scene.start('TownScene'),
-      () => { this.mode = null; this.render(); });
+  init(data) {
+    super.init({ ...data, title: 'Blacksmith' });
   }
 }

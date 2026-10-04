@@ -17,7 +17,6 @@ export const FACILITIES = {
   Blacksmith: {
     name: 'Blacksmith', title: 'BLACKSMITH', background: 'blacksmith', subtitle: 'Equipment and the forge.',
     choices: [
-      { id: 'buy', label: 'BUY', icon: 'sword', subtitle: 'Browse equipment', description: 'Browse equipment and crafting supplies when they become available.', message: 'No equipment or crafting supplies are stocked.' },
       { id: 'sell', label: 'SELL', icon: 'ingot', subtitle: 'Trade materials', description: 'Sell gathered materials for Gold.', message: 'Choose materials to sell.' },
       { id: 'craft', label: 'CRAFT', icon: 'anvil', subtitle: 'Visit the forge', description: 'Craft the baseline weapons and armor from gathered materials.', message: 'Choose an equipment recipe.' }
     ]
@@ -25,9 +24,7 @@ export const FACILITIES = {
   Enchanter: {
     name: 'Enchanter', title: 'ENCHANTER', background: 'enchanter', subtitle: 'Arcane improvements and magical wares.',
     choices: [
-      { id: 'buy', label: 'BUY', icon: 'scroll', subtitle: 'Browse scrolls', description: 'Browse enchanting scrolls when the enchanter has stock.', message: 'No scrolls are stocked yet.' },
-      { id: 'sell', label: 'SELL', icon: 'scroll-sale', subtitle: 'Trade scrolls', description: 'Sell spare enchanting scrolls when the inventory has stock.', message: 'You have no scrolls to sell.' },
-      { id: 'craft', label: 'CRAFT', icon: 'rune', subtitle: 'Inscribe scrolls', description: 'Craft scrolls to enchant gear when recipes become available.', message: 'No scroll recipes are available yet.' }
+      { id: 'lore', label: 'ARCANE LORE', icon: 'rune', subtitle: 'Demo preview', description: 'Learn about the arcane supplies available in this demo.', message: 'Arcane Essence drops in Delves and helps the Alchemist brew Mana Potion packs. Learn abilities at the Adventurer\'s Hall. Gear enchantments will arrive in a future adventure.' }
     ]
   }
 };

@@ -65,6 +65,7 @@ export const nodes = {
   'pineshire-south-branch': [12, 46],
   'thornwood-east-branch': [30, 14],
   'march-west-branch': [48, 36],
+  reedhaven: [44, 41],
   'march-east-branch': [72, 36],
   'far-verge-north-branch': [94, 46]
 };
@@ -86,10 +87,8 @@ export const roads = [
   link('pineshire', 'west-crossroads'), link('west-crossroads', 'slime-cave'),
   link('pineshire', 'pineshire-south-branch'), link('pineshire-south-branch', 'west-south-seam'),
   link('west-crossroads', 'west-north-seam'), link('west-north-seam', 'thornbriar-hollow'),
-  link('west-north-seam', 'middle-northwest'),
-  link('thornbriar-hollow', 'thornwood-east-branch'), link('thornwood-east-branch', 'middle-northwest'),
+  link('thornbriar-hollow', 'thornwood-east-branch'),
   link('west-crossroads', 'west-south-seam'), link('west-south-seam', 'duskfall'),
-  link('west-south-seam', 'middle-southwest'),
   link('duskfall', 'dolmark-den'), link('dolmark-den', 'murmuring-abyss'),
   link('duskfall', 'everdeep'),
   link('murmuring-abyss', 'first-gate-west'),
@@ -104,6 +103,7 @@ export const roads = [
   link('far-verge', 'far-south-verge'),
   link('south-march', 'middle-south-seam'), link('middle-south-seam', 'middle-center'),
   link('middle-south-seam', 'march-west-branch'), link('march-west-branch', 'middle-center'),
+  link('march-west-branch', 'reedhaven'),
   link('middle-south-seam', 'march-east-branch'), link('march-east-branch', 'middle-center'),
   link('middle-center', 'middle-north-seam'), link('middle-north-seam', 'middle-north'),
   link('middle-north', 'middle-northwest'), link('middle-north', 'middle-northeast'),
@@ -130,18 +130,20 @@ export const pois = [
   { id: 'south-march', name: 'Southern March', node: 'south-march', type: 'waypoint' },
   { id: 'middle-center', name: 'The Crossroads', node: 'middle-center', type: 'waypoint' },
   { id: 'middle-north', name: 'Northern March', node: 'middle-north', type: 'waypoint' },
-  { id: 'middle-northwest', name: 'Pinewatch', node: 'middle-northwest', type: 'waypoint' },
-  { id: 'middle-northeast', name: 'Highmere', node: 'middle-northeast', type: 'waypoint' },
+  { id: 'middle-northwest', name: 'Highmere', node: 'middle-northwest', type: 'town', conceptArt: 'town-concept-mountain-hold' },
+  { id: 'middle-northeast', name: 'Pinewatch', node: 'middle-northeast', type: 'waypoint' },
   { id: 'march-west-delves', name: 'The Old Quarry', node: 'march-west-branch', type: 'delve', template: 'dolmark-den' },
   { id: 'march-east-portal', name: 'The Gloaming Scar', node: 'march-east-branch', type: 'void', template: 'murmuring-abyss' },
+  { id: 'reedhaven', name: 'Reedhaven', node: 'reedhaven', type: 'town', conceptArt: 'town-concept-marsh-town' },
+  { id: 'middle-southwest', name: 'Sunspoke', node: 'middle-southwest', type: 'town', conceptArt: 'town-concept-desert-town' },
   { id: 'verdant-tear', name: 'The Verdant Tear', node: 'verdant-tear', type: 'void' },
   { id: 'far-verge', name: 'The Far Verge', node: 'far-verge', type: 'waypoint' },
   { id: 'east-center', name: 'Eastern Crossing', node: 'east-center', type: 'waypoint' },
   { id: 'east-north', name: 'Eastern Heights', node: 'east-north', type: 'waypoint' },
   { id: 'east-northwest', name: 'Westwatch', node: 'east-northwest', type: 'waypoint' },
   { id: 'east-northeast', name: 'Sunward Crest', node: 'east-northeast', type: 'waypoint' },
-  { id: 'east-west-crossing', name: 'Old Bridge', node: 'east-west-crossing', type: 'waypoint' },
-  { id: 'east-east-crossing', name: 'Rivergate', node: 'east-east-crossing', type: 'waypoint' },
+  { id: 'east-west-crossing', name: 'Old Bridge', node: 'east-west-crossing', type: 'town', conceptArt: 'town-concept-river-town' },
+  { id: 'east-east-crossing', name: 'Rivergate', node: 'east-east-crossing', type: 'town', conceptArt: 'town-concept-castle-town' },
   { id: 'verge-delves', name: 'The Sunken Watch', node: 'far-verge-north-branch', type: 'delve', template: 'thornbriar-hollow', conceptArt: 'delve-concept-sunken-watch' }
 ];
 
@@ -176,4 +178,39 @@ export function routeBetween(from, to, isGateOpen = () => false) {
   const result = [to];
   while (result[0] !== from) result.unshift(previous.get(result[0]));
   return result;
+}
+
+export function routeFromEdge(edgeId, t, to, isGateOpen = () => false) {
+  const edge = roads.find((candidate) => candidate.id === edgeId);
+  if (!edge || (edge.gate && !isGateOpen(edge.gate))) return null;
+  const a = nodePoint(edge.from), b = nodePoint(edge.to);
+  const progress = Math.max(0, Math.min(1, t));
+  const length = Math.hypot(b.x - a.x, b.y - a.y);
+  let best = null;
+  let shortest = Infinity;
+  for (const [from, partial] of [[edge.from, progress], [edge.to, 1 - progress]]) {
+    const route = routeBetween(from, to, isGateOpen);
+    if (!route) continue;
+    const distance = route.slice(1).reduce((total, id, index) => {
+      const start = nodePoint(route[index]), end = nodePoint(id);
+      return total + Math.hypot(end.x - start.x, end.y - start.y);
+    }, partial * length);
+    if (distance < shortest) { shortest = distance; best = route; }
+  }
+  return best;
+}
+
+export function nearestTown(from, isGateOpen = () => false, canVisit = () => true) {
+  let nearest = null;
+  let shortest = Infinity;
+  for (const town of pois.filter((poi) => poi.type === 'town' && canVisit(poi))) {
+    const route = routeBetween(from, town.node, isGateOpen);
+    if (!route) continue;
+    const distance = route.slice(1).reduce((total, id, index) => {
+      const a = nodePoint(route[index]), b = nodePoint(id);
+      return total + Math.hypot(b.x - a.x, b.y - a.y);
+    }, 0);
+    if (distance < shortest) { shortest = distance; nearest = town; }
+  }
+  return nearest;
 }

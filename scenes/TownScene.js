@@ -3,6 +3,7 @@ import GameState from '../game/GameState.js';
 import HapticsService from '../services/HapticsService.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
 import { bindSelectionDetails, addDetailsHint } from '../ui/SelectionDetails.js';
+import { pois } from '../data/worldMap.js';
 
 const TOWN_DESTINATIONS = [
   {
@@ -19,13 +20,13 @@ const TOWN_DESTINATIONS = [
   },
   {
     title: 'BLACKSMITH', label: 'BLACKSMITH',
-    description: 'Buy, sell, and craft gear for your characters!',
+    description: 'Craft gear for your characters and sell gathered materials.',
     target: 'BlacksmithScene', art: 'town-sign-blacksmith', icon: 'blacksmith', tint: 0xe9b777,
     artWidth: 390, artHeight: 310, artTop: -10, chainCrop: 145, anchorOffset: 95
   },
   {
     title: 'ENCHANTER', label: 'ENCHANTER',
-    description: 'Buy, sell, or craft scrolls to enchant gear!',
+    description: 'Explore arcane lore and learn where to use Arcane Essence in this demo.',
     target: 'Enchanter', art: 'town-sign-enchanter', icon: 'enchanter', tint: 0xc9b5df,
     artWidth: 390, artHeight: 325, artTop: -10, chainCrop: 210, anchorOffset: 108
   }
@@ -68,14 +69,16 @@ export default class TownScene extends Phaser.Scene {
   }
 
   init(data) {
-    this.townName = data?.townName ?? (GameState.world.currentLocation === 'duskfall' ? 'Duskfall' : 'Pineshire');
+    const town = pois.find((poi) => poi.id === (data?.townId ?? GameState.world.currentLocation) && poi.type === 'town');
+    this.townName = data?.townName ?? town?.name ?? 'Pineshire';
+    this.townArt = town?.id === 'pineshire' ? 'town' : town?.conceptArt ?? 'town';
   }
 
   create() {
     const { width, height } = this.scale;
     this.openingDestination = false;
     this.cameras.main.setBackgroundColor('#1c1917');
-    const background = this.add.image(width / 2, height / 2, 'town');
+    const background = this.add.image(width / 2, height / 2, this.townArt);
     background.setScale(Math.max(width / background.width, height / background.height));
     this.add.rectangle(width / 2, height / 2, width, height, 0x100e0c, 0.24);
 

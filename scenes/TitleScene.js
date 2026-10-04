@@ -149,7 +149,7 @@ export default class TitleScene extends Phaser.Scene {
 
   // This function asks the player to confirm before clearing saved
   // progression.
-  showResetConfirmation() {
+  showResetConfirmation(onCancel = () => this.showDevelopmentTools()) {
 
     const { width, height } = this.scale;
     const depth = 4100;
@@ -192,7 +192,7 @@ export default class TitleScene extends Phaser.Scene {
 
       HapticsService.tap();
       destroy();
-      this.showDevelopmentTools();
+      onCancel();
     });
   }
 

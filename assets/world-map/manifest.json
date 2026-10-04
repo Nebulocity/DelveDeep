@@ -1,0 +1,20 @@
+{
+  "generator": "PixelLab",
+  "created": "2026-10-04",
+  "camera": "high top-down",
+  "terrainTileSize": 32,
+  "runtimeTileSize": 64,
+  "assets": [
+    { "file": "road-earth.png", "id": "527edc62-63b8-483f-911e-7cf5149f5dc1", "prompt": "Seamless repeating texture of flat sandy ochre packed earth, tiny subtle irregular tan pebbles scattered sparsely, no vegetation, no grass, no objects, no road edges, no circles, no border, low contrast pixel art fantasy overworld ground surface filling entire image, directly overhead" },
+    { "file": "forest.png", "metadata": "forest.json", "id": "c43a9e78-6e67-4937-91c7-c92519dce675" },
+    { "file": "meadow.png", "metadata": "meadow.json", "id": "b80c415c-d80a-43aa-b2c7-6a8382710fa2" },
+    { "file": "river.png", "metadata": "river.json", "id": "53447a47-3db6-4aba-a006-631fc60a9538" },
+    { "file": "road.png", "id": "22b83008-5d01-4884-8944-c00a2e8df66f", "tile": 16, "sample": [8, 8, 16, 16], "prompt": "Warm sandy packed earth road with small pebbles and worn wheel tracks over deep emerald meadow grass, fantasy RPG pixel art overworld, understated colors" },
+    { "file": "pine.png", "id": "32902404-e50d-4900-8585-ad1c2bbbd7f9", "prompt": "Cluster of three evergreen pine trees on tiny mossy roots, fantasy RPG world map landmark" },
+    { "file": "mountain.png", "id": "8a5f4ae8-5bed-4e31-9c18-5f0a124e1fd8", "prompt": "Rocky gray mountain peak with snowy cap, tiny fantasy RPG overworld landmark" },
+    { "file": "town.png", "id": "cf6391a6-50d5-4aca-abdf-0049850ce0e8", "prompt": "Small medieval hamlet of three timber cottages red roofs, fantasy RPG overworld landmark" },
+    { "file": "cave.png", "id": "a81a0836-5931-4262-9da5-ff1a3d455ad7", "prompt": "Dark cave entrance in mossy rocky hill, fantasy RPG overworld landmark" },
+    { "file": "portal.png", "id": "730991a8-c9ad-4cb2-bbe5-ecc41b45b1d1", "prompt": "Violet glowing magic portal standing in weathered stone ring, fantasy RPG overworld landmark" },
+    { "file": "ruin.png", "id": "b4c38616-5c49-49b8-8fee-8b88cfbbc6f2", "prompt": "Ancient broken stone watchtower with ivy, fantasy RPG overworld landmark" }
+  ]
+}

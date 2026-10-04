@@ -9,11 +9,11 @@ import HapticsService from '../services/HapticsService.js';
 import { CRAFTING_RECIPES, CRAFTING_MATERIALS } from '../data/items.js';
 import { canCraft, craftItem, recipeIngredientText } from '../game/Crafting.js';
 
-const ALCHEMIST_THEME = { plaque: 'town-sign-alchemist', edge: 0x9fbd78, button: 0x315b3e, text: '#eff9d7' };
+const ALCHEMIST_THEME = { plaque: 'town-sign-alchemist', panel: 0x182b22, face: 0x315b3e, edge: 0x9fbd78, button: 0x315b3e, text: '#eff9d7' };
 
 export default class FacilityScene extends Phaser.Scene {
-  constructor() {
-    super('FacilityScene');
+  constructor(key = 'FacilityScene') {
+    super(key);
   }
 
   init(data) {
@@ -71,12 +71,12 @@ export default class FacilityScene extends Phaser.Scene {
       const action = recipe ? `Craft • ${summary}` : `${row.name} x${stock} • Sell for ${stock * 5} Gold`;
       const card = this.add.rectangle(1200, y, 1580, 106, 0x294034, 0.97).setStrokeStyle(3, theme.edge).setInteractive({ useHandCursor: true });
       this.add.text(470, y - 17, recipe ? recipe.name : row.name, { fontFamily: 'Arial', fontSize: '34px', fontStyle: 'bold', color: '#fff1d2' }).setOrigin(0, 0.5);
-      this.add.text(470, y + 23, recipe ? summary : `Owned: ${stock}. ${row.description}`, { fontFamily: 'Arial', fontSize: '25px', color: '#d8e8c5', wordWrap: { width: 850 } }).setOrigin(0, 0.5);
+      this.add.text(470, y + 23, recipe ? summary : `Owned: ${stock}. ${row.description}`, { fontFamily: 'Arial', fontSize: '30px', color: '#d8e8c5', wordWrap: { width: 1050 } }).setOrigin(0, 0.5);
       bindSelectionDetails(this, card, { title: recipe ? recipe.name : row.name, description: `${recipe?.description ?? row.description} ${action}`, shopTheme: theme });
       const enabled = recipe ? readiness.ok : true;
       const label = recipe ? (enabled ? 'CRAFT' : 'NEED MATERIALS') : `SELL ${stock}`;
-      const button = this.add.rectangle(1830, y, 265, 74, enabled ? theme.face : 0x3f4a40).setStrokeStyle(3, theme.edge).setAlpha(enabled ? 1 : 0.55);
-      this.add.text(1830, y, label, { fontFamily: 'Arial', fontSize: '24px', fontStyle: 'bold', color: enabled ? theme.text : '#b0a69b' }).setOrigin(0.5);
+      const button = this.add.rectangle(1830, y, 265, 86, enabled ? theme.face : 0x3f4a40).setStrokeStyle(3, theme.edge).setAlpha(enabled ? 1 : 0.55);
+      this.add.text(1830, y, label, { fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: enabled ? theme.text : '#b0a69b' }).setOrigin(0.5);
       if (enabled) bindSelectionDetails(this, button, { title: recipe?.name ?? row.name, description: action, shopTheme: theme }, () => {
         HapticsService.tap();
         const result = recipe ? craftItem(recipe.id) : sellMaterial(row.id, stock);

@@ -33,6 +33,8 @@ import delveSunkenUrl from '../assets/screens/delve-concepts/sunken-watch.png?ur
 import everdeepConceptUrl from '../assets/screens/delve-concepts/murmuring-abyss.png?url';
 import { trackLoading } from '../ui/LoadingScreen.js';
 
+const MAP_ASSETS = import.meta.glob('../assets/world-map/*.png', { eager: true, query: '?url', import: 'default' });
+
 export default class BootScene extends Phaser.Scene {
 
   // This function registers BootScene so the game can navigate to this
@@ -46,6 +48,10 @@ export default class BootScene extends Phaser.Scene {
   preload() {
 
     trackLoading(this);
+    for (const [path, url] of Object.entries(MAP_ASSETS)) {
+      const name = path.split('/').pop().replace('.png', '');
+      this.load.image(['forest', 'meadow', 'river'].includes(name) ? `map-terrain-${name}` : `map-${name}`, url);
+    }
     this.load.spritesheet('world-party-idle', partyIdleUrl, { frameWidth: 256, frameHeight: 256 });
     this.load.spritesheet('world-party-walk', partyWalkUrl, { frameWidth: 256, frameHeight: 256 });
     this.load.image('town', townUrl);
@@ -77,6 +83,10 @@ export default class BootScene extends Phaser.Scene {
   // This function restores the session and enters the world map in landscape.
   create() {
 
+    for (const path of Object.keys(MAP_ASSETS)) {
+      const name = path.split('/').pop().replace('.png', '');
+      this.textures.get(['forest', 'meadow', 'river'].includes(name) ? `map-terrain-${name}` : `map-${name}`).setFilter(1);
+    }
     this.initializeGameState();
     OrientationService.lockLandscape();
     this.scene.start('TitleScene');
@@ -90,6 +100,13 @@ export default class BootScene extends Phaser.Scene {
 
     // Rebuild base stats from current definitions, then merge saved growth.
     loadProfile(adventurers);
+    GameState.development.toolsVisible = import.meta.env.DEV && new URLSearchParams(window.location.search).has('devTools');
+
+    // Public builds use ordinary progression even after a local development session.
+    if (!import.meta.env.DEV) {
+      GameState.development.unlockAll = false;
+      GameState.development.replayCleared = false;
+    }
 
     // Restore player progression from its separate save record.
     GameState.leader = loadLeaderProgression();

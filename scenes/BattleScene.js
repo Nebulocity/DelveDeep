@@ -145,6 +145,7 @@ export default class BattleScene extends Phaser.Scene {
 
   // This function adds a developer button for authoring blocked battlefield terrain.
   createTerrainEditorButton(width) {
+    if (!GameState.development.toolsVisible) return;
 
     this.terrainEditor = new BattlefieldTerrainEditor(this, this.battlefield, this.terrain);
     this.terrainEditorButton = this.add.rectangle(width - 125, 34, 220, 48, 0x292524)
@@ -2145,10 +2146,10 @@ export default class BattleScene extends Phaser.Scene {
     };
     choice(height * 0.42, 'RETURN TO TOWN', 'Keep all banked rewards', () => {
       GameState.activeParty = [];
-      const townId = delve.requiresLocation === 'duskfall' ? 'duskfall' : 'pineshire';
+      const townId = delve.returnTownId ?? (delve.requiresLocation === 'duskfall' ? 'duskfall' : 'pineshire');
       GameState.world.currentLocation = townId;
       saveProfile();
-      this.scene.start('TownScene', { townId, townName: townId === 'duskfall' ? 'Duskfall' : 'Pineshire' });
+      this.scene.start('TownScene', { townId });
     }, 0x365135);
     choice(height * 0.59, `FARM WAVE ${this.bossWaveIndex}`,
       `${farmGold} Gold • ${values.materialCount} material • ${farmXp} XP per adventurer`, () => {

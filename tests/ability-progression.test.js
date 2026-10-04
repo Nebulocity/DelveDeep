@@ -21,6 +21,7 @@ for (const [name, definition] of Object.entries(CLASS_DEFINITIONS)) {
   assert.ok(Object.values(definition.abilities).every(ability => ['Assault','Protect','Restore','Prepare'].includes(ability.category)), name);
   assert.ok(added.filter(ability => ability.target === 'self' && ability.effect === 'heal').length === 1 || definition.role === 'Healer', name);
   assert.ok(added.every(ability => ability.effect !== 'damage' || ability.target !== 'self'), name);
+  assert.ok(Object.values(definition.abilities).every(ability => ability.description && ability.description !== ability.name), name);
   assert.equal(NEW_CLASS_ABILITIES[name].length, 6);
 }
 assert.equal(Object.values(CLASS_DEFINITIONS).reduce((count, def) => count + Object.keys(def.abilities).length, 0), 133);

@@ -5,9 +5,9 @@ export const NEW_CLASS_ABILITIES = {
   Gladiator: [
     A('Protect','Arena Guard','Single ally','Intercept the next hit on an ally; reduce redirected damage.',25,'% reduction',6,18),
     A('Protect','Champion’s Shelter','All allies within 2 cells','Grant a damage absorbing shield to nearby allies.',18,'shield HP',6,22),
-    A('Assault','Gore Rush','Single enemy','Rush through a target and deal physical damage; generates extra threat.',24,'damage',0,12),
+    A('Assault','Gore Rush','Single enemy','Drive a brutal blow into an enemy and draw more of their attention.',24,'damage',0,12),
     A('Assault','Pitfall Sweep','Enemies within 2 cells','Sweep nearby enemies for physical damage and slow them for 3 seconds.',16,'damage',3,16),
-    A('Restore','Second Wind','Self only','Restore own HP after surviving a hit.',24,'healing',0,24),
+    A('Restore','Second Wind','Self only','Catch your breath and restore your own health.',24,'healing',0,24),
     A('Prepare','Crowd Favorite','Self only','Gain armor before engaging; first hit also generates extra threat.',15,'% damage reduction',8,25)
   ],
   Oathwarden: [
@@ -15,11 +15,11 @@ export const NEW_CLASS_ABILITIES = {
     A('Protect','Oathbound Circle','All allies within 2 cells','Reduce incoming damage for allies standing near the caster.',14,'% reduction',6,22),
     A('Assault','Judicator’s Blow','Single enemy','Deal physical damage and increase threat against the target.',22,'damage',0,9),
     A('Assault','Reckoning Arc','Enemies within 2 cells','Strike nearby enemies and gain threat for each hit.',16,'damage',0,14),
-    A('Restore','Steadfast Heart','Self only','Restore own HP when below half health.',22,'healing',0,25),
+    A('Restore','Steadfast Heart','Self only','Steady your resolve and restore your own health.',22,'healing',0,25),
     A('Prepare','Vigil Before Battle','Self only','Gain armor and empower the next protection ability.',12,'% damage reduction',8,24)
   ],
   Dawnwarden: [
-    A('Protect','Sunlit Ward','Single ally','Place a shield on one ally; the caster may target self.',22,'shield HP',7,16),
+    A('Protect','Sunlit Ward','Single ally','Wrap an ally or yourself in a shield of sunlight.',22,'shield HP',7,16),
     A('Protect','Dawnwall','All allies within 2 cells','Reduce incoming damage for nearby allies.',14,'% reduction',6,21),
     A('Assault','Dawn Hammer','Single enemy','Strike with holy damage and increased threat.',22,'damage',0,9),
     A('Assault','Corona Sweep','Enemies within 2 cells','Pulse holy damage around the caster.',15,'damage',0,15),
@@ -35,7 +35,7 @@ export const NEW_CLASS_ABILITIES = {
     A('Prepare','Find an Opening','Self only','Gain movement speed and critical chance before entering melee.',10,'% critical chance',7,21)
   ],
   Scoundrel: [
-    A('Assault','Back Alley Cut','Single enemy','Deal physical damage; stronger when attacking from behind.',23,'damage',0,7),
+    A('Assault','Back Alley Cut','Single enemy','Cut an enemy more deeply while their attention is elsewhere.',23,'damage',0,7),
     A('Assault','Smoke Bomb','Enemies within 2 cells','Deal light damage and blind enemies for 2 seconds.',13,'damage',2,17),
     A('Protect','Slip Aside','Self or single ally','Grant one dodge attempt to the chosen ally.',25,'% dodge chance',5,17),
     A('Restore','Patch Up','Self only','Restore own HP with a stolen bandage.',19,'healing',0,25),
@@ -72,7 +72,7 @@ export const NEW_CLASS_ABILITIES = {
     A('Protect','Rune Shell','Self or single ally','Grant a force shield to one ally.',20,'shield HP',7,19),
     A('Restore','Arcane Reweave','Self only','Restore own HP by stabilizing a broken ward.',18,'healing',0,26),
     A('Prepare','Overcharge Sigil','Self only','Increase the next damaging spell’s power.',18,'% spell bonus',8,21),
-    A('Prepare','Measured Casting','Self only','Reduce the next spell’s windup and mana cost.',20,'% windup reduction',8,20)
+    A('Prepare','Measured Casting','Self only','Prepare your next spell to cast more quickly.',20,'% windup reduction',8,20)
   ],
   'Mage of the Luminous Archive': [
     A('Assault','Index of Light','Single enemy','Deal radiant damage; mark the target for allied focus.',21,'damage',6,9),
@@ -99,7 +99,7 @@ export const NEW_CLASS_ABILITIES = {
     A('Prepare','Rooted Patience','Self only','Increase protection duration on the next cast.',20,'% duration bonus',8,21)
   ],
   'Cleric of the Sanguine Song': [
-    A('Restore','Pulse Exchange','Single ally or self','Restore HP to one ally; self targeting has no self damage.',30,'healing',0,7),
+    A('Restore','Pulse Exchange','Single ally or self','Restore health to an ally or yourself with a pulse of blood magic.',30,'healing',0,7),
     A('Restore','Red Refrain','All allies in 2 by 2 cells','Restore HP to allies in a small area.',15,'healing',0,17),
     A('Protect','Vein Ward','Single ally or self','Grant one ally a blood shield.',23,'shield HP',7,18),
     A('Protect','Chorus of Shelter','All allies within 2 cells','Reduce incoming damage to nearby allies.',13,'% reduction',6,23),
@@ -152,6 +152,90 @@ const targetRange = (role, target, category) => {
   return role === 'Ranged DPS' || role === 'Healer' ? 6 : 1;
 };
 
+const EXISTING_ABILITY_DESCRIPTIONS = {
+  Gladiator: {
+    roar: 'Challenge an enemy to attack you.',
+    net: 'Throw a net that damages and roots a distant enemy.',
+    cleave: 'Spin through nearby enemies, dealing damage and drawing their attention.',
+    sand: 'Kick sand at an enemy, dealing damage with a chance to blind them.'
+  },
+  Oathwarden: {
+    sacrifice: 'In a desperate final stand, give your life to restore your allies and strengthen them.',
+    vow: 'Shield an ally from harm and draw their attackers to you.',
+    defense: 'Taunt nearby enemies and greatly reduce the damage you take.',
+    parry: 'Deflect an incoming strike and turn its force against the attacker.'
+  },
+  Dawnwarden: {
+    challenge: 'Call out an enemy and force it to face you.',
+    defiant: 'Draw the attention of several enemies, even those farther away.',
+    nova: 'Release a holy burst that damages nearby enemies and draws their attention.',
+    strike: 'Strike one enemy with radiant force.'
+  },
+  Barmaid: {
+    pan: 'Smack an enemy with a frying pan, dealing damage and stunning them.',
+    swing: 'Swing wildly and hit enemies close to you.',
+    bash: 'Bash an enemy with your shield, dealing damage and stunning them.',
+    lastCall: 'Send a powerful strike down a line, damaging and stunning enemies in its path.'
+  },
+  Scoundrel: {
+    stealth: 'Slip out of enemy sight until you attack.',
+    surprise: 'Strike from behind while hidden, dealing heavy damage and stunning your target.',
+    poison: 'Poison an enemy, slowing their attacks as the poison wears them down.',
+    dagger: 'Throw a dagger at a distant enemy.'
+  },
+  Barbarian: {
+    enrage: 'Deal more damage in a frenzy, but take more damage and tire afterward.',
+    charge: 'Rush an enemy, striking hard and stunning them.',
+    strike: 'Deliver a powerful blow to one enemy.',
+    rend: 'Tear into one enemy with a devastating strike.'
+  },
+  Ranger: {
+    mark: 'Mark an enemy so your party deals more damage to them.',
+    rain: 'Rain arrows over a small area, damaging enemies inside it.',
+    trap: 'Set a trap that damages and stuns the next enemy to trigger it.',
+    arrow: 'Fire an explosive arrow at an enemy.'
+  },
+  'Mage of the Umbral Veil': {
+    grasp: 'Seize a nearby enemy with necrotic magic.',
+    nightbolt: 'Hurl a bolt of shadow at a distant enemy.',
+    gloom: 'Unleash shadow magic across an area, damaging enemies within it.',
+    veilstep: 'Step through shadow to reach a distant destination or escape danger.'
+  },
+  'Mage of the Crimson Spire': {
+    stabilization: 'Steady your magic, reducing incoming damage and empowering your next damaging spell.',
+    lash: 'Lash out with force magic, striking up to two nearby enemies.',
+    arcflare: 'Launch a force blast that splashes around its target.',
+    spire: 'Fire a piercing beam of force. Allies caught in its path can be hurt too.'
+  },
+  'Mage of the Luminous Archive': {
+    refuge: 'Create a refuge that heals you over time and shields you from one hit.',
+    touch: 'Burn a nearby enemy with radiant magic and heal your most wounded ally.',
+    spear: 'Pierce an enemy with radiant light and heal allies near the target.',
+    libram: 'Strike enemies in an area with radiant light and heal your whole party.'
+  },
+  'Cleric of the Everbright': {
+    aegis: 'Bless your next single-target heal so it restores both you and your chosen ally.',
+    blessing: 'Call down a strong blessing to heal one ally or yourself.',
+    ray: 'Send a healing ray to an ally or yourself from a distance.',
+    pulse: 'Release a pulse of light that heals allies in an area.',
+    judgement: 'Scorch an enemy with radiant light, striking harder when they are not focused on a tank.'
+  },
+  'Cleric of the Verdant Covenant': {
+    refuge: 'Wrap yourself in living bark, greatly increasing your armor.',
+    touch: 'Restore an ally or yourself with a touch of verdant magic.',
+    mend: 'Heal an ally or yourself and punish attackers with brambles.',
+    bloom: 'Call forth a bloom that heals allies in an area.',
+    thorn: 'Pierce an enemy with a thorn and root them in place.'
+  },
+  'Cleric of the Sanguine Song': {
+    ascendance: 'Strengthen your healing and gain a short step through blood magic.',
+    transfer: 'Give some of your own health to heal an ally.',
+    beam: 'Heal an ally or yourself with a blood-red beam, restoring more to the gravely wounded.',
+    chorus: 'Sing a healing chorus over an area and grant a little extra protection.',
+    rend: 'Drain an enemy with blood magic, dealing more damage as your health falls.'
+  }
+};
+
 const specialEffects = {
   'Gore Rush': { threatMultiplier: 1.5 },
   'Judicator’s Blow': { threatMultiplier: 1.5 },
@@ -187,7 +271,7 @@ export function addAbilityProgression(classDefinitions) {
         ?? (ability.effect === 'heal' ? 'Restore' : 'Assault');
       ability.starter = starters.includes(key);
       ability.origin = 'Existing';
-      ability.description ??= ability.name;
+      ability.description ??= EXISTING_ABILITY_DESCRIPTIONS[className]?.[key] ?? ability.name;
       ability.targetLabel = ability.zone || ability.radius || ability.targets === Infinity ? 'Area'
         : ability.effect === 'heal' || ability.effect === 'vow' ? 'Single ally or self'
           : ['damage', 'mark', 'taunt', 'trap'].includes(ability.effect) ? 'Single enemy' : 'Self only';

@@ -25,6 +25,9 @@ const heroesForRole = (role) => GameState.roster.filter((hero) => hero.role === 
 
 const formatNumber = (value, suffix = '') => Number.isFinite(value) ? `${Math.round(value * 100) / 100}${suffix}` : '—';
 const percent = (value) => Number.isFinite(value) ? `${Math.round(value * 100)}%` : '—';
+const ABILITY_SCROLL_TOP = 415;
+const ABILITY_SCROLL_HEIGHT = 575;
+const ABILITY_SCROLL_X = 2358;
 
 export default class RosterScene extends Phaser.Scene {
   constructor() {
@@ -40,12 +43,24 @@ export default class RosterScene extends Phaser.Scene {
       if (pointer.x >= 1535 && pointer.y >= 415 && pointer.y <= 990) this.scrollAbilities(dy);
     });
     let dragY = null;
+    let scrollbarGrab = null;
+    this.input.on('pointerdown', (pointer) => {
+      if (!this.abilityScrollbarThumb || pointer.x < 2328 || pointer.x > 2388
+        || pointer.y < ABILITY_SCROLL_TOP || pointer.y > ABILITY_SCROLL_TOP + ABILITY_SCROLL_HEIGHT) return;
+      const thumbTop = this.abilityScrollbarThumb.y - this.abilityScrollbarThumbHeight / 2;
+      const insideThumb = pointer.y >= thumbTop && pointer.y <= thumbTop + this.abilityScrollbarThumbHeight;
+      scrollbarGrab = insideThumb ? pointer.y - thumbTop : this.abilityScrollbarThumbHeight / 2;
+      dragY = null;
+      this.scrollAbilityBar(pointer.y, scrollbarGrab);
+    });
     this.input.on('pointermove', (pointer) => {
-      if (!pointer.isDown || pointer.x < 1535 || pointer.y < 415 || pointer.y > 990) { dragY = null; return; }
+      if (!pointer.isDown) { dragY = null; scrollbarGrab = null; return; }
+      if (scrollbarGrab !== null) { this.scrollAbilityBar(pointer.y, scrollbarGrab); return; }
+      if (pointer.x < 1535 || pointer.y < 415 || pointer.y > 990) { dragY = null; return; }
       if (dragY !== null) this.scrollAbilities(dragY - pointer.y);
       dragY = pointer.y;
     });
-    this.input.on('pointerup', () => { dragY = null; });
+    this.input.on('pointerup', () => { dragY = null; scrollbarGrab = null; });
     this.events.once('shutdown', () => this.abilityMaskShape?.destroy());
     this.render();
   }
@@ -56,7 +71,23 @@ export default class RosterScene extends Phaser.Scene {
     if (next === this.abilityScroll) return;
     this.abilityScroll = next;
     this.abilityList.y = -next;
+    this.updateAbilityScrollbar();
     this.updateAbilityBorderVisibility();
+  }
+
+  scrollAbilityBar(pointerY, grabOffset) {
+    if (!this.abilityScrollMax || !this.abilityScrollbarThumb) return;
+    const travel = ABILITY_SCROLL_HEIGHT - this.abilityScrollbarThumbHeight;
+    const top = Phaser.Math.Clamp(pointerY - grabOffset, ABILITY_SCROLL_TOP, ABILITY_SCROLL_TOP + travel);
+    const next = Math.round((top - ABILITY_SCROLL_TOP) / travel * this.abilityScrollMax);
+    this.scrollAbilities(next - this.abilityScroll);
+  }
+
+  updateAbilityScrollbar() {
+    if (!this.abilityScrollbarThumb || !this.abilityScrollMax) return;
+    const travel = ABILITY_SCROLL_HEIGHT - this.abilityScrollbarThumbHeight;
+    this.abilityScrollbarThumb.y = ABILITY_SCROLL_TOP + this.abilityScrollbarThumbHeight / 2
+      + this.abilityScroll / this.abilityScrollMax * travel;
   }
 
   updateAbilityBorderVisibility() {
@@ -85,6 +116,7 @@ export default class RosterScene extends Phaser.Scene {
     this.equipmentModalClose?.();
     this.abilityMaskShape?.destroy();
     this.abilityBorderEffects = [];
+    this.abilityScrollbarThumb = null;
     this.children.removeAll(true);
     const { width, height } = this.scale;
     this.cameras.main.setBackgroundColor('#1b0e09');
@@ -312,9 +344,13 @@ export default class RosterScene extends Phaser.Scene {
         const shader = useShader ? this.add.shader(this.abilityBorderShader, 1945, y, 820, 140) : null;
         this.abilityBorderEffects.push({ row, shader, index, y });
       }
+      const abilityFacts = [];
+      if (Number.isFinite(ability.range) && ability.range > 0) abilityFacts.push(`Range: ${ability.range} cells`);
+      if (ability.cooldown > 0) abilityFacts.push(`Cooldown: ${ability.cooldown / 1000}s`);
       bindSelectionDetails(this, row, {
         title: ability.name,
-        description: `${ability.category} • ${ability.targetLabel ?? ability.target ?? 'Class ability'}\n${ability.description ?? ability.effect}. Range ${Number.isFinite(ability.range) ? ability.range : 'any'} cells. Cooldown ${ability.cooldown / 1000}s.${ability.power != null ? ` Rank 1 power ${ability.power}.` : ''}\n\nRanks increase potency by 12% and duration by 5%. Cooldown stays fixed.`
+        description: `${ability.category} • ${ability.targetLabel ?? ability.target ?? 'Class ability'}\n\n${ability.description ?? ability.name}`
+          + (abilityFacts.length ? `\n\n${abilityFacts.join('  •  ')}` : '')
       }, () => {});
       this.add.text(1560, y - 51, ability.name, {
         fontFamily: 'Arial', fontSize: '27px', fontStyle: 'bold', color: '#fff1d2',
@@ -359,9 +395,15 @@ export default class RosterScene extends Phaser.Scene {
     this.abilityMaskShape = maskShape;
     this.pulseAbilityBorders();
     this.updateAbilityBorderVisibility();
-    if (this.abilityScrollMax > 0) this.add.text(1945, 1002, 'SCROLL FOR MORE ABILITIES', {
-      fontFamily: 'Arial', fontSize: '22px', color: '#e8c89f'
-    }).setOrigin(0.5);
+    if (this.abilityScrollMax > 0) {
+      const contentHeight = ABILITY_SCROLL_HEIGHT + this.abilityScrollMax;
+      this.abilityScrollbarThumbHeight = Math.max(100, ABILITY_SCROLL_HEIGHT * ABILITY_SCROLL_HEIGHT / contentHeight);
+      this.add.rectangle(ABILITY_SCROLL_X, ABILITY_SCROLL_TOP + ABILITY_SCROLL_HEIGHT / 2, 18,
+        ABILITY_SCROLL_HEIGHT, 0x1a100b, 0.92).setStrokeStyle(2, 0x8c6543);
+      this.abilityScrollbarThumb = this.add.rectangle(ABILITY_SCROLL_X, 0, 26,
+        this.abilityScrollbarThumbHeight, 0xc9923f, 0.96).setStrokeStyle(2, 0xffe0a0);
+      this.updateAbilityScrollbar();
+    }
   }
 
   commit(result) {

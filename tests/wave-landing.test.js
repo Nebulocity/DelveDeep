@@ -19,6 +19,7 @@ for (const delve of [
   { id: 'slime-cave', difficulty: 'Easy' },
   { id: 'thornbriar-hollow', difficulty: 'Easy' },
   { id: 'forgotten-cavern', difficulty: 'Difficult' },
+  { id: 'forgotten-cavern', difficulty: 'Impossible' },
   { id: 'void-portal', type: 'void', depth: 5 }
 ]) {
   for (const wave of createEncounterWaves(delve, 1750)) {
@@ -43,7 +44,7 @@ for (const delve of [
   }
 }
 
-const crowdedWave = createEncounterWaves({ id: 'thornbriar-hollow', difficulty: 'Easy' }, 1750, () => 0.999)[4];
+const crowdedWave = { enemies: Array.from({ length: 13 }, () => ({ type: 'ruffian' })) };
 const crowdedLandings = chooseWaveLandings(crowdedWave, battlefield, terrain, partyUnits, random);
 assert.equal(crowdedWave.enemies.length, 13);
 assert.ok(crowdedLandings.every(Boolean));

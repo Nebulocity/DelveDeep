@@ -9,13 +9,22 @@ export const encounterWaveCounts = Object.freeze({
   Impossible: 50
 });
 
+export const encounterEnemyCounts = Object.freeze({
+  Easy: 3,
+  Difficult: 4,
+  Tough: 5,
+  'Very Tough': 6,
+  'Incredibly Tough': 7,
+  Impossible: 8,
+  Unknown: 3
+});
+
 function rollCount({ base = 0, dice = [] } = {}, random) {
   return base + dice.reduce((total, sides) => total + 1 + Math.floor(random() * sides), 0);
 }
 
-function reduceWaveEnemies(enemies) {
+function standardizeWaveEnemies(enemies, targetCount) {
   const reduced = [...enemies];
-  const targetCount = Math.max(1, Math.round(reduced.length * 0.8));
   while (reduced.length > targetCount) {
     const counts = reduced.reduce((totals, enemy) =>
       totals.set(enemy.type, (totals.get(enemy.type) ?? 0) + 1), new Map());
@@ -24,6 +33,11 @@ function reduceWaveEnemies(enemies) {
       if (counts.get(reduced[index].type) > counts.get(reduced[removeIndex].type)) removeIndex = index;
     }
     reduced.splice(removeIndex, 1);
+  }
+  for (let index = reduced.length; index < targetCount; index++) {
+    const source = enemies[(index - enemies.length) % enemies.length];
+    reduced.push({ ...source, arenaX: 350 + (index % 4) * 235,
+      arenaY: 760 + Math.floor(index / 4) * 75 });
   }
   return reduced;
 }
@@ -212,7 +226,9 @@ export function createEncounterWaves(delve = {}, arenaWidth = 1400, random = Mat
   }
   const centerOffset = (arenaWidth - 1400) / 2;
   return waves.map((wave) => ({
-    ...wave, enemies: reduceWaveEnemies(wave.enemies)
+    ...wave, enemies: (wave.boss
+      ? standardizeWaveEnemies(wave.enemies, Math.max(1, Math.round(wave.enemies.length * 0.8)))
+      : standardizeWaveEnemies(wave.enemies, encounterEnemyCounts[difficulty] ?? encounterEnemyCounts.Easy))
       .map((enemy) => ({ ...enemy, arenaX: enemy.arenaX + centerOffset }))
   }));
 }

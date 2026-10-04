@@ -75,6 +75,14 @@ Mana belongs in the bottom character / party UI, not floating over characters on
 - Keep location names readable against the background.
 - Preserve the pixel-art visual direction.
 
+## Town Menu
+
+- Facility choices use distinct hanging wooden signs with large labels and touch targets.
+- Each facility menu uses large, themed action cards with icons and a palette that reflects the room.
+- A brief tap swings the selected sign before navigation. A hold opens a matching wooden details plaque without navigating.
+- Keep descriptions in the details plaque instead of on the signs.
+- The Region Map sign hangs below the facilities from the same beam, with chains routed through the center gap. Place the hold hint at the bottom of the town screen.
+
 ## Persistent Messages
 
 Instructional / action-required messages should remain visible until the player has completed the relevant action.
@@ -90,6 +98,6 @@ Developer/testing UI should:
 - Clearly distinguish destructive actions.
 - Support progress clearing.
 - Support unlock-all / testing mode behavior.
-- Arrange controls in labeled rows for Dev mode, leader levels (+1/+5), gold (+100/+500), battlefield grid lines (on/off), and progress reset, with a separate Close button.
+- Arrange controls in labeled rows for Dev mode, player levels (+1/+5), gold (+100/+500), battlefield grid lines (on/off), and progress reset, with a separate Close button.
 - Never shade the battlefield floor. Hide the battlefield border with the grid lines while keeping tile interaction active. Save the grid preference with the profile and show grid lines for older saves without that preference.
 - Replace the previous Dev Tools feedback toast when another action is tapped before it fades.

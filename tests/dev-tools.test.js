@@ -87,6 +87,7 @@ assert.equal(getButton('ON', row(3)).color, 0xebed53);
 tap('+1', row(1));
 tap('+5', row(1));
 assert.equal(GameState.leader.level, 7);
+assert.match(scene.lastToast, /^Player level 7/);
 tap('+100', row(2));
 tap('+500', row(2));
 assert.equal(GameState.gold, 600);

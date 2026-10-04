@@ -2,11 +2,12 @@ import GameState from './GameState.js';
 import { restoreEquipment } from './Equipment.js';
 import { restoreAdventurerAbilities } from './AdventurerAbilities.js';
 import { CRAFTING_MATERIALS } from '../data/items.js';
+import { PROFILE_STORAGE_KEY } from './BuildSave.js';
 
-const STORAGE_KEY = 'delveDeep.profile.v2';
+const STORAGE_KEY = PROFILE_STORAGE_KEY;
 
-// This function restores the saved profile into GameState, supplying defaults
-// when no save is available. Adventurer identity and base stats come from the
+// This function restores character and shared world progress into GameState.
+// Adventurer identity and base stats come from the
 // current roster definitions, while saved levels, experience, and happiness
 // carry forward.
 export function loadProfile(baseRoster) {
@@ -94,6 +95,7 @@ export function saveProfile() {
       equipment: adventurer.equipment ?? { weapon: null, armor: null, accessory: null, potion: null },
       abilityRanks: adventurer.abilityRanks ?? {},
       abilityLoadout: adventurer.abilityLoadout ?? [],
+      skillPoints: adventurer.skillPoints ?? adventurer.level,
       level: adventurer.level,
       xp: adventurer.xp ?? 0,
       happiness: adventurer.happiness ?? 70,
@@ -111,7 +113,7 @@ export function saveProfile() {
   }
 }
 
-// This function removes the main profile when the player resets progress.
+// This function removes character and shared world progress on reset.
 export function clearSavedProfile() {
 
   try {

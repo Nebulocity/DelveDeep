@@ -11,8 +11,6 @@ export default {
   visuals: {
     environment: {
       width: 1672, height: 941, offsetY: -105, pixelArt: true,
-      floor: { topLeftX: 290, topRightX: 1382, topY: 515,
-        bottomLeftX: 345, bottomRightX: 1327, bottomY: 815 },
       layers: [
         { key: 'thornbriar-hollow-pixel-art',
           url: new URL('../../assets/environments/thornbriar-hollow-pixel/camp.png', import.meta.url).href,

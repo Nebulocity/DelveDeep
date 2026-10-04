@@ -15,7 +15,7 @@ export function beginExpedition() {
 
 // This function applies a successful expedition to persistent progression. It
 // awards party experience and happiness, updates
-// clear records and map discoveries, advances the Raid Leader, and saves a
+// clear records and map discoveries, advances player progression, and saves a
 // summary for the reward screen.
 export function completeExpedition() {
 

@@ -12,8 +12,6 @@ export default {
   visuals: {
     environment: {
       width: 1536, height: 1024, offsetY: -36, pixelArt: true,
-      floor: { topLeftX: 230, topRightX: 1306, topY: 402,
-        bottomLeftX: 205, bottomRightX: 1331, bottomY: 756 },
       layers: [
         { key: 'vibrant-tear-pixel-art',
           url: new URL('../../assets/environments/vibrant-tear-pixel/knoll.png', import.meta.url).href,

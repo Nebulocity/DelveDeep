@@ -312,7 +312,10 @@ export default class BattleUnit {
     }
 
     const direction = new Phaser.Math.Vector2(targetX - this.arenaX, targetY - this.arenaY).normalize();
-    const travel = Math.min(this.moveSpeed * deltaSeconds, Math.max(0, distance - stopDistance));
+    const now = this.scene.time?.now ?? 0;
+    const moveBonus = now < (this.status.moveSpeedBonusUntil ?? 0) ? 1 + this.status.moveSpeedBonus : 1;
+    const moveSlow = now < (this.status.moveSpeedSlowUntil ?? 0) ? 1 - this.status.moveSpeedSlow : 1;
+    const travel = Math.min(this.moveSpeed * moveBonus * moveSlow * deltaSeconds, Math.max(0, distance - stopDistance));
 
     this.moveBy(direction.x * travel, direction.y * travel, avoidUnits);
   }
@@ -332,7 +335,10 @@ export default class BattleUnit {
       direction = new Phaser.Math.Vector2(this.arenaX - targetX, this.arenaY - targetY).normalize();
     }
 
-    const travel = Math.min(this.moveSpeed * deltaSeconds, desiredDistance - distance);
+    const now = this.scene.time?.now ?? 0;
+    const moveBonus = now < (this.status.moveSpeedBonusUntil ?? 0) ? 1 + this.status.moveSpeedBonus : 1;
+    const moveSlow = now < (this.status.moveSpeedSlowUntil ?? 0) ? 1 - this.status.moveSpeedSlow : 1;
+    const travel = Math.min(this.moveSpeed * moveBonus * moveSlow * deltaSeconds, desiredDistance - distance);
     this.moveBy(direction.x * travel, direction.y * travel);
   }
 
@@ -429,6 +435,7 @@ export default class BattleUnit {
     // health.
     const now = options.time ?? this.scene.time.now;
     if (now < (this.status.immuneUntil ?? 0)) return false;
+    if (now >= (this.status.temporaryHpUntil ?? Infinity)) this.status.temporaryHp = 0;
     let adjusted = Math.max(0, amount);
 
     if (!this.isEnemy) {

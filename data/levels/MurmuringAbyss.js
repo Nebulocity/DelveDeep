@@ -12,8 +12,6 @@ export default {
   visuals: {
     environment: {
       width: 1672, height: 941, offsetY: -40, pixelArt: true,
-      floor: { topLeftX: 255, topRightX: 1417, topY: 490,
-        bottomLeftX: 286, bottomRightX: 1386, bottomY: 764 },
       layers: [
         { key: 'murmuring-abyss-pixel-art',
           url: new URL('../../assets/environments/murmuring-abyss-pixel/portal.png', import.meta.url).href,

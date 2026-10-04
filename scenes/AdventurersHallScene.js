@@ -4,11 +4,12 @@ import HapticsService from '../services/HapticsService.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
 import { addHallBackground } from '../ui/HallBackground.js';
 import { addReturnButton } from '../ui/ReturnButton.js';
+import { addFacilityChoiceCard } from '../ui/FacilityChoiceArt.js';
 
 const DESTINATIONS = [
-  { label: 'ADVENTURERS', subtitle: 'Meet your party', scene: 'RosterScene', description: 'Browse adventurers, their equipment, stats, and battle abilities.' },
-  { label: 'ITEMS', subtitle: 'Inventory', scene: 'ItemsScene', description: 'View equipment and other items when they become available.' },
-  { label: 'TACTICS', subtitle: 'Plan your next battle', scene: 'RaidLeaderScene', description: 'Spend TP to unlock tactics, then equip up to five for combat.' }
+  { label: 'ADVENTURERS', icon: 'shield', subtitle: 'Meet your party', scene: 'RosterScene', description: 'Browse adventurers, their equipment, stats, and battle abilities.' },
+  { label: 'ITEMS', icon: 'satchel', subtitle: 'Inventory', scene: 'ItemsScene', description: 'View equipment and other items when they become available.' },
+  { label: 'TACTICS', icon: 'tactics', subtitle: 'Plan your next battle', scene: 'RaidLeaderScene', description: 'Spend TP to unlock tactics, then equip up to five for combat.' }
 ];
 
 export default class AdventurersHallScene extends Phaser.Scene {
@@ -42,15 +43,7 @@ export default class AdventurersHallScene extends Phaser.Scene {
     const cardY = height - 151;
     DESTINATIONS.forEach((entry, index) => {
       const x = firstX + index * (cardWidth + gap);
-      const card = this.add.rectangle(x, cardY, cardWidth, 150, 0x3a2013, 0.94)
-        .setStrokeStyle(4, 0xd9a662).setInteractive({ useHandCursor: true });
-      this.add.text(x, cardY - 24, entry.label, {
-        fontFamily: 'Arial', fontSize: '42px', fontStyle: 'bold', color: '#fff1d2'
-      }).setOrigin(0.5);
-      this.add.text(x, cardY + 35, entry.subtitle, {
-        fontFamily: 'Arial', fontSize: '27px', color: '#e8c89f', align: 'center',
-        wordWrap: { width: cardWidth - 36 }
-      }).setOrigin(0.5);
+      const card = addFacilityChoiceCard(this, 'Hall', entry, x, cardY, cardWidth);
       card.on('pointerdown', () => {
         HapticsService.tap();
         this.scene.start(entry.scene);

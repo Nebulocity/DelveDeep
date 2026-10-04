@@ -2,6 +2,7 @@ import { createPixelEnvironmentEffects } from './PixelEnvironmentEffects.js';
 import { createForestEnvironmentEffects } from './ForestEnvironmentEffects.js';
 import { createVoidEnvironmentEffects } from './VoidEnvironmentEffects.js';
 import { createDenEnvironmentEffects } from './DenEnvironmentEffects.js';
+import slimeCave from '../data/levels/SlimeCave.js';
 
 // All artwork, ambient effects and the tactical grid share one camera-space transform.
 export function getEnvironmentTransform(environment, width, height) {
@@ -16,6 +17,11 @@ export function getEnvironmentFloor(environment, width, height) {
   return { topLeftX: t.x + f.topLeftX * t.scale, topRightX: t.x + f.topRightX * t.scale,
     bottomLeftX: t.x + f.bottomLeftX * t.scale, bottomRightX: t.x + f.bottomRightX * t.scale,
     topY: t.y + f.topY * t.scale, bottomY: t.y + f.bottomY * t.scale };
+}
+
+// Every delve uses the Slime Cave grid, regardless of its background art.
+export function getDelveGridFloor(width, height) {
+  return getEnvironmentFloor(slimeCave.visuals.environment, width, height);
 }
 
 export function preloadEnvironment(scene, environment) {

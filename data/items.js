@@ -21,6 +21,13 @@ export const EQUIPMENT_ITEMS = [
 
 export const EQUIPMENT_BY_ID = Object.fromEntries(EQUIPMENT_ITEMS.map((item) => [item.id, item]));
 
+export const POTION_ITEMS = [
+  { id: 'mending-potion', name: 'Health Potion', slot: 'potion', rarity: 'common', uses: 3, price: 60, effect: { resource: 'hp', fraction: 0.3 }, description: 'Restores 30% of maximum HP to its user.' },
+  { id: 'clarity-potion', name: 'Mana Potion', slot: 'potion', rarity: 'common', uses: 3, price: 60, effect: { resource: 'mana', fraction: 0.3 }, description: 'Restores 30% of maximum mana to its user.' }
+];
+
+export const POTION_BY_ID = Object.fromEntries(POTION_ITEMS.map((item) => [item.id, item]));
+
 export const CRAFTING_MATERIALS = {
   iron: { id: 'iron', name: 'Iron Ore', rarity: 'common', description: 'Raw metal for weapons and heavy armor.' },
   leather: { id: 'leather', name: 'Cured Leather', rarity: 'common', description: 'Flexible material for grips and light armor.' },
@@ -31,6 +38,10 @@ export const CRAFTING_MATERIALS = {
 
 export function getEquipmentDefinition(id) {
   return EQUIPMENT_BY_ID[id] ?? null;
+}
+
+export function getPotionDefinition(id) {
+  return POTION_BY_ID[id] ?? null;
 }
 
 export function getMaterialDefinition(id) {

@@ -298,7 +298,7 @@ export default class TitleScene extends Phaser.Scene {
       addButton(x, rowY(1), `+${amount}`, 0x0e9c4b, 0x86efac, () => {
         HapticsService.confirm();
         const result = grantLeaderLevels(GameState.leader, amount);
-        this.showToast(`Leader level ${GameState.leader.level}  (+${result.tacticsPointsEarned} TP)`);
+        this.showToast(`Player level ${GameState.leader.level}  (+${result.tacticsPointsEarned} TP)`);
       });
     }
 

@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Delve Deep | Hanging town signs concept</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #10151a; }
+    #stage { position: absolute; width: 2400px; height: 1080px; transform-origin: top left; overflow: hidden; }
+    .scenery { position: absolute; width: 100%; height: 100%; object-fit: cover; }
+    .shade { position: absolute; inset: 0; background: rgba(9, 13, 17, .22); }
+    .topbar { position: absolute; top: 132px; left: 0; width: 100%; height: 96px; background: rgba(17, 25, 29, .96); border-bottom: 3px solid #bb8d50; }
+    .return { position: absolute; left: 52px; top: 144px; width: 520px; height: 72px; display: grid; place-items: center; color: #fff0d0; font: bold 34px Arial, sans-serif; background: radial-gradient(ellipse 24px 5px at 4% 34%, #754b2a 0 92%, transparent 100%), radial-gradient(ellipse 32px 4px at 95% 72%, #654022 0 92%, transparent 100%), linear-gradient(#694628 0 18%, #28495b 22%, #1b394b 76%, #694628 82%); border: 3px solid #d3a561; border-radius: 9px; box-shadow: inset 0 0 0 6px #49301d, 0 6px 9px #080b0b99; text-shadow: 0 2px 2px #0a1116; }
+    .gold { position: absolute; top: 161px; right: 70px; color: #f2c45a; font: 34px Arial, sans-serif; }
+    .heading { position: absolute; top: 243px; left: 500px; width: 1400px; height: 138px; text-align: center; background: rgba(18, 25, 29, .72); }
+    .heading strong { display: block; padding-top: 7px; color: #fff6e6; font: bold 70px Georgia, serif; letter-spacing: 3px; text-shadow: 0 3px 4px #090d10; }
+    .heading span { display: block; margin-top: 3px; color: #e1d1b6; font: 31px Arial, sans-serif; }
+    .beam { position: absolute; left: 376px; top: 434px; width: 1648px; height: 25px; border: 3px solid #bb8d55; border-radius: 9px; background: linear-gradient(#815533, #4c2c1b 55%, #261b16); box-shadow: 0 5px 9px #090b0bcc; }
+    .beam::before, .beam::after { content: ""; position: absolute; top: 5px; width: 8px; height: 8px; border-radius: 50%; background: #edcc84; box-shadow: 0 0 0 2px #46301d; }
+    .beam::before { left: 18px; } .beam::after { right: 18px; }
+    .sign { position: absolute; top: 457px; width: 354px; height: 277px; text-align: center; }
+    .sign:nth-of-type(1) { left: 408px; --accent: #8ab0c5; }
+    .sign:nth-of-type(2) { left: 818px; --accent: #a8bf90; }
+    .sign:nth-of-type(3) { left: 1228px; --accent: #e2a96a; }
+    .sign:nth-of-type(4) { left: 1638px; --accent: #b8a0d2; }
+    .sign:nth-of-type(1) .board { transform: rotate(-.4deg); }
+    .sign:nth-of-type(2) .board { transform: rotate(.3deg); }
+    .sign:nth-of-type(3) .board { transform: rotate(-.25deg); }
+    .sign:nth-of-type(4) .board { transform: rotate(.45deg); }
+    .chains { display: none; }
+    .board { position: absolute; left: 0; top: 45px; width: 354px; height: 230px; }
+    .sign-art { position: absolute; display: block; pointer-events: none; filter: drop-shadow(8px 12px 8px #050709a8); }
+    .sign:nth-of-type(1) .sign-art { left: -18px; top: -95px; width: 390px; height: 390px; }
+    .sign:nth-of-type(2) .sign-art { left: -18px; top: -85px; width: 390px; height: 315px; }
+    .sign:nth-of-type(3) .sign-art { left: -18px; top: -65px; width: 390px; height: 310px; }
+    .sign:nth-of-type(4) .sign-art { left: -18px; top: -85px; width: 390px; height: 315px; }
+    .board > :not(.sign-art) { position: relative; z-index: 1; }
+    .icon { display: block; width: 70px; height: 67px; margin: 16px auto 1px; color: var(--accent); filter: drop-shadow(0 2px 2px #04090d); }
+    .name { display: flex; justify-content: center; align-items: center; height: 55px; padding: 0 22px; color: #fff0cf; font: bold 36px Georgia, serif; letter-spacing: 1px; line-height: 1.03; text-shadow: 0 2px 3px #000; }
+    .name.long { font-size: 31px; }
+    .rule { width: 220px; height: 1px; margin: 0 auto 11px; background: linear-gradient(90deg, transparent, #d8b578, transparent); }
+    .subtitle { padding: 0 20px; color: #dfd1b5; font: 26px Arial, sans-serif; line-height: 1.12; }
+    .hint { position: absolute; top: 800px; width: 100%; text-align: center; color: #e8d9bb; font: 28px Arial, sans-serif; text-shadow: 0 2px 4px #050a0c, 0 0 4px #050a0c; }
+    .concept { position: absolute; right: 24px; bottom: 20px; padding: 8px 12px; color: #e7d0a5; background: #14232bcc; border: 1px solid #c39a60; border-radius: 5px; font: 18px Arial, sans-serif; letter-spacing: 1px; }
+  </style>
+</head>
+<body>
+  <main id="stage" aria-label="Hanging pub sign mockup for the town menu">
+    <img class="scenery" src="../assets/screens/town.png" alt="Pineshire town scenery">
+    <div class="shade"></div>
+    <div class="topbar"></div>
+    <div class="return">Return to World Map</div>
+    <div class="gold">Gold: 0</div>
+    <div class="heading"><strong>PINESHIRE</strong><span>Rest, prepare, and decide who is going underground next.</span></div>
+    <div class="beam"></div>
+    <section class="signs" aria-label="Town destinations">
+      <article class="sign">
+        <div class="chains"></div><div class="board"><img class="sign-art" src="town-sign-assets/hall.png" alt="">
+          <svg class="icon" viewBox="0 0 80 70" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M40 4 65 13v22c0 16-10 26-25 32C25 61 15 51 15 35V13L40 4Z"/><path d="m25 42 30-24m-28-1 28 27M22 46l-5 5m41-3 5 5"/></svg>
+          <div class="name long">ADVENTURER'S<br>HALL</div><div class="rule"></div><div class="subtitle">Party · Gear · Tactics</div>
+        </div>
+      </article>
+      <article class="sign">
+        <div class="chains"></div><div class="board"><img class="sign-art" src="town-sign-assets/alchemist.png" alt="">
+          <svg class="icon" viewBox="0 0 80 70" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M30 5h20M34 5v23L19 53c-4 7 0 12 8 12h26c8 0 12-5 8-12L46 28V5"/><path d="M25 47c11 7 21-2 31 4M31 20h18"/><circle cx="38" cy="39" r="2"/></svg>
+          <div class="name">ALCHEMIST</div><div class="rule"></div><div class="subtitle">Potions &amp; Mixtures</div>
+        </div>
+      </article>
+      <article class="sign">
+        <div class="chains"></div><div class="board"><img class="sign-art" src="town-sign-assets/blacksmith.png" alt="">
+          <svg class="icon" viewBox="0 0 80 70" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 30h53l-7 14H34l-5 11h24v8H22v-8l-5-11H8V30Zm53 0c8 0 10-7 11-13H61"/><path d="M23 39h32"/></svg>
+          <div class="name">BLACKSMITH</div><div class="rule"></div><div class="subtitle">Weapons &amp; Armor</div>
+        </div>
+      </article>
+      <article class="sign">
+        <div class="chains"></div><div class="board"><img class="sign-art" src="town-sign-assets/enchanter.png" alt="">
+          <svg class="icon" viewBox="0 0 80 70" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="m40 4 7 23 24 8-24 8-7 23-7-23-24-8 24-8L40 4Z"/><circle cx="40" cy="35" r="8"/><path d="M12 9v9m-5-4h10M67 51v10m-5-5h10"/></svg>
+          <div class="name">ENCHANTER</div><div class="rule"></div><div class="subtitle">Arcane Wares</div>
+        </div>
+      </article>
+    </section>
+    <div class="hint">Long-press or hold-click a selection for details.</div>
+    <div class="concept">HANGING SIGN CONCEPT</div>
+  </main>
+  <script>
+    const stage = document.getElementById('stage');
+    function fitStage() {
+      const scale = Math.min(innerWidth / 2400, innerHeight / 1080);
+      stage.style.transform = `translate(${(innerWidth - 2400 * scale) / 2}px, ${(innerHeight - 1080 * scale) / 2}px) scale(${scale})`;
+    }
+    addEventListener('resize', fitStage);
+    fitStage();
+  </script>
+</body>
+</html>

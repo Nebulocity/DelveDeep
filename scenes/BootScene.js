@@ -4,12 +4,19 @@ import adventurers from '../data/adventurers.js';
 import OrientationService from '../services/OrientationService.js';
 import { loadLeaderProgression } from '../game/LeaderProgression.js';
 import { loadProfile } from '../game/GameStorage.js';
+import { prepareBuildSave } from '../game/BuildSave.js';
 import worldMapUrl from '../assets/screens/map.png?url';
 import townUrl from '../assets/screens/town.png?url';
 import adventurersHallUrl from '../assets/screens/adventurerhall.png?url';
 import alchemistUrl from '../assets/screens/alchemist.png?url';
 import blacksmithUrl from '../assets/screens/blacksmith.png?url';
 import enchanterUrl from '../assets/screens/enchanter.png?url';
+import townSignHallUrl from '../assets/screens/town-signs/hall.png?url';
+import townSignAlchemistUrl from '../assets/screens/town-signs/alchemist.png?url';
+import townSignBlacksmithUrl from '../assets/screens/town-signs/blacksmith.png?url';
+import townSignEnchanterUrl from '../assets/screens/town-signs/enchanter.png?url';
+import townSignWorldMapUrl from '../assets/screens/town-signs/world-map.png?url';
+import townSignDetailsUrl from '../assets/screens/town-signs/details.png?url';
 import { trackLoading } from '../ui/LoadingScreen.js';
 
 export default class BootScene extends Phaser.Scene {
@@ -31,6 +38,12 @@ export default class BootScene extends Phaser.Scene {
     this.load.image('alchemist', alchemistUrl);
     this.load.image('blacksmith', blacksmithUrl);
     this.load.image('enchanter', enchanterUrl);
+    this.load.image('town-sign-hall', townSignHallUrl);
+    this.load.image('town-sign-alchemist', townSignAlchemistUrl);
+    this.load.image('town-sign-blacksmith', townSignBlacksmithUrl);
+    this.load.image('town-sign-enchanter', townSignEnchanterUrl);
+    this.load.image('town-sign-world-map', townSignWorldMapUrl);
+    this.load.image('town-sign-details', townSignDetailsUrl);
   }
 
   // This function restores the session and enters the world map in landscape.
@@ -45,10 +58,12 @@ export default class BootScene extends Phaser.Scene {
   // state.
   initializeGameState() {
 
+    prepareBuildSave();
+
     // Rebuild base stats from current definitions, then merge saved growth.
     loadProfile(adventurers);
 
-    // Restore the leader from its separate save record.
+    // Restore player progression from its separate save record.
     GameState.leader = loadLeaderProgression();
 
     // Preserve saved party order and copy roster entries so temporary changes

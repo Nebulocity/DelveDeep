@@ -1,4 +1,6 @@
-const STORAGE_KEY = 'delveDeep.leaderProgression.v1';
+import { LEADER_STORAGE_KEY } from './BuildSave.js';
+
+const STORAGE_KEY = LEADER_STORAGE_KEY;
 
 export const leaderAbilities = [
   { id: 'focusFire', category: 'Assault', name: 'Focus Fire', shortName: 'FOCUS FIRE', branch: 'Command', description: 'Choose a shared enemy target. Healers keep healing.', cost: 0, cooldown: 10000, unlockedByDefault: true },
@@ -9,7 +11,7 @@ export const leaderAbilities = [
   { id: 'arise', category: 'Restore', name: 'Arise!', shortName: 'ARISE!', branch: 'Survival', description: 'Revive all fallen allies at 50% HP and mana. Once per encounter.', cost: 2, oncePerEncounter: true, healthFraction: 0.5, manaFraction: 0.5 }
 ];
 
-// This function starts a new Raid Leader with Focus Fire available and
+// This function starts new player progression with Focus Fire available and
 // equipped.
 const defaultLeader = () => ({
 
@@ -21,7 +23,7 @@ const defaultLeader = () => ({
   battleLoadout: ['focusFire']
 });
 
-// This function restores Raid Leader progress with valid defaults and loadout
+// This function restores player progression with valid defaults and loadout
 // entries.
 export function loadLeaderProgression() {
 
@@ -54,8 +56,8 @@ export function loadLeaderProgression() {
   }
 }
 
-// This function saves Raid Leader advancement separately from the main
-// profile.
+// This function saves player progression separately from character and world
+// progress.
 export function saveLeaderProgression(leader) {
 
   try {
@@ -128,7 +130,7 @@ export function toggleLeaderLoadoutAbility(leader, abilityId) {
   return true;
 }
 
-// This function removes Raid Leader progress as part of a fresh start.
+// This function removes player progression as part of a fresh start.
 export function clearLeaderProgression() {
 
   try {

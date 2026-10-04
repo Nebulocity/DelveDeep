@@ -1,5 +1,5 @@
 import GameState from './GameState.js';
-import { getEquipmentDefinition, getMaterialDefinition } from '../data/items.js';
+import { getEquipmentDefinition, getMaterialDefinition, getPotionDefinition } from '../data/items.js';
 
 export const EQUIPMENT_SLOTS = ['weapon', 'armor', 'accessory', 'potion'];
 export const EQUIPMENT_SCHEMA_VERSION = 1;
@@ -8,15 +8,20 @@ export function ownedEquipment(state = GameState) {
   return state.inventory.equipment ?? [];
 }
 
-export function grantEquipment(itemId, state = GameState) {
-  const definition = getEquipmentDefinition(itemId);
-  if (!definition) return null;
+function nextInstanceId(state) {
   const owned = ownedEquipment(state);
   let next = Number.isSafeInteger(state.inventory.nextEquipmentId) && state.inventory.nextEquipmentId > 0
     ? state.inventory.nextEquipmentId : 1;
   while (owned.some((entry) => entry.id === `gear-${next}`)) next += 1;
+  state.inventory.nextEquipmentId = next + 1;
+  return `gear-${next}`;
+}
+
+export function grantEquipment(itemId, state = GameState) {
+  const definition = getEquipmentDefinition(itemId);
+  if (!definition) return null;
   const instance = {
-    id: `gear-${next}`,
+    id: nextInstanceId(state),
     itemId: definition.id,
     name: definition.name,
     slot: definition.slot,
@@ -25,8 +30,43 @@ export function grantEquipment(itemId, state = GameState) {
     stats: { ...definition.stats }
   };
   state.inventory.equipment.push(instance);
-  state.inventory.nextEquipmentId = next + 1;
   return instance;
+}
+
+export function grantPotionPack(itemId, state = GameState) {
+  const definition = getPotionDefinition(itemId);
+  if (!definition) return null;
+  const instance = {
+    id: nextInstanceId(state),
+    itemId: definition.id,
+    name: definition.name,
+    slot: 'potion',
+    rarity: definition.rarity,
+    charges: definition.uses,
+    stats: {}
+  };
+  state.inventory.equipment.push(instance);
+  return instance;
+}
+
+export function buyPotionPack(itemId, state = GameState) {
+  const definition = getPotionDefinition(itemId);
+  if (!definition) return { ok: false, message: 'That potion is not stocked.' };
+  if (state.gold < definition.price) return { ok: false, message: `You need ${definition.price} Gold for ${definition.name}.` };
+  const instance = grantPotionPack(itemId, state);
+  state.gold -= definition.price;
+  return { ok: true, instance, message: `Bought ${definition.name} (${definition.uses} uses).` };
+}
+
+export function sellPotionPack(instanceId, state = GameState) {
+  const item = ownedEquipment(state).find((entry) => entry.id === instanceId && entry.slot === 'potion');
+  const definition = getPotionDefinition(item?.itemId);
+  if (!item || !definition) return { ok: false, message: 'That potion pack is unavailable.' };
+  if (equipmentOwner(instanceId, state)) return { ok: false, message: 'Unequip this potion pack before selling it.' };
+  const value = Math.floor(definition.price * 0.5 * item.charges / definition.uses);
+  state.inventory.equipment = state.inventory.equipment.filter((entry) => entry.id !== instanceId);
+  state.gold += value;
+  return { ok: true, amount: value, message: `Sold ${definition.name} for ${value} Gold.` };
 }
 
 export function grantMaterial(materialId, amount = 1, state = GameState) {
@@ -42,17 +82,30 @@ export function equipmentOwner(instanceId, state = GameState) {
   return state.roster.find((hero) => EQUIPMENT_SLOTS.some((slot) => hero.equipment?.[slot] === instanceId));
 }
 
-function canUseEquipment(hero, item) {
+export function canEquipItem(hero, item) {
   return hero && item && EQUIPMENT_SLOTS.includes(item.slot)
     && (item.slot === 'potion'
       ? Number.isInteger(item.charges) && item.charges > 0 && item.charges <= 3
+        && (getPotionDefinition(item.itemId)?.effect.resource !== 'mana' || hero.maxMana > 0)
       : item.className === hero.className || item.usableBy?.includes(hero.className));
 }
 
 export function equippedItem(hero, slot, state = GameState) {
   if (!EQUIPMENT_SLOTS.includes(slot)) return null;
   const item = ownedEquipment(state).find((entry) => entry.id === hero.equipment?.[slot]);
-  return item?.slot === slot && canUseEquipment(hero, item) ? item : null;
+  return item?.slot === slot && canEquipItem(hero, item) ? item : null;
+}
+
+export function consumePotionCharge(heroId, state = GameState) {
+  const hero = state.roster.find((entry) => entry.id === heroId);
+  const item = hero && equippedItem(hero, 'potion', state);
+  if (!item || !getPotionDefinition(item.itemId)) return false;
+  item.charges -= 1;
+  if (item.charges === 0) {
+    state.inventory.equipment = state.inventory.equipment.filter((entry) => entry.id !== item.id);
+    hero.equipment.potion = null;
+  }
+  return true;
 }
 
 export function getEquippedAdventurer(hero, state = GameState) {
@@ -77,7 +130,7 @@ export function equipmentStatsText(stats = {}) {
 export function equipItem(heroId, instanceId, state = GameState) {
   const hero = state.roster.find((entry) => entry.id === heroId);
   const item = ownedEquipment(state).find((entry) => entry.id === instanceId);
-  if (!canUseEquipment(hero, item)) return { ok: false, message: 'This character cannot use that equipment.' };
+  if (!canEquipItem(hero, item)) return { ok: false, message: 'This character cannot use that equipment.' };
   const owner = equipmentOwner(instanceId, state);
   if (owner && owner.id !== heroId) return { ok: false, message: `Unequip this item from ${owner.name} first.` };
   hero.equipment ??= { weapon: null, armor: null, accessory: null, potion: null };
@@ -105,7 +158,7 @@ export function restoreEquipment(savedInventory, savedRoster, state = GameState)
       ids.add(item.id);
       return true;
     }).map((item) => ({
-      id: item.id, name: item.name, slot: item.slot,
+      id: item.id, name: item.slot === 'potion' ? getPotionDefinition(item.itemId)?.name ?? item.name : item.name, slot: item.slot,
       itemId: typeof item.itemId === 'string' ? item.itemId : undefined,
       rarity: typeof item.rarity === 'string' ? item.rarity : undefined,
       className: item.className,
@@ -122,7 +175,7 @@ export function restoreEquipment(savedInventory, savedRoster, state = GameState)
     for (const slot of EQUIPMENT_SLOTS) {
       const id = savedRoster.get(hero.id)?.equipment?.[slot];
       const item = state.inventory.equipment.find((entry) => entry.id === id);
-      if (!item || item.slot !== slot || !canUseEquipment(hero, item) || assigned.has(id)) continue;
+      if (!item || item.slot !== slot || !canEquipItem(hero, item) || assigned.has(id)) continue;
       hero.equipment[slot] = id;
       assigned.add(id);
     }

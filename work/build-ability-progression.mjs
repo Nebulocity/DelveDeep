@@ -210,7 +210,7 @@ for (const [className, def] of classes) {
 }
 
 const wb = Workbook.create();
-const sheets = Object.fromEntries(['Guide','Starter kits','Abilities','Rank schedule','Learning cost'].map(n => [n, wb.worksheets.add(n)]));
+const sheets = Object.fromEntries(['Guide','Starter kits','Abilities','Rank schedule','Learning cost','Ability grid'].map(n => [n, wb.worksheets.add(n)]));
 for (const s of Object.values(sheets)) s.showGridLines = false;
 const navy = '#223248', green = '#DDECE5', pale = '#F3F6F9';
 const header = (s, range) => { s.getRange(range).format = { fill:navy, font:{name:'Arial',size:10,bold:true,color:'#FFFFFF'}, rowHeight:27, verticalAlignment:'center' }; };
@@ -265,6 +265,26 @@ const rs=sheets['Rank schedule'];rs.getRangeByIndexes(0,0,rankRows.length,13).va
 [34,47,26,13,9,18,18,21,12,24,15,15,15].forEach((w,i)=>rs.getRangeByIndexes(0,i,1,1).format.columnWidth=w);
 rs.getRange(`E2:I${rankRows.length}`).setNumberFormat('0');rs.getRange(`K2:K${rankRows.length}`).setNumberFormat('0.0');
 
+const gridRows=[['Class','Role','Ability ID','Ability','Origin','Category','Target','Rank','Required level','Skill points','Cumulative points','Starter grant','Gold at min level, H70','Effect and conditions','Potency','Unit','Duration (s)','Cooldown (s)','Existing ability key']];
+const sortedAbilities=[...abilities].sort((a,b)=>a.className.localeCompare(b.className)||a.category.localeCompare(b.category)||a.target.localeCompare(b.target)||a.name.localeCompare(b.name));
+for(const a of sortedAbilities) for(let rank=1;rank<=10;rank++) {
+  const requiredLevel=rank===1?1:(rank-1)*5;
+  let strength=Math.round(a.value*(1+(rank-1)*0.12));
+  if(a.unit.includes('%')&&(a.unit.includes('reduction')||a.unit.includes('dodge')||a.unit.includes('chance'))) strength=Math.min(strength,75);
+  const duration=a.duration?Math.round(Math.min(a.effect.includes('stun')||a.effect.includes('root')||a.effect.includes('blind')?4:20,a.duration*(1+(rank-1)*0.05))*10)/10:0;
+  const sampleGold=a.starter&&rank===1?0:Math.ceil(((20+5*requiredLevel)*rank*(1+(100-70)/100))/5)*5;
+  gridRows.push([a.className,a.role,a.id,a.name,a.source,a.category,a.target,rank,requiredLevel,rank,rank*(rank+1)/2-(a.starter?1:0),a.starter?'Yes':'No',sampleGold,a.effect,strength,a.unit,duration,a.cooldown,a.originalKey]);
+}
+const grid=sheets['Ability grid'];
+grid.getRangeByIndexes(0,0,gridRows.length,19).values=gridRows;
+base(grid,`A2:S${gridRows.length}`);header(grid,'A1:S1');grid.freezePanes.freezeRows(1);
+[34,15,47,27,18,14,27,8,17,15,20,15,24,92,12,23,16,17,22].forEach((w,i)=>grid.getRangeByIndexes(0,i,1,1).format.columnWidth=w);
+grid.getRange(`N2:N${gridRows.length}`).format.wrapText=true;
+grid.getRange(`A2:S${gridRows.length}`).format.rowHeight=34;
+grid.getRange(`H2:M${gridRows.length}`).setNumberFormat('0');
+grid.getRange(`Q2:Q${gridRows.length}`).setNumberFormat('0.0');
+grid.tables.add(`A1:S${gridRows.length}`,true,'AbilityGridTable');
+
 const cost=sheets['Learning cost'];
 cost.getRange('A1:B1').values=[['Learning cost calculator','Value']];header(cost,'A1:B1');
 cost.getRange('A2:B8').values=[['Character level',5],['Happiness (0–100)',70],['Target rank',2],['Skill points available',5],['Rank level required',null],['Skill points needed',null],['Gold needed',null]];
@@ -282,9 +302,9 @@ cost.getRange('B4').dataValidation={rule:{type:'whole',operator:'between',formul
 cost.getRange('B2').dataValidation={rule:{type:'whole',operator:'between',formula1:1,formula2:99}};
 cost.getRange('B8').setNumberFormat('"g"#,##0');
 
-if (abilities.length!==133 || rankRows.length!==1331 || starterRows.length!==14) throw new Error(`Unexpected counts: ${abilities.length}, ${rankRows.length}, ${starterRows.length}`);
+if (abilities.length!==133 || rankRows.length!==1331 || gridRows.length!==1331 || starterRows.length!==14) throw new Error(`Unexpected counts: ${abilities.length}, ${rankRows.length}, ${gridRows.length}, ${starterRows.length}`);
 await fs.mkdir(outputDir,{recursive:true});
-for(const [name,range] of [['Guide','A1:B15'],['Starter kits','A1:F14'],['Abilities','A1:M12'],['Rank schedule','A1:M12'],['Learning cost','A1:B14']]) {
+for(const [name,range] of [['Guide','A1:B15'],['Starter kits','A1:F14'],['Abilities','A1:M12'],['Rank schedule','A1:M12'],['Learning cost','A1:B14'],['Ability grid','A1:S13']]) {
   const preview=await wb.render({sheetName:name,range,scale:1,format:'png'});
   await fs.writeFile(`${outputDir}/${name.toLowerCase().replaceAll(' ','-')}.png`,new Uint8Array(await preview.arrayBuffer()));
 }
@@ -292,6 +312,8 @@ const check=await wb.inspect({kind:'table',range:'Learning cost!A1:B14',include:
 console.log(check.ndjson);
 const errors=await wb.inspect({kind:'match',searchTerm:'#REF!|#DIV/0!|#VALUE!|#NAME\\?|#N/A|#NUM!|#NULL!|#SPILL!|#CALC!',options:{useRegex:true,maxResults:30}});
 console.log(errors.ndjson);
+const gridCheck=await wb.inspect({kind:'table',range:'Ability grid!A1:S12',include:'values',tableMaxRows:12,tableMaxCols:19});
+console.log(gridCheck.ndjson);
 const blob=await SpreadsheetFile.exportXlsx(wb);
 await blob.save(`${outputDir}/delve-deep-ability-progression.xlsx`);
 console.log(JSON.stringify({abilities:abilities.length,new:78,ranks:rankRows.length-1,starters:starterRows.length-1,output:`${outputDir}/delve-deep-ability-progression.xlsx`}));

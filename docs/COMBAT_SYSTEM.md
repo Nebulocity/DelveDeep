@@ -63,8 +63,13 @@ Avoid unnecessary duplicate bars that clutter the battlefield.
 
 ## Potions
 
-Characters have an individual potion pack slot with up to three uses. Potion
-effects and combat use await the new item catalog. Between waves, living party
+Characters have an individual potion pack slot with three uses. A Health
+Potion restores 30% maximum HP to its injured user; a Mana Potion restores
+30% maximum mana to its user and can only be equipped by a mana user. The
+player taps that character's POTION button during active combat. Use requires
+a living character with missing HP or mana, cannot occur while paused or
+between waves, and has a 1.5-second cooldown per character. Empty packs are
+removed from inventory and the equipment slot. Between waves, living party
 members below 50% HP recover to 50% HP without spending items.
 
 ## Mana

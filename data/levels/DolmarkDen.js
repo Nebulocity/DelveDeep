@@ -12,8 +12,6 @@ export default {
   visuals: {
     environment: {
       width: 1672, height: 941, offsetY: -105, pixelArt: true,
-      floor: { topLeftX: 225, topRightX: 1447, topY: 520,
-        bottomLeftX: 323, bottomRightX: 1349, bottomY: 805 },
       layers: [
         { key: 'dolmark-den-pixel-art',
           url: new URL('../../assets/environments/dolmark-den-pixel/den-v2.png', import.meta.url).href,
@@ -32,6 +30,16 @@ export default {
         ]
       },
       denEffects: {
+        waterfalls: [
+          { x: 208, y: 343, width: 38, height: 89, speed: 37 },
+          { x: 335, y: 335, width: 48, height: 82, speed: 43 },
+          { x: 397, y: 427, width: 34, height: 55, speed: 35 }
+        ],
+        waterSurfaces: [
+          { x: 208, y: 418, width: 99, height: 33, speed: 10 },
+          { x: 308, y: 416, width: 86, height: 46, speed: 13 },
+          { x: 382, y: 474, width: 105, height: 32, speed: 9 }
+        ],
         lanterns: [
           { x: 170, y: 229, radius: 36 },
           { x: 610, y: 255, radius: 34 },
@@ -39,6 +47,12 @@ export default {
           { x: 1228, y: 463, radius: 28 },
           { x: 1370, y: 246, radius: 35 },
           { x: 1600, y: 151, radius: 36 }
+        ],
+        candles: [
+          { x: 143, y: 320, radius: 19 },
+          { x: 327, y: 489, radius: 17 },
+          { x: 1127, y: 406, radius: 21 },
+          { x: 1295, y: 377, radius: 23 }
         ],
         fungi: [
           { x: 37, y: 765, radius: 21 },

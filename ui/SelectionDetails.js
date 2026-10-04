@@ -3,7 +3,7 @@ import HapticsService from '../services/HapticsService.js';
 export const DETAILS_HINT = 'Long-press or hold-click a selection for details.';
 
 export function addDetailsHint(scene, y, text = DETAILS_HINT) {
-  const hall = isHallMenu(scene);
+  const hall = isHallMenu(scene) || isTownMenu(scene);
   return scene.add.text(scene.scale.width / 2, y, text, {
     fontFamily: 'Arial', fontSize: '26px', color: hall ? '#f4d5ab' : '#cbd5e1',
     stroke: hall ? '#180d09' : '#111827', strokeThickness: 4
@@ -13,6 +13,10 @@ export function addDetailsHint(scene, y, text = DETAILS_HINT) {
 function isHallMenu(scene) {
   return ['AdventurersHallScene', 'RosterScene', 'ItemsScene', 'RaidLeaderScene', 'FacilityScene', 'BlacksmithScene']
     .includes(scene.scene?.key);
+}
+
+function isTownMenu(scene) {
+  return scene.scene?.key === 'TownScene';
 }
 
 export function characterDetails(unit) {
@@ -38,6 +42,8 @@ export function showSelectionDetails(scene, details) {
   scene.selectionDetailsClose?.();
   const { width, height } = scene.scale;
   const hall = isHallMenu(scene);
+  const town = isTownMenu(scene);
+  const warm = hall || town;
   const objects = [];
   const wasPaused = scene.combatPaused;
   const clockPaused = scene.time.paused;
@@ -58,9 +64,10 @@ export function showSelectionDetails(scene, details) {
   scene.events.once('shutdown', close);
   const depth = 10000;
   const panelWidth = Math.min(1100, width - 120);
-  const body = scene.add.text(width / 2 - panelWidth / 2 + 44, 0, details.description, {
-    fontFamily: 'Arial', fontSize: '30px', color: hall ? '#f1dfca' : '#e2e8f0',
-    wordWrap: { width: panelWidth - 88 }
+  const bodyMargin = town ? 104 : 44;
+  const body = scene.add.text(width / 2 - panelWidth / 2 + bodyMargin, 0, details.description, {
+    fontFamily: 'Arial', fontSize: '30px', color: warm ? '#f1dfca' : '#e2e8f0',
+    wordWrap: { width: panelWidth - bodyMargin * 2 }
   }).setDepth(depth + 2);
   const panelHeight = Math.min(height - 140, Math.max(340, body.height + 210));
   const top = (height - panelHeight) / 2;
@@ -69,26 +76,41 @@ export function showSelectionDetails(scene, details) {
   if (body.height > panelHeight - 190) body.setScale((panelHeight - 190) / body.height);
   const shade = scene.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7)
     .setDepth(depth).setInteractive();
-  const panel = scene.add.rectangle(width / 2, height / 2, panelWidth, panelHeight, hall ? 0x21130d : 0x111827)
-    .setStrokeStyle(3, hall ? 0xd9a662 : 0x84cc16).setDepth(depth + 1).setInteractive();
-  panel.on('pointerdown', (pointer, x, y, event) => event.stopPropagation());
+  const panel = town
+    ? scene.add.image(width / 2, height / 2, 'town-sign-details')
+      .setDisplaySize(panelWidth + 100, panelHeight + 160).setDepth(depth + 1)
+    : scene.add.rectangle(width / 2, height / 2, panelWidth, panelHeight, hall ? 0x21130d : 0x111827)
+      .setStrokeStyle(3, hall ? 0xd9a662 : 0x84cc16).setDepth(depth + 1);
+  const panelHit = town
+    ? scene.add.rectangle(width / 2, height / 2, panelWidth, panelHeight, 0x000000, 0)
+      .setDepth(depth + 1).setInteractive()
+    : panel.setInteractive();
+  panelHit.on('pointerdown', (pointer, x, y, event) => event.stopPropagation());
   const dismiss = (pointer, x, y, event) => {
     event.stopPropagation();
     HapticsService.tap();
     close();
   };
   shade.on('pointerdown', dismiss);
-  const button = scene.add.rectangle(width / 2, top + panelHeight - 52, 300, 72, hall ? 0x6b4527 : 0x334155)
-    .setStrokeStyle(hall ? 3 : 0, hall ? 0xd9a662 : 0x334155)
-    .setDepth(depth + 2).setInteractive({ useHandCursor: true });
+  const buttonY = top + panelHeight - 52;
+  const buttonArt = town ? scene.add.image(width / 2, buttonY, 'town-sign-world-map')
+    .setDisplaySize(320, 118).setDepth(depth + 2) : null;
+  const button = scene.add.rectangle(width / 2, buttonY, 300, 72, town ? 0x000000 : hall ? 0x6b4527 : 0x334155, town ? 0 : 1)
+    .setStrokeStyle(town ? 0 : hall ? 3 : 0, hall ? 0xd9a662 : 0x334155)
+    .setDepth(depth + 3).setInteractive({ useHandCursor: true });
   button.on('pointerdown', dismiss);
-  objects.push(shade, panel, body, button,
+  objects.push(shade, panel, body, button);
+  if (town) objects.push(panelHit, buttonArt);
+  objects.push(
     scene.add.text(width / 2, top + 44, details.title, {
-      fontFamily: 'Arial', fontSize: '36px', fontStyle: 'bold', color: hall ? '#fff1d2' : '#bef264'
+      fontFamily: town ? 'Georgia' : 'Arial', fontSize: '36px', fontStyle: 'bold',
+      color: warm ? '#fff1d2' : '#bef264', stroke: town ? '#24170f' : undefined,
+      strokeThickness: town ? 3 : 0
     }).setOrigin(0.5).setDepth(depth + 2),
     scene.add.text(width / 2, button.y, 'CLOSE', {
-      fontFamily: 'Arial', fontSize: '30px', color: hall ? '#fff1d2' : '#ffffff'
-    }).setOrigin(0.5).setDepth(depth + 3));
+      fontFamily: town ? 'Georgia' : 'Arial', fontSize: '30px', color: warm ? '#fff1d2' : '#ffffff',
+      stroke: town ? '#24170f' : undefined, strokeThickness: town ? 2 : 0
+    }).setOrigin(0.5).setDepth(depth + 4));
 }
 
 // Bind after a selection's normal pointerdown action. Defer that action until

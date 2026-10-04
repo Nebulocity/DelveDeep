@@ -6,7 +6,8 @@ import ClassAbilitySystem from '../combat/ClassAbilitySystem.js';
 import { preloadCharacterSprites } from '../data/characterSprites.js';
 import { preloadEnemySprites } from '../data/enemySprites.js';
 import GameState from '../game/GameState.js';
-import { getEquippedAdventurer } from '../game/Equipment.js';
+import { getEquippedAdventurer, equippedItem, consumePotionCharge } from '../game/Equipment.js';
+import { getPotionDefinition } from '../data/items.js';
 import { battleAbilities } from '../game/AdventurerAbilities.js';
 import enemies from '../data/enemies.js';
 import { createEncounterWaves } from '../data/encounters.js';
@@ -23,7 +24,7 @@ import HapticsService from '../services/HapticsService.js';
 import { completeExpedition, failExpedition, fleeExpedition, formatDuration } from '../game/ExpeditionProgression.js';
 import { saveProfile } from '../game/GameStorage.js';
 import { getBattleLayout } from '../ui/Layout.js';
-import { preloadEnvironment, createEnvironment, getEnvironmentFloor } from '../combat/LayeredEnvironment.js';
+import { preloadEnvironment, createEnvironment, getDelveGridFloor } from '../combat/LayeredEnvironment.js';
 import { trackLoading, hideLoadingScreenAfterRender } from '../ui/LoadingScreen.js';
 
 export default class BattleScene extends Phaser.Scene {
@@ -72,6 +73,7 @@ export default class BattleScene extends Phaser.Scene {
     this.earnedGold = 0;
     this.enemyThreat = new Map();
     this.enemies = [];
+    this.lastPotionUseAt = new Map();
     this.selectedUnitIds = new Set();
     this.manualTargets = new Map();
     this.attackTargets = new Map();
@@ -104,8 +106,7 @@ export default class BattleScene extends Phaser.Scene {
       rows: 6,
       nearScale: 1.05,
       farScale: 0.74,
-      ...(GameState.currentDelve?.visuals?.environment
-        ? getEnvironmentFloor(GameState.currentDelve.visuals.environment, width, height) : {})
+      ...getDelveGridFloor(width, height)
     });
 
     // Create the formation controller and copy the appropriate encounter wave
@@ -285,6 +286,12 @@ export default class BattleScene extends Phaser.Scene {
       bindSelectionDetails(this, statusHitZone, () => characterDetails(unit), () => this.toggleUnitSelection(unit));
       const portrait = this.add.circle(x, hudTop + 72, 36, unit.color).setDepth(4501);
       bindSelectionDetails(this, portrait, () => characterDetails(unit), () => this.toggleUnitSelection(unit));
+      const potionButton = this.add.rectangle(x, hudTop + 155, 130, 72, 0x14532d)
+        .setStrokeStyle(2, 0x86efac).setDepth(4502);
+      const potionLabel = this.add.text(x, hudTop + 155, 'POTION', {
+        fontFamily: 'Arial', fontSize: '23px', fontStyle: 'bold', color: '#ffffff', align: 'center'
+      }).setOrigin(0.5).setDepth(4503);
+      bindSelectionDetails(this, potionButton, () => this.potionDetails(unit), () => this.usePotion(unit));
       const nameText = this.add.text(x + 85, hudTop + 38, unit.name, {
         fontFamily:'Arial', fontSize:'39px', fontStyle:'bold', color:'#f5f5f4'
       }).setOrigin(0,0.5).setDepth(4501);
@@ -327,8 +334,9 @@ export default class BattleScene extends Phaser.Scene {
         .setDepth(4501)
         .setVisible(false);
       bindSelectionDetails(this, nameText, () => characterDetails(unit), () => this.toggleUnitSelection(unit));
-      this.partyHud.push({statusHitZone,unit,nameText,hpText,manaText,threatText,hpFill,hpGlow,manaBack,manaFill,hudBarWidth});
+      this.partyHud.push({statusHitZone,potionButton,potionLabel,unit,nameText,hpText,manaText,threatText,hpFill,hpGlow,manaBack,manaFill,hudBarWidth});
     });
+    this.updatePotionHud();
   }
 
   // This function makes the perspective tiles usable as touch destinations.
@@ -1171,6 +1179,7 @@ export default class BattleScene extends Phaser.Scene {
   update(time, delta) {
 
     this.classAbilitySystem?.syncChargeTweens?.(this.combatPaused);
+    this.updatePotionHud();
     if (!this.combatPaused) this.enemies?.filter(enemy => enemy.container?.active !== false).forEach((enemy) => {
       enemy.spriteVisual?.update(delta);
       enemy.updateDeathPresentation?.(delta);
@@ -1303,7 +1312,7 @@ export default class BattleScene extends Phaser.Scene {
 
       const table = this.enemyThreat.get(enemy.id);
       const highest = Math.max(0, ...table.values());
-      table.set(tank.id, highest + 1);
+      table.set(tank.id, highest * (1 + (tank.abilities[key].threatBonus ?? 0)) + 1);
       enemy.engagedByTank = true;
       if (tank.abilities[key].duration) {
         enemy.status.forcedApproach = tank.abilities[key].farthest === true;
@@ -1553,7 +1562,8 @@ export default class BattleScene extends Phaser.Scene {
   // it.
   rollCritical(attacker, allowCrit = true) {
 
-    return allowCrit && Math.random() < (attacker.critChance ?? 0);
+    const bonus = this.time.now < (attacker.status.abilityCritUntil ?? 0) ? attacker.status.abilityCritBonus ?? 0 : 0;
+    return allowCrit && Math.random() < Math.min(0.95, (attacker.critChance ?? 0) + bonus);
   }
 
   // This function resolves an attack from its base damage through critical
@@ -1579,11 +1589,24 @@ export default class BattleScene extends Phaser.Scene {
       });
       return;
     }
+    const interceptor = target.status.interceptSource;
+    if (attacker.isEnemy && interceptor?.alive && interceptor !== target
+      && now < (target.status.interceptUntil ?? 0)) {
+      target.status.interceptUntil = 0;
+      target.status.interceptSource = null;
+      this.resolveDamage(attacker, interceptor, baseAmount, attackType, threatMultiplier, abilityName, allowCrit);
+      return 0;
+    }
 
     // Roll the critical result and apply outgoing damage bonuses or
     // penalties.
     const critical = this.rollCritical(attacker, allowCrit);
+    if (attacker.status.abilityCritOnce) { attacker.status.abilityCritUntil = 0; attacker.status.abilityCritOnce = false; }
     let amount = Math.round(baseAmount * (critical ? attacker.critMultiplier : 1));
+    if (attackType !== 'reflection' && attacker.status.nextAttackBoost) {
+      amount = Math.round(amount * (1 + attacker.status.nextAttackBoost));
+      attacker.status.nextAttackBoost = 0;
+    }
 
     if (attackType !== 'reflection' && !attacker.isEnemy && now < (attacker.status.damageBoostUntil ?? 0)) {
       amount = Math.round(amount * (1 + (attacker.status.damageBoost ?? 0)));
@@ -1604,6 +1627,9 @@ export default class BattleScene extends Phaser.Scene {
       this.createFloatingText(target.x, target.y - 82, 'IMMUNE', '#fde68a');
       return 0;
     }
+    if (attacker.isEnemy && now < (target.status.abilityDodgeUntil ?? 0)
+      && (!target.status.abilityDodgeRangedOnly || attackType === 'ranged' || attackType === 'spell' || attacker.attackRange > 180)
+      && Math.random() < (target.status.abilityDodgeChance ?? 0)) return 0;
     if (attacker.isEnemy && this.classAbilitySystem?.tryParry(target, attacker, amount, now)) return 0;
     const hpBefore = target.hp;
     target.takeDamage(amount, { time: now, ranged, attacker,
@@ -1611,6 +1637,16 @@ export default class BattleScene extends Phaser.Scene {
         || now < (target.status.shieldUntil ?? 0)
         || now < (target.status.damageReductionUntil ?? 0) });
     const actualDamage = hpBefore - target.hp;
+    if (actualDamage > 0 && target.isEnemy && attacker.status.nextPoisonPower) {
+      target.status.poison = {
+        caster: attacker,
+        power: attacker.status.nextPoisonPower,
+        interval: 2000,
+        next: now + 2000,
+        until: now + 6000
+      };
+      attacker.status.nextPoisonPower = 0;
+    }
 
     // Record recent combat interaction timestamps.
     if (amount > 0) {
@@ -1641,7 +1677,10 @@ export default class BattleScene extends Phaser.Scene {
       this.getLivingEnemies().forEach((enemy) => {
 
         if (enemy === target) {
-          this.addThreat(enemy, attacker, amount * threatMultiplier);
+          const threatReduction = now < (attacker.status.threatReductionUntil ?? 0) ? 1 - (attacker.status.threatReduction ?? 0) : 1;
+          const preparedThreat = attacker.status.nextThreatBonus ?? 1;
+          this.addThreat(enemy, attacker, amount * threatMultiplier * threatReduction * preparedThreat);
+          attacker.status.nextThreatBonus = 1;
         }
       });
     }
@@ -1698,7 +1737,10 @@ export default class BattleScene extends Phaser.Scene {
     const critical = this.rollCritical(healer, allowCrit);
     const healingBoost = this.time.now < (healer.status.healingBoostUntil ?? 0) ? 1 + healer.status.healingBoost : 1;
     const honorBoost = this.time.now < (healer.status.honorHealingUntil ?? 0) ? 1 + healer.status.honorHealingBoost : 1;
-    const amount = Math.round(baseAmount * healingBoost * honorBoost * (critical ? healer.critMultiplier : 1));
+    const targetReduction = this.time.now < (target.status.healingReductionUntil ?? 0) ? 1 - target.status.healingReduction : 1;
+    const preparedBoost = healer.status.nextHealBoost ?? 0;
+    healer.status.nextHealBoost = 0;
+    const amount = Math.round(baseAmount * healingBoost * honorBoost * targetReduction * (1 + preparedBoost) * (critical ? healer.critMultiplier : 1));
     const before = target.hp;
     target.heal(amount);
 
@@ -2036,11 +2078,68 @@ export default class BattleScene extends Phaser.Scene {
     else this.startWave(this.currentWaveIndex + 1);
   }
 
+  potionDetails(unit) {
+    const hero = GameState.roster.find((entry) => entry.id === unit.id);
+    const item = hero && equippedItem(hero, 'potion', GameState);
+    const definition = getPotionDefinition(item?.itemId);
+    return definition ? { title: definition.name, description: `${definition.description} ${item.charges}/${definition.uses} uses remain. Tap POTION to use it on ${unit.name}.` }
+      : { title: 'Potion', description: 'Equip a potion pack on this adventurer at the Adventurer\'s Hall.' };
+  }
+
+  canUsePotion(unit, time = this.time.now) {
+    if (this.battleOver || this.combatPaused || this.waveTransitioning || !this.partyUnits.includes(unit) || !unit.alive) return false;
+    const hero = GameState.roster.find((entry) => entry.id === unit.id);
+    const item = hero && equippedItem(hero, 'potion', GameState);
+    const definition = getPotionDefinition(item?.itemId);
+    if (!definition || time - (this.lastPotionUseAt?.get(unit.id) ?? -Infinity) < 1500) return false;
+    return definition.effect.resource === 'hp' ? unit.hp < unit.maxHp
+      : definition.effect.resource === 'mana' && unit.maxMana > 0 && unit.mana < unit.maxMana;
+  }
+
+  usePotion(unit, time = this.time.now) {
+    if (!this.canUsePotion(unit, time)) return false;
+    const hero = GameState.roster.find((entry) => entry.id === unit.id);
+    const item = equippedItem(hero, 'potion', GameState);
+    const definition = getPotionDefinition(item.itemId);
+    const resource = definition.effect.resource;
+    const maximum = resource === 'hp' ? unit.maxHp : unit.maxMana;
+    const before = resource === 'hp' ? unit.hp : unit.mana;
+    const restored = Math.max(1, Math.round(maximum * definition.effect.fraction));
+    if (resource === 'hp') unit.heal(restored);
+    else unit.mana = Math.min(unit.maxMana, unit.mana + restored);
+    const amount = Math.round((resource === 'hp' ? unit.hp : unit.mana) - before);
+    consumePotionCharge(hero.id, GameState);
+    this.lastPotionUseAt ??= new Map();
+    this.lastPotionUseAt.set(unit.id, time);
+    unit.flash?.(0x86efac);
+    this.createFloatingText(unit.x, unit.y - 100, `+${amount} ${resource === 'hp' ? 'HP' : 'MANA'}`, '#86efac', true);
+    this.showBattleMessage(`${unit.name} uses ${definition.name}`, '#86efac');
+    this.combatLog?.add('item', `${unit.name} restored ${amount} ${resource === 'hp' ? 'HP' : 'mana'} with ${definition.name}`, { target: unit.name, amount, resource });
+    HapticsService.confirm();
+    saveProfile();
+    this.updateHud();
+    return true;
+  }
+
+  updatePotionHud() {
+    this.partyHud?.forEach(({ unit, potionButton, potionLabel }) => {
+      const hero = GameState.roster.find((entry) => entry.id === unit.id);
+      const item = hero && equippedItem(hero, 'potion', GameState);
+      const definition = getPotionDefinition(item?.itemId);
+      const available = Boolean(definition);
+      const ready = available && this.canUsePotion(unit);
+      potionButton?.setVisible(available).setFillStyle(ready ? 0x14532d : 0x292524);
+      if (potionButton?.input) potionButton.input.enabled = available;
+      potionLabel?.setVisible(available).setAlpha(ready ? 1 : 0.55).setText(available ? `POTION\n${item.charges}/${definition.uses}` : '');
+    });
+  }
+
   // This function refreshes party resources and encounter progress as combat
   // changes.
   updateHud() {
 
     this.updateLeaderLoadoutBar();
+    this.updatePotionHud();
     this.partyHud?.forEach(({ unit, hpText, manaText, threatText, hpFill, hpGlow, manaBack, manaFill, hudBarWidth }) => {
 
       const ratio = unit.maxHp > 0 ? Phaser.Math.Clamp(unit.hp / unit.maxHp, 0, 1) : 0;

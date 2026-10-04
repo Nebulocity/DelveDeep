@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import delves from '../data/delves.js';
-import { getEnvironmentFloor, getEnvironmentTransform } from '../combat/LayeredEnvironment.js';
+import { getDelveGridFloor } from '../combat/LayeredEnvironment.js';
 
 const thornbriar = delves.find(delve => delve.id === 'thornbriar-hollow');
 const environment = thornbriar.visuals.environment;
@@ -14,13 +14,11 @@ assert.equal(environment.foreground.sourceKey, environment.layers[0].key);
 assert.ok(environment.foreground.depth > 4000);
 
 for (const [width, height] of [[2400, 1080], [960, 432]]) {
-  const transform = getEnvironmentTransform(environment, width, height);
-  const floor = getEnvironmentFloor(environment, width, height);
+  const floor = getDelveGridFloor(width, height);
   assert.ok(floor.topLeftX < floor.topRightX);
   assert.ok(floor.bottomLeftX < floor.bottomRightX);
   assert.ok(floor.topY < floor.bottomY);
   assert.ok(floor.bottomY < height * 0.78, 'Combat floor stays above the party HUD');
-  assert.equal(floor.topY, transform.y + environment.floor.topY * transform.scale);
 }
 
 for (const polygon of environment.foreground.polygons) {

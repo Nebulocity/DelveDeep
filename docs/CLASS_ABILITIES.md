@@ -1,14 +1,33 @@
-# Class abilities — provisional September 2026 roster
+# Class abilities
 
-The active catalog contains thirteen classes and exactly fourteen characters.
-`data/classes.js` owns tuning; `combat/ClassAbilitySystem.js` handles grid ability
-AI and effects. Old class names are not selectable classes or ability kits.
+The active catalog contains thirteen classes, fourteen characters, and 133 abilities.
+`data/classes.js` defines the original kits; `data/abilityProgression.js` adds six
+abilities per class, categories, starter picks, and rank 1 tuning.
+`combat/ClassAbilitySystem.js` handles grid ability AI and effects.
 
 ## Adventurer ability progression
 
-New adventurers begin with the first two abilities in their class definition unlocked and equipped. Other abilities unlock with gold at levels 2, 4, and 6 where applicable. Each ability has three ranks; rank 2 requires level 3 and rank 3 requires level 6. Rank purchases cost gold and apply to that adventurer only. Up to four unlocked abilities can be equipped for battle. Existing saved adventurers without ability progression fields retain rank 1 access to their previous full class kit; a fifth ability must be selected into one of the four slots.
+New adventurers begin with three class-specific rank 1 starter abilities, granted
+free and equipped. Every other rank 1 ability is learnable at level 1. Ranks 2
+through 10 require levels 5, 10, 15, 20, 25, 30, 35, 40, and 45. Adventurers
+gain one skill point at level 1 and one per later level. Learning rank N costs
+N points and gold: the next multiple of five at or above
+`(20 + 5 × character level) × rank × (1 + (100 − happiness) / 100)`.
+Less happy adventurers demand more gold. Up to four learned abilities may be
+equipped for battle. Existing saves keep their ranks and loadouts; missing new
+starter abilities are granted. Saves from before skill points receive points
+equal to the adventurer's level.
 
-Ranks increase configured power by 20% and duration by 15% per rank, shorten nonzero cooldowns by 10% per rank, and increase configured reactive chance by five percentage points per rank. Battle units receive only the equipped abilities and their purchased ranks. Base attacks and heals remain available independently of the ability loadout.
+Each rank above 1 raises configured potency by 12% and duration by 5%; control
+durations cap at four seconds. Cooldowns stay fixed. Single-target healing and
+defensive abilities can target the caster. Harmful abilities target enemies.
+The rank 10 gate is level 45, but a complete rank path costs 55 points, or 54
+for a granted starter, so a character who buys nothing else can fund it at
+level 55 or 54. Battle units receive only equipped abilities and purchased
+ranks. Base attacks and heals remain available independently.
+
+The detailed values below preserve the original mechanic notes. For current
+rank 1 numbers, use the ability data and the ability progression workbook.
 
 ## Squares and targeting
 

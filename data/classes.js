@@ -1,3 +1,5 @@
+import { addAbilityProgression } from './abilityProgression.js';
+
 // Powers and unspecified durations are provisional balance values; see docs/CLASS_ABILITIES.md.
 const spell = (name, cooldown, range, effect, extra = {}) => ({ name, cooldown: cooldown * 1000, range, effect, windup: 300, ...extra });
 const mage = (shortName, color, abilities) => ({ role: 'Ranged DPS', shortName, color, maxHp: 80, maxMana: 120, manaRegen: 8, moveSpeed: 130, attackPower: 15, attackRange: 345, attackCooldown: 1500, attackWindup: 400, critChance: 0.15, critMultiplier: 1.75, gridAbilities: true, abilities });
@@ -106,6 +108,8 @@ export const CLASS_DEFINITIONS = {
     rend: spell('Vessel Rend', 6, 4, 'damage', { power: 12, damageType: 'blood/necrotic', missingHealthBonus: true })
   })
 };
+
+addAbilityProgression(CLASS_DEFINITIONS);
 
 export function createAdventurer(id, name, className, overrides = {}) {
   const definition = CLASS_DEFINITIONS[className];

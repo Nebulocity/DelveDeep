@@ -12,9 +12,7 @@ export default class BlacksmithScene extends Phaser.Scene {
   render() {
     renderFacilityMenu(this, FACILITIES.Blacksmith, this.mode,
       (mode) => { this.mode = mode; this.render(); },
-      () => {
-        if (this.mode) { this.mode = null; this.render(); }
-        else this.scene.start('TownScene');
-      });
+      () => this.scene.start('TownScene'),
+      () => { this.mode = null; this.render(); });
   }
 }

@@ -6,6 +6,8 @@ Before substantial work, read this file, `docs/PROJECT_OVERVIEW.md` and `docs/CU
 
 Use PixelLab and supplied character art for new character sprites. Do not edit generated `dist/`, dependencies in `node_modules/`, or generated Android build output. Keep text and touch targets large for a Pixel 9 landscape display, preserve haptics, respect Android system areas, and keep the top banner flush with the usable game area.
 
+Every Delve must use exactly The Slime Cave's tactical grid position, shape, and 10-column by 6-row layout. New environment art and foreground masks may differ, but do not define per-delve grid floor coordinates. `data/levels/SlimeCave.js` is the floor source; `combat/LayeredEnvironment.js` projects it for all delves.
+
 Run `npm run build` for normal validation. Run maintained tests relevant to changed behavior. For Android packaging, build, then run `npx cap sync android`; use `android/gradlew.bat assembleDebug` for a debug APK. See `docs/BUILD_AND_DEPLOY.md`.
 
 Treat the repository as durable project memory. Update `docs/CURRENT_STATE.md` only when a substantial task materially changes current state; put development history in `changelog/`, not current-state notes. Preserve work from other active chats and inspect Git status before edits.

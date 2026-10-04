@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
 import { saveProfile } from '../game/GameStorage.js';
-import { equippedItem, getEquippedAdventurer, ownedEquipment, equipmentOwner, equipItem, unequipItem, equipmentStatsText } from '../game/Equipment.js';
-import { abilityEntries, abilityGoldCost, abilityLevelRequired, MAX_ABILITY_RANK, MAX_EQUIPPED_ABILITIES, purchaseAdventurerAbility, toggleAdventurerAbility } from '../game/AdventurerAbilities.js';
+import { equippedItem, getEquippedAdventurer, ownedEquipment, equipmentOwner, equipItem, unequipItem, equipmentStatsText, canEquipItem } from '../game/Equipment.js';
+import { abilityGoldCost, abilityLevelRequired, abilityLearningAvailable, sortedAbilityEntries, MAX_ABILITY_RANK, MAX_EQUIPPED_ABILITIES, purchaseAdventurerAbility, toggleAdventurerAbility } from '../game/AdventurerAbilities.js';
 import { happinessLabel, xpRequired } from '../game/AdventurerProgression.js';
 import { bindSelectionDetails } from '../ui/SelectionDetails.js';
 import { showConfirmation } from '../ui/ConfirmationDialog.js';
@@ -10,6 +10,8 @@ import { addHallBackground } from '../ui/HallBackground.js';
 import HapticsService from '../services/HapticsService.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
 import { addReturnButton } from '../ui/ReturnButton.js';
+import { ABILITY_BORDER_FRAGMENT } from '../ui/AbilityBorderShader.js';
+import { getPotionDefinition } from '../data/items.js';
 
 const ROLES = [
   ['Tank', 'TANKS'],
@@ -54,12 +56,35 @@ export default class RosterScene extends Phaser.Scene {
     if (next === this.abilityScroll) return;
     this.abilityScroll = next;
     this.abilityList.y = -next;
+    this.updateAbilityBorderVisibility();
+  }
+
+  updateAbilityBorderVisibility() {
+    for (const effect of this.abilityBorderEffects ?? []) {
+      const top = effect.y - this.abilityScroll - 62;
+      const bottom = effect.y - this.abilityScroll + 62;
+      const visible = bottom >= 415 && top <= 990;
+      effect.shader?.setVisible(visible);
+    }
+  }
+
+  update(_time, delta) {
+    this.abilityBorderTime = (this.abilityBorderTime ?? 0) + delta;
+    this.pulseAbilityBorders();
+  }
+
+  pulseAbilityBorders() {
+    for (const { row, index } of this.abilityBorderEffects ?? []) {
+      const alpha = 0.48 + 0.28 * Math.sin((this.abilityBorderTime ?? 0) * 0.004 + index);
+      row.setStrokeStyle(2, 0xffd24f, alpha);
+    }
   }
 
   render() {
     this.selectionDetailsClose?.();
     this.equipmentModalClose?.();
     this.abilityMaskShape?.destroy();
+    this.abilityBorderEffects = [];
     this.children.removeAll(true);
     const { width, height } = this.scale;
     this.cameras.main.setBackgroundColor('#1b0e09');
@@ -211,11 +236,8 @@ export default class RosterScene extends Phaser.Scene {
   openEquipment(hero, slot, page = 0) {
     this.equipmentModalClose?.();
     const { width, height } = this.scale;
-    const entries = ownedEquipment().filter((instance) => {
-      return instance.slot === slot && (slot === 'potion'
-        || instance.className === hero.className || instance.usableBy?.includes(hero.className))
-        && !equipmentOwner(instance.id);
-    });
+    const entries = ownedEquipment().filter((instance) =>
+      instance.slot === slot && canEquipItem(hero, instance) && !equipmentOwner(instance.id));
     const pages = Math.max(1, Math.ceil(entries.length / 3));
     page = Math.max(0, Math.min(page, pages - 1));
     const objects = [];
@@ -236,12 +258,12 @@ export default class RosterScene extends Phaser.Scene {
         event.stopPropagation(); HapticsService.tap(); callback();
       });
     };
-    modalButton(1780, 200, 'CLOSE', close);
+    modalButton(1840, 195, 'X', close, true, 76);
     const current = equippedItem(hero, slot);
     add(this.add.text(625, 256, `Currently equipped: ${current?.name ?? 'None'}`, {
       fontFamily: 'Arial', fontSize: '29px', color: '#ffe0a7'
     }));
-    if (current) modalButton(1740, 258, 'UNEQUIP', () => { close(); this.commit(unequipItem(hero.id, slot)); });
+    if (current) modalButton(1450, 258, 'UNEQUIP CURRENT', () => { close(); this.commit(unequipItem(hero.id, slot)); }, true, 310);
     if (!entries.length) add(this.add.text(width / 2, 525, slot === 'potion'
       ? 'No potion packs are available yet.' : 'No equipment is available yet.', {
       fontFamily: 'Arial', fontSize: '32px', color: '#e8c89f', wordWrap: { width: 1130 }, align: 'center'
@@ -251,11 +273,11 @@ export default class RosterScene extends Phaser.Scene {
       const y = 350 + index * 172;
       add(this.add.rectangle(width / 2, y + 45, 1260, 146, 0x382315, 0.96).setStrokeStyle(2, 0x9b6b3b));
       add(this.add.text(630, y + 10, item.name, { fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#fff1d2' }));
-      add(this.add.text(630, y + 56, slot === 'potion' ? `${item.charges}/3 uses`
+      add(this.add.text(630, y + 56, slot === 'potion' ? `${item.charges}/3 uses  •  ${getPotionDefinition(item.itemId)?.description ?? ''}`
         : equipmentStatsText(item.stats) || 'No bonuses', {
         fontFamily: 'Arial', fontSize: '26px', color: '#e8c89f', wordWrap: { width: 820 }
       }));
-      modalButton(1740, y + 45, 'EQUIP', () => { close(); this.commit(equipItem(hero.id, instance.id)); });
+      modalButton(1680, y + 45, 'EQUIP', () => { close(); this.commit(equipItem(hero.id, instance.id)); });
     });
     modalButton(770, 866, '< PREV', () => this.openEquipment(hero, slot, page - 1), page > 0);
     add(this.add.text(width / 2, 866, `${page + 1} / ${pages}`, { fontFamily: 'Arial', fontSize: '29px', color: '#fff1d2' }).setOrigin(0.5));
@@ -264,23 +286,35 @@ export default class RosterScene extends Phaser.Scene {
 
   renderAbilities(hero) {
     const loadout = hero.abilityLoadout ?? [];
+    const entries = sortedAbilityEntries(hero);
+    const learningCount = entries.filter(([key]) => abilityLearningAvailable(hero, key)).length;
     this.add.text(1945, 330, 'BATTLE ABILITIES', {
       fontFamily: 'Arial', fontSize: '43px', fontStyle: 'bold', color: '#fff1d2'
     }).setOrigin(0.5);
-    this.add.text(1945, 380, `EQUIPPED ${loadout.length}/${MAX_EQUIPPED_ABILITIES}   •   Unlock with gold`, {
+    this.add.text(1945, 380, `EQUIPPED ${loadout.length}/${MAX_EQUIPPED_ABILITIES}   •   ${hero.skillPoints ?? 0} SKILL POINTS`, {
       fontFamily: 'Arial', fontSize: '25px', color: '#e8c89f'
     }).setOrigin(0.5);
+    if (learningCount) this.add.text(1945, 406, `${learningCount} TRAINING OPTIONS  •  SCROLL DOWN FOR GOLD OUTLINES`, {
+      fontFamily: 'Arial', fontSize: '20px', fontStyle: 'bold', color: '#ffdc72'
+    }).setOrigin(0.5);
+    const renderer = this.sys?.renderer;
+    const useShader = learningCount > 0 && !!renderer?.gl && renderer.type === Phaser.WEBGL;
+    if (useShader) this.abilityBorderShader ??= new Phaser.Display.BaseShader('ability-training-border', ABILITY_BORDER_FRAGMENT);
     const firstRow = this.children.list.length;
-    const entries = abilityEntries(hero);
     entries.forEach(([key, ability], index) => {
       const rank = hero.abilityRanks?.[key] ?? 0;
       const equipped = loadout.includes(key);
+      const canLearn = abilityLearningAvailable(hero, key);
       const y = 480 + index * 132;
       const row = this.add.rectangle(1945, y, 804, 124, equipped ? 0x4a3420 : 0x302119, 0.96)
-        .setStrokeStyle(2, equipped ? 0xe8b35e : 0x795637);
+        .setStrokeStyle(2, canLearn ? 0xffd24f : equipped ? 0xe8b35e : 0x795637);
+      if (canLearn) {
+        const shader = useShader ? this.add.shader(this.abilityBorderShader, 1945, y, 820, 140) : null;
+        this.abilityBorderEffects.push({ row, shader, index, y });
+      }
       bindSelectionDetails(this, row, {
         title: ability.name,
-        description: `${ability.effect} ability. Range ${Number.isFinite(ability.range) ? ability.range : 'any'} cells. Cooldown ${ability.cooldown / 1000}s.${ability.power != null ? ` Base power ${ability.power}.` : ''}\n\nRanks improve power and duration by 20% and 15% per rank, reduce cooldown by 10% per rank, and improve reactive chance when applicable.`
+        description: `${ability.category} • ${ability.targetLabel ?? ability.target ?? 'Class ability'}\n${ability.description ?? ability.effect}. Range ${Number.isFinite(ability.range) ? ability.range : 'any'} cells. Cooldown ${ability.cooldown / 1000}s.${ability.power != null ? ` Rank 1 power ${ability.power}.` : ''}\n\nRanks increase potency by 12% and duration by 5%. Cooldown stays fixed.`
       }, () => {});
       this.add.text(1560, y - 51, ability.name, {
         fontFamily: 'Arial', fontSize: '27px', fontStyle: 'bold', color: '#fff1d2',
@@ -291,24 +325,27 @@ export default class RosterScene extends Phaser.Scene {
       const cost = nextRank <= MAX_ABILITY_RANK ? abilityGoldCost(hero, key, nextRank) : null;
       this.add.text(1560, y - 3, rank
         ? `R${rank}/${MAX_ABILITY_RANK} ${equipped ? 'EQUIPPED' : 'UNEQUIPPED'}`
-        : `LOCKED  •  Level ${level}  •  ${cost}g`, {
-        fontFamily: 'Arial', fontSize: '22px', color: equipped ? '#fcd38b' : '#d4b798',
+        : `${canLearn ? 'READY TO LEARN' : 'LOCKED'}  •  Lv ${level}`, {
+        fontFamily: 'Arial', fontSize: '22px', color: canLearn ? '#ffdc72' : equipped ? '#fcd38b' : '#d4b798',
         wordWrap: { width: 415 }
       });
-      if (rank && nextRank <= MAX_ABILITY_RANK) this.add.text(1560, y + 31, '•  TRAINING COMING SOON', {
+      if (rank && nextRank <= MAX_ABILITY_RANK) this.add.text(1560, y + 31, `•  Next: Lv ${level}  •  ${nextRank} SP  •  ${cost}g`, {
         fontFamily: 'Arial', fontSize: '22px', color: equipped ? '#fcd38b' : '#d4b798',
         wordWrap: { width: 750 }
       });
+      if (!rank) this.add.text(1560, y + 31, `•  1 SP  •  ${cost}g`, {
+        fontFamily: 'Arial', fontSize: '22px', color: canLearn ? '#ffdc72' : '#d4b798',
+        wordWrap: { width: 415 }
+      });
       if (rank) this.button(2050, y - 18, 170, 62, equipped ? 'UNEQUIP' : 'EQUIP', () => this.commit(toggleAdventurerAbility(hero.id, key)));
       if (nextRank <= MAX_ABILITY_RANK) {
-        if (rank) this.button(2240, y - 18, 170, 62, 'TRAIN', () => {}, false);
-        else this.button(2240, y - 18, 170, 62, 'UNLOCK', () => {
+        this.button(2240, y - 18, 170, 62, rank ? 'TRAIN' : 'UNLOCK', () => {
           showConfirmation(this, {
-            title: `Unlock ${ability.name}`,
-            description: `Spend ${cost} gold for rank ${nextRank}?\n\nRequires adventurer level ${level}. Current level: ${hero.level}. Gold available: ${GameState.gold}.`,
+            title: `${rank ? 'Train' : 'Unlock'} ${ability.name}`,
+            description: `Spend ${nextRank} skill points and ${cost} gold for rank ${nextRank}?\n\nRequires level ${level}. Current level: ${hero.level}. Skill points: ${hero.skillPoints ?? 0}. Gold: ${GameState.gold}.`,
             onConfirm: () => this.commit(purchaseAdventurerAbility(hero.id, key))
           });
-        }, hero.level >= level && GameState.gold >= cost);
+        }, hero.level >= level && (hero.skillPoints ?? 0) >= nextRank && GameState.gold >= cost);
       }
     });
     const rowObjects = this.children.list.slice(firstRow);
@@ -320,6 +357,8 @@ export default class RosterScene extends Phaser.Scene {
     maskShape.fillRect(1535, 415, 820, 575);
     this.abilityList.setMask(maskShape.createGeometryMask());
     this.abilityMaskShape = maskShape;
+    this.pulseAbilityBorders();
+    this.updateAbilityBorderVisibility();
     if (this.abilityScrollMax > 0) this.add.text(1945, 1002, 'SCROLL FOR MORE ABILITIES', {
       fontFamily: 'Arial', fontSize: '22px', color: '#e8c89f'
     }).setOrigin(0.5);

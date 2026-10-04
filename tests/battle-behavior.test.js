@@ -9,9 +9,12 @@ import { getBattleLayout } from '../ui/Layout.js';
 import CombatMovement from '../combat/CombatMovement.js';
 import combatSpacing from '../config/combatSpacing.js';
 import { chooseWaveLandings } from '../combat/WaveLanding.js';
+import { equippedItem, consumePotionCharge, grantPotionPack, equipItem } from '../game/Equipment.js';
+import { getPotionDefinition } from '../data/items.js';
 
 const context = vm.createContext({
   ClassAbilitySystem, leaderAbilities, createEncounterWaves, getBattleLayout, CombatMovement, combatSpacing, chooseWaveLandings,
+  equippedItem, consumePotionCharge, getPotionDefinition,
   Phaser: {
     Scene: class {},
     Math: {
@@ -43,6 +46,28 @@ function loadClass(path, name) {
 const BattleScene = loadClass('../scenes/BattleScene.js', 'BattleScene');
 const BattleUnit = loadClass('../combat/BattleUnit.js', 'BattleUnit');
 context.HapticsService.confirm = () => {};
+
+// A guarded ally takes no damage, while the guarding tank receives one resolved hit.
+{
+  const battle = Object.create(BattleScene.prototype);
+  battle.time = { now: 100 };
+  battle.rollCritical = () => false;
+  battle.createFloatingText = () => {};
+  battle.createMeleePulse = () => {};
+  battle.flashPartyHudName = () => {};
+  battle.combatLog = { add() {} };
+  battle.currentWaveIndex = 0;
+  const guard = { name: 'Guard', id: 'guard', hp: 100, alive: true, isEnemy: false, status: {},
+    takeDamage(amount) { this.hp -= amount; }, flash() {} };
+  const ally = { name: 'Ally', id: 'ally', hp: 100, alive: true, isEnemy: false,
+    status: { interceptSource: guard, interceptUntil: 1000 }, flash() {} };
+  const enemy = { name: 'Enemy', id: 'enemy', alive: true, isEnemy: true,
+    status: {}, critMultiplier: 1, attackRange: 70 };
+  assert.equal(battle.resolveDamage(enemy, ally, 20, 'enemy'), 0);
+  assert.equal(ally.hp, 100);
+  assert.equal(guard.hp, 80);
+  assert.equal(ally.status.interceptSource, null);
+}
 
 // Fallen characters keep normal opacity, including when stealth was active.
 {
@@ -965,4 +990,38 @@ console.log('Battle behavior checks passed.');
   battle.currentWaveIndex = 1;
   battle.updateEncounterStatus();
   assert.equal(battle.encounterStatusText.value, '(0:03) The Slime Sovereign');
+}
+
+// Equipped potion packs restore only their intended resource and expire after three uses.
+{
+  const ally = unit('potion-user', 'Healer');
+  Object.assign(ally, { hp: 40, maxHp: 100, mana: 20, maxMana: 100, updateHealthBar() {}, flash() {} });
+  const hero = { id: ally.id, maxMana: 100, equipment: { potion: null } };
+  context.GameState.roster = [hero];
+  context.GameState.inventory = { equipment: [], nextEquipmentId: 1 };
+  const battle = scene([ally], []);
+  battle.lastPotionUseAt = new Map();
+  battle.createFloatingText = () => {};
+  battle.updateHud = () => {};
+  const healing = grantPotionPack('mending-potion', context.GameState);
+  assert.equal(equipItem(hero.id, healing.id, context.GameState).ok, true);
+  assert.equal(battle.usePotion(ally, 0), true);
+  assert.equal(ally.hp, 70);
+  assert.equal(healing.charges, 2);
+  assert.equal(battle.usePotion(ally, 1499), false);
+  assert.equal(battle.usePotion(ally, 1500), true);
+  ally.hp = 50;
+  assert.equal(battle.usePotion(ally, 3000), true);
+  assert.equal(hero.equipment.potion, null);
+  assert.equal(context.GameState.inventory.equipment.length, 0);
+  const clarity = grantPotionPack('clarity-potion', context.GameState);
+  assert.equal(equipItem(hero.id, clarity.id, context.GameState).ok, true);
+  assert.equal(battle.usePotion(ally, 4500), true);
+  assert.equal(ally.mana, 50);
+  assert.equal(ally.hp, 80);
+  ally.mana = 100;
+  assert.equal(battle.usePotion(ally, 6000), false);
+  battle.combatPaused = true;
+  ally.mana = 50;
+  assert.equal(battle.usePotion(ally, 6000), false);
 }

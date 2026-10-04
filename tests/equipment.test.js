@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import adventurers from '../data/adventurers.js';
 import GameState from '../game/GameState.js';
 import { loadProfile, saveProfile } from '../game/GameStorage.js';
-import { EQUIPMENT_SLOTS, ownedEquipment, equipmentOwner, equippedItem, equipItem, unequipItem, getEquippedAdventurer, grantEquipment, grantMaterial } from '../game/Equipment.js';
-import { EQUIPMENT_ITEMS, CRAFTING_MATERIALS, ITEM_RARITIES } from '../data/items.js';
+import { EQUIPMENT_SLOTS, ownedEquipment, equipmentOwner, equippedItem, equipItem, unequipItem, getEquippedAdventurer, grantEquipment, grantMaterial, grantPotionPack, buyPotionPack, sellPotionPack, consumePotionCharge } from '../game/Equipment.js';
+import { EQUIPMENT_ITEMS, CRAFTING_MATERIALS, ITEM_RARITIES, POTION_ITEMS } from '../data/items.js';
 import { CLASS_DEFINITIONS } from '../data/classes.js';
 
 const storage = new Map();
@@ -33,6 +33,7 @@ for (const className of Object.keys(CLASS_DEFINITIONS)) {
   }
 }
 assert.deepEqual(Object.keys(CRAFTING_MATERIALS), ['iron', 'leather', 'cloth', 'herb', 'essence']);
+assert.deepEqual(POTION_ITEMS.map((item) => item.id), ['mending-potion', 'clarity-potion']);
 
 const baseAttack = sturm.attackPower;
 const baseHp = sturm.maxHp;
@@ -84,6 +85,35 @@ GameState.inventory.materials = { iron: 3, herb: 2, unknown: 9, cloth: -1 };
 saveProfile();
 loadProfile(adventurers);
 assert.deepEqual(GameState.inventory.materials, { iron: 3, herb: 2 });
+
+GameState.gold = 100;
+const pack = buyPotionPack('mending-potion');
+assert.equal(pack.ok, true);
+assert.equal(pack.instance.charges, 3);
+assert.equal(GameState.gold, 40);
+assert.equal(buyPotionPack('clarity-potion').ok, false);
+const sturmWithPack = GameState.roster.find((hero) => hero.id === 'sturm');
+assert.equal(equipItem(sturmWithPack.id, pack.instance.id).ok, true);
+assert.equal(sellPotionPack(pack.instance.id).ok, false);
+assert.equal(consumePotionCharge(sturmWithPack.id), true);
+assert.equal(consumePotionCharge(sturmWithPack.id), true);
+pack.instance.name = 'Mending Potion';
+saveProfile();
+loadProfile(adventurers);
+assert.equal(equippedItem(GameState.roster.find((hero) => hero.id === 'sturm'), 'potion').charges, 1);
+assert.equal(equippedItem(GameState.roster.find((hero) => hero.id === 'sturm'), 'potion').name, 'Health Potion');
+assert.equal(unequipItem('sturm', 'potion').ok, true);
+assert.equal(sellPotionPack(pack.instance.id).amount, 10);
+assert.equal(GameState.gold, 50);
+assert.equal(ownedEquipment().some((item) => item.id === pack.instance.id), false);
+const manaPack = grantPotionPack('clarity-potion');
+assert.equal(equipItem('sturm', manaPack.id).ok, false);
+assert.equal(equipItem('raistlin', manaPack.id).ok, true);
+assert.equal(consumePotionCharge('raistlin'), true);
+assert.equal(ownedEquipment().find((item) => item.id === manaPack.id).charges, 2);
+assert.equal(consumePotionCharge('raistlin'), true);
+assert.equal(consumePotionCharge('raistlin'), true);
+assert.equal(GameState.roster.find((hero) => hero.id === 'raistlin').equipment.potion, null);
 
 storage.set(key, JSON.stringify({
   inventory: { equipmentSchemaVersion: 1, equipment: [

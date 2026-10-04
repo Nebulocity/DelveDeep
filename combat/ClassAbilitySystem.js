@@ -86,6 +86,7 @@ export default class ClassAbilitySystem {
   }
   tick(unit, time) {
     const s = unit.status;
+    if (unit.stealthed && s.stealthUntil && s.stealthUntil <= time) unit.setStealthed(false);
     if (s.refugeNext && s.refugeNext <= time && s.refugeNext <= s.refugeUntil) {
       this.scene.resolveHeal(unit, unit, s.refugePower, 'Scripted Refuge', false);
       s.refugeNext += s.refugeInterval;
@@ -189,7 +190,7 @@ export default class ClassAbilitySystem {
         return;
       }
       if (a.effect === 'vow') {
-        target = allies.filter(ally => ally !== unit && this.distance(unit, ally) <= a.range
+        target = allies.filter(ally => this.distance(unit, ally) <= a.range
           && enemies.some(enemy => enemy.currentTargetId === ally.id))
           .sort((x,y) => x.hp/x.maxHp-y.hp/y.maxHp)[0];
         if (!target) continue;
@@ -212,10 +213,19 @@ export default class ClassAbilitySystem {
         return;
       }
       if (a.effect === 'heal') {
-        if (ordered) continue;
-        target = injured.find(t => this.distance(unit,t) <= a.range);
+        if (ordered && a.target !== 'self') continue;
+        target = a.target === 'self' ? (unit.hp < unit.maxHp ? unit : null)
+          : injured.find(t => this.distance(unit,t) <= a.range);
         if (a.zone) target = this.bestZone(unit, a, injured);
         if (!target) continue;
+      } else if (a.effect === 'protect') {
+        if (!enemies.length) continue;
+        target = a.target === 'ally' ? allies.filter(t => this.distance(unit, t) <= a.range)
+          .sort((x, y) => x.hp / x.maxHp - y.hp / y.maxHp)[0] : unit;
+        if (!target) continue;
+        if (a.target !== 'allies' && target.status.abilityProtectionUntil > time) continue;
+      } else if (a.effect === 'prepare') {
+        if (!enemies.length || unit.status.abilityPreparationUntil > time) continue;
       } else if (a.effect === 'trap') {
         if (!enemies.length) continue;
         target = this.trapPoint(unit, enemies);
@@ -225,7 +235,7 @@ export default class ClassAbilitySystem {
         if (a.requiresStealth && !unit.stealthed) continue;
         if (unit.stealthed && !a.requiresStealth) continue;
         if ((a.charge || a.behind) && scene.isPositionLocked(unit)) continue;
-        const inRange = enemies.filter(e => this.distance(unit,e) <= (a.radius ?? a.range));
+        const inRange = enemies.filter(e => this.distance(unit,e) <= (a.radius ?? (a.range + (unit.status.nextRangeBonus ?? 0))));
         if (a.farthest) inRange.sort((x,y) => this.distance(unit,y)-this.distance(unit,x));
         target = !a.farthest && inRange.includes(preferred) ? preferred : inRange[0];
         if (a.zone) target = this.bestZone(unit, a, enemies);
@@ -284,16 +294,22 @@ export default class ClassAbilitySystem {
     return best;
   }
   cast(unit,target,key,time) {
-    const scene=this.scene, a=unit.abilities[key];
-    if(!unit.startAction(a.name,time,a.windup)) return;
+    const scene=this.scene, base=unit.abilities[key];
+    const a=unit.status.nextRangeBonus && base.effect === 'damage'
+      ? { ...base, range: base.range + unit.status.nextRangeBonus } : base;
+    const useWindupBonus = !unit.status.nextWindupProtectOnly || a.effect === 'protect';
+    const windup = Math.max(100, Math.round(a.windup * (1 - (useWindupBonus ? unit.status.nextWindupReduction ?? 0 : 0))));
+    if(!unit.startAction(a.name,time,windup)) return;
+    if (useWindupBonus) { unit.status.nextWindupReduction = 0; unit.status.nextWindupProtectOnly = false; }
     unit.spriteVisual?.play(a.effect === 'damage' ? 'attack' : 'block', target);
     unit.markAbilityUsed(key,time);
+    if (base.effect === 'damage') unit.status.nextRangeBonus = 0;
     scene.announceAbility(unit,a.name,'#fde68a');
     scene.logActionStart(unit,target===unit||a.zone?null:target,a.name);
     const action=unit.pendingAction;
 
     // Recheck action identity and range after windup because targets may move or die.
-    scene.time.delayedCall(a.windup,()=>{
+    scene.time.delayedCall(windup,()=>{
       if(!scene.isActionCurrent(unit,action)) return;
       if(unit.role === 'Healer' && (a.effect === 'damage' || a.effect === 'mark')
         && this.allies().some(ally => ally.hp / ally.maxHp < 0.8)) {
@@ -365,13 +381,17 @@ export default class ClassAbilitySystem {
       if(!point) return;
       unit.setArenaPosition(point.x,point.y);
     }
-    if(a.effect==='vow' && target !== unit && target.alive && this.distance(unit,target)<=a.range) {
+    if(a.effect==='vow' && target.alive && this.distance(unit,target)<=a.range) {
       const attackers=scene.getLivingEnemies().filter(enemy=>enemy.currentTargetId===target.id);
       scene.applyTankTaunt(unit,attackers,'vow',time,false);
-      target.status.immuneUntil=time+a.immunityDuration;
+      target.status.damageReduction=a.reduction;
+      target.status.damageReductionUntil=time+a.immunityDuration;
     }
     if(a.effect==='stealth') {
-      if(!scene.getLivingEnemies().some(e=>e.currentTargetId===unit.id)) unit.setStealthed(true);
+      if(!scene.getLivingEnemies().some(e=>e.currentTargetId===unit.id)) {
+        unit.setStealthed(true);
+        s.stealthUntil=time+a.duration;
+      }
     }
     if(a.effect==='enrage') {
       s.enrageUntil=time+a.duration; s.exhaustedUntil=s.enrageUntil+a.recovery;
@@ -394,24 +414,80 @@ export default class ClassAbilitySystem {
         if(p) { unit.setArenaPosition(p.x,p.y); s.teleportUntil=0; }
       }
     }
+    if(a.effect==='protect') {
+      const protectionBonus = 1 + (s.nextProtectionBonus ?? 0);
+      const protectionDuration = Math.round(a.duration * (1 + (s.nextProtectionDurationBonus ?? 0)));
+      s.nextProtectionBonus = 0;
+      s.nextProtectionDurationBonus = 0;
+      const recipients = a.target === 'allies' ? allies.filter(t => this.distance(unit, t) <= (a.radius ?? 2)) : [target];
+      for (const ally of recipients) {
+        if (a.powerUnit === 'shield HP') {
+          ally.status.temporaryHp = (ally.status.temporaryHp ?? 0) + Math.round(a.power * protectionBonus);
+          ally.status.temporaryHpUntil = time + protectionDuration;
+        } else if (a.powerUnit.includes('dodge')) {
+          ally.status.abilityDodgeChance = Math.min(0.75, a.power * protectionBonus / 100);
+          ally.status.abilityDodgeUntil = time + protectionDuration;
+          ally.status.abilityDodgeRangedOnly = a.rangedOnlyDodge === true;
+        } else {
+          ally.status.damageReduction = Math.min(0.75, a.power * protectionBonus / 100);
+          ally.status.damageReductionUntil = time + protectionDuration;
+        }
+        ally.status.abilityProtectionUntil = time + protectionDuration;
+        if (a.targetThreatReduction) {
+          ally.status.threatReduction = a.targetThreatReduction;
+          ally.status.threatReductionUntil = time + protectionDuration;
+        }
+        if (a.intercept && ally !== unit) {
+          ally.status.interceptSource = unit;
+          ally.status.interceptUntil = time + protectionDuration;
+          unit.status.damageReduction = Math.min(0.75, a.power / 100);
+          unit.status.damageReductionUntil = time + protectionDuration;
+        }
+      }
+    }
+    if(a.effect==='prepare') {
+      const bonus = a.power / 100;
+      s.abilityPreparationUntil = time + a.duration;
+      if (a.powerUnit.includes('heal')) s.nextHealBoost = bonus;
+      else if (a.powerUnit.includes('windup')) s.nextWindupReduction = bonus;
+      else if (a.powerUnit.includes('critical')) { s.abilityCritBonus = bonus; s.abilityCritUntil = time + a.duration; }
+      else if (a.powerUnit.includes('movement')) { s.moveSpeedBonus = bonus; s.moveSpeedBonusUntil = time + a.duration; }
+      else if (a.powerUnit.includes('threat reduction')) { s.threatReduction = bonus; s.threatReductionUntil = time + a.duration; }
+      else if (a.powerUnit.includes('poison')) s.nextPoisonPower = a.power;
+      else if (a.powerUnit.includes('next-hit')) s.nextAttackBoost = bonus;
+      else if (a.powerUnit.includes('spell bonus')) s.nextSpellBoost = Math.max(s.nextSpellBoost ?? 0, bonus);
+      else if (a.powerUnit.includes('attack bonus')) { s.damageBoost = bonus; s.damageBoostUntil = time + a.duration; }
+      if (a.powerUnit.includes('damage reduction')) { s.damageReduction = bonus; s.damageReductionUntil = time + a.duration; }
+      if (a.selfReduction) { s.damageReduction = a.selfReduction; s.damageReductionUntil = time + a.duration; }
+      if (a.extraMoveBonus) { s.moveSpeedBonus = a.extraMoveBonus; s.moveSpeedBonusUntil = time + a.duration; }
+      if (a.nextProtectionBonus) s.nextProtectionBonus = a.nextProtectionBonus;
+      if (a.nextProtectionDurationBonus) s.nextProtectionDurationBonus = a.nextProtectionDurationBonus;
+      if (a.nextThreatBonus) s.nextThreatBonus = a.nextThreatBonus;
+      if (a.nextRangeBonus) s.nextRangeBonus = a.nextRangeBonus;
+      if (a.nextLinkedHealRatio) s.nextLinkedHealRatio = a.nextLinkedHealRatio;
+      if (a.nextCritOnly) s.abilityCritOnce = true;
+      if (a.protectiveOnlyWindup) s.nextWindupProtectOnly = true;
+      if (a.targetThreatReduction) { s.threatReduction = a.targetThreatReduction; s.threatReductionUntil = time + a.duration; }
+    }
     if(a.effect==='heal') {
       const targets=a.zone?allies.filter(t=>zoneContains(scene,t,target,a.zone)):[target];
       let power=a.lowHealthPower && unit.hp/unit.maxHp<0.5?a.lowHealthPower:a.power;
       power += Math.max(0, (unit.healPower ?? 0) - (CLASS_DEFINITIONS[unit.className]?.healPower ?? 0));
+      if (a.lowHealthBoost && unit.hp / unit.maxHp < 0.5) power = Math.round(power * (1 + a.lowHealthBoost));
+      power = Math.round(power * (1 + (s.nextHealBoost ?? 0)));
+      s.nextHealBoost = 0;
       if(s.solarAegis&&!a.zone) {
         s.solarAegis=false;
-        if(target===unit) power=unit.maxHp;
-        else { power*=3; targets.push(unit); }
+        power=Math.round(power*(1+(unit.abilities.aegis?.healBonus ?? 0.25)));
+        if(target!==unit) targets.push(unit);
       }
-      let healed=0;
       for(const t of targets) {
         const before=t.hp;
         scene.resolveHeal(unit,t,power,a.name);
-        if(t.hp>before) healed++;
+        if(a.temporaryHp && t.hp>before) t.status.temporaryHp=(t.status.temporaryHp??0)+a.temporaryHp;
         if(a.retaliation) t.status.bramble={caster:unit,power:a.retaliation};
       }
-      if(a.selfDamage) scene.resolveDamage(unit,unit,a.selfDamage,'spell',0,a.name,false);
-      if(a.temporaryHp) s.temporaryHp=(s.temporaryHp??0)+healed*a.temporaryHp;
+      if(a.selfDamage && target !== unit) scene.resolveDamage(unit,unit,a.selfDamage,'spell',0,a.name,false);
     }
     if(a.effect!=='damage') return;
 
@@ -433,12 +509,13 @@ export default class ClassAbilitySystem {
     let power=a.power;
     if(a.judgement && !allies.some(t=>t.id===target.currentTargetId&&t.role==='Tank')) power=a.highPower;
     if(a.missingHealthBonus) power*=1+(1-unit.hp/unit.maxHp);
+    if(a.rearBonus && target.currentTargetId !== unit.id) power*=1+a.rearBonus;
     if (!a.poison) power += Math.max(0, unit.attackPower - (CLASS_DEFINITIONS[unit.className]?.attackPower ?? unit.attackPower));
     power*=1+(s.nextSpellBoost??0); s.nextSpellBoost=0;
     if (unit.stealthed) unit.setStealthed(false);
     let total=0;
     for(const t of targets) {
-      const dealt=a.poison ? 0 : scene.resolveDamage(unit,t,power,a.damageType==='physical'?'melee':['holy','radiant'].includes(a.damageType)?'holy':'spell',a.totalThreat?0:1,a.name);
+      const dealt=a.poison ? 0 : scene.resolveDamage(unit,t,power,a.damageType==='physical'?'melee':['holy','radiant'].includes(a.damageType)?'holy':'spell',a.totalThreat?0:(a.threatMultiplier ?? 1),a.name);
       total+=dealt??0;
       if (dealt === undefined && !a.poison) continue;
       if(a.stun&&t.alive) {
@@ -452,6 +529,9 @@ export default class ClassAbilitySystem {
         t.status.attackSlowUntil=time+a.poison.duration; t.status.attackSlow=a.attackSlow;
       }
       if(a.root&&t.alive) t.status.rootedUntil=time+a.root;
+      if(a.healingReduction&&t.alive) { t.status.healingReduction=a.healingReduction; t.status.healingReductionUntil=time+a.duration; }
+      if(a.damageTakenBoost&&t.alive) { t.status.damageTakenBoost=a.damageTakenBoost; t.status.damageTakenBoostUntil=time+a.duration; }
+      if(a.slow&&t.alive) { t.status.moveSpeedSlow=a.slow; t.status.moveSpeedSlowUntil=time+Math.max(2000,a.duration); }
     }
     if(a.totalThreat) for(const t of targets) scene.addThreat(t,unit,total*a.totalThreat);
     if(a.healRatio&&total>0) {
@@ -459,6 +539,11 @@ export default class ClassAbilitySystem {
       if(a.healScope==='lowest') recipients=[...allies].sort((x,y)=>x.hp/x.maxHp-y.hp/y.maxHp).slice(0,1);
       if(a.healScope==='near') recipients=allies.filter(t=>this.distance(t,target)<=1);
       for(const t of recipients) scene.resolveHeal(unit,t,total*a.healRatio,a.name,false);
+    }
+    if(s.nextLinkedHealRatio&&total>0) {
+      const recipient=[...allies].sort((x,y)=>x.hp/x.maxHp-y.hp/y.maxHp)[0];
+      if(recipient) scene.resolveHeal(unit,recipient,Math.round(total*s.nextLinkedHealRatio),a.name,false);
+      s.nextLinkedHealRatio=0;
     }
   }
 }

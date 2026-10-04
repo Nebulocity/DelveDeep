@@ -4,8 +4,22 @@ node_modules/
 # The root README remains public.
 *.md
 !/README.md
-docs/
-changelog/
+/docs/
+/changelog/
+/change_log/
+
+# Local development work and generated reports.
+/work/
+/tests/
+/scripts/
+/outputs/
+/.tmp/
+/buildapk.sh
+
+# Native IDE settings and sample tests are not needed to package the app.
+/android/.idea/
+/android/app/src/androidTest/
+/android/app/src/test/
 
 .agents/
 .codex/

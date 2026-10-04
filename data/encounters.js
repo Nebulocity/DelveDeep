@@ -13,6 +13,21 @@ function rollCount({ base = 0, dice = [] } = {}, random) {
   return base + dice.reduce((total, sides) => total + 1 + Math.floor(random() * sides), 0);
 }
 
+function reduceWaveEnemies(enemies) {
+  const reduced = [...enemies];
+  const targetCount = Math.max(1, Math.round(reduced.length * 0.8));
+  while (reduced.length > targetCount) {
+    const counts = reduced.reduce((totals, enemy) =>
+      totals.set(enemy.type, (totals.get(enemy.type) ?? 0) + 1), new Map());
+    let removeIndex = reduced.length - 1;
+    for (let index = reduced.length - 2; index > 0; index--) {
+      if (counts.get(reduced[index].type) > counts.get(reduced[removeIndex].type)) removeIndex = index;
+    }
+    reduced.splice(removeIndex, 1);
+  }
+  return reduced;
+}
+
 const finalWaves = {
   Easy: [
     { name: 'The Slime Sovereign', boss: true, enemies: [
@@ -197,6 +212,7 @@ export function createEncounterWaves(delve = {}, arenaWidth = 1400, random = Mat
   }
   const centerOffset = (arenaWidth - 1400) / 2;
   return waves.map((wave) => ({
-    ...wave, enemies: wave.enemies.map((enemy) => ({ ...enemy, arenaX: enemy.arenaX + centerOffset }))
+    ...wave, enemies: reduceWaveEnemies(wave.enemies)
+      .map((enemy) => ({ ...enemy, arenaX: enemy.arenaX + centerOffset }))
   }));
 }

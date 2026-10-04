@@ -45,9 +45,9 @@ for (const delve of [
 
 const crowdedWave = createEncounterWaves({ id: 'thornbriar-hollow', difficulty: 'Easy' }, 1750, () => 0.999)[4];
 const crowdedLandings = chooseWaveLandings(crowdedWave, battlefield, terrain, partyUnits, random);
-assert.equal(crowdedWave.enemies.length, 16);
+assert.equal(crowdedWave.enemies.length, 13);
 assert.ok(crowdedLandings.every(Boolean));
-assert.equal(new Set(crowdedLandings.map(cell => `${cell.column},${cell.row}`)).size, 16);
+assert.equal(new Set(crowdedLandings.map(cell => `${cell.column},${cell.row}`)).size, 13);
 
 const wave = { enemies: [{ type: 'caveSlime' }, { type: 'stoneCrawler' }] };
 const blocked = {

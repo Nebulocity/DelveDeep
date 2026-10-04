@@ -16,6 +16,7 @@ assert.equal(tear.requiresLocation, 'duskfall');
 assert.ok(fs.existsSync(new URL(environment.layers[0].url)));
 assert.equal(waves.length, 4);
 assert.ok(waves.length < createEncounterWaves(abyss).length);
+assert.deepEqual(waves[0].enemies.map(enemy => enemy.type), ['voidStalker', 'riftSentinel']);
 assert.equal(waves.at(-1).boss, true);
 assert.equal(waves.at(-1).enemies[0].type, 'abyssalSovereign');
 assert.ok(environment.voidEffects.portal.radiusX < abyss.visuals.environment.voidEffects.portal.radiusX);

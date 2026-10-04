@@ -87,8 +87,8 @@ assert.ok(slimeCave.visuals?.environment?.pixelEffects.pools.length);
 assert.equal(delves.filter((delve) => delve.visuals?.environment).length, 5);
 for (const delve of delves) {
   const waves = createEncounterWaves(delve);
-  const finalCounts = { 'slime-cave': 5, 'thornbriar-hollow': 10, 'dolmark-den': 6,
-    'murmuring-abyss': 4, 'verdant-tear': 3 };
+  const finalCounts = { 'slime-cave': 4, 'thornbriar-hollow': 8, 'dolmark-den': 5,
+    'murmuring-abyss': 3, 'verdant-tear': 2 };
   assert.equal(waves.length, delve.id === 'verdant-tear' ? 4
     : delve.difficulty === 'Unknown' ? 6 : encounterWaveCounts[delve.difficulty]);
   assert.equal(delve.rooms, waves.length);
@@ -114,30 +114,32 @@ const thornbriarCounts = (random) => createEncounterWaves(thornbriar, 1400, rand
   .map(wave => ['ruffian', 'lasher', 'hedgeMage', 'rongarTheCrusher']
     .map(type => wave.enemies.filter(spawn => spawn.type === type).length));
 assert.deepEqual(thornbriarCounts(() => 0), [
-  [5, 0, 0, 0], [4, 2, 0, 0], [3, 1, 1, 0], [4, 2, 2, 0], [6, 3, 3, 0], [4, 3, 2, 1]
+  [4, 0, 0, 0], [3, 2, 0, 0], [2, 1, 1, 0], [2, 2, 2, 0], [4, 3, 3, 0], [2, 3, 2, 1]
 ]);
 assert.deepEqual(thornbriarCounts(() => 0.999), [
-  [8, 0, 0, 0], [10, 8, 0, 0], [6, 3, 1, 0], [6, 4, 2, 0], [8, 5, 3, 0], [4, 3, 2, 1]
+  [6, 0, 0, 0], [7, 7, 0, 0], [4, 3, 1, 0], [4, 4, 2, 0], [5, 5, 3, 0], [2, 3, 2, 1]
 ]);
 const thornbriarRolls = [0, 0, 0.999, 0, 0.999];
-assert.deepEqual(thornbriarCounts(() => thornbriarRolls.shift() ?? 0)[1], [7, 5, 0, 0]);
+assert.deepEqual(thornbriarCounts(() => thornbriarRolls.shift() ?? 0)[1], [5, 5, 0, 0]);
 const dolmark = delves.find((delve) => delve.id === 'dolmark-den');
 assert.equal(dolmark.difficulty, 'Easy');
 const dolmarkCounts = (random) => createEncounterWaves(dolmark, 1400, random)
   .map(wave => ['denWarden', 'denProtector', 'silvanarkTheForestLord']
     .map(type => wave.enemies.filter(spawn => spawn.type === type).length));
 assert.deepEqual(dolmarkCounts(() => 0), [
-  [5, 0, 0], [6, 0, 0], [4, 1, 0], [4, 2, 0], [4, 4, 0], [3, 2, 1]
+  [4, 0, 0], [5, 0, 0], [3, 1, 0], [3, 2, 0], [3, 3, 0], [2, 2, 1]
 ]);
 assert.deepEqual(dolmarkCounts(() => 0.999), [
-  [8, 0, 0], [12, 0, 0], [10, 1, 0], [4, 2, 0], [4, 4, 0], [3, 2, 1]
+  [6, 0, 0], [10, 0, 0], [8, 1, 0], [3, 2, 0], [3, 3, 0], [2, 2, 1]
 ]);
 const dolmarkRolls = [0, 0.999, 0, 0.999, 0, 0.999];
-assert.deepEqual(dolmarkCounts(() => dolmarkRolls.shift() ?? 0)[2], [7, 1, 0]);
+assert.deepEqual(dolmarkCounts(() => dolmarkRolls.shift() ?? 0)[2], [5, 1, 0]);
 for (const [difficulty, count] of Object.entries(encounterWaveCounts)) {
   const waves = createEncounterWaves({ difficulty });
   assert.equal(waves.length, count);
+  assert.equal(waves[1].enemies.length, 2);
   assert.equal(waves.at(-1).boss, true);
+  assert.equal(waves.at(-1).enemies.length, difficulty === 'Easy' ? 1 : 2);
 }
 assert.equal(createEncounterWaves({ type: 'void', difficulty: 'Unknown' }).length, 6);
 assert.equal(createEncounterWaves(slimeCave).at(-1).enemies[0].type, 'slimeSovereign');
@@ -145,14 +147,14 @@ const slimeCounts = (random) => createEncounterWaves(slimeCave, 1400, random)
   .map(wave => ['caveSlime', 'elderSlime', 'slimeSovereign']
     .map(type => wave.enemies.filter(spawn => spawn.type === type).length));
 assert.deepEqual(slimeCounts(() => 0), [
-  [3, 0, 0], [4, 0, 0], [4, 1, 0], [2, 2, 0], [4, 3, 0], [2, 2, 1]
+  [2, 0, 0], [3, 0, 0], [3, 1, 0], [1, 2, 0], [3, 3, 0], [1, 2, 1]
 ]);
 assert.deepEqual(slimeCounts(() => 0.999), [
-  [6, 0, 0], [10, 0, 0], [10, 1, 0], [2, 2, 0], [4, 3, 0], [2, 2, 1]
+  [5, 0, 0], [8, 0, 0], [8, 1, 0], [1, 2, 0], [3, 3, 0], [1, 2, 1]
 ]);
 const rolls = [0, 0.25, 0.5, 0.75, 0];
 assert.deepEqual(slimeCounts(() => rolls.shift()), [
-  [3, 0, 0], [7, 0, 0], [7, 1, 0], [2, 2, 0], [4, 3, 0], [2, 2, 1]
+  [2, 0, 0], [6, 0, 0], [5, 1, 0], [1, 2, 0], [3, 3, 0], [1, 2, 1]
 ]);
 const oldBossX = createEncounterWaves(slimeCave).at(-1).enemies[0].arenaX;
 assert.equal(createEncounterWaves(slimeCave, 1750).at(-1).enemies[0].arenaX, oldBossX + 175);

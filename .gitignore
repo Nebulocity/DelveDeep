@@ -4,6 +4,7 @@ node_modules/
 # The root README remains public.
 *.md
 !/README.md
+AGENTS.md*
 /docs/
 /changelog/
 /change_log/

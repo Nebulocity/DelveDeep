@@ -4,11 +4,22 @@ import { saveProfile } from '../game/GameStorage.js';
 import HapticsService from '../services/HapticsService.js';
 import { bindSelectionDetails, addDetailsHint, delveDetails } from '../ui/SelectionDetails.js';
 import { TILE, WORLD_COLUMNS, WORLD_ROWS, areas, regions, nodes, roads, pois, nodePoint, routeBetween } from '../data/worldMap.js';
+import { everdeepUnlocked, settleEverdeep } from '../game/Everdeep.js';
 
 const DELVES = Object.fromEntries(delves.map((delve) => [delve.id, delve]));
-const POI_DELVES = Object.fromEntries(pois.filter((poi) => poi.template).map((poi) => [poi.id, { ...DELVES[poi.template], id: poi.id, name: poi.name }]));
+const POI_DELVES = Object.fromEntries(pois.filter((poi) => poi.template).map((poi) => [poi.id, {
+  ...DELVES[poi.template], id: poi.id, name: poi.name, conceptArt: poi.conceptArt ?? DELVES[poi.template]?.conceptArt
+}]));
 const ORDINARY = ['slime-cave', 'thornbriar-hollow', 'dolmark-den'];
 const SPEED = 560;
+const TOWN_ART_LANDMARKS = [
+  { texture: 'town-concept-pineshire', x: 7, y: 9 },
+  { texture: 'town-concept-marsh-town', x: 6, y: 58 },
+  { texture: 'town-concept-mountain-hold', x: 50, y: 7 },
+  { texture: 'town-concept-desert-town', x: 73, y: 49 },
+  { texture: 'town-concept-river-town', x: 87, y: 27 },
+  { texture: 'town-concept-castle-town', x: 114, y: 57 }
+];
 
 const cleared = (id) => GameState.development.unlockAll || GameState.world.clearedDelves.includes(id)
   || (GameState.records[id]?.clears ?? 0) > 0;
@@ -17,6 +28,7 @@ const portalEligible = () => GameState.development.unlockAll || ORDINARY.every(c
 
 function available(poi) {
   if (GameState.development.unlockAll || poi.type === 'waypoint' || poi.id === 'pineshire') return true;
+  if (poi.type === 'everdeep') return everdeepUnlocked();
   if (poi.template) return GameState.world.discoveredLocations.includes(poi.id);
   if (poi.type === 'void') return portalEligible();
   if (poi.id === 'duskfall') return cleared('thornbriar-hollow');
@@ -47,6 +59,10 @@ function drawWorld(scene) {
   const worldWidth = WORLD_COLUMNS * TILE;
   const worldHeight = WORLD_ROWS * TILE;
   scene.add.tileSprite(0, 0, worldWidth, worldHeight, 'world-ground-tile').setOrigin(0).setDepth(-100);
+  for (const landmark of TOWN_ART_LANDMARKS) {
+    scene.add.image((landmark.x + 0.5) * TILE, (landmark.y + 0.5) * TILE, landmark.texture)
+      .setDisplaySize(280, 420).setDepth(-30);
+  }
   const road = scene.add.graphics().setDepth(-20);
   for (const edge of roads) {
     const a = nodePoint(edge.from);
@@ -106,7 +122,7 @@ function renderPois(scene) {
   for (const poi of pois) {
     const point = nodePoint(poi.node);
     const unlocked = available(poi);
-    const color = poi.type === 'void' ? 0x9247bb : poi.type === 'town' ? 0xd5a84f : poi.type === 'waypoint' ? 0xa1b6a5 : 0x738db7;
+    const color = poi.type === 'everdeep' ? 0x257d79 : poi.type === 'void' ? 0x9247bb : poi.type === 'town' ? 0xd5a84f : poi.type === 'waypoint' ? 0xa1b6a5 : 0x738db7;
     scene.add.circle(point.x, point.y, 51, unlocked ? color : 0x415047, 0.95)
       .setStrokeStyle(7, unlocked ? 0xf4eac9 : 0x738278).setDepth(160);
     scene.add.text(point.x, point.y - 175, poi.name, {
@@ -120,7 +136,10 @@ function renderPois(scene) {
     const hit = scene.add.circle(point.x, point.y, 105, 0xffffff, 0.001).setDepth(900);
     bindSelectionDetails(scene, hit, () => poi.type === 'delve' || poi.type === 'void'
       ? delveDetails(DELVES[poi.id] ?? POI_DELVES[poi.id])
-      : { title: poi.name, description: poi.type === 'waypoint' ? 'A stopping point along the road.' : 'Visit town to prepare your party.' },
+      : poi.type === 'everdeep' ? { title: poi.name, description: everdeepUnlocked()
+        ? 'Send five adventurers on a timed expedition. A Writ costs 120 Gold; chests are earned every ten successful waves.'
+        : 'Clear The Slime Cave, Thornbriar Hollow, and Dolmark Den to reveal this expedition.' }
+      : { title: poi.name, description: poi.type === 'waypoint' ? 'A stopping point along the road.' : 'Visit town to prepare your party.', image: poi.conceptArt },
     () => selectPoi(scene, poi));
   }
 }
@@ -128,7 +147,7 @@ function renderPois(scene) {
 function selectPoi(scene, poi) {
   HapticsService.tap();
   if (!available(poi)) {
-    scene.showToast(poi.type === 'void' ? 'Clear all three ordinary Delves to reveal the Void Portals.' : 'This location has not been reached yet.');
+    scene.showToast(poi.type === 'void' || poi.type === 'everdeep' ? 'Clear all three ordinary Delves to reveal this location.' : 'This location has not been reached yet.');
     return;
   }
   const from = scene.activeEdge
@@ -180,6 +199,10 @@ function arrive(scene) {
   if (poi.id === 'duskfall' && !GameState.world.discoveredLocations.includes('dolmark-den')) GameState.world.discoveredLocations.push('dolmark-den');
   saveProfile();
   if (poi.type === 'town') return scene.scene.start('TownScene', { townId: poi.id, townName: poi.name });
+  if (poi.type === 'everdeep') {
+    settleEverdeep();
+    return scene.scene.start('EverdeepScene');
+  }
   if (poi.type === 'waypoint') return;
   const delve = DELVES[poi.id] ?? POI_DELVES[poi.id];
   if (delve && poi.template) GameState.currentDelve = { ...delve, id: poi.id, name: poi.name, type: 'test' };
@@ -191,6 +214,7 @@ function arrive(scene) {
 }
 
 export function createScrollingWorldMap(scene) {
+  settleEverdeep();
   const { width, height } = scene.scale;
   scene.cameras.main.setBackgroundColor('#233b2b');
   drawWorld(scene);

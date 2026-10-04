@@ -32,6 +32,7 @@ export const nodes = {
   'west-south-seam': [20, 47.5],
   duskfall: [14, 58],
   'dolmark-den': [27, 62],
+  everdeep: [15, 68],
   'murmuring-abyss': [35, 59],
   'first-gate-west': [39, 60],
   'first-gate-east': [41, 60],
@@ -90,6 +91,7 @@ export const roads = [
   link('west-crossroads', 'west-south-seam'), link('west-south-seam', 'duskfall'),
   link('west-south-seam', 'middle-southwest'),
   link('duskfall', 'dolmark-den'), link('dolmark-den', 'murmuring-abyss'),
+  link('duskfall', 'everdeep'),
   link('murmuring-abyss', 'first-gate-west'),
   link('first-gate-west', 'first-gate-east', 'murmuring-abyss'),
   link('first-gate-east', 'south-march'),
@@ -116,13 +118,14 @@ export const roads = [
 ];
 
 export const pois = [
-  { id: 'pineshire', name: 'Pineshire', node: 'pineshire', type: 'town' },
+  { id: 'pineshire', name: 'Pineshire', node: 'pineshire', type: 'town', conceptArt: 'town-concept-pineshire' },
   { id: 'slime-grotto', name: 'The Mosslight Grotto', node: 'pineshire-south-branch', type: 'delve', template: 'slime-cave' },
   { id: 'slime-cave', name: 'The Slime Cave', node: 'slime-cave', type: 'delve' },
   { id: 'thornbriar-hollow', name: 'Thornbriar Hollow', node: 'thornbriar-hollow', type: 'delve' },
   { id: 'thornwood-rift', name: 'The Thornwood Rift', node: 'thornwood-east-branch', type: 'void', template: 'murmuring-abyss' },
-  { id: 'duskfall', name: 'Duskfall', node: 'duskfall', type: 'town' },
+  { id: 'duskfall', name: 'Duskfall', node: 'duskfall', type: 'town', conceptArt: 'town-concept-mountain-hold' },
   { id: 'dolmark-den', name: 'Dolmark Den', node: 'dolmark-den', type: 'delve' },
+  { id: 'everdeep', name: 'The Everdeep', node: 'everdeep', type: 'everdeep', regionId: 'pineshire-reach' },
   { id: 'murmuring-abyss', name: 'The Murmuring Abyss', node: 'murmuring-abyss', type: 'void' },
   { id: 'south-march', name: 'Southern March', node: 'south-march', type: 'waypoint' },
   { id: 'middle-center', name: 'The Crossroads', node: 'middle-center', type: 'waypoint' },
@@ -139,7 +142,7 @@ export const pois = [
   { id: 'east-northeast', name: 'Sunward Crest', node: 'east-northeast', type: 'waypoint' },
   { id: 'east-west-crossing', name: 'Old Bridge', node: 'east-west-crossing', type: 'waypoint' },
   { id: 'east-east-crossing', name: 'Rivergate', node: 'east-east-crossing', type: 'waypoint' },
-  { id: 'verge-delves', name: 'The Sunken Watch', node: 'far-verge-north-branch', type: 'delve', template: 'thornbriar-hollow' }
+  { id: 'verge-delves', name: 'The Sunken Watch', node: 'far-verge-north-branch', type: 'delve', template: 'thornbriar-hollow', conceptArt: 'delve-concept-sunken-watch' }
 ];
 
 export const nodePoint = (id) => {

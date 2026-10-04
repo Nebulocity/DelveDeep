@@ -16,10 +16,11 @@ const GameState = {
   },
   records: {},
   delveCheckpoints: {},
+  everdeep: { schemaVersion: 1, activeRun: null, totals: { runsStarted: 0, chestsClaimed: 0 } },
   development: {
     unlockAll: false,
     replayCleared: false,
-    showGridLines: true
+    showGridLines: false
   },
   world: {
     currentLocation: 'pineshire',

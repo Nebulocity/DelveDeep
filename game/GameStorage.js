@@ -38,6 +38,20 @@ export function loadProfile(baseRoster) {
     equipmentSchemaVersion: 1
   };
   GameState.records = saved?.records ?? {};
+  GameState.everdeep = saved?.everdeep?.schemaVersion === 1
+    ? {
+      schemaVersion: 1,
+      activeRun: saved.everdeep.activeRun && Array.isArray(saved.everdeep.activeRun.party)
+        && saved.everdeep.activeRun.party.length === 5
+        && Number.isFinite(saved.everdeep.activeRun.startedAtMs)
+        && Number.isSafeInteger(saved.everdeep.activeRun.resolvedWave)
+        ? saved.everdeep.activeRun : null,
+      totals: {
+        runsStarted: Math.max(0, Number.isSafeInteger(saved.everdeep.totals?.runsStarted) ? saved.everdeep.totals.runsStarted : 0),
+        chestsClaimed: Math.max(0, Number.isSafeInteger(saved.everdeep.totals?.chestsClaimed) ? saved.everdeep.totals.chestsClaimed : 0)
+      }
+    }
+    : { schemaVersion: 1, activeRun: null, totals: { runsStarted: 0, chestsClaimed: 0 } };
   GameState.delveCheckpoints = Object.fromEntries(Object.entries(saved?.delveCheckpoints ?? {})
     .filter(([id, entry]) => id && Number.isSafeInteger(entry?.nextWave) && entry.nextWave >= 0)
     .map(([id, entry]) => [id, { nextWave: entry.nextWave, campUnlocked: entry.campUnlocked === true }]));
@@ -46,7 +60,7 @@ export function loadProfile(baseRoster) {
   GameState.development = {
     unlockAll: saved?.development?.unlockAll === true,
     replayCleared: saved?.development?.replayCleared === true,
-    showGridLines: saved?.development?.showGridLines !== false
+    showGridLines: saved?.development?.showGridLines === true
   };
   GameState.world = {
     currentLocation: saved?.world?.currentLocation ?? 'pineshire',
@@ -99,6 +113,7 @@ export function saveProfile() {
     lastPartyIds: GameState.lastPartyIds,
     development: GameState.development,
     world: GameState.world,
+    everdeep: GameState.everdeep,
     roster: GameState.roster.map((adventurer) => ({
       id: adventurer.id,
       equipment: adventurer.equipment ?? { weapon: null, armor: null, accessory: null, potion: null },

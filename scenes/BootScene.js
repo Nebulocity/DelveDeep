@@ -18,6 +18,19 @@ import townSignBlacksmithUrl from '../assets/screens/town-signs/blacksmith.png?u
 import townSignEnchanterUrl from '../assets/screens/town-signs/enchanter.png?url';
 import townSignWorldMapUrl from '../assets/screens/town-signs/world-map.png?url';
 import townSignDetailsUrl from '../assets/screens/town-signs/details.png?url';
+import townForestUrl from '../assets/screens/town-concepts/pineshire.png?url';
+import townMountainUrl from '../assets/screens/town-concepts/mountain-hold.png?url';
+import townRiverUrl from '../assets/screens/town-concepts/river-town.png?url';
+import townMarshUrl from '../assets/screens/town-concepts/marsh-town.png?url';
+import townDesertUrl from '../assets/screens/town-concepts/desert-town.png?url';
+import townCastleUrl from '../assets/screens/town-concepts/castle-town.png?url';
+import delveGrottoUrl from '../assets/screens/delve-concepts/mosslight-grotto.png?url';
+import delveThornbriarUrl from '../assets/screens/delve-concepts/thornbriar-hollow.png?url';
+import delveMountainUrl from '../assets/screens/delve-concepts/mountain-den.png?url';
+import delveAbyssUrl from '../assets/screens/delve-concepts/murmuring-abyss.png?url';
+import delveVerdantUrl from '../assets/screens/delve-concepts/verdant-tear.png?url';
+import delveSunkenUrl from '../assets/screens/delve-concepts/sunken-watch.png?url';
+import everdeepConceptUrl from '../assets/screens/delve-concepts/murmuring-abyss.png?url';
 import { trackLoading } from '../ui/LoadingScreen.js';
 
 export default class BootScene extends Phaser.Scene {
@@ -46,6 +59,19 @@ export default class BootScene extends Phaser.Scene {
     this.load.image('town-sign-enchanter', townSignEnchanterUrl);
     this.load.image('town-sign-world-map', townSignWorldMapUrl);
     this.load.image('town-sign-details', townSignDetailsUrl);
+    this.load.image('town-concept-pineshire', townForestUrl);
+    this.load.image('town-concept-mountain-hold', townMountainUrl);
+    this.load.image('town-concept-river-town', townRiverUrl);
+    this.load.image('town-concept-marsh-town', townMarshUrl);
+    this.load.image('town-concept-desert-town', townDesertUrl);
+    this.load.image('town-concept-castle-town', townCastleUrl);
+    this.load.image('delve-concept-mosslight-grotto', delveGrottoUrl);
+    this.load.image('delve-concept-thornbriar-hollow', delveThornbriarUrl);
+    this.load.image('delve-concept-mountain-den', delveMountainUrl);
+    this.load.image('delve-concept-murmuring-abyss', delveAbyssUrl);
+    this.load.image('delve-concept-verdant-tear', delveVerdantUrl);
+    this.load.image('delve-concept-sunken-watch', delveSunkenUrl);
+    this.load.image('everdeep-concept', everdeepConceptUrl);
   }
 
   // This function restores the session and enters the world map in landscape.

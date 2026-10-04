@@ -11,15 +11,15 @@ export const FACILITIES = {
     choices: [
       { id: 'buy', label: 'BUY', icon: 'flask', subtitle: 'Browse potions', description: 'Buy three-use potion packs for your adventurers.', message: 'Choose a potion pack.' },
       { id: 'sell', label: 'SELL', icon: 'flask-sale', subtitle: 'Trade potions', description: 'Sell unequipped potion packs for Gold based on remaining uses.', message: 'Choose a potion pack to sell.' },
-      { id: 'brew', label: 'BREW', icon: 'cauldron', subtitle: 'Mix remedies', description: 'Prepare remedies from ingredients when brewing recipes become available.', message: 'No brewing recipes are available yet.' }
+      { id: 'brew', label: 'BREW', icon: 'cauldron', subtitle: 'Mix remedies', description: 'Brew Health and Mana Potion packs from gathered ingredients.', message: 'Choose a potion recipe.' }
     ]
   },
   Blacksmith: {
     name: 'Blacksmith', title: 'BLACKSMITH', background: 'blacksmith', subtitle: 'Equipment and the forge.',
     choices: [
       { id: 'buy', label: 'BUY', icon: 'sword', subtitle: 'Browse equipment', description: 'Browse equipment and crafting supplies when they become available.', message: 'No equipment or crafting supplies are stocked.' },
-      { id: 'sell', label: 'SELL', icon: 'ingot', subtitle: 'Trade equipment', description: 'Sell spare equipment and materials when the inventory has stock.', message: 'You have no equipment or materials to sell.' },
-      { id: 'craft', label: 'CRAFT', icon: 'anvil', subtitle: 'Visit the forge', description: 'Craft equipment when recipes and materials become available.', message: 'No crafting recipes are available.' }
+      { id: 'sell', label: 'SELL', icon: 'ingot', subtitle: 'Trade materials', description: 'Sell gathered materials for Gold.', message: 'Choose materials to sell.' },
+      { id: 'craft', label: 'CRAFT', icon: 'anvil', subtitle: 'Visit the forge', description: 'Craft the baseline weapons and armor from gathered materials.', message: 'Choose an equipment recipe.' }
     ]
   },
   Enchanter: {
@@ -30,6 +30,12 @@ export const FACILITIES = {
       { id: 'craft', label: 'CRAFT', icon: 'rune', subtitle: 'Inscribe scrolls', description: 'Craft scrolls to enchant gear when recipes become available.', message: 'No scroll recipes are available yet.' }
     ]
   }
+};
+
+const DETAIL_THEMES = {
+  Alchemist: { plaque: 'town-sign-alchemist', edge: 0x9fbd78, button: 0x315b3e, face: 0x20382e, text: '#eff9d7' },
+  Blacksmith: { plaque: 'town-sign-blacksmith', edge: 0xd58b55, button: 0x593728, face: 0x272b2c, text: '#fff0d8', square: true },
+  Enchanter: { plaque: 'town-sign-enchanter', edge: 0xb69ada, button: 0x463663, face: 0x28243b, text: '#f3eaff' }
 };
 
 export function renderFacilityMenu(scene, facility, selected, onSelect, onReturn, onClose, renderDetail) {
@@ -90,7 +96,7 @@ export function renderFacilityMenu(scene, facility, selected, onSelect, onReturn
     const x = firstX + index * (cardWidth + gap);
     const active = selected === entry.id;
     const card = addFacilityChoiceCard(scene, facility.name, entry, x, cardY, cardWidth, active);
-    bindSelectionDetails(scene, card, { title: entry.label, description: entry.description }, () => {
+    bindSelectionDetails(scene, card, { title: entry.label, description: entry.description, shopTheme: DETAIL_THEMES[facility.name] }, () => {
       HapticsService.tap();
       onSelect(entry.id);
     });

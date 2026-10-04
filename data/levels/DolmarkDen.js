@@ -5,6 +5,7 @@ export default {
   subtitle: 'An old den carved into the mountains beyond Duskfall.',
   difficulty: 'Easy', recommendedLevel: 2, depth: 3, type: 'delve',
   possibleDrops: ['Gold', 'Materials', 'Adventurer XP'],
+  conceptArt: 'delve-concept-mountain-den',
   prerequisites: ['thornbriar-hollow'],
   requiresLocation: 'duskfall',
   map: { x: 0.855, y: 0.205, radius: 0.060 },

@@ -12,7 +12,7 @@ export const WAVE_REWARDS = {
   Impossible: { gold: 72, goldStep: 8, xp: 38, materialCount: 3 }
 };
 
-const MATERIAL_IDS = ['iron', 'leather', 'cloth', 'herb', 'essence'];
+const MATERIAL_IDS = ['iron', 'wood', 'leather', 'cloth', 'herb', 'essence'];
 
 export function isOrdinaryDelve(delve = GameState.currentDelve) {
   return delve?.type === 'delve';

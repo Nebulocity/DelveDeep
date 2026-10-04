@@ -33,7 +33,7 @@ export function characterDetails(unit) {
 }
 
 export function delveDetails(delve) {
-  return { title: delve.name, description: `${delve.subtitle}\n\n${delve.difficulty} | Recommended level ${delve.recommendedLevel} | ${delve.rooms} waves\n\nRewards: ${(delve.possibleDrops ?? []).join(', ')}` };
+  return { title: delve.name, description: `${delve.subtitle}\n\n${delve.difficulty} | Recommended level ${delve.recommendedLevel} | ${delve.rooms} waves\n\nRewards: ${(delve.possibleDrops ?? []).join(', ')}`, image: delve.conceptArt };
 }
 
 // Modal details block underlying controls. Combat clocks and decisions pause
@@ -44,6 +44,8 @@ export function showSelectionDetails(scene, details) {
   const hall = isHallMenu(scene);
   const town = isTownMenu(scene);
   const warm = hall || town;
+  const shopTheme = details.shopTheme;
+  const shop = Boolean(shopTheme);
   const objects = [];
   const wasPaused = scene.combatPaused;
   const clockPaused = scene.time.paused;
@@ -64,12 +66,14 @@ export function showSelectionDetails(scene, details) {
   scene.events.once('shutdown', close);
   const depth = 10000;
   const panelWidth = Math.min(1100, width - 120);
+  const hasImage = Boolean(details.image && scene.textures.exists(details.image));
   const bodyMargin = town ? 104 : 44;
-  const body = scene.add.text(width / 2 - panelWidth / 2 + bodyMargin, 0, details.description, {
-    fontFamily: 'Arial', fontSize: '32px', color: warm ? '#f1dfca' : '#e2e8f0',
-    wordWrap: { width: panelWidth - bodyMargin * 2 }
+  const imageColumn = hasImage ? 300 : shop ? 220 : 0;
+  const body = scene.add.text(width / 2 - panelWidth / 2 + bodyMargin + imageColumn, 0, details.description, {
+    fontFamily: 'Arial', fontSize: '32px', color: shop ? shopTheme.text : warm ? '#f1dfca' : '#e2e8f0',
+    wordWrap: { width: panelWidth - bodyMargin * 2 - imageColumn }
   }).setDepth(depth + 2);
-  const panelHeight = Math.min(height - 140, Math.max(340, body.height + 210));
+  const panelHeight = Math.min(height - 140, Math.max(hasImage ? 540 : 340, body.height + 210));
   const top = (height - panelHeight) / 2;
   body.setY(top + 94);
   // Keep long descriptions contained while retaining the normal large type.
@@ -79,8 +83,20 @@ export function showSelectionDetails(scene, details) {
   const panel = town
     ? scene.add.image(width / 2, height / 2, 'town-sign-details')
       .setDisplaySize(panelWidth + 100, panelHeight + 160).setDepth(depth + 1)
-    : scene.add.rectangle(width / 2, height / 2, panelWidth, panelHeight, hall ? 0x21130d : 0x111827)
-      .setStrokeStyle(3, hall ? 0xd9a662 : 0x84cc16).setDepth(depth + 1);
+    : shop
+      ? scene.add.rectangle(width / 2, height / 2, panelWidth, panelHeight, shopTheme.face)
+        .setStrokeStyle(5, shopTheme.edge).setDepth(depth + 1)
+      : scene.add.rectangle(width / 2, height / 2, panelWidth, panelHeight, hall ? 0x21130d : 0x111827)
+        .setStrokeStyle(3, hall ? 0xd9a662 : 0x84cc16).setDepth(depth + 1);
+  const conceptHeight = Math.min(368, panelHeight - 180);
+  const shopSign = shop && scene.textures.exists(shopTheme.plaque)
+    ? scene.add.image(width / 2 - panelWidth / 2 + 120, top + Math.min(190, panelHeight / 2), shopTheme.plaque)
+      .setDisplaySize(shopTheme.square ? 145 : 180, shopTheme.square ? 145 : 120).setDepth(depth + 2)
+    : null;
+  const conceptImage = hasImage
+    ? scene.add.image(width / 2 - panelWidth / 2 + 155, height / 2, details.image)
+      .setDisplaySize(conceptHeight * 418 / 627, conceptHeight).setDepth(depth + 2)
+    : null;
   const panelHit = town
     ? scene.add.rectangle(width / 2, height / 2, panelWidth, panelHeight, 0x000000, 0)
       .setDepth(depth + 1).setInteractive()
@@ -95,21 +111,23 @@ export function showSelectionDetails(scene, details) {
   const buttonY = top + panelHeight - 52;
   const buttonArt = town ? scene.add.image(width / 2, buttonY, 'town-sign-world-map')
     .setDisplaySize(320, 118).setDepth(depth + 2) : null;
-  const button = scene.add.rectangle(width / 2, buttonY, 300, 72, town ? 0x000000 : hall ? 0x6b4527 : 0x334155, town ? 0 : 1)
-    .setStrokeStyle(town ? 0 : hall ? 3 : 0, hall ? 0xd9a662 : 0x334155)
+  const button = scene.add.rectangle(width / 2, buttonY, 300, 72, town ? 0x000000 : shop ? shopTheme.button : hall ? 0x6b4527 : 0x334155, town ? 0 : 1)
+    .setStrokeStyle(town ? 0 : shop ? 3 : hall ? 3 : 0, shop ? shopTheme.edge : hall ? 0xd9a662 : 0x334155)
     .setDepth(depth + 3).setInteractive({ useHandCursor: true });
   button.on('pointerdown', dismiss);
   objects.push(shade, panel, body, button);
+  if (conceptImage) objects.push(conceptImage);
   if (town) objects.push(panelHit, buttonArt);
+  if (shopSign) objects.push(shopSign);
   objects.push(
     scene.add.text(width / 2, top + 44, details.title, {
       fontFamily: town ? 'Georgia' : 'Arial', fontSize: '36px', fontStyle: 'bold',
-      color: warm ? '#fff1d2' : '#bef264', stroke: town ? '#24170f' : undefined,
-      strokeThickness: town ? 3 : 0
+      color: warm || shop ? (shop ? shopTheme.text : '#fff1d2') : '#bef264', stroke: town || shop ? '#24170f' : undefined,
+      strokeThickness: town || shop ? 3 : 0
     }).setOrigin(0.5).setDepth(depth + 2),
     scene.add.text(width / 2, button.y, 'CLOSE', {
-      fontFamily: town ? 'Georgia' : 'Arial', fontSize: '32px', color: warm ? '#fff1d2' : '#ffffff',
-      stroke: town ? '#24170f' : undefined, strokeThickness: town ? 2 : 0
+      fontFamily: town || shop ? 'Georgia' : 'Arial', fontSize: '32px', color: warm || shop ? (shop ? shopTheme.text : '#fff1d2') : '#ffffff',
+      stroke: town || shop ? '#24170f' : undefined, strokeThickness: town || shop ? 2 : 0
     }).setOrigin(0.5).setDepth(depth + 4));
 }
 
@@ -137,7 +155,7 @@ export function bindSelectionDetails(scene, target, getDetails, onTap, onDetails
       press.held = true;
       HapticsService.tap();
       if (onDetails) onDetails();
-      else showSelectionDetails(scene, typeof getDetails === 'function' ? getDetails() : getDetails);
+  else showSelectionDetails(scene, typeof getDetails === 'function' ? getDetails() : getDetails);
     }, 550);
   });
   const move = (pointer) => {

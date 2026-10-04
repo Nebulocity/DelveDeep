@@ -30,11 +30,25 @@ export const POTION_BY_ID = Object.fromEntries(POTION_ITEMS.map((item) => [item.
 
 export const CRAFTING_MATERIALS = {
   iron: { id: 'iron', name: 'Iron Ore', rarity: 'common', description: 'Raw metal for weapons and heavy armor.' },
+  wood: { id: 'wood', name: 'Hardwood', rarity: 'common', description: 'Seasoned timber for bows and staves.' },
   leather: { id: 'leather', name: 'Cured Leather', rarity: 'common', description: 'Flexible material for grips and light armor.' },
   cloth: { id: 'cloth', name: 'Woven Cloth', rarity: 'common', description: 'Sturdy fabric for robes, padding, and scrolls.' },
   herb: { id: 'herb', name: 'Wild Herbs', rarity: 'common', description: 'Gathered plants for future potion recipes.' },
   essence: { id: 'essence', name: 'Arcane Essence', rarity: 'common', description: 'A trace of magic for scrolls and future mixtures.' }
 };
+
+export const CRAFTING_RECIPES = [
+  { id: 'field-blade', name: 'Field Blade', category: 'equipment', output: { type: 'equipment', itemId: 'field-blade', count: 1 }, ingredients: { iron: 3, leather: 1 }, description: 'Forge a reliable close-combat blade.' },
+  { id: 'trail-bow', name: 'Trail Bow', category: 'equipment', output: { type: 'equipment', itemId: 'trail-bow', count: 1 }, ingredients: { leather: 3, cloth: 1 }, description: 'Shape a light bow for a Ranger.' },
+  { id: 'apprentice-focus', name: 'Apprentice Focus', category: 'equipment', output: { type: 'equipment', itemId: 'apprentice-focus', count: 1 }, ingredients: { cloth: 2, essence: 2 }, description: 'Bind arcane essence into a simple spell focus.' },
+  { id: 'pilgrim-staff', name: 'Pilgrim Staff', category: 'equipment', output: { type: 'equipment', itemId: 'pilgrim-staff', count: 1 }, ingredients: { wood: 3, cloth: 1 }, description: 'Craft a healing staff for a cleric.' },
+  { id: 'padded-vest', name: 'Padded Vest', category: 'equipment', output: { type: 'equipment', itemId: 'padded-vest', count: 1 }, ingredients: { leather: 2, cloth: 2 }, description: 'Sew flexible padded armor.' },
+  { id: 'iron-guard', name: 'Iron Guard', category: 'equipment', output: { type: 'equipment', itemId: 'iron-guard', count: 1 }, ingredients: { iron: 4, leather: 1 }, description: 'Forge sturdy front-line armor.' },
+  { id: 'health-potion', name: 'Health Potion Pack', category: 'alchemy', output: { type: 'potion', itemId: 'mending-potion', count: 1 }, ingredients: { herb: 2, cloth: 1 }, description: 'Brew a three-use health potion pack.' },
+  { id: 'mana-potion', name: 'Mana Potion Pack', category: 'alchemy', output: { type: 'potion', itemId: 'clarity-potion', count: 1 }, ingredients: { herb: 1, essence: 2 }, description: 'Brew a three-use mana potion pack.' }
+];
+
+export const CRAFTING_RECIPE_BY_ID = Object.fromEntries(CRAFTING_RECIPES.map((recipe) => [recipe.id, recipe]));
 
 export function getEquipmentDefinition(id) {
   return EQUIPMENT_BY_ID[id] ?? null;

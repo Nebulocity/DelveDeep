@@ -78,6 +78,17 @@ export function grantMaterial(materialId, amount = 1, state = GameState) {
   return true;
 }
 
+export function sellMaterial(materialId, amount = 1, state = GameState) {
+  const definition = getMaterialDefinition(materialId);
+  const owned = state.inventory.materials?.[materialId] ?? 0;
+  if (!definition || !Number.isSafeInteger(amount) || amount <= 0 || owned < amount) return { ok: false, message: 'You do not have enough of that material.' };
+  const value = amount * 5;
+  state.inventory.materials[materialId] -= amount;
+  if (!state.inventory.materials[materialId]) delete state.inventory.materials[materialId];
+  state.gold += value;
+  return { ok: true, amount: value, message: `Sold ${amount} ${definition.name} for ${value} Gold.` };
+}
+
 export function equipmentOwner(instanceId, state = GameState) {
   return state.roster.find((hero) => EQUIPMENT_SLOTS.some((slot) => hero.equipment?.[slot] === instanceId));
 }

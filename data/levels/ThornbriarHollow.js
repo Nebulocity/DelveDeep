@@ -5,6 +5,7 @@ export default {
   subtitle: 'A thorn-choked hollow where the road grows strangely quiet.',
   difficulty: 'Easy', recommendedLevel: 1, depth: 2, type: 'delve',
   possibleDrops: ['Gold', 'Materials', 'Adventurer XP'],
+  conceptArt: 'delve-concept-thornbriar-hollow',
   prerequisites: ['slime-cave'],
   map: { x: 0.503, y: 0.503, radius: 0.060 },
   terrain: [],

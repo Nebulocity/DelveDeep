@@ -119,7 +119,7 @@ export default class BattleUnit {
     const nameY = barY - (this.isEnemy ? 34 : 28);
     this.label = scene.add.text(0, nameY, this.name, {
       fontFamily: 'Arial',
-      fontSize: this.isEnemy ? '34px' : '30px',
+      fontSize: this.isEnemy ? '34px' : '32px',
       fontStyle: 'bold',
       color: '#ffffff',
       stroke: '#000000',
@@ -129,7 +129,7 @@ export default class BattleUnit {
     // Keep the current enemy target visible above its nameplate.
     this.targetLabel = scene.add.text(0, nameY - 36, '', {
       fontFamily: 'Arial',
-      fontSize: '25px',
+      fontSize: '27px',
       fontStyle: 'bold',
       color: '#fca5a5',
       stroke: '#000000',
@@ -138,7 +138,7 @@ export default class BattleUnit {
 
     this.actionLabel = scene.add.text(0, nameY - (this.isEnemy ? 68 : 30), '', {
       fontFamily: 'Arial',
-      fontSize: this.isEnemy ? '27px' : '22px',
+      fontSize: this.isEnemy ? '29px' : '24px',
       fontStyle: 'bold',
       color: '#fde68a',
       stroke: '#000000',

@@ -46,7 +46,7 @@ export default class DungeonScene extends Phaser.Scene {
 
     this.add.text(width * 0.28, height * 0.30, 'PARTY', { fontFamily: 'Arial', fontSize: '38px', fontStyle: 'bold', color: '#94a3b8' }).setOrigin(0.5);
 
-    this.add.text(width * 0.28, height * 0.345, 'Long-press or hold-click for character details.', { fontFamily: 'Arial', fontSize: '26px', color: '#cbd5e1' }).setOrigin(0.5);
+    this.add.text(width * 0.28, height * 0.345, 'Long-press or hold-click for character details.', { fontFamily: 'Arial', fontSize: '28px', color: '#cbd5e1' }).setOrigin(0.5);
 
     // List the chosen adventurers with their class, role, and current level.
     GameState.activeParty.forEach((adventurer, index) => {
@@ -56,21 +56,21 @@ export default class DungeonScene extends Phaser.Scene {
       bindSelectionDetails(this, card, () => characterDetails(getEquippedAdventurer(GameState.roster.find((hero) => hero.id === adventurer.id) ?? adventurer)));
       this.add.circle(width * 0.15, y, 30, adventurer.color);
       this.add.text(width * 0.18, y - 18, adventurer.name, { fontFamily: 'Arial', fontSize: '34px', fontStyle: 'bold', color: '#ffffff' });
-      this.add.text(width * 0.18, y + 19, `${adventurer.shortName ?? adventurer.className} • ${adventurer.role} • Lv ${adventurer.level}`, { fontFamily: 'Arial', fontSize: '26px', color: '#cbd5e1' });
+      this.add.text(width * 0.18, y + 19, `${adventurer.shortName ?? adventurer.className} • ${adventurer.role} • Lv ${adventurer.level}`, { fontFamily: 'Arial', fontSize: '28px', color: '#cbd5e1' });
     });
 
     // Resolve the equipped leadership IDs into names for the tactics review.
     const equipped = GameState.leader?.battleLoadout ?? [];
     this.add.text(width * 0.70, height * 0.30, `BATTLE TACTICS ${equipped.length}/5`, { fontFamily: 'Arial', fontSize: '38px', fontStyle: 'bold', color: '#94a3b8' }).setOrigin(0.5);
     this.add.text(width * 0.70, height * 0.345, 'Long-press / hold-click for details. Mouse: hover tactics.', {
-      fontFamily: 'Arial', fontSize: '26px', color: '#cbd5e1'
+      fontFamily: 'Arial', fontSize: '28px', color: '#cbd5e1'
     }).setOrigin(0.5);
     equipped.forEach((id, index) => {
 
       const ability = leaderAbilities.find((entry) => entry.id === id);
       const y = height * 0.39 + index * 88;
       const card = this.add.rectangle(width * 0.70, y, 700, 64, 0x292524).setStrokeStyle(2, 0x84cc16);
-      this.add.text(width * 0.70, y, ability?.name ?? id, { fontFamily: 'Arial', fontSize: '30px', fontStyle: 'bold', color: '#bef264' }).setOrigin(0.5);
+      this.add.text(width * 0.70, y, ability?.name ?? id, { fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#bef264' }).setOrigin(0.5);
       if (ability) this.bindTacticDescription(card, ability);
     });
 
@@ -161,7 +161,7 @@ export default class DungeonScene extends Phaser.Scene {
         this.hideTacticDescription();
       });
       objects.push(close, this.add.text(x, close.y, 'CLOSE', {
-        fontFamily: 'Arial', fontSize: '30px', fontStyle: 'bold', color: '#ffffff'
+        fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#ffffff'
       }).setOrigin(0.5).setDepth(103));
     }
   }

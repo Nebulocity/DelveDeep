@@ -60,6 +60,18 @@ export default class RosterScene extends Phaser.Scene {
       if (dragY !== null) this.scrollAbilities(dragY - pointer.y);
       dragY = pointer.y;
     });
+    let listDragStart = null;
+    this.input.on('pointerdown', (pointer, objects) => {
+      if (objects.length || pointer.x < 1535 || pointer.x > 2320 || pointer.y < 415 || pointer.y > 990) return;
+      listDragStart = pointer.y;
+    });
+    this.input.on('pointermove', (pointer) => {
+      if (!pointer.isDown || listDragStart === null || pointer.x < 1535 || pointer.x > 2320) return;
+      this.scrollAbilities(listDragStart - pointer.y);
+      listDragStart = pointer.y;
+    });
+    this.input.on('pointerup', () => { listDragStart = null; });
+    this.input.on('gameout', () => { listDragStart = null; });
     this.input.on('pointerup', () => { dragY = null; scrollbarGrab = null; });
     this.events.once('shutdown', () => this.abilityMaskShape?.destroy());
     this.render();
@@ -129,7 +141,7 @@ export default class RosterScene extends Phaser.Scene {
       fontFamily: 'Arial', fontSize: '68px', fontStyle: 'bold', color: '#fff1d2'
     }).setOrigin(0.5);
     this.add.text(width / 2, UI_SAFE_TOP + 86, 'Select an adventurer. Hold an ability for details.', {
-      fontFamily: 'Arial', fontSize: '29px', color: '#f4d5ab'
+      fontFamily: 'Arial', fontSize: '31px', color: '#f4d5ab'
     }).setOrigin(0.5);
     this.add.text(width - 65, UI_SAFE_TOP + 27, `${GameState.gold} GOLD`, {
       fontFamily: 'Arial', fontSize: '34px', fontStyle: 'bold', color: '#fbbf24'
@@ -145,7 +157,7 @@ export default class RosterScene extends Phaser.Scene {
       this.renderAbilities(hero);
     }
     if (this.message) this.add.text(width / 2, height - 30, this.message, {
-      fontFamily: 'Arial', fontSize: '28px', color: '#ffe2a9',
+      fontFamily: 'Arial', fontSize: '30px', color: '#ffe2a9',
       stroke: '#180d09', strokeThickness: 5
     }).setOrigin(0.5);
   }
@@ -158,7 +170,7 @@ export default class RosterScene extends Phaser.Scene {
     const box = this.add.rectangle(x, y, width, height, selected ? 0x6b4527 : 0x3a2418, enabled ? 0.96 : 0.5)
       .setStrokeStyle(3, selected ? 0xffd58e : 0xb9874d);
     this.add.text(x, y, label, {
-      fontFamily: 'Arial', fontSize: '27px', fontStyle: 'bold',
+      fontFamily: 'Arial', fontSize: '29px', fontStyle: 'bold',
       color: enabled ? '#fff1d2' : '#ad9981'
     }).setOrigin(0.5);
     if (enabled) box.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
@@ -191,7 +203,7 @@ export default class RosterScene extends Phaser.Scene {
         fontFamily: 'Arial', fontSize: '31px', fontStyle: 'bold', color: '#fff1d2'
       });
       this.add.text(155, y + 13, `${hero.shortName ?? hero.className}  •  Lv ${hero.level}`, {
-        fontFamily: 'Arial', fontSize: '23px', color: '#e6c7a3'
+        fontFamily: 'Arial', fontSize: '25px', color: '#e6c7a3'
       });
       card.on('pointerdown', () => {
         HapticsService.tap();
@@ -209,10 +221,10 @@ export default class RosterScene extends Phaser.Scene {
       fontFamily: 'Arial', fontSize: '45px', fontStyle: 'bold', color: '#fff1d2'
     }).setOrigin(0.5);
     this.add.text(1055, 382, `${hero.className}  •  ${hero.role}`, {
-      fontFamily: 'Arial', fontSize: '28px', color: '#e8c89f'
+      fontFamily: 'Arial', fontSize: '30px', color: '#e8c89f'
     }).setOrigin(0.5);
     this.add.text(1055, 426, `LEVEL ${hero.level}   XP ${hero.xp ?? 0}/${xpRequired(hero.level)}`, {
-      fontFamily: 'Arial', fontSize: '28px', color: '#fbbf24'
+      fontFamily: 'Arial', fontSize: '30px', color: '#fbbf24'
     }).setOrigin(0.5);
 
     const stats = [
@@ -241,7 +253,7 @@ export default class RosterScene extends Phaser.Scene {
       const x = index < 10 ? 650 : 1095;
       const y = 475 + (index % 10) * 35;
       this.add.text(x, y, `${label}: ${value}`, {
-        fontFamily: 'Arial', fontSize: '25px', color: '#f1dfca'
+        fontFamily: 'Arial', fontSize: '27px', color: '#f1dfca'
       });
     });
     const equipment = [
@@ -252,14 +264,14 @@ export default class RosterScene extends Phaser.Scene {
     ];
     equipment.forEach(([slot, x]) => {
       const item = equippedItem(hero, slot);
-      this.add.text(x, 837, slot.toUpperCase(), { fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: '#ffe0a7' }).setOrigin(0.5);
+      this.add.text(x, 837, slot.toUpperCase(), { fontFamily: 'Arial', fontSize: '30px', fontStyle: 'bold', color: '#ffe0a7' }).setOrigin(0.5);
       this.add.text(x, 872, item?.name ?? 'Empty slot', {
-        fontFamily: 'Arial', fontSize: '23px', color: item ? '#fff1d2' : '#c7a982',
+        fontFamily: 'Arial', fontSize: '25px', color: item ? '#fff1d2' : '#c7a982',
         wordWrap: { width: 195 }, align: 'center'
       }).setOrigin(0.5);
       this.add.text(x, 915, slot === 'potion' ? (item ? `${item.charges}/3 uses` : '3 uses per pack')
         : item ? equipmentStatsText(item.stats) : 'No bonuses', {
-        fontFamily: 'Arial', fontSize: '20px', color: '#c7a982', wordWrap: { width: 195 }, align: 'center'
+        fontFamily: 'Arial', fontSize: '22px', color: '#c7a982', wordWrap: { width: 195 }, align: 'center'
       }).setOrigin(0.5);
       this.button(x, 971, 170, 64, 'EQUIP', () => this.openEquipment(hero, slot));
     });
@@ -285,7 +297,7 @@ export default class RosterScene extends Phaser.Scene {
     }).setOrigin(0.5));
     const modalButton = (x, y, label, callback, enabled = true, buttonWidth = 220) => {
       const box = add(this.add.rectangle(x, y, buttonWidth, 68, 0x6b4527, enabled ? 1 : 0.45).setStrokeStyle(3, 0xd9a662));
-      add(this.add.text(x, y, label, { fontFamily: 'Arial', fontSize: '27px', fontStyle: 'bold', color: '#fff1d2' }).setOrigin(0.5));
+      add(this.add.text(x, y, label, { fontFamily: 'Arial', fontSize: '29px', fontStyle: 'bold', color: '#fff1d2' }).setOrigin(0.5));
       if (enabled) box.setInteractive({ useHandCursor: true }).on('pointerdown', (pointer, localX, localY, event) => {
         event.stopPropagation(); HapticsService.tap(); callback();
       });
@@ -293,7 +305,7 @@ export default class RosterScene extends Phaser.Scene {
     modalButton(1840, 195, 'X', close, true, 76);
     const current = equippedItem(hero, slot);
     add(this.add.text(625, 256, `Currently equipped: ${current?.name ?? 'None'}`, {
-      fontFamily: 'Arial', fontSize: '29px', color: '#ffe0a7'
+      fontFamily: 'Arial', fontSize: '31px', color: '#ffe0a7'
     }));
     if (current) modalButton(1450, 258, 'UNEQUIP CURRENT', () => { close(); this.commit(unequipItem(hero.id, slot)); }, true, 310);
     if (!entries.length) add(this.add.text(width / 2, 525, slot === 'potion'
@@ -307,12 +319,12 @@ export default class RosterScene extends Phaser.Scene {
       add(this.add.text(630, y + 10, item.name, { fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#fff1d2' }));
       add(this.add.text(630, y + 56, slot === 'potion' ? `${item.charges}/3 uses  •  ${getPotionDefinition(item.itemId)?.description ?? ''}`
         : equipmentStatsText(item.stats) || 'No bonuses', {
-        fontFamily: 'Arial', fontSize: '26px', color: '#e8c89f', wordWrap: { width: 820 }
+        fontFamily: 'Arial', fontSize: '28px', color: '#e8c89f', wordWrap: { width: 820 }
       }));
       modalButton(1680, y + 45, 'EQUIP', () => { close(); this.commit(equipItem(hero.id, instance.id)); });
     });
     modalButton(770, 866, '< PREV', () => this.openEquipment(hero, slot, page - 1), page > 0);
-    add(this.add.text(width / 2, 866, `${page + 1} / ${pages}`, { fontFamily: 'Arial', fontSize: '29px', color: '#fff1d2' }).setOrigin(0.5));
+    add(this.add.text(width / 2, 866, `${page + 1} / ${pages}`, { fontFamily: 'Arial', fontSize: '31px', color: '#fff1d2' }).setOrigin(0.5));
     modalButton(1630, 866, 'NEXT >', () => this.openEquipment(hero, slot, page + 1), page < pages - 1);
   }
 
@@ -324,10 +336,10 @@ export default class RosterScene extends Phaser.Scene {
       fontFamily: 'Arial', fontSize: '43px', fontStyle: 'bold', color: '#fff1d2'
     }).setOrigin(0.5);
     this.add.text(1945, 380, `EQUIPPED ${loadout.length}/${MAX_EQUIPPED_ABILITIES}   •   ${hero.skillPoints ?? 0} SKILL POINTS`, {
-      fontFamily: 'Arial', fontSize: '25px', color: '#e8c89f'
+      fontFamily: 'Arial', fontSize: '27px', color: '#e8c89f'
     }).setOrigin(0.5);
     if (learningCount) this.add.text(1945, 406, `${learningCount} TRAINING OPTIONS  •  SCROLL DOWN FOR GOLD OUTLINES`, {
-      fontFamily: 'Arial', fontSize: '20px', fontStyle: 'bold', color: '#ffdc72'
+      fontFamily: 'Arial', fontSize: '22px', fontStyle: 'bold', color: '#ffdc72'
     }).setOrigin(0.5);
     const renderer = this.sys?.renderer;
     const useShader = learningCount > 0 && !!renderer?.gl && renderer.type === Phaser.WEBGL;
@@ -353,7 +365,7 @@ export default class RosterScene extends Phaser.Scene {
           + (abilityFacts.length ? `\n\n${abilityFacts.join('  •  ')}` : '')
       }, () => {});
       this.add.text(1560, y - 51, ability.name, {
-        fontFamily: 'Arial', fontSize: '27px', fontStyle: 'bold', color: '#fff1d2',
+        fontFamily: 'Arial', fontSize: '29px', fontStyle: 'bold', color: '#fff1d2',
         wordWrap: { width: 415 }
       });
       const nextRank = rank + 1;
@@ -362,15 +374,15 @@ export default class RosterScene extends Phaser.Scene {
       this.add.text(1560, y - 3, rank
         ? `R${rank}/${MAX_ABILITY_RANK} ${equipped ? 'EQUIPPED' : 'UNEQUIPPED'}`
         : `${canLearn ? 'READY TO LEARN' : 'LOCKED'}  •  Lv ${level}`, {
-        fontFamily: 'Arial', fontSize: '22px', color: canLearn ? '#ffdc72' : equipped ? '#fcd38b' : '#d4b798',
+        fontFamily: 'Arial', fontSize: '24px', color: canLearn ? '#ffdc72' : equipped ? '#fcd38b' : '#d4b798',
         wordWrap: { width: 415 }
       });
       if (rank && nextRank <= MAX_ABILITY_RANK) this.add.text(1560, y + 31, `•  Next: Lv ${level}  •  ${nextRank} SP  •  ${cost}g`, {
-        fontFamily: 'Arial', fontSize: '22px', color: equipped ? '#fcd38b' : '#d4b798',
+        fontFamily: 'Arial', fontSize: '24px', color: equipped ? '#fcd38b' : '#d4b798',
         wordWrap: { width: 750 }
       });
       if (!rank) this.add.text(1560, y + 31, `•  1 SP  •  ${cost}g`, {
-        fontFamily: 'Arial', fontSize: '22px', color: canLearn ? '#ffdc72' : '#d4b798',
+        fontFamily: 'Arial', fontSize: '24px', color: canLearn ? '#ffdc72' : '#d4b798',
         wordWrap: { width: 415 }
       });
       if (rank) this.button(2050, y - 18, 170, 62, equipped ? 'UNEQUIP' : 'EQUIP', () => this.commit(toggleAdventurerAbility(hero.id, key)));
@@ -398,10 +410,10 @@ export default class RosterScene extends Phaser.Scene {
     if (this.abilityScrollMax > 0) {
       const contentHeight = ABILITY_SCROLL_HEIGHT + this.abilityScrollMax;
       this.abilityScrollbarThumbHeight = Math.max(100, ABILITY_SCROLL_HEIGHT * ABILITY_SCROLL_HEIGHT / contentHeight);
-      this.add.rectangle(ABILITY_SCROLL_X, ABILITY_SCROLL_TOP + ABILITY_SCROLL_HEIGHT / 2, 18,
+      this.add.rectangle(ABILITY_SCROLL_X, ABILITY_SCROLL_TOP + ABILITY_SCROLL_HEIGHT / 2, 32,
         ABILITY_SCROLL_HEIGHT, 0x1a100b, 0.92).setStrokeStyle(2, 0x8c6543);
-      this.abilityScrollbarThumb = this.add.rectangle(ABILITY_SCROLL_X, 0, 26,
-        this.abilityScrollbarThumbHeight, 0xc9923f, 0.96).setStrokeStyle(2, 0xffe0a0);
+      this.abilityScrollbarThumb = this.add.rectangle(ABILITY_SCROLL_X, 0, 42,
+        this.abilityScrollbarThumbHeight, 0xc9923f, 0.96).setStrokeStyle(3, 0xffe0a0);
       this.updateAbilityScrollbar();
     }
   }

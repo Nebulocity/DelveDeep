@@ -11,9 +11,12 @@ export default class CombatLog {
       delve: delveName,
       startedAt: new Date(this.startedAt).toISOString(),
       party: party.map((unit) => ({ name: unit.name, className: unit.className, role: unit.role })),
+      summary: { partyDamageTaken: 0, partyHealing: 0, partyDeaths: 0, enemyDamageTaken: 0 },
       result: 'in progress',
       entries: this.entries
     };
+
+    this.partyNames = new Set(party.map((unit) => unit.name));
 
     this.publish();
     this.add('encounter', `Encounter started: ${delveName}`);
@@ -34,6 +37,14 @@ export default class CombatLog {
       ...details
     };
     this.entries.push(entry);
+    if (type === 'damage') {
+      const summaryKey = details.targetSide === 'enemy' ? 'enemyDamageTaken' : 'partyDamageTaken';
+      this.record.summary[summaryKey] += Number(details.amount ?? 0);
+    }
+    if (type === 'healing' && details.targetSide !== 'enemy') this.record.summary.partyHealing += Number(details.amount ?? 0);
+    if (type === 'death' && (details.targetSide === 'party' || (!details.targetSide && this.partyNames.has(details.target)))) {
+      this.record.summary.partyDeaths += 1;
+    }
     console.info(`[Combat ${entry.time.toFixed(2)}s] ${message}`, details);
 
     // Save periodically to retain recent events without writing storage on
@@ -70,6 +81,15 @@ export default class CombatLog {
 
     // Provide a readable export for inspecting the encounter in devtools.
     globalThis.getDelveCombatLog = () => JSON.stringify(this.record, null, 2);
+    globalThis.downloadDelveCombatLog = () => {
+      const blob = new Blob([JSON.stringify(this.record, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `delve-combat-${this.startedAt}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+    };
   }
 }
 

@@ -61,16 +61,16 @@ export default class FacilityScene extends Phaser.Scene {
         .setStrokeStyle(2, 0x86efac).setOrigin(0, 1);
       this.add.text(countX + 32, labelBottom - 21,
         `x${choice.id === 'buy' ? definition.uses : item.charges}`, {
-          fontFamily: 'Arial', fontSize: '26px', fontStyle: 'bold', color: '#dcfce7'
+          fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: '#dcfce7'
         }).setOrigin(0.5);
       this.add.text(490, y + 18, choice.id === 'buy' ? definition.description : `${item.charges}/${definition.uses} uses remaining`, {
-        fontFamily: 'Arial', fontSize: '28px', color: '#e8c89f', wordWrap: { width: 1060 }
+        fontFamily: 'Arial', fontSize: '30px', color: '#e8c89f', wordWrap: { width: 1060 }
       });
       const affordable = choice.id !== 'buy' || GameState.gold >= value;
       const button = this.add.rectangle(1810, y, 225, 78, affordable ? 0x6b4527 : 0x3f3a34)
         .setStrokeStyle(3, affordable ? 0xd9a662 : 0x746b61);
       this.add.text(1810, y, `${choice.id === 'buy' ? 'Buy' : 'Sell'}: ${value}g`, {
-        fontFamily: 'Arial', fontSize: '25px', fontStyle: 'bold', color: affordable ? '#fff1d2' : '#b0a69b'
+        fontFamily: 'Arial', fontSize: '27px', fontStyle: 'bold', color: affordable ? '#fff1d2' : '#b0a69b'
       }).setOrigin(0.5);
       if (affordable) bindSelectionDetails(this, button, { title: definition.name, description }, () => {
         HapticsService.tap();
@@ -82,14 +82,14 @@ export default class FacilityScene extends Phaser.Scene {
     });
     const pageButton = (x, label, page, enabled) => {
       const button = this.add.rectangle(x, 759, 195, 62, 0x6b4527, enabled ? 1 : 0.45).setStrokeStyle(2, 0xd9a662);
-      this.add.text(x, 759, label, { fontFamily: 'Arial', fontSize: '26px', color: '#fff1d2' }).setOrigin(0.5);
+      this.add.text(x, 759, label, { fontFamily: 'Arial', fontSize: '28px', color: '#fff1d2' }).setOrigin(0.5);
       if (enabled) bindSelectionDetails(this, button, { title: label, description: 'Browse potion packs.' }, () => {
         HapticsService.tap(); this.page = page; this.render();
       });
     };
     pageButton(600, '< PREV', this.page - 1, this.page > 0);
     this.add.text(1200, 759, this.message || `${this.page + 1} / ${pages}`, {
-      fontFamily: 'Arial', fontSize: '27px', color: '#fde68a', align: 'center', wordWrap: { width: 820 }
+      fontFamily: 'Arial', fontSize: '29px', color: '#fde68a', align: 'center', wordWrap: { width: 820 }
     }).setOrigin(0.5);
     pageButton(1800, 'NEXT >', this.page + 1, this.page < pages - 1);
     return { x: 1200, y: 550, width: 1700, height: 520 };

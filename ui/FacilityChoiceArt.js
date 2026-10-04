@@ -121,7 +121,7 @@ export function addFacilityChoiceCard(scene, facilityName, entry, x, y, width, a
     stroke: theme.shadow === 0x100d1a ? '#100d1a' : '#170f0a', strokeThickness: 3
   }).setOrigin(0.5);
   scene.add.text(x, y + 34, entry.subtitle, {
-    fontFamily: 'Arial', fontSize: '27px', color: '#e8d6bc', align: 'center',
+    fontFamily: 'Arial', fontSize: '29px', color: '#e8d6bc', align: 'center',
     wordWrap: { width: width - 185 }
   }).setOrigin(0.5);
   return scene.add.rectangle(x, y, width, 150, 0x000000, 0).setInteractive({ useHandCursor: true });

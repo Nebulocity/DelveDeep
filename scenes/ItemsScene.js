@@ -49,8 +49,8 @@ export default class ItemsScene extends InventoryScene {
           : equipmentStatsText(item.stats) || 'No bonuses';
       bindSelectionDetails(this, card, { title: item.name, description: stats });
       this.text(715, y - 31, item.name, 38, '#fff1d2', 1000);
-      this.text(2300, y - 31, this.category === 'materials' ? `x${item.count}` : equipmentOwner(item.id)?.name ?? 'Unequipped', 30, '#ffe0a7').setOrigin(1, 0.5);
-      this.text(715, y + 28, stats, 29, '#e8c89f', 1580);
+      this.text(2300, y - 31, this.category === 'materials' ? `x${item.count}` : equipmentOwner(item.id)?.name ?? 'Unequipped', 32, '#ffe0a7').setOrigin(1, 0.5);
+      this.text(715, y + 28, stats, 31, '#e8c89f', 1580);
     });
   }
 }

@@ -35,11 +35,11 @@ export default class RewardScene extends Phaser.Scene {
     this.add.rectangle(leftX, panelY, panelWidth, 430, 0x292524).setStrokeStyle(4, 0x57534e);
     this.add.text(leftX, panelY - 165, 'DELVE RESULTS', { fontFamily: 'Arial', fontSize: '36px', fontStyle: 'bold', color: '#f5f5f4' }).setOrigin(0.5);
     this.add.text(leftX, panelY - 92, `+${gold} Gold`, { fontFamily: 'Arial', fontSize: '57px', fontStyle: 'bold', color: '#fbbf24' }).setOrigin(0.5);
-    this.add.text(leftX, panelY - 35, `Total Gold: ${GameState.gold}`, { fontFamily: 'Arial', fontSize: '30px', color: '#a8a29e' }).setOrigin(0.5);
+    this.add.text(leftX, panelY - 35, `Total Gold: ${GameState.gold}`, { fontFamily: 'Arial', fontSize: '32px', color: '#a8a29e' }).setOrigin(0.5);
     this.add.text(leftX, panelY + 20, `Time: ${formatDuration(summary?.elapsedMs)}`, { fontFamily: 'Arial', fontSize: '36px', color: '#ffffff' }).setOrigin(0.5);
     if (summary?.isNewBest) this.add.text(leftX, panelY + 64, 'NEW BEST TIME', { fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#bef264' }).setOrigin(0.5);
     const tacticsReward = summary?.leaderResult?.tacticsPointsEarned > 0 ? `+${summary.leaderResult.tacticsPointsEarned} Tactics Points` : `Tactics Rank ${GameState.leader?.level ?? 1}`;
-    this.add.text(leftX, panelY + 115, tacticsReward, { fontFamily: 'Arial', fontSize: '30px', color: '#c4b5fd' }).setOrigin(0.5);
+    this.add.text(leftX, panelY + 115, tacticsReward, { fontFamily: 'Arial', fontSize: '32px', color: '#c4b5fd' }).setOrigin(0.5);
 
     // Build the right panel from the adventurer advancement entries in the
     // run summary.
@@ -49,8 +49,8 @@ export default class RewardScene extends Phaser.Scene {
 
       const y = panelY - 98 + index * 66;
       const levelText = entry.levelsGained > 0 ? ` • LEVEL UP! -> ${entry.level}` : ` • Lv ${entry.level}`;
-      this.add.text(rightX - panelWidth * 0.41, y, `${entry.name}: +${entry.xpGained} XP${levelText}`, { fontFamily: 'Arial', fontSize: '28px', color: entry.levelsGained > 0 ? '#bef264' : '#ffffff' });
-      this.add.text(rightX + panelWidth * 0.41, y, `${entry.happiness}% happy`, { fontFamily: 'Arial', fontSize: '27px', color: '#86efac' }).setOrigin(1, 0);
+      this.add.text(rightX - panelWidth * 0.41, y, `${entry.name}: +${entry.xpGained} XP${levelText}`, { fontFamily: 'Arial', fontSize: '30px', color: entry.levelsGained > 0 ? '#bef264' : '#ffffff' });
+      this.add.text(rightX + panelWidth * 0.41, y, `${entry.happiness}% happy`, { fontFamily: 'Arial', fontSize: '29px', color: '#86efac' }).setOrigin(1, 0);
     });
 
     // Clear temporary party and reward display state when returning to the

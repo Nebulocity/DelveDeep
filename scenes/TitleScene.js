@@ -35,7 +35,7 @@ export default class TitleScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true })
       .setDepth(1000);
     this.add.text(x, y, enabled ? 'DEV MODE: ON' : 'DEV TOOLS', {
-      fontFamily: 'Arial', fontSize: '26px', fontStyle: 'bold', color: enabled ? '#08192e' : '#ffffff'
+      fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: enabled ? '#08192e' : '#ffffff'
     }).setOrigin(0.5).setDepth(1001);
     button.on('pointerdown', () => {
 
@@ -161,18 +161,18 @@ export default class TitleScene extends Phaser.Scene {
       fontFamily: 'Arial', fontSize: '44px', fontStyle: 'bold', color: '#fecaca'
     }).setOrigin(0.5).setDepth(depth + 2);
     const body = this.add.text(width / 2, height * 0.48, 'This clears map progress, gold, adventurer progression, and Battle Tactics progression.', {
-      fontFamily: 'Arial', fontSize: '27px', color: '#e5e7eb', align: 'center', wordWrap: { width: Math.min(760, panelWidth - 120), useAdvancedWrap: true }
+      fontFamily: 'Arial', fontSize: '29px', color: '#e5e7eb', align: 'center', wordWrap: { width: Math.min(760, panelWidth - 120), useAdvancedWrap: true }
     }).setOrigin(0.5).setDepth(depth + 2);
 
     const yes = this.add.rectangle(width / 2 - 190, height * 0.60, 320, 76, 0x991b1b)
       .setInteractive({ useHandCursor: true }).setDepth(depth + 2);
     const yesText = this.add.text(width / 2 - 190, height * 0.60, 'RESET', {
-      fontFamily: 'Arial', fontSize: '30px', fontStyle: 'bold', color: '#ffffff'
+      fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#ffffff'
     }).setOrigin(0.5).setDepth(depth + 3);
     const no = this.add.rectangle(width / 2 + 190, height * 0.60, 320, 76, 0x334155)
       .setInteractive({ useHandCursor: true }).setDepth(depth + 2);
     const noText = this.add.text(width / 2 + 190, height * 0.60, 'CANCEL', {
-      fontFamily: 'Arial', fontSize: '30px', fontStyle: 'bold', color: '#ffffff'
+      fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#ffffff'
     }).setOrigin(0.5).setDepth(depth + 3);
 
     const objects = [shade, panel, title, body, yes, yesText, no, noText];
@@ -230,7 +230,7 @@ export default class TitleScene extends Phaser.Scene {
       .setOrigin(0.5).setDepth(3001);
     this.add.text(width / 2, height * 0.43, `Waves: ${record.waves ?? delve.rooms}   Best: ${formatDuration(record.bestTimeMs)}`, { fontFamily: 'Arial', fontSize: '32px', color: '#e2e8f0' })
       .setOrigin(0.5).setDepth(3001);
-    this.add.text(width / 2, height * 0.51, `Last haul: ${loot}`, { fontFamily: 'Arial', fontSize: '30px', color: '#fbbf24', wordWrap: { width: width * 0.52 }, align: 'center' })
+    this.add.text(width / 2, height * 0.51, `Last haul: ${loot}`, { fontFamily: 'Arial', fontSize: '32px', color: '#fbbf24', wordWrap: { width: width * 0.52 }, align: 'center' })
       .setOrigin(0.5).setDepth(3001);
     const close = this.add.rectangle(width / 2, height * 0.64, 360, 78, 0x334155).setInteractive({ useHandCursor: true }).setDepth(3001);
     this.add.text(width / 2, height * 0.64, 'CLOSE', { fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5).setDepth(3002);

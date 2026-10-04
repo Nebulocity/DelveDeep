@@ -128,7 +128,7 @@ body {
   left: 50%;
   width: 66%;
   transform: translateX(-50%);
-  font-size: clamp(16px, 2.2cqw, 32px);
+  font-size: clamp(18px, calc(2.2cqw + 2px), 34px);
   font-weight: 700;
   text-shadow: 0 2px 4px #10282e;
 }

@@ -6,6 +6,7 @@ import { bindSelectionDetails, addDetailsHint, delveDetails } from '../ui/Select
 import { TILE, WORLD_COLUMNS, WORLD_ROWS, areas, regions, nodes, roads, pois, nodePoint, routeBetween } from '../data/worldMap.js';
 
 const DELVES = Object.fromEntries(delves.map((delve) => [delve.id, delve]));
+const POI_DELVES = Object.fromEntries(pois.filter((poi) => poi.template).map((poi) => [poi.id, { ...DELVES[poi.template], id: poi.id, name: poi.name }]));
 const ORDINARY = ['slime-cave', 'thornbriar-hollow', 'dolmark-den'];
 const SPEED = 560;
 
@@ -16,10 +17,11 @@ const portalEligible = () => GameState.development.unlockAll || ORDINARY.every(c
 
 function available(poi) {
   if (GameState.development.unlockAll || poi.type === 'waypoint' || poi.id === 'pineshire') return true;
+  if (poi.template) return GameState.world.discoveredLocations.includes(poi.id);
   if (poi.type === 'void') return portalEligible();
   if (poi.id === 'duskfall') return cleared('thornbriar-hollow');
   if (poi.id === 'dolmark-den') return GameState.world.discoveredLocations.includes('duskfall');
-  const delve = DELVES[poi.id];
+  const delve = DELVES[poi.id] ?? POI_DELVES[poi.id];
   return GameState.world.discoveredLocations.includes(poi.id)
     && (delve?.prerequisites ?? []).every(cleared)
     && (!delve?.requiresLocation || GameState.world.discoveredLocations.includes(delve.requiresLocation));
@@ -96,7 +98,7 @@ function createParty(scene) {
   }
   scene.partyFacing = 'south-east';
   scene.party.play('world-party-idle-south-east');
-  scene.partyLabel = scene.add.text(x, y + 92, 'PARTY', { fontFamily: 'Arial', fontSize: '26px', fontStyle: 'bold', color: '#ffffff', stroke: '#142019', strokeThickness: 5 })
+  scene.partyLabel = scene.add.text(x, y + 92, 'PARTY', { fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: '#ffffff', stroke: '#142019', strokeThickness: 5 })
     .setOrigin(0.5).setDepth(510);
 }
 
@@ -117,7 +119,7 @@ function renderPois(scene) {
     }
     const hit = scene.add.circle(point.x, point.y, 105, 0xffffff, 0.001).setDepth(900);
     bindSelectionDetails(scene, hit, () => poi.type === 'delve' || poi.type === 'void'
-      ? delveDetails(DELVES[poi.id])
+      ? delveDetails(DELVES[poi.id] ?? POI_DELVES[poi.id])
       : { title: poi.name, description: poi.type === 'waypoint' ? 'A stopping point along the road.' : 'Visit town to prepare your party.' },
     () => selectPoi(scene, poi));
   }
@@ -136,6 +138,10 @@ function selectPoi(scene, poi) {
   if (!path) {
     scene.showToast('A Void Portal blocks the road ahead. Defeat it to open the crossing.');
     return;
+  }
+  if (poi.template && !GameState.world.discoveredLocations.includes(poi.id)) {
+    GameState.world.discoveredLocations.push(poi.id);
+    saveProfile();
   }
   scene.travelRoute = path.slice(1);
   scene.destination = poi;
@@ -175,9 +181,11 @@ function arrive(scene) {
   saveProfile();
   if (poi.type === 'town') return scene.scene.start('TownScene', { townId: poi.id, townName: poi.name });
   if (poi.type === 'waypoint') return;
-  const delve = DELVES[poi.id];
+  const delve = DELVES[poi.id] ?? POI_DELVES[poi.id];
+  if (delve && poi.template) GameState.currentDelve = { ...delve, id: poi.id, name: poi.name, type: 'test' };
   if (cleared(poi.id) && !GameState.development.replayCleared) return scene.showClearedReview(delve);
   GameState.currentDelve = { ...delve };
+  if (poi.template) GameState.currentDelve = { ...delve, id: poi.id, name: poi.name, type: 'test' };
   GameState.currentRoom = 0;
   scene.scene.start('DelveSelectScene');
 }
@@ -194,7 +202,7 @@ export function createScrollingWorldMap(scene) {
   scene.add.rectangle(width / 2, 58, width, 116, 0x070b10, 0.9).setScrollFactor(0).setDepth(1000);
   scene.add.text(58, 18, 'DELVE DEEP', { fontFamily: 'Arial', fontSize: '54px', fontStyle: 'bold', color: '#f8fafc' })
     .setScrollFactor(0).setDepth(1001);
-  scene.add.text(58, 69, 'WORLD MAP', { fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: '#94a3b8' })
+  scene.add.text(58, 69, 'WORLD MAP', { fontFamily: 'Arial', fontSize: '30px', fontStyle: 'bold', color: '#94a3b8' })
     .setScrollFactor(0).setDepth(1001);
   scene.currencyText = scene.add.text(width - 58, 26, `Gold: ${GameState.gold}`, {
     fontFamily: 'Arial', fontSize: '31px', fontStyle: 'bold', color: '#fbbf24'
@@ -203,7 +211,7 @@ export function createScrollingWorldMap(scene) {
     .setStrokeStyle(3, 0x9cc5ad).setScrollFactor(0).setDepth(1000)
     .setInteractive({ useHandCursor: true });
   scene.add.text(width - 185, height - 52, 'FIND PARTY', {
-    fontFamily: 'Arial', fontSize: '30px', fontStyle: 'bold', color: '#f1f8ec'
+    fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#f1f8ec'
   }).setOrigin(0.5).setScrollFactor(0).setDepth(1001);
   recenter.on('pointerdown', (pointer, x, y, event) => {
     event?.stopPropagation?.();

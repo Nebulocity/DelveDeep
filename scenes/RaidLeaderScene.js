@@ -54,7 +54,7 @@ export default class RaidLeaderScene extends Phaser.Scene {
         fontFamily: 'Arial', fontSize: '38px', fontStyle: 'bold', color: '#fff1d2'
       }).setOrigin(0.5);
       this.add.text(x, UI_SAFE_TOP + 277, description, {
-        fontFamily: 'Arial', fontSize: '24px', color: '#e8c89f'
+        fontFamily: 'Arial', fontSize: '26px', color: '#e8c89f'
       }).setOrigin(0.5);
       leaderAbilities.filter((ability) => ability.category === category).forEach((ability, row) => {
         this.createAbilityCard(ability, x, UI_SAFE_TOP + 412 + row * 248, columnWidth - 24, 220);
@@ -86,8 +86,8 @@ export default class RaidLeaderScene extends Phaser.Scene {
     const card=this.add.rectangle(x,y,cardWidth,cardHeight,equipped?0x4a3420:unlocked?0x38291d:0x281a14)
       .setStrokeStyle(4,equipped?0xffd58e:unlocked?0xb9874d:0x795637).setInteractive({useHandCursor:true});
     this.add.text(x-cardWidth*0.43,y-cardHeight/2+18,ability.name,{fontFamily:'Arial',fontSize:'31px',fontStyle:'bold',color:equipped?'#ffe0a7':'#fff1d2',wordWrap:{width:cardWidth*0.86}});
-    this.add.text(x-cardWidth*0.43,y-cardHeight/2+70,ability.description,{fontFamily:'Arial',fontSize:'24px',color:'#e8c89f',wordWrap:{width:cardWidth*0.86}});
-    const status=this.add.text(x+cardWidth*0.43,y+cardHeight/2-24,equipped?'EQUIPPED':unlocked?'UNLOCKED':`${ability.cost} TP`,{fontFamily:'Arial',fontSize:'27px',fontStyle:'bold',color:equipped?'#ffe0a7':unlocked?'#e8c89f':'#fbbf24'}).setOrigin(1,0.5);
+    this.add.text(x-cardWidth*0.43,y-cardHeight/2+70,ability.description,{fontFamily:'Arial',fontSize:'26px',color:'#e8c89f',wordWrap:{width:cardWidth*0.86}});
+    const status=this.add.text(x+cardWidth*0.43,y+cardHeight/2-24,equipped?'EQUIPPED':unlocked?'UNLOCKED':`${ability.cost} TP`,{fontFamily:'Arial',fontSize:'29px',fontStyle:'bold',color:equipped?'#ffe0a7':unlocked?'#e8c89f':'#fbbf24'}).setOrigin(1,0.5);
 
     // Attempt a purchase for locked abilities; otherwise toggle the loadout
     // and report insufficient Tactics Points or a full loadout.

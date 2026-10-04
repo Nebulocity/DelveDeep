@@ -65,12 +65,12 @@ export default class BattlefieldTerrainEditor {
     this.ui.push(panel);
 
     const title = this.scene.add.text(24, 14, 'TERRAIN EDITOR', {
-      fontFamily: 'Arial', fontSize: '26px', fontStyle: 'bold', color: '#facc15'
+      fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: '#facc15'
     }).setDepth(12001);
     this.ui.push(title);
 
     const help = this.scene.add.text(24, 48, 'Tap the battlefield to add polygon points. Existing red areas are blocked.', {
-      fontFamily: 'Arial', fontSize: '20px', color: '#e5e7eb'
+      fontFamily: 'Arial', fontSize: '22px', color: '#e5e7eb'
     }).setDepth(12001);
     this.ui.push(help);
 
@@ -90,7 +90,7 @@ export default class BattlefieldTerrainEditor {
       const box = this.scene.add.rectangle(x, 54, buttonWidth, 58, 0x27272a)
         .setStrokeStyle(2, 0x71717a).setInteractive({ useHandCursor: true }).setDepth(12002);
       const text = this.scene.add.text(x, 54, label, {
-        fontFamily: 'Arial', fontSize: '18px', fontStyle: 'bold', color: '#f4f4f5'
+        fontFamily: 'Arial', fontSize: '20px', fontStyle: 'bold', color: '#f4f4f5'
       }).setOrigin(0.5).setDepth(12003);
       box.on('pointerdown', (pointer, localX, localY, event) => {
         event?.stopPropagation?.();
@@ -101,7 +101,7 @@ export default class BattlefieldTerrainEditor {
     });
 
     this.zoneLabel = this.scene.add.text(width / 2, 94, '', {
-      fontFamily: 'Arial', fontSize: '18px', color: '#93c5fd'
+      fontFamily: 'Arial', fontSize: '20px', color: '#93c5fd'
     }).setOrigin(0.5).setDepth(12003);
     this.ui.push(this.zoneLabel);
   }
@@ -169,7 +169,7 @@ export default class BattlefieldTerrainEditor {
         this.overlay.fillCircle(screen.x, screen.y, 8);
         const point = zone.points[pointIndex];
         const label = this.scene.add.text(screen.x + 10, screen.y - 10, `${pointIndex + 1}: ${point.x},${point.y}`, {
-          fontFamily: 'Arial', fontSize: '16px', color: '#ffffff', backgroundColor: '#000000'
+          fontFamily: 'Arial', fontSize: '18px', color: '#ffffff', backgroundColor: '#000000'
         }).setDepth(11991);
         this.pointLabels.push(label);
       });
@@ -199,13 +199,13 @@ export default class BattlefieldTerrainEditor {
     const backdrop = this.scene.add.rectangle(width / 2, height / 2, width * 0.92, height * 0.72, 0x09090b, 0.98)
       .setStrokeStyle(3, 0xfacc15).setDepth(13000).setInteractive();
     const title = this.scene.add.text(width / 2, height * 0.18, copied ? 'COPIED TERRAIN DATA' : 'TERRAIN DATA', {
-      fontFamily: 'Arial', fontSize: '30px', fontStyle: 'bold', color: '#facc15'
+      fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#facc15'
     }).setOrigin(0.5).setDepth(13001);
     const body = this.scene.add.text(width * 0.08, height * 0.24, data, {
-      fontFamily: 'monospace', fontSize: '17px', color: '#e5e7eb', wordWrap: { width: width * 0.84 }
+      fontFamily: 'monospace', fontSize: '19px', color: '#e5e7eb', wordWrap: { width: width * 0.84 }
     }).setDepth(13001);
     const close = this.scene.add.text(width / 2, height * 0.82, 'TAP HERE TO CLOSE', {
-      fontFamily: 'Arial', fontSize: '24px', fontStyle: 'bold', color: '#93c5fd'
+      fontFamily: 'Arial', fontSize: '26px', fontStyle: 'bold', color: '#93c5fd'
     }).setOrigin(0.5).setDepth(13001).setInteractive({ useHandCursor: true });
     const destroy = () => {
       backdrop.destroy();

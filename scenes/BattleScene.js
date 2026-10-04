@@ -150,7 +150,7 @@ export default class BattleScene extends Phaser.Scene {
     this.terrainEditorButton = this.add.rectangle(width - 125, 34, 220, 48, 0x292524)
       .setStrokeStyle(2, 0xfacc15).setInteractive({ useHandCursor: true }).setDepth(11000);
     this.terrainEditorButtonLabel = this.add.text(width - 125, 34, 'EDIT TERRAIN', {
-      fontFamily: 'Arial', fontSize: '20px', fontStyle: 'bold', color: '#facc15'
+      fontFamily: 'Arial', fontSize: '22px', fontStyle: 'bold', color: '#facc15'
     }).setOrigin(0.5).setDepth(11001);
     this.terrainEditorButton.on('pointerdown', (pointer, localX, localY, event) => {
       event?.stopPropagation?.();
@@ -295,14 +295,14 @@ export default class BattleScene extends Phaser.Scene {
       const potionButton = this.add.rectangle(x, hudTop + 155, 130, 72, 0x14532d)
         .setStrokeStyle(2, 0x86efac).setDepth(4502);
       const potionLabel = this.add.text(x, hudTop + 155, 'POTION', {
-        fontFamily: 'Arial', fontSize: '23px', fontStyle: 'bold', color: '#ffffff', align: 'center'
+        fontFamily: 'Arial', fontSize: '25px', fontStyle: 'bold', color: '#ffffff', align: 'center'
       }).setOrigin(0.5).setDepth(4503);
       bindSelectionDetails(this, potionButton, () => this.potionDetails(unit), () => this.usePotion(unit));
       const nameText = this.add.text(x + 85, hudTop + 38, unit.name, {
         fontFamily:'Arial', fontSize:'39px', fontStyle:'bold', color:'#f5f5f4'
       }).setOrigin(0,0.5).setDepth(4501);
       this.add.text(x + 85, hudTop + 73, unit.shortName ?? unit.className, {
-        fontFamily:'Arial', fontSize:'30px', color:'#cbd5e1'
+        fontFamily:'Arial', fontSize:'32px', color:'#cbd5e1'
       }).setOrigin(0,0.5).setDepth(4501);
 
       const hudBarX = x + 85;
@@ -330,12 +330,12 @@ export default class BattleScene extends Phaser.Scene {
         .setOrigin(0, 0.5)
         .setDepth(4502)
         .setVisible(unit.maxMana > 0);
-      const hpText=this.add.text(hudBarX,hudTop+158,'',{fontFamily:'Arial',fontSize:'24px',color:'#d6d3d1'}).setOrigin(0,0.5).setDepth(4501);
-      const manaText=this.add.text(hudBarX,hudTop+184,'',{fontFamily:'Arial',fontSize:'22px',color:'#93c5fd'})
+      const hpText=this.add.text(hudBarX,hudTop+158,'',{fontFamily:'Arial',fontSize:'26px',color:'#d6d3d1'}).setOrigin(0,0.5).setDepth(4501);
+      const manaText=this.add.text(hudBarX,hudTop+184,'',{fontFamily:'Arial',fontSize:'24px',color:'#93c5fd'})
         .setOrigin(0,0.5)
         .setDepth(4501)
         .setVisible(unit.maxMana > 0);
-      const threatText=this.add.text(hudBarX,hudTop+208,'',{fontFamily:'Arial',fontSize:'22px',color:'#a8a29e'})
+      const threatText=this.add.text(hudBarX,hudTop+208,'',{fontFamily:'Arial',fontSize:'24px',color:'#a8a29e'})
         .setOrigin(0,0.5)
         .setDepth(4501)
         .setVisible(false);
@@ -404,7 +404,7 @@ export default class BattleScene extends Phaser.Scene {
 
       const y=firstY+index*gap;
       const box=this.add.rectangle(width-155,y,270,68,0x1f2937).setStrokeStyle(3,0x475569).setInteractive({useHandCursor:true}).setDepth(4600);
-      const text=this.add.text(width-155,y,label,{fontFamily:'Arial',fontSize:label.length>10?'27px':'33px',fontStyle:'bold',color:'#e5e7eb'}).setOrigin(0.5).setDepth(4601);
+      const text=this.add.text(width-155,y,label,{fontFamily:'Arial',fontSize:label.length>10?'29px':'33px',fontStyle:'bold',color:'#e5e7eb'}).setOrigin(0.5).setDepth(4601);
       box.on('pointerdown',()=>this.armCommand(label));
       const descriptions = {
         MOVE: 'Choose a destination for selected allies. They move there and hold.',
@@ -427,7 +427,7 @@ export default class BattleScene extends Phaser.Scene {
     const layout = getBattleLayout(width, this.scale.height, equipped.length);
     this.leaderButtons = [];
     this.add.text(width / 2, layout.labelY, 'BATTLE TACTICS', {
-      fontFamily: 'Arial', fontSize: '26px', fontStyle: 'bold', color: '#94a3b8'
+      fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: '#94a3b8'
     }).setOrigin(0.5).setDepth(4700);
 
     // Each button has a name row and a separate cooldown or usage row.
@@ -440,10 +440,10 @@ export default class BattleScene extends Phaser.Scene {
       const box = this.add.rectangle(x, layout.buttonY, layout.buttonWidth, layout.buttonHeight, 0x292524)
         .setStrokeStyle(3, 0x84cc16).setInteractive({ useHandCursor: true }).setDepth(4700);
       this.add.text(x, layout.buttonY - 17, ability.shortName, {
-        fontFamily: 'Arial', fontSize: '30px', fontStyle: 'bold', color: '#bef264'
+        fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#bef264'
       }).setOrigin(0.5).setDepth(4701);
       const status = this.add.text(x, layout.buttonY + 20, '', {
-        fontFamily: 'Arial', fontSize: '23px', color: '#d6d3d1'
+        fontFamily: 'Arial', fontSize: '25px', color: '#d6d3d1'
       }).setOrigin(0.5).setDepth(4701);
       box.on('pointerdown', () => this.useLeaderAbility(id));
       bindSelectionDetails(this, box, { title: ability.name, description: ability.description });
@@ -1699,6 +1699,7 @@ export default class BattleScene extends Phaser.Scene {
       target: target.name,
       ability: abilityName,
       amount: actualDamage,
+      targetSide: target.isEnemy ? 'enemy' : 'party',
       critical,
       targetHp: target.hp,
       targetMaxHp: target.maxHp,
@@ -1729,7 +1730,8 @@ export default class BattleScene extends Phaser.Scene {
         wave: this.currentWaveIndex + 1,
         actor: attacker.name,
         target: target.name,
-        ability: abilityName
+      ability: abilityName,
+      targetSide: target.isEnemy ? 'enemy' : 'party'
       });
     }
     return actualDamage;
@@ -1765,6 +1767,7 @@ export default class BattleScene extends Phaser.Scene {
       target: target.name,
       ability: abilityName,
       amount: effectiveHealing,
+      targetSide: target.isEnemy ? 'enemy' : 'party',
       critical,
       targetHp: target.hp,
       targetMaxHp: target.maxHp,
@@ -2121,7 +2124,7 @@ export default class BattleScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(12001));
     overlay.push(this.add.text(width / 2, height * 0.30,
       `Waves 1-${this.bossWaveIndex} cleared • Rewards and camp saved`, {
-        fontFamily: 'Arial', fontSize: '29px', color: '#e7e5e4'
+        fontFamily: 'Arial', fontSize: '31px', color: '#e7e5e4'
       }).setOrigin(0.5).setDepth(12001));
 
     const choice = (y, title, detail, action, color) => {
@@ -2132,7 +2135,7 @@ export default class BattleScene extends Phaser.Scene {
         fontFamily: 'Arial', fontSize: '38px', fontStyle: 'bold', color: '#ffffff'
       }).setOrigin(0.5).setDepth(12002));
       overlay.push(this.add.text(width / 2, y + 26, detail, {
-        fontFamily: 'Arial', fontSize: '27px', color: '#e7e5e4'
+        fontFamily: 'Arial', fontSize: '29px', color: '#e7e5e4'
       }).setOrigin(0.5).setDepth(12002));
       button.on('pointerdown', () => {
         HapticsService.confirm();

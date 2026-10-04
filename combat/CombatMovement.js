@@ -263,7 +263,8 @@ export default class CombatMovement {
         const nx = distance > 0.001 ? dx / distance : Math.cos(angle);
         const ny = distance > 0.001 ? dy / distance : Math.sin(angle);
         const push = (spacing - distance) * (1 - Math.exp(-this.config.separationForce * delta));
-        const aLocked = !a.alive || locked(a), bLocked = !b.alive || locked(b);
+        const aLocked = !a.alive || locked(a) || a.isEnemy;
+        const bLocked = !b.alive || locked(b) || b.isEnemy;
         const shareA = aLocked && !bLocked ? 0 : bLocked && !aLocked ? 1 : 0.5;
         if (a.alive) {
           offsets.get(a).x += nx * push * shareA;

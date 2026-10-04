@@ -5,7 +5,7 @@ export const DETAILS_HINT = 'Long-press or hold-click a selection for details.';
 export function addDetailsHint(scene, y, text = DETAILS_HINT) {
   const hall = isHallMenu(scene) || isTownMenu(scene);
   return scene.add.text(scene.scale.width / 2, y, text, {
-    fontFamily: 'Arial', fontSize: '26px', color: hall ? '#f4d5ab' : '#cbd5e1',
+    fontFamily: 'Arial', fontSize: '28px', color: hall ? '#f4d5ab' : '#cbd5e1',
     stroke: hall ? '#180d09' : '#111827', strokeThickness: 4
   }).setOrigin(0.5).setDepth(4800);
 }
@@ -66,7 +66,7 @@ export function showSelectionDetails(scene, details) {
   const panelWidth = Math.min(1100, width - 120);
   const bodyMargin = town ? 104 : 44;
   const body = scene.add.text(width / 2 - panelWidth / 2 + bodyMargin, 0, details.description, {
-    fontFamily: 'Arial', fontSize: '30px', color: warm ? '#f1dfca' : '#e2e8f0',
+    fontFamily: 'Arial', fontSize: '32px', color: warm ? '#f1dfca' : '#e2e8f0',
     wordWrap: { width: panelWidth - bodyMargin * 2 }
   }).setDepth(depth + 2);
   const panelHeight = Math.min(height - 140, Math.max(340, body.height + 210));
@@ -108,7 +108,7 @@ export function showSelectionDetails(scene, details) {
       strokeThickness: town ? 3 : 0
     }).setOrigin(0.5).setDepth(depth + 2),
     scene.add.text(width / 2, button.y, 'CLOSE', {
-      fontFamily: town ? 'Georgia' : 'Arial', fontSize: '30px', color: warm ? '#fff1d2' : '#ffffff',
+      fontFamily: town ? 'Georgia' : 'Arial', fontSize: '32px', color: warm ? '#fff1d2' : '#ffffff',
       stroke: town ? '#24170f' : undefined, strokeThickness: town ? 2 : 0
     }).setOrigin(0.5).setDepth(depth + 4));
 }

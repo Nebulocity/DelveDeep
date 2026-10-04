@@ -48,15 +48,15 @@ export default class DelveSelectScene extends Phaser.Scene {
     const detailsPanel = this.add.rectangle(width / 2, panelY, width * 0.64, 390, 0x292524).setStrokeStyle(4, delve.type === 'void' ? 0xa855f7 : 0x57534e);
     bindSelectionDetails(this, detailsPanel, () => delveDetails(delve));
     addDetailsHint(this, height * 0.77);
-    this.add.text(width * 0.28, panelY - 120, 'DIFFICULTY', { fontFamily: 'Arial', fontSize: '30px', fontStyle: 'bold', color: '#94a3b8' }).setOrigin(0.5);
+    this.add.text(width * 0.28, panelY - 120, 'DIFFICULTY', { fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#94a3b8' }).setOrigin(0.5);
     this.add.text(width * 0.28, panelY - 68, delve.difficulty, { fontFamily: 'Arial', fontSize: '48px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
-    this.add.text(width * 0.28, panelY + 10, `Recommended Level ${delve.recommendedLevel}`, { fontFamily: 'Arial', fontSize: '30px', color: '#d6d3d1' }).setOrigin(0.5);
-    this.add.text(width * 0.28, panelY + 60, `${delve.rooms} waves expected`, { fontFamily: 'Arial', fontSize: '30px', color: '#d6d3d1' }).setOrigin(0.5);
+    this.add.text(width * 0.28, panelY + 10, `Recommended Level ${delve.recommendedLevel}`, { fontFamily: 'Arial', fontSize: '32px', color: '#d6d3d1' }).setOrigin(0.5);
+    this.add.text(width * 0.28, panelY + 60, `${delve.rooms} waves expected`, { fontFamily: 'Arial', fontSize: '32px', color: '#d6d3d1' }).setOrigin(0.5);
     if (checkpoint) this.add.text(width * 0.28, panelY + 112,
       checkpoint.campUnlocked ? 'Camp unlocked' : `Next: Wave ${checkpoint.nextWave + 1}`,
-      { fontFamily: 'Arial', fontSize: '30px', color: '#bef264' }).setOrigin(0.5);
+      { fontFamily: 'Arial', fontSize: '32px', color: '#bef264' }).setOrigin(0.5);
 
-    this.add.text(width * 0.66, panelY - 120, 'POSSIBLE DROPS', { fontFamily: 'Arial', fontSize: '30px', fontStyle: 'bold', color: '#94a3b8' }).setOrigin(0.5);
+    this.add.text(width * 0.66, panelY - 120, 'POSSIBLE DROPS', { fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#94a3b8' }).setOrigin(0.5);
     this.add.text(width * 0.66, panelY - 45, (delve.possibleDrops ?? ['Gold', 'Adventurer XP']).map((drop) => `• ${drop}`).join('\n'), {
       fontFamily: 'Arial', fontSize: '32px', color: '#fbbf24', lineSpacing: 14
     }).setOrigin(0.5, 0);

@@ -67,27 +67,27 @@ const finalWaves = {
 };
 
 const slimeCaveWaves = [
-  { name: 'Cave Slimes', caveSlimes: 2, d4: 1 },
-  { name: 'The Slime Swarm', caveSlimes: 2, d4: 2 },
-  { name: 'The Elder Puddle', caveSlimes: 2, d4: 2, elderSlimes: 1 },
+  { name: 'Cave Slimes', caveSlimes: 2, d2: 1 },
+  { name: 'The Slime Swarm', caveSlimes: 2, d2: 2 },
+  { name: 'The Elder Puddle', caveSlimes: 2, d2: 2, elderSlimes: 1 },
   { name: 'The Elder Slimes', caveSlimes: 2, elderSlimes: 2 },
   { name: 'The Slime Horde', caveSlimes: 4, elderSlimes: 3 },
   { name: 'The Slime Sovereign', caveSlimes: 2, elderSlimes: 2, sovereigns: 1, boss: true }
 ];
 
 const thornbriarWaves = [
-  { name: 'Roadside Ambush', ruffians: { base: 4, dice: [4] } },
-  { name: 'The Lashers', ruffians: { base: 2, dice: [4, 4] }, lashers: { dice: [4, 4] } },
-  { name: 'Briar Hex', ruffians: { base: 2, dice: [4] }, lashers: { dice: [3] }, hedgeMages: 1 },
+  { name: 'Roadside Ambush', ruffians: { base: 4, dice: [2] } },
+  { name: 'The Lashers', ruffians: { base: 2, dice: [2, 2] }, lashers: { dice: [2, 2] } },
+  { name: 'Briar Hex', ruffians: { base: 2, dice: [2] }, lashers: { dice: [3] }, hedgeMages: 1 },
   { name: 'Thornbriar Patrol', ruffians: { base: 3, dice: [3] }, lashers: { base: 1, dice: [3] }, hedgeMages: 2 },
   { name: "Rongar's Guard", ruffians: { base: 5, dice: [3] }, lashers: { base: 2, dice: [3] }, hedgeMages: 3 },
   { name: 'Rongar the Crusher', ruffians: { base: 4 }, lashers: { base: 3 }, hedgeMages: 2, rongar: 1, boss: true }
 ];
 
 const dolmarkWaves = [
-  { name: 'Den Wardens', wardens: { base: 4, dice: [4] } },
-  { name: 'The Warden Pack', wardens: { base: 4, dice: [4, 4] } },
-  { name: 'The First Protector', wardens: { base: 2, dice: [4, 4] }, protectors: 1 },
+  { name: 'Den Wardens', wardens: { base: 4, dice: [2] } },
+  { name: 'The Warden Pack', wardens: { base: 4, dice: [2, 2] } },
+  { name: 'The First Protector', wardens: { base: 2, dice: [2, 2] }, protectors: 1 },
   { name: 'The Den Guard', wardens: { base: 4 }, protectors: 2 },
   { name: 'The Forest Guard', wardens: { base: 4 }, protectors: 4 },
   { name: 'Silvanark the Forest Lord', wardens: { base: 3 }, protectors: 2, silvanark: 1, boss: true }
@@ -118,8 +118,8 @@ const verdantTearWaves = [
 
 
 function buildSlimeCaveWaves(random) {
-  return slimeCaveWaves.map(({ name, caveSlimes, d4 = 0, elderSlimes = 0, sovereigns = 0, boss = false }) => {
-    const slimeCount = rollCount({ base: caveSlimes, dice: Array(d4).fill(4) }, random);
+  return slimeCaveWaves.map(({ name, caveSlimes, d2 = 0, elderSlimes = 0, sovereigns = 0, boss = false }) => {
+    const slimeCount = rollCount({ base: caveSlimes, dice: Array(d2).fill(2) }, random);
     const types = [
       ...Array(sovereigns).fill('slimeSovereign'),
       ...Array(elderSlimes).fill('elderSlime'),

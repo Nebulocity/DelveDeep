@@ -5,7 +5,6 @@ export default {
   subtitle: 'A fresh wound in reality hangs over a grassy knoll. Small, unstable, and no less deadly.',
   difficulty: 'Unknown', recommendedLevel: 2, depth: 4, type: 'void',
   possibleDrops: ['Gold', 'Adventurer XP'],
-  conceptArt: 'delve-concept-verdant-tear',
   prerequisites: ['slime-cave', 'thornbriar-hollow', 'dolmark-den'],
   requiresLocation: 'duskfall',
   map: { x: 0.40, y: 0.72, radius: 0.064 },

@@ -44,8 +44,8 @@ export const CRAFTING_RECIPES = [
   { id: 'pilgrim-staff', name: 'Pilgrim Staff', category: 'equipment', output: { type: 'equipment', itemId: 'pilgrim-staff', count: 1 }, ingredients: { wood: 3, cloth: 1 }, description: 'Craft a healing staff for a cleric.' },
   { id: 'padded-vest', name: 'Padded Vest', category: 'equipment', output: { type: 'equipment', itemId: 'padded-vest', count: 1 }, ingredients: { leather: 2, cloth: 2 }, description: 'Sew flexible padded armor.' },
   { id: 'iron-guard', name: 'Iron Guard', category: 'equipment', output: { type: 'equipment', itemId: 'iron-guard', count: 1 }, ingredients: { iron: 4, leather: 1 }, description: 'Forge sturdy front-line armor.' },
-  { id: 'health-potion', name: 'Health Potion Pack', category: 'alchemy', output: { type: 'potion', itemId: 'mending-potion', count: 1 }, ingredients: { herb: 2, cloth: 1 }, description: 'Brew a three-use health potion pack.' },
-  { id: 'mana-potion', name: 'Mana Potion Pack', category: 'alchemy', output: { type: 'potion', itemId: 'clarity-potion', count: 1 }, ingredients: { herb: 1, essence: 2 }, description: 'Brew a three-use mana potion pack.' }
+  { id: 'health-potion', name: 'Health Potion Pack', category: 'alchemy', output: { type: 'potion', itemId: 'mending-potion', count: 1 }, ingredients: { herb: 2, cloth: 1 }, description: 'Contains 3 Health Potions, identical to the Health Potions sold here.' },
+  { id: 'mana-potion', name: 'Mana Potion Pack', category: 'alchemy', output: { type: 'potion', itemId: 'clarity-potion', count: 1 }, ingredients: { herb: 1, essence: 2 }, description: 'Contains 3 Mana Potions, identical to the Mana Potions sold here.' }
 ];
 
 export const CRAFTING_RECIPE_BY_ID = Object.fromEntries(CRAFTING_RECIPES.map((recipe) => [recipe.id, recipe]));

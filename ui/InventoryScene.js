@@ -1,3 +1,4 @@
+import { addWoodenPanel } from './WoodenPanel.js';
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
 import HapticsService from '../services/HapticsService.js';
@@ -45,6 +46,8 @@ export default class InventoryScene extends Phaser.Scene {
     addReturnButton(this, returnLabel, () => this.scene.start(returnScene), { y: 52 });
     this.text(width / 2, 52, title, 52, hall ? '#fff1d2' : '#f8fafc').setOrigin(0.5);
     this.text(width - 68, 52, `${GameState.gold} GOLD`, 36, '#fbbf24').setOrigin(1, 0.5);
+    if (this.message) addWoodenPanel(this, width / 2, height - 93, width - 160, 64);
+    addWoodenPanel(this, width / 2, height - 51, 1080, 56);
     if (this.message) this.text(width / 2, height - 93, this.message, 32, '#fde68a', width - 140).setOrigin(0.5);
     this.text(width / 2, height - 59, 'Long-press or hold-click a selection for details.', 28,
       returnScene === 'AdventurersHallScene' ? '#f4d5ab' : '#94a3b8').setOrigin(0.5);

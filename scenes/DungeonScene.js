@@ -8,6 +8,7 @@ import { leaderAbilities } from '../game/LeaderProgression.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
 import { showLoadingScreen } from '../ui/LoadingScreen.js';
 import { addReturnButton } from '../ui/ReturnButton.js';
+import { addWoodenPanel, addWoodenNotice } from '../ui/WoodenPanel.js';
 
 export default class DungeonScene extends Phaser.Scene {
 
@@ -46,7 +47,7 @@ export default class DungeonScene extends Phaser.Scene {
 
     this.add.text(width * 0.28, height * 0.30, 'PARTY', { fontFamily: 'Arial', fontSize: '38px', fontStyle: 'bold', color: '#94a3b8' }).setOrigin(0.5);
 
-    this.add.text(width * 0.28, height * 0.345, 'Long-press or hold-click for character details.', { fontFamily: 'Arial', fontSize: '28px', color: '#cbd5e1' }).setOrigin(0.5);
+    addWoodenNotice(this, width * 0.28, height * 0.345, 'Hold for character details.', { width: 720, fontSize: 28, depth: 0 });
 
     // List the chosen adventurers with their class, role, and current level.
     GameState.activeParty.forEach((adventurer, index) => {
@@ -62,9 +63,7 @@ export default class DungeonScene extends Phaser.Scene {
     // Resolve the equipped leadership IDs into names for the tactics review.
     const equipped = GameState.leader?.battleLoadout ?? [];
     this.add.text(width * 0.70, height * 0.30, `BATTLE TACTICS ${equipped.length}/5`, { fontFamily: 'Arial', fontSize: '38px', fontStyle: 'bold', color: '#94a3b8' }).setOrigin(0.5);
-    this.add.text(width * 0.70, height * 0.345, 'Long-press / hold-click for details. Mouse: hover tactics.', {
-      fontFamily: 'Arial', fontSize: '28px', color: '#cbd5e1'
-    }).setOrigin(0.5);
+    addWoodenNotice(this, width * 0.70, height * 0.345, 'Hold or hover for tactic details.', { width: 780, fontSize: 28, depth: 0 });
     equipped.forEach((id, index) => {
 
       const ability = leaderAbilities.find((entry) => entry.id === id);
@@ -139,8 +138,7 @@ export default class DungeonScene extends Phaser.Scene {
       });
       objects.push(shade);
     }
-    const panel = this.add.rectangle(x, y, panelWidth, panelHeight, 0x111827)
-      .setStrokeStyle(3, 0x84cc16).setDepth(101);
+    const panel = addWoodenPanel(this, x, y, panelWidth, panelHeight, 101);
     if (modal) {
       panel.setInteractive().on('pointerdown', (pointer, localX, localY, event) => event.stopPropagation());
     }
@@ -152,8 +150,8 @@ export default class DungeonScene extends Phaser.Scene {
       fontFamily: 'Arial', fontSize: '32px', color: '#f1f5f9', wordWrap: { width: panelWidth - 64 }
     }).setDepth(102));
     if (modal) {
-      const close = this.add.rectangle(x, y + panelHeight / 2 - 52, 260, 72, 0x334155)
-        .setDepth(102).setInteractive({ useHandCursor: true });
+      const close = addWoodenPanel(this, x, y + panelHeight / 2 - 52, 260, 72, 102)
+        .setInteractive({ useHandCursor: true });
       close.on('pointerdown', (pointer, localX, localY, event) => {
 
         event.stopPropagation();

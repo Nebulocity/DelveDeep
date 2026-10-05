@@ -67,8 +67,10 @@ export function completeExpedition() {
   // Reveal the next map locations associated with this cleared delve.
   const revealMap = {
     'slime-cave': ['thornbriar-hollow'],
-    'thornbriar-hollow': ['duskfall'],
-    'dolmark-den': ['murmuring-abyss', 'verdant-tear'],
+    'thornbriar-hollow': ['dolmark-den'],
+    'dolmark-den': ['march-west-delves'],
+    'march-west-delves': ['verge-delves'],
+    'verge-delves': ['everdeep', 'murmuring-abyss'],
     'murmuring-abyss': [],
     'verdant-tear': []
   };

@@ -1,6 +1,7 @@
 import { bindSelectionDetails, showSelectionDetails } from '../ui/SelectionDetails.js';
 import { showConfirmation } from '../ui/ConfirmationDialog.js';
 import Phaser from 'phaser';
+import { addWoodenNotice } from '../ui/WoodenPanel.js';
 import GameState from '../game/GameState.js';
 import HapticsService from '../services/HapticsService.js';
 import {
@@ -39,7 +40,7 @@ export default class RaidLeaderScene extends Phaser.Scene {
     this.loadoutText = this.add.text(width/2, UI_SAFE_TOP + 108, '', { fontFamily:'Arial', fontSize:'33px', fontStyle:'bold', color:'#fbbf24' }).setOrigin(0.5);
     this.refreshLoadoutText();
 
-    this.add.text(width/2, UI_SAFE_TOP + 154, 'Tap to unlock / equip. Long-press or hold-click for details.', { fontFamily:'Arial', fontSize:'32px', color:'#a8a29e' }).setOrigin(0.5);
+    addWoodenNotice(this, width / 2, UI_SAFE_TOP + 154, 'Tap to unlock / equip. Hold for details.', { width: 1300, fontSize: 32, depth: 0 });
 
     const categories = [
       ['Assault', 'Increase party offense'],

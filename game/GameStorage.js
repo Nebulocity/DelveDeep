@@ -3,7 +3,7 @@ import { restoreEquipment } from './Equipment.js';
 import { restoreAdventurerAbilities } from './AdventurerAbilities.js';
 import { CRAFTING_MATERIALS } from '../data/items.js';
 import { PROFILE_STORAGE_KEY } from './BuildSave.js';
-import { roads, pois, nodes } from '../data/worldMap.js';
+import { roads, pois, nodes, WORLD_LAYOUT_ID } from '../data/worldMap.js';
 
 const STORAGE_KEY = PROFILE_STORAGE_KEY;
 
@@ -63,10 +63,12 @@ export function loadProfile(baseRoster) {
     showGridLines: saved?.development?.showGridLines === true
   };
   GameState.world = {
+    layoutId: WORLD_LAYOUT_ID,
     currentLocation: nodes[saved?.world?.currentLocation] ? saved.world.currentLocation : 'pineshire',
     discoveredLocations: Array.from(new Set(['pineshire', 'slime-cave', ...(saved?.world?.discoveredLocations ?? [])])),
     clearedDelves: Array.from(new Set(saved?.world?.clearedDelves ?? [])),
-    travel: roads.some((road) => road.id === saved?.world?.travel?.edgeId)
+    travel: saved?.world?.layoutId === WORLD_LAYOUT_ID
+      && roads.some((road) => road.id === saved?.world?.travel?.edgeId)
       && Number.isFinite(saved.world.travel.t)
       ? { edgeId: saved.world.travel.edgeId, t: Math.max(0, Math.min(1, saved.world.travel.t)),
         target: nodes[saved.world.travel.target] ? saved.world.travel.target : null,

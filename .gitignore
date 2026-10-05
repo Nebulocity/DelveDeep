@@ -46,6 +46,7 @@ Thumbs.db
 
 # Generated web output: build locally, do not version hashed bundles.
 /dist/
+/dist-editor/
 
 # Blender authoring files stay local; ship only Phaser runtime exports.
 /assets/blender/*
@@ -63,3 +64,4 @@ Thumbs.db
 
 # Local conversation attachments
 /.codex-remote-attachments/
+/project-backup/

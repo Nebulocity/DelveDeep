@@ -5,7 +5,6 @@ export default {
   subtitle: 'A tear in the world. Something on the other side is whispering.',
   difficulty: 'Unknown', recommendedLevel: 2, depth: 4, type: 'void',
   possibleDrops: ['Gold', 'Adventurer XP'],
-  conceptArt: 'delve-concept-murmuring-abyss',
   prerequisites: ['slime-cave', 'thornbriar-hollow', 'dolmark-den'],
   requiresLocation: 'duskfall',
   map: { x: 0.885, y: 0.680, radius: 0.075 },

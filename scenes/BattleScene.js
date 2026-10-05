@@ -1,3 +1,4 @@
+import { addWoodenPanel } from '../ui/WoodenPanel.js';
 import { preloadSlimeSprites } from '../data/slimeSprites.js';
 import { chooseWaveLandings } from '../combat/WaveLanding.js';
 import { bindSelectionDetails, characterDetails } from '../ui/SelectionDetails.js';
@@ -188,6 +189,8 @@ export default class BattleScene extends Phaser.Scene {
       stroke: '#000000',
       strokeThickness: 5
     }).setOrigin(0.5).setDepth(5000);
+
+    this.battleMessagePlaque = addWoodenPanel(this, width / 2, this.battleLayout.messageY, 1500, 60, 4999).setVisible(false);
 
     this.encounterStatusText = this.add.text(width / 2, this.battleLayout.statusY, '', {
       fontFamily: 'Arial',
@@ -1051,8 +1054,7 @@ export default class BattleScene extends Phaser.Scene {
     const centerX = width / 2;
     const centerY = height / 2;
     const panelWidth = Math.min(1160, width - 660);
-    const backdrop = this.add.rectangle(0, 0, panelWidth, 248, 0x120e08, 0.97)
-      .setStrokeStyle(3, 0xc49a43);
+    const backdrop = addWoodenPanel(this, 0, 0, panelWidth, 248);
     const labelText = this.add.text(0, -76, isBoss ? 'BOSS WAVE' : '', {
       fontFamily: 'Arial', fontSize: '31px', fontStyle: 'bold', color: '#d8b761'
     }).setOrigin(0.5);
@@ -1972,6 +1974,7 @@ export default class BattleScene extends Phaser.Scene {
 
     this.tweens.killTweensOf(this.battleMessageText);
     this.battleMessageText.setText(text).setColor(color).setAlpha(1);
+    this.battleMessagePlaque?.setVisible(Boolean(text));
 
     if (!persistent) {
       this.tweens.add({
@@ -1982,6 +1985,7 @@ export default class BattleScene extends Phaser.Scene {
         onComplete: () => {
 
           if (this.battleMessageText?.active) this.battleMessageText.setText('').setAlpha(1);
+          this.battleMessagePlaque?.setVisible(false);
         }
       });
     }
@@ -1994,6 +1998,7 @@ export default class BattleScene extends Phaser.Scene {
     if (!this.battleMessageText) return;
     this.tweens.killTweensOf(this.battleMessageText);
     this.battleMessageText.setText('').setAlpha(1);
+    this.battleMessagePlaque?.setVisible(false);
   }
 
   // This function clears wave visuals and paces the transition to the next
@@ -2118,8 +2123,7 @@ export default class BattleScene extends Phaser.Scene {
     const overlay = [];
     overlay.push(this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.78)
       .setInteractive().setDepth(11999));
-    overlay.push(this.add.rectangle(width / 2, height / 2, 1390, 770, 0x171b14, 0.96)
-      .setStrokeStyle(5, 0x84cc16).setDepth(12000));
+    overlay.push(addWoodenPanel(this, width / 2, height / 2, 1390, 770, 12000));
     overlay.push(this.add.text(width / 2, height * 0.24, 'DELVE CAMP', {
       fontFamily: 'Arial', fontSize: '68px', fontStyle: 'bold', color: '#bef264'
     }).setOrigin(0.5).setDepth(12001));
@@ -2376,9 +2380,7 @@ export default class BattleScene extends Phaser.Scene {
       .setDepth(11999);
     inputBlocker.on('pointerdown', (pointer, localX, localY, event) => event?.stopPropagation?.());
 
-    this.add.rectangle(width / 2, centerY, width * 0.78, 390, 0x0c0a09, 0.97)
-      .setStrokeStyle(5, victory ? 0x84cc16 : 0xdc2626)
-      .setDepth(12000);
+    addWoodenPanel(this, width / 2, centerY, width * 0.78, 390, 12000);
 
     this.add.text(width / 2, centerY - 95, title, {
       fontFamily: 'Arial',

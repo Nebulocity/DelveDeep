@@ -8,6 +8,7 @@ import { bindSelectionDetails } from '../ui/SelectionDetails.js';
 import HapticsService from '../services/HapticsService.js';
 import { CRAFTING_RECIPES, CRAFTING_MATERIALS } from '../data/items.js';
 import { canCraft, craftItem, recipeIngredientText } from '../game/Crafting.js';
+import { addWoodenNotice } from '../ui/WoodenPanel.js';
 
 const ALCHEMIST_THEME = { plaque: 'town-sign-alchemist', panel: 0x182b22, face: 0x315b3e, edge: 0x9fbd78, button: 0x315b3e, text: '#eff9d7' };
 
@@ -59,15 +60,13 @@ export default class FacilityScene extends Phaser.Scene {
     this.add.text(1200, 338, crafting ? 'AVAILABLE RECIPES' : 'MATERIALS', {
       fontFamily: 'Georgia', fontSize: '46px', fontStyle: 'bold', color: theme.text, stroke: '#102018', strokeThickness: 3
     }).setOrigin(0.5);
-    if (!rows.length) this.add.text(1200, 555, crafting ? 'No recipes are available.' : 'You have no materials to sell.', {
-      fontFamily: 'Arial', fontSize: '36px', color: '#e8c89f'
-    }).setOrigin(0.5);
+    if (!rows.length) addWoodenNotice(this, 1200, 555, crafting ? 'No recipes are available.' : 'You have no materials to sell.', { width: 1300, fontSize: 36, depth: 0 });
     rows.slice(this.page * pageSize, this.page * pageSize + pageSize).forEach((row, index) => {
       const y = 435 + index * 123;
       const recipe = crafting ? row : null;
       const stock = !crafting ? GameState.inventory.materials[row.id] : null;
       const readiness = recipe && canCraft(recipe.id);
-      const summary = recipe ? recipeIngredientText(recipe) : row.description;
+      const summary = recipe ? `${recipe.category === 'alchemy' ? `3 ${getPotionDefinition(recipe.output.itemId).name}s • ` : ''}${recipeIngredientText(recipe)}` : row.description;
       const action = recipe ? `Craft • ${summary}` : `${row.name} x${stock} • Sell for ${stock * 5} Gold`;
       const card = this.add.rectangle(1200, y, 1580, 106, 0x294034, 0.97).setStrokeStyle(3, theme.edge).setInteractive({ useHandCursor: true });
       this.add.text(470, y - 17, recipe ? recipe.name : row.name, { fontFamily: 'Arial', fontSize: '34px', fontStyle: 'bold', color: '#fff1d2' }).setOrigin(0, 0.5);
@@ -93,7 +92,8 @@ export default class FacilityScene extends Phaser.Scene {
       });
     };
     pageButton(600, '< PREV', this.page - 1, this.page > 0);
-    this.add.text(1200, 759, this.message || `${this.page + 1} / ${pages}`, { fontFamily: 'Arial', fontSize: '27px', color: '#fde68a', align: 'center', wordWrap: { width: 820 } }).setOrigin(0.5);
+    if (this.message) addWoodenNotice(this, 1200, 759, this.message, { width: 850, fontSize: 28, depth: 0 });
+    else this.add.text(1200, 759, `${this.page + 1} / ${pages}`, { fontFamily: 'Arial', fontSize: '28px', color: '#fde68a' }).setOrigin(0.5);
     pageButton(1800, 'NEXT >', this.page + 1, this.page < pages - 1);
     return { x: 1200, y: 550, width: 1700, height: 520 };
   }
@@ -108,9 +108,7 @@ export default class FacilityScene extends Phaser.Scene {
     this.add.text(1200, 338, choice.id === 'buy' ? 'POTION PACKS' : 'YOUR POTION PACKS', {
       fontFamily: 'Georgia', fontSize: '46px', fontStyle: 'bold', color: '#eff9d7', stroke: '#102018', strokeThickness: 3
     }).setOrigin(0.5);
-    if (!rows.length) this.add.text(1200, 555, 'No potion packs to sell.', {
-      fontFamily: 'Arial', fontSize: '36px', color: '#e8c89f'
-    }).setOrigin(0.5);
+    if (!rows.length) addWoodenNotice(this, 1200, 555, 'No potion packs to sell.', { width: 1300, fontSize: 36, depth: 0 });
     rows.slice(this.page * 2, this.page * 2 + 2).forEach((item, index) => {
       const definition = choice.id === 'buy' ? item : getPotionDefinition(item.itemId);
       const y = 467 + index * 169;
@@ -155,9 +153,8 @@ export default class FacilityScene extends Phaser.Scene {
       });
     };
     pageButton(600, '< PREV', this.page - 1, this.page > 0);
-    this.add.text(1200, 759, this.message || `${this.page + 1} / ${pages}`, {
-      fontFamily: 'Arial', fontSize: '29px', color: '#fde68a', align: 'center', wordWrap: { width: 820 }
-    }).setOrigin(0.5);
+    if (this.message) addWoodenNotice(this, 1200, 759, this.message, { width: 850, fontSize: 28, depth: 0 });
+    else this.add.text(1200, 759, `${this.page + 1} / ${pages}`, { fontFamily: 'Arial', fontSize: '29px', color: '#fde68a' }).setOrigin(0.5);
     pageButton(1800, 'NEXT >', this.page + 1, this.page < pages - 1);
     return { x: 1200, y: 550, width: 1700, height: 520 };
   }

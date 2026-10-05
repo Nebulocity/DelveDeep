@@ -1,3 +1,4 @@
+import { addWoodenPanel } from '../ui/WoodenPanel.js';
 import { bindSelectionDetails, addDetailsHint } from '../ui/SelectionDetails.js';
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
@@ -555,13 +556,14 @@ export default class PartySelectScene extends Phaser.Scene {
       align: 'center',
       wordWrap: { width: width * 0.78 }
     }).setOrigin(0.5).setDepth(6000);
+    const panel = addWoodenPanel(this, label.x, label.y, Math.min(width * 0.86, label.width + 100), label.height + 42, 5999);
 
     this.tweens.add({
-      targets: label,
+      targets: [panel, label],
       alpha: 0,
       delay: 1000,
       duration: 350,
-      onComplete: () => label.destroy()
+      onComplete: () => { panel.destroy(); label.destroy(); }
     });
   }
 }

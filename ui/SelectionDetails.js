@@ -1,13 +1,11 @@
 import HapticsService from '../services/HapticsService.js';
+import { addWoodenPanel, addWoodenNotice } from './WoodenPanel.js';
 
 export const DETAILS_HINT = 'Long-press or hold-click a selection for details.';
 
-export function addDetailsHint(scene, y, text = DETAILS_HINT) {
-  const hall = isHallMenu(scene) || isTownMenu(scene);
-  return scene.add.text(scene.scale.width / 2, y, text, {
-    fontFamily: 'Arial', fontSize: '28px', color: hall ? '#f4d5ab' : '#cbd5e1',
-    stroke: hall ? '#180d09' : '#111827', strokeThickness: 4
-  }).setOrigin(0.5).setDepth(4800);
+export function addDetailsHint(scene, y, text = DETAILS_HINT, options = {}) {
+  return addWoodenNotice(scene, options.x ?? scene.scale.width / 2, y, text,
+    { width: 1100, fontSize: 28, ...options }).text;
 }
 
 function isHallMenu(scene) {
@@ -33,7 +31,7 @@ export function characterDetails(unit) {
 }
 
 export function delveDetails(delve) {
-  return { title: delve.name, description: `${delve.subtitle}\n\n${delve.difficulty} | Recommended level ${delve.recommendedLevel} | ${delve.rooms} waves\n\nRewards: ${(delve.possibleDrops ?? []).join(', ')}`, image: delve.conceptArt };
+  return { title: delve.name, description: `${delve.subtitle}\n\n${delve.difficulty} | Recommended level ${delve.recommendedLevel} | ${delve.rooms} waves\n\nRewards: ${(delve.possibleDrops ?? []).join(', ')}`, image: delve.visuals?.environment?.layers[0]?.key };
 }
 
 // Modal details block underlying controls. Combat clocks and decisions pause
@@ -43,7 +41,7 @@ export function showSelectionDetails(scene, details) {
   const { width, height } = scene.scale;
   const hall = isHallMenu(scene);
   const town = isTownMenu(scene);
-  const warm = hall || town;
+  const warm = true;
   const shopTheme = details.shopTheme;
   const shop = Boolean(shopTheme);
   const objects = [];
@@ -65,9 +63,9 @@ export function showSelectionDetails(scene, details) {
   scene.selectionDetailsClose = close;
   scene.events.once('shutdown', close);
   const depth = 10000;
-  const panelWidth = Math.min(1100, width - 120);
+  const panelWidth = Math.min(details.panelWidth ?? 1100, width - 120);
   const hasImage = Boolean(details.image && scene.textures.exists(details.image));
-  const bodyMargin = town ? 104 : 44;
+  const bodyMargin = 65;
   const imageColumn = hasImage ? 300 : shop ? 220 : 0;
   const body = scene.add.text(width / 2 - panelWidth / 2 + bodyMargin + imageColumn, 0, details.description, {
     fontFamily: 'Arial', fontSize: '32px', color: shop ? shopTheme.text : warm ? '#f1dfca' : '#e2e8f0',
@@ -80,14 +78,7 @@ export function showSelectionDetails(scene, details) {
   if (body.height > panelHeight - 190) body.setScale((panelHeight - 190) / body.height);
   const shade = scene.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7)
     .setDepth(depth).setInteractive();
-  const panel = town
-    ? scene.add.image(width / 2, height / 2, 'town-sign-details')
-      .setDisplaySize(panelWidth + 100, panelHeight + 160).setDepth(depth + 1)
-    : shop
-      ? scene.add.rectangle(width / 2, height / 2, panelWidth, panelHeight, shopTheme.face)
-        .setStrokeStyle(5, shopTheme.edge).setDepth(depth + 1)
-      : scene.add.rectangle(width / 2, height / 2, panelWidth, panelHeight, hall ? 0x21130d : 0x111827)
-        .setStrokeStyle(3, hall ? 0xd9a662 : 0x84cc16).setDepth(depth + 1);
+  const panel = addWoodenPanel(scene, width / 2, height / 2, panelWidth + 36, panelHeight + 36, depth + 1);
   const conceptHeight = Math.min(368, panelHeight - 180);
   const shopSign = shop && scene.textures.exists(shopTheme.plaque)
     ? scene.add.image(width / 2 - panelWidth / 2 + 120, top + Math.min(190, panelHeight / 2), shopTheme.plaque)
@@ -95,8 +86,9 @@ export function showSelectionDetails(scene, details) {
     : null;
   const conceptImage = hasImage
     ? scene.add.image(width / 2 - panelWidth / 2 + 155, height / 2, details.image)
-      .setDisplaySize(conceptHeight * 418 / 627, conceptHeight).setDepth(depth + 2)
+      .setDepth(depth + 2)
     : null;
+  if (conceptImage) conceptImage.setScale(Math.min(270 / conceptImage.width, conceptHeight / conceptImage.height));
   const panelHit = town
     ? scene.add.rectangle(width / 2, height / 2, panelWidth, panelHeight, 0x000000, 0)
       .setDepth(depth + 1).setInteractive()
@@ -109,15 +101,11 @@ export function showSelectionDetails(scene, details) {
   };
   shade.on('pointerdown', dismiss);
   const buttonY = top + panelHeight - 52;
-  const buttonArt = town ? scene.add.image(width / 2, buttonY, 'town-sign-world-map')
-    .setDisplaySize(320, 118).setDepth(depth + 2) : null;
-  const button = scene.add.rectangle(width / 2, buttonY, 300, 72, town ? 0x000000 : shop ? shopTheme.button : hall ? 0x6b4527 : 0x334155, town ? 0 : 1)
-    .setStrokeStyle(town ? 0 : shop ? 3 : hall ? 3 : 0, shop ? shopTheme.edge : hall ? 0xd9a662 : 0x334155)
-    .setDepth(depth + 3).setInteractive({ useHandCursor: true });
+  const button = addWoodenPanel(scene, width / 2, buttonY, 300, 72, depth + 3).setInteractive({ useHandCursor: true });
   button.on('pointerdown', dismiss);
   objects.push(shade, panel, body, button);
   if (conceptImage) objects.push(conceptImage);
-  if (town) objects.push(panelHit, buttonArt);
+  if (town) objects.push(panelHit);
   if (shopSign) objects.push(shopSign);
   objects.push(
     scene.add.text(width / 2, top + 44, details.title, {
@@ -134,7 +122,7 @@ export function showSelectionDetails(scene, details) {
 // Bind after a selection's normal pointerdown action. Defer that action until
 // release, and suppress it after a hold or drag. Navigation-only buttons need
 // no binding. Each binding cleans up with its object, including wave enemies.
-export function bindSelectionDetails(scene, target, getDetails, onTap, onDetails) {
+export function bindSelectionDetails(scene, target, getDetails, onTap, onDetails, { allowSceneInput = false } = {}) {
   const taps = onTap ? [onTap] : target.listeners('pointerdown').slice();
   target.removeAllListeners('pointerdown');
   target.setInteractive({ useHandCursor: true });
@@ -146,12 +134,13 @@ export function bindSelectionDetails(scene, target, getDetails, onTap, onDetails
     press = null;
   };
   target.on('pointerdown', (pointer, x, y, event) => {
-    event?.stopPropagation?.();
+    if (!allowSceneInput) event?.stopPropagation?.();
     cancel();
     press = { id: pointer.id, x: pointer.x, y: pointer.y, held: false };
     timer = globalThis.setTimeout(() => {
       timer = null;
       if (!press || !pointer.isDown || scene.selectionDetailsClose) return;
+      if (Math.hypot(pointer.x - press.x, pointer.y - press.y) > 24) return cancel();
       press.held = true;
       HapticsService.tap();
       if (onDetails) onDetails();
@@ -163,7 +152,7 @@ export function bindSelectionDetails(scene, target, getDetails, onTap, onDetails
   };
   target.on('pointerup', (...args) => {
     const pointer = args[0];
-    args[3]?.stopPropagation?.();
+    if (!allowSceneInput) args[3]?.stopPropagation?.();
     const tap = press?.id === pointer.id && !press.held;
     cancel();
     if (tap && !scene.selectionDetailsClose) taps.forEach((callback) => callback.apply(target, args));

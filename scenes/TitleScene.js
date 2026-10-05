@@ -6,6 +6,8 @@ import { saveProfile, clearSavedProfile } from '../game/GameStorage.js';
 import { clearLeaderProgression, grantLeaderLevels } from '../game/LeaderProgression.js';
 import { hideLoadingScreenAfterRender } from '../ui/LoadingScreen.js';
 import { createScrollingWorldMap, updateScrollingWorldMap } from './ScrollingWorldMap.js';
+import { addWoodenPanel, addWoodenNotice } from '../ui/WoodenPanel.js';
+import { showConfirmation } from '../ui/ConfirmationDialog.js';
 
 export default class TitleScene extends Phaser.Scene {
   constructor() {
@@ -48,6 +50,7 @@ export default class TitleScene extends Phaser.Scene {
   // display preferences save immediately; progress reset asks for confirmation.
   showDevelopmentTools() {
 
+    this.selectionDetailsClose?.();
     const { width, height } = this.scale;
     const depth = 4000;
     const shade = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.72)
@@ -63,9 +66,7 @@ export default class TitleScene extends Phaser.Scene {
     const secondX = panelLeft + 995;
     const buttonWidth = 220;
     const objects = [shade];
-    const panel = this.add.rectangle(width / 2, height / 2, panelWidth, panelHeight, 0x0b0f16, 0.99)
-      .setStrokeStyle(5, 0x475569)
-      .setDepth(depth + 1);
+    const panel = addWoodenPanel(this, width / 2, height / 2, panelWidth, panelHeight, depth + 1);
     objects.push(panel);
     objects.push(this.add.text(width / 2, panelTop + 72, 'DEV TOOLS', {
       fontFamily: 'Arial', fontSize: '48px', fontStyle: 'bold', color: '#f8fafc'
@@ -88,7 +89,13 @@ export default class TitleScene extends Phaser.Scene {
     };
 
     // This function removes all objects belonging to this development dialog.
-    const destroy = () => objects.forEach((object) => object?.destroy());
+    const destroy = () => {
+      objects.forEach((object) => object?.destroy());
+      if (this.selectionDetailsClose === destroy) this.selectionDetailsClose = null;
+      this.events?.off('shutdown', destroy);
+    };
+    this.selectionDetailsClose = destroy;
+    this.events?.once('shutdown', destroy);
 
     addLabel(0, 'Dev mode');
     const enabled = GameState.development.unlockAll && GameState.development.replayCleared;
@@ -151,48 +158,16 @@ export default class TitleScene extends Phaser.Scene {
   // progression.
   showResetConfirmation(onCancel = () => this.showDevelopmentTools()) {
 
-    const { width, height } = this.scale;
-    const depth = 4100;
-    const shade = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.78).setInteractive().setDepth(depth);
-    const panelWidth = Math.min(980, width * 0.58);
-    const panel = this.add.rectangle(width / 2, height / 2, panelWidth, 430, 0x111827, 0.99)
-      .setStrokeStyle(5, 0xef4444).setDepth(depth + 1);
-    const title = this.add.text(width / 2, height * 0.41, 'RESET ALL PROGRESS?', {
-      fontFamily: 'Arial', fontSize: '44px', fontStyle: 'bold', color: '#fecaca'
-    }).setOrigin(0.5).setDepth(depth + 2);
-    const body = this.add.text(width / 2, height * 0.48, 'This clears map progress, gold, adventurer progression, and Battle Tactics progression.', {
-      fontFamily: 'Arial', fontSize: '29px', color: '#e5e7eb', align: 'center', wordWrap: { width: Math.min(760, panelWidth - 120), useAdvancedWrap: true }
-    }).setOrigin(0.5).setDepth(depth + 2);
-
-    const yes = this.add.rectangle(width / 2 - 190, height * 0.60, 320, 76, 0x991b1b)
-      .setInteractive({ useHandCursor: true }).setDepth(depth + 2);
-    const yesText = this.add.text(width / 2 - 190, height * 0.60, 'RESET', {
-      fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#ffffff'
-    }).setOrigin(0.5).setDepth(depth + 3);
-    const no = this.add.rectangle(width / 2 + 190, height * 0.60, 320, 76, 0x334155)
-      .setInteractive({ useHandCursor: true }).setDepth(depth + 2);
-    const noText = this.add.text(width / 2 + 190, height * 0.60, 'CANCEL', {
-      fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#ffffff'
-    }).setOrigin(0.5).setDepth(depth + 3);
-
-    const objects = [shade, panel, title, body, yes, yesText, no, noText];
-
-    // This function removes all objects belonging to this development dialog.
-    const destroy = () => objects.forEach((object) => object?.destroy());
-
-    yes.on('pointerdown', () => {
-
-      HapticsService.confirm();
-      clearSavedProfile();
-      clearLeaderProgression();
-      destroy();
-      this.scene.start('BootScene');
-    });
-    no.on('pointerdown', () => {
-
-      HapticsService.tap();
-      destroy();
-      onCancel();
+    return showConfirmation(this, {
+      title: 'RESET ALL PROGRESS?',
+      description: 'This clears map progress, gold, adventurer progression, and Battle Tactics progression.',
+      confirmLabel: 'RESET', onCancel,
+      onConfirm: () => {
+        HapticsService.confirm();
+        clearSavedProfile();
+        clearLeaderProgression();
+        this.scene.start('BootScene');
+      }
     });
   }
 
@@ -204,10 +179,7 @@ export default class TitleScene extends Phaser.Scene {
     this.activeToast?.tween?.stop();
     this.activeToast?.panel?.destroy();
     this.activeToast?.text?.destroy();
-    const panel = this.add.rectangle(width / 2, height * 0.17, Math.min(1200, width * 0.65), 82, 0x0f172a, 0.96)
-      .setStrokeStyle(3, 0x64748b).setDepth(4200);
-    const text = this.add.text(width / 2, height * 0.17, message, { fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#f8fafc' })
-      .setOrigin(0.5).setDepth(4201);
+    const { panel, text } = addWoodenNotice(this, width / 2, height * 0.17, message, { width: 1400, depth: 5200, fixed: true });
     const toast = { panel, text, tween: null };
     this.activeToast = toast;
     toast.tween = this.tweens.add({ targets: [panel, text], alpha: 0, delay: 1200, duration: 450, onComplete: () => {

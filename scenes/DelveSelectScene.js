@@ -32,9 +32,10 @@ export default class DelveSelectScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(delve.type === 'void' ? '#160b24' : '#171717');
     this.createWorldMapButton();
 
-    if (delve.conceptArt && this.textures.exists(delve.conceptArt)) {
-      const art = this.add.image(width * 0.20, height * 0.58, delve.conceptArt)
-        .setDisplaySize(460, 690).setDepth(-1);
+    const preview = delve.visuals?.environment?.layers[0]?.key;
+    if (preview && this.textures.exists(preview)) {
+      const art = this.add.image(width * 0.20, height * 0.54, preview).setDepth(-1);
+      art.setScale(Math.min(width * 0.34 / art.width, height * 0.45 / art.height));
     }
 
     this.add.text(width / 2, UI_SAFE_TOP + 24, delve.type === 'void' ? 'VOID PORTAL' : 'DELVE OVERVIEW', {

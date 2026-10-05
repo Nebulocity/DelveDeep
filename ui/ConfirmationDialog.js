@@ -1,20 +1,31 @@
 import HapticsService from '../services/HapticsService.js';
+import { addWoodenPanel } from './WoodenPanel.js';
 
 // Nothing is committed until a fresh press and release on CONFIRM. Reusing
 // the modal lock also prevents held selections behind the dialog from firing.
-export function showConfirmation(scene, { title, description, confirmLabel = 'CONFIRM', onConfirm }) {
+export function showConfirmation(scene, { title, description, confirmLabel = 'CONFIRM', onConfirm, onCancel }) {
   scene.selectionDetailsClose?.();
   const { width, height } = scene.scale;
-  const hall = ['RosterScene', 'RaidLeaderScene'].includes(scene.scene?.key);
+  const hall = true;
   const objects = [];
   const depth = 11000;
   const panelWidth = Math.min(1200, width - 120);
   let closed = false;
+  const wasPaused = scene.combatPaused;
+  const clockPaused = scene.time?.paused;
+  if (typeof wasPaused === 'boolean') {
+    scene.combatPaused = true;
+    scene.time.paused = true;
+  }
   const close = () => {
     if (closed) return;
     closed = true;
     scene.events.off('shutdown', close);
     if (scene.selectionDetailsClose === close) scene.selectionDetailsClose = null;
+    if (typeof wasPaused === 'boolean') {
+      scene.combatPaused = wasPaused;
+      scene.time.paused = clockPaused;
+    }
     objects.forEach((object) => object.destroy());
   };
   scene.selectionDetailsClose = close;
@@ -28,8 +39,8 @@ export function showConfirmation(scene, { title, description, confirmLabel = 'CO
   body.setY(top + 110);
   const stop = (pointer, x, y, event) => event?.stopPropagation?.();
   for (const [index, [w, h, color, alpha]] of [[width, height, 0x000000, 0.75], [panelWidth, panelHeight, hall ? 0x21130d : 0x111827, 1]].entries()) {
-    const box = add(scene.add.rectangle(width / 2, height / 2, w, h, color, alpha).setDepth(depth + index).setInteractive());
-    if (hall && index === 1) box.setStrokeStyle(3, 0xd9a662);
+    const box = add((index === 1 ? addWoodenPanel(scene, width / 2, height / 2, w, h, depth + index)
+      : scene.add.rectangle(width / 2, height / 2, w, h, color, alpha).setDepth(depth + index)).setInteractive());
     box.on('pointerdown', stop);
     box.on('pointerup', stop);
   }
@@ -40,9 +51,7 @@ export function showConfirmation(scene, { title, description, confirmLabel = 'CO
 
   const button = (x, label, color, accept) => {
     const y = top + panelHeight - 72;
-    const box = add(scene.add.rectangle(x, y, (panelWidth - 156) / 2, 96, color)
-      .setDepth(depth + 2).setInteractive({ useHandCursor: true }));
-    if (hall) box.setStrokeStyle(3, 0xd9a662);
+    const box = add(addWoodenPanel(scene, x, y, (panelWidth - 156) / 2, 96, depth + 2).setInteractive({ useHandCursor: true }));
     add(scene.add.text(x, y, label, { fontFamily: 'Arial', fontSize: '34px', fontStyle: 'bold', color: '#ffffff' })
       .setOrigin(0.5).setDepth(depth + 3));
     let press = null;
@@ -70,6 +79,7 @@ export function showConfirmation(scene, { title, description, confirmLabel = 'CO
       close();
       HapticsService.tap();
       if (accept) onConfirm();
+      else onCancel?.();
     });
   };
   button(width / 2 - panelWidth / 4, 'CANCEL', hall ? 0x3a2418 : 0x334155, false);

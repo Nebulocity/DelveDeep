@@ -4,6 +4,7 @@ import { bindSelectionDetails, addDetailsHint } from './SelectionDetails.js';
 import { UI_SAFE_TOP } from './Layout.js';
 import { addReturnButton } from './ReturnButton.js';
 import { addFacilityChoiceCard } from './FacilityChoiceArt.js';
+import { addWoodenPanel } from './WoodenPanel.js';
 
 export const FACILITIES = {
   Alchemist: {
@@ -24,7 +25,8 @@ export const FACILITIES = {
   Enchanter: {
     name: 'Enchanter', title: 'ENCHANTER', background: 'enchanter', subtitle: 'Arcane improvements and magical wares.',
     choices: [
-      { id: 'lore', label: 'ARCANE LORE', icon: 'rune', subtitle: 'Demo preview', description: 'Learn about the arcane supplies available in this demo.', message: 'Arcane Essence drops in Delves and helps the Alchemist brew Mana Potion packs. Learn abilities at the Adventurer\'s Hall. Gear enchantments will arrive in a future adventure.' }
+      { id: 'buy', label: 'BUY', icon: 'scroll', subtitle: 'Browse magical wares', description: 'Browse enchanted items for sale.', message: 'No enchanted items are stocked yet.' },
+      { id: 'sell', label: 'SELL', icon: 'scroll-sale', subtitle: 'Trade magical wares', description: 'Sell enchanted items.', message: 'You have no enchanted items to sell.' }
     ]
   }
 };
@@ -63,7 +65,7 @@ export function renderFacilityMenu(scene, facility, selected, onSelect, onReturn
   let panelBounds = choice && renderDetail?.(choice);
   if (choice && !panelBounds) {
     const panelWidth = Math.min(1380, width - 300);
-    scene.add.rectangle(width / 2, 535, panelWidth, 280, 0x21130d, 0.93).setStrokeStyle(4, 0xd9a662);
+    addWoodenPanel(scene, width / 2, 535, panelWidth, 280);
     panelBounds = { x: width / 2, y: 535, width: panelWidth, height: 280 };
     scene.add.text(width / 2, 469, choice.label, {
       fontFamily: 'Arial', fontSize: '48px', fontStyle: 'bold', color: '#fff1d2'

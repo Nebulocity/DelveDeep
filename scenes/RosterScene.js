@@ -1,3 +1,4 @@
+import { addWoodenPanel } from '../ui/WoodenPanel.js';
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
 import { saveProfile } from '../game/GameStorage.js';
@@ -156,6 +157,7 @@ export default class RosterScene extends Phaser.Scene {
       this.renderStats(hero);
       this.renderAbilities(hero);
     }
+    if (this.message) addWoodenPanel(this, width / 2, height - 32, width * 0.75, 58);
     if (this.message) this.add.text(width / 2, height - 30, this.message, {
       fontFamily: 'Arial', fontSize: '30px', color: '#ffe2a9',
       stroke: '#180d09', strokeThickness: 5

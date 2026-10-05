@@ -10,12 +10,11 @@ export const EVERDEEP_INTERVAL_MS = 120000;
 export const EVERDEEP_DURATION_MS = 7200000;
 export const EVERDEEP_MAX_WAVES = 60;
 export const EVERDEEP_MAX_CHESTS = 6;
-const ORDINARY_DELVES = ['slime-cave', 'thornbriar-hollow', 'dolmark-den'];
 
 export const everdeepRegion = {
   id: EVERDEEP_REGION_ID,
   name: 'Pineshire Reach',
-  ordinaryDelves: ['slime-cave', 'thornbriar-hollow', 'dolmark-den'],
+  ordinaryDelves: ['slime-cave', 'thornbriar-hollow', 'dolmark-den', 'march-west-delves', 'verge-delves'],
   encounterLevels: [1, 3],
   rewardLevelCap: 3,
   rewardRarities: ['common', 'uncommon'],
@@ -45,8 +44,9 @@ function randomFor(seed, ...parts) {
 
 export function everdeepUnlocked(state = GameState) {
   const region = EVERDEEP_REGIONS[EVERDEEP_REGION_ID];
-  return state.development.unlockAll || region.ordinaryDelves.every((id) => state.world.clearedDelves.includes(id)
-    || (state.records[id]?.clears ?? 0) > 0);
+  const finalDelve = region.ordinaryDelves.at(-1);
+  return state.development.unlockAll || state.world.clearedDelves.includes(finalDelve)
+    || (state.records[finalDelve]?.clears ?? 0) > 0;
 }
 
 function partyPower(hero) {
@@ -57,7 +57,7 @@ function partyPower(hero) {
 }
 
 export function startEverdeepRun(characterIds, now = Date.now(), state = GameState) {
-  if (!everdeepUnlocked(state)) return { ok: false, message: 'Clear all three ordinary Delves in this Region first.' };
+  if (!everdeepUnlocked(state)) return { ok: false, message: 'Defeat the boss of The Sunken Watch first.' };
   if (state.everdeep.activeRun) return { ok: false, message: 'Claim or dismiss your previous Everdeep expedition first.' };
   if (state.gold < EVERDEEP_WRIT_COST) return { ok: false, message: `A Writ costs ${EVERDEEP_WRIT_COST} Gold.` };
   if (!Array.isArray(characterIds) || characterIds.length !== 5 || new Set(characterIds).size !== 5) {

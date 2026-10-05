@@ -24,16 +24,9 @@ import townRiverUrl from '../assets/screens/town-concepts/river-town.png?url';
 import townMarshUrl from '../assets/screens/town-concepts/marsh-town.png?url';
 import townDesertUrl from '../assets/screens/town-concepts/desert-town.png?url';
 import townCastleUrl from '../assets/screens/town-concepts/castle-town.png?url';
-import delveGrottoUrl from '../assets/screens/delve-concepts/mosslight-grotto.png?url';
-import delveThornbriarUrl from '../assets/screens/delve-concepts/thornbriar-hollow.png?url';
-import delveMountainUrl from '../assets/screens/delve-concepts/mountain-den.png?url';
-import delveAbyssUrl from '../assets/screens/delve-concepts/murmuring-abyss.png?url';
-import delveVerdantUrl from '../assets/screens/delve-concepts/verdant-tear.png?url';
-import delveSunkenUrl from '../assets/screens/delve-concepts/sunken-watch.png?url';
-import everdeepConceptUrl from '../assets/screens/delve-concepts/murmuring-abyss.png?url';
 import { trackLoading } from '../ui/LoadingScreen.js';
-
-const MAP_ASSETS = import.meta.glob('../assets/world-map/*.png', { eager: true, query: '?url', import: 'default' });
+import delves from '../data/delves.js';
+import pineshireMapUrl from '../assets/world-map/illustrated-regions-v1/01-pineshire-reach-v4.png?url';
 
 export default class BootScene extends Phaser.Scene {
 
@@ -48,10 +41,7 @@ export default class BootScene extends Phaser.Scene {
   preload() {
 
     trackLoading(this);
-    for (const [path, url] of Object.entries(MAP_ASSETS)) {
-      const name = path.split('/').pop().replace('.png', '');
-      this.load.image(['forest', 'meadow', 'river'].includes(name) ? `map-terrain-${name}` : `map-${name}`, url);
-    }
+    this.load.image('world-pineshire-final', pineshireMapUrl);
     this.load.spritesheet('world-party-idle', partyIdleUrl, { frameWidth: 256, frameHeight: 256 });
     this.load.spritesheet('world-party-walk', partyWalkUrl, { frameWidth: 256, frameHeight: 256 });
     this.load.image('town', townUrl);
@@ -65,28 +55,26 @@ export default class BootScene extends Phaser.Scene {
     this.load.image('town-sign-enchanter', townSignEnchanterUrl);
     this.load.image('town-sign-world-map', townSignWorldMapUrl);
     this.load.image('town-sign-details', townSignDetailsUrl);
+    for (const delve of delves) {
+      const layer = delve.visuals?.environment?.layers[0];
+      if (layer) this.load.image(layer.key, layer.url);
+    }
     this.load.image('town-concept-pineshire', townForestUrl);
     this.load.image('town-concept-mountain-hold', townMountainUrl);
     this.load.image('town-concept-river-town', townRiverUrl);
     this.load.image('town-concept-marsh-town', townMarshUrl);
     this.load.image('town-concept-desert-town', townDesertUrl);
     this.load.image('town-concept-castle-town', townCastleUrl);
-    this.load.image('delve-concept-mosslight-grotto', delveGrottoUrl);
-    this.load.image('delve-concept-thornbriar-hollow', delveThornbriarUrl);
-    this.load.image('delve-concept-mountain-den', delveMountainUrl);
-    this.load.image('delve-concept-murmuring-abyss', delveAbyssUrl);
-    this.load.image('delve-concept-verdant-tear', delveVerdantUrl);
-    this.load.image('delve-concept-sunken-watch', delveSunkenUrl);
-    this.load.image('everdeep-concept', everdeepConceptUrl);
+    this.load.image('everdeep-concept', delves.find((delve) => delve.id === 'murmuring-abyss').visuals.environment.layers[0].url);
   }
 
   // This function restores the session and enters the world map in landscape.
   create() {
 
-    for (const path of Object.keys(MAP_ASSETS)) {
-      const name = path.split('/').pop().replace('.png', '');
-      this.textures.get(['forest', 'meadow', 'river'].includes(name) ? `map-terrain-${name}` : `map-${name}`).setFilter(1);
-    }
+    const sign = this.textures.get('town-sign-details');
+    const source = sign.getSourceImage();
+    if (!sign.has('panel')) sign.add('panel', 0, 0, Math.round(source.height * 0.125), source.width, Math.round(source.height * 0.71));
+    this.textures.get('world-pineshire-final').setFilter(1);
     this.initializeGameState();
     OrientationService.lockLandscape();
     this.scene.start('TitleScene');
@@ -100,7 +88,7 @@ export default class BootScene extends Phaser.Scene {
 
     // Rebuild base stats from current definitions, then merge saved growth.
     loadProfile(adventurers);
-    GameState.development.toolsVisible = import.meta.env.DEV && new URLSearchParams(window.location.search).has('devTools');
+    GameState.development.toolsVisible = true;
 
     // Public builds use ordinary progression even after a local development session.
     if (!import.meta.env.DEV) {

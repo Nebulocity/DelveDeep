@@ -53,7 +53,7 @@ export default class EverdeepScene extends Phaser.Scene {
     const run = GameState.everdeep.activeRun;
     if (run) return this.renderRun(run, width, height);
     if (!everdeepUnlocked()) {
-      this.addText(width / 2, height * 0.53, 'Clear The Slime Cave, Thornbriar Hollow, and Dolmark Den to unlock this expedition.', 38, '#cbd5e1', width * 0.7);
+      this.addText(width / 2, height * 0.53, 'Defeat the boss of The Sunken Watch to unlock this expedition.', 38, '#cbd5e1', width * 0.7);
       return;
     }
     this.renderPartySelection(width, height);

@@ -19,7 +19,7 @@ export function getBattleLayout(width, height, count = 5) {
   const buttonWidth = Math.min(300, (width - 690 - gap * (slots - 1)) / slots);
   const totalWidth = slots * buttonWidth + (slots - 1) * gap;
   return {
-    titleY: 36, messageY: 96, statusY: 145, labelY: 191,
+    titleY: 46, messageY: 134, statusY: 42, labelY: 204,
     buttonY: 252, buttonHeight: 80, buttonWidth,
     arenaTop: Math.max(450, height * 0.42),
     positions: Array.from({ length: slots }, (_, index) =>

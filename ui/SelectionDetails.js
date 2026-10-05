@@ -1,5 +1,7 @@
 import HapticsService from '../services/HapticsService.js';
 import { addWoodenPanel, addWoodenNotice } from './WoodenPanel.js';
+import { addStonePanel, addStoneButton, stoneText } from './CarvedStone.js';
+import { bindButtonPress } from './ButtonPress.js';
 
 export const DETAILS_HINT = 'Long-press or hold-click a selection for details.';
 
@@ -63,6 +65,7 @@ export function showSelectionDetails(scene, details) {
   scene.selectionDetailsClose = close;
   scene.events.once('shutdown', close);
   const depth = 10000;
+  const stone = scene.scene?.key === 'BattleScene';
   const panelWidth = Math.min(details.panelWidth ?? 1100, width - 120);
   const hasImage = Boolean(details.image && scene.textures.exists(details.image));
   const bodyMargin = 65;
@@ -78,7 +81,7 @@ export function showSelectionDetails(scene, details) {
   if (body.height > panelHeight - 190) body.setScale((panelHeight - 190) / body.height);
   const shade = scene.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7)
     .setDepth(depth).setInteractive();
-  const panel = addWoodenPanel(scene, width / 2, height / 2, panelWidth + 36, panelHeight + 36, depth + 1);
+  const panel = (stone ? addStonePanel : addWoodenPanel)(scene, width / 2, height / 2, panelWidth + 36, panelHeight + 36, depth + 1);
   const conceptHeight = Math.min(368, panelHeight - 180);
   const shopSign = shop && scene.textures.exists(shopTheme.plaque)
     ? scene.add.image(width / 2 - panelWidth / 2 + 120, top + Math.min(190, panelHeight / 2), shopTheme.plaque)
@@ -101,8 +104,12 @@ export function showSelectionDetails(scene, details) {
   };
   shade.on('pointerdown', dismiss);
   const buttonY = top + panelHeight - 52;
-  const button = addWoodenPanel(scene, width / 2, buttonY, 300, 72, depth + 3).setInteractive({ useHandCursor: true });
-  button.on('pointerdown', dismiss);
+  const button = (stone ? addStoneButton : addWoodenPanel)(scene, width / 2, buttonY, 300, 72, depth + 3).setInteractive({ useHandCursor: true });
+  if (stone) {
+    const label = stoneText(scene, width / 2, buttonY, 'CLOSE', 32, depth + 4);
+    objects.push(label);
+    bindButtonPress(scene, button, [label], () => { HapticsService.tap(); close(); });
+  } else button.on('pointerdown', dismiss);
   objects.push(shade, panel, body, button);
   if (conceptImage) objects.push(conceptImage);
   if (town) objects.push(panelHit);
@@ -113,7 +120,7 @@ export function showSelectionDetails(scene, details) {
       color: warm || shop ? (shop ? shopTheme.text : '#fff1d2') : '#bef264', stroke: town || shop ? '#24170f' : undefined,
       strokeThickness: town || shop ? 3 : 0
     }).setOrigin(0.5).setDepth(depth + 2),
-    scene.add.text(width / 2, button.y, 'CLOSE', {
+    scene.add.text(width / 2, button.y, stone ? '' : 'CLOSE', {
       fontFamily: town || shop ? 'Georgia' : 'Arial', fontSize: '32px', color: warm || shop ? (shop ? shopTheme.text : '#fff1d2') : '#ffffff',
       stroke: town || shop ? '#24170f' : undefined, strokeThickness: town || shop ? 2 : 0
     }).setOrigin(0.5).setDepth(depth + 4));

@@ -23,7 +23,8 @@ export default class UnitSprite {
     if (!definition?.textures || !unit.scene.textures) return null;
     if (!definition.textures.every(({ key }) => unit.scene.textures.exists(key))) return null;
     definition.textures.forEach(({ key }) => {
-      // Phaser's NEAREST texture filter preserves native PixelLab pixels.
+
+      // Phaser's NEAREST texture filter preserves the native sprite pixels.
       unit.scene.textures.get(key).setFilter(1);
     });
     return new UnitSprite(unit, definition);

@@ -4,6 +4,8 @@ Run `npm run test:visual` from the repository root. Playwright starts Vite, laun
 
 The maintained `illustrated-map.spec.js` and `ui-corrections.spec.js` exercise desktop and phone-sized map travel, reload, holds/drags, visible Dev Tools, full wooden How to Play, actual battlefield previews, Enchanter BUY/SELL empty states and potion quantities. Use `--workers=1` when software-rendered Chromium causes slow gesture dispatch. Windows sandbox `spawn EPERM` can require authorized escalation for Vite/esbuild/Chromium.
 
+`button-press.spec.js` checks mouse and touch holds, fixed edge hit regions, drag cancellation, release activation and camp boss controls. `carved-stone.spec.js` checks the live delve interface, held details, farming and shared grid geometry across Slime Cave, Thornbriar and Dolmark. Their review screenshots are saved under `output/qa/carved-stone/`.
+
 Screenshots and matching JSON bounds reports are written to `tests/visual/screenshots/<SceneName>.png` and `<SceneName>.json`. They are generated locally and ignored by Git. Open the PNG and inspect the whole scene. The screenshot is the deciding evidence; the JSON warnings are only leads for inspection. Playwright also attaches the PNG to its test result.
 
 ## Capture a scene

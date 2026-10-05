@@ -1,6 +1,6 @@
 node_modules/
 
-# Keep project notes, changelogs, and Codex instructions local.
+# Keep private project notes, changelogs, and authoring instructions local.
 # The root README remains public.
 *.md
 !/README.md
@@ -18,6 +18,7 @@ AGENTS.md*
 !/tests/visual/README.md
 /scripts/
 /outputs/
+/output/
 /.tmp/
 /buildapk.sh
 
@@ -28,6 +29,22 @@ AGENTS.md*
 
 .agents/
 .codex/
+.claude/
+.cursor/
+.github/copilot-instructions.md
+
+# Private generation prompts, service job records, and asset provenance.
+**/prompts/
+**/prompt.*
+**/prompts.*
+**/*-prompts.*
+**/*-prompt.*
+/assets/**/jobs.json
+/assets/**/*-jobs.json
+/assets/**/source.json
+/assets/**/*-provenance.json
+/assets/characters/reference-v2-animations.json
+/assets/characters/reference-v2-corrections.json
 
 .env
 .env.local

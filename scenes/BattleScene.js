@@ -1,4 +1,5 @@
-import { addWoodenPanel } from '../ui/WoodenPanel.js';
+import { bindButtonPress } from '../ui/ButtonPress.js';
+import { preloadCarvedStone, addStonePanel, addStoneButton, addStoneOrnaments, stoneText, stoneIcon, campStoneIcon, delveStoneTheme, STONE } from '../ui/CarvedStone.js';
 import { preloadSlimeSprites } from '../data/slimeSprites.js';
 import { chooseWaveLandings } from '../combat/WaveLanding.js';
 import { bindSelectionDetails, characterDetails } from '../ui/SelectionDetails.js';
@@ -42,6 +43,7 @@ export default class BattleScene extends Phaser.Scene {
   // delve. Other delves retain the existing battlefield presentation.
   preload() {
     trackLoading(this);
+    preloadCarvedStone(this);
     preloadCharacterSprites(this);
     preloadEnemySprites(this);
     preloadSlimeSprites(this);
@@ -92,6 +94,8 @@ export default class BattleScene extends Phaser.Scene {
     this.awaitingRevive = false;
     this.battleLayout = getBattleLayout(width, height);
     this.combatPaused = false;
+    this.time.paused = false;
+    this.stoneTheme = delveStoneTheme(GameState.currentDelve);
 
     // Define the logical combat area and the screen-space perspective used to
     // display its grid and units.
@@ -149,9 +153,9 @@ export default class BattleScene extends Phaser.Scene {
     if (!GameState.development.toolsVisible) return;
 
     this.terrainEditor = new BattlefieldTerrainEditor(this, this.battlefield, this.terrain);
-    this.terrainEditorButton = this.add.rectangle(width - 125, 34, 220, 48, 0x292524)
+    this.terrainEditorButton = this.add.rectangle(155, 790, 220, 48, 0x292524)
       .setStrokeStyle(2, 0xfacc15).setInteractive({ useHandCursor: true }).setDepth(11000);
-    this.terrainEditorButtonLabel = this.add.text(width - 125, 34, 'EDIT TERRAIN', {
+    this.terrainEditorButtonLabel = this.add.text(155, 790, 'EDIT TERRAIN', {
       fontFamily: 'Arial', fontSize: '22px', fontStyle: 'bold', color: '#facc15'
     }).setOrigin(0.5).setDepth(11001);
     this.terrainEditorButton.on('pointerdown', (pointer, localX, localY, event) => {
@@ -173,31 +177,15 @@ export default class BattleScene extends Phaser.Scene {
   // This function shows the delve title, tactical guidance, and encounter
   // status.
   createHeader(width) {
-
-    this.add.text(width / 2, this.battleLayout.titleY, GameState.currentDelve?.name ?? 'THE DELVE', {
-      fontFamily: 'Arial',
-      fontSize: '48px',
-      fontStyle: 'bold',
-      color: '#f5f5f4'
-    }).setOrigin(0.5).setDepth(4501);
-
-    this.battleMessageText = this.add.text(width / 2, this.battleLayout.messageY, '', {
-      fontFamily: 'Arial',
-      fontSize: '36px',
-      fontStyle: 'bold',
-      color: '#d6a85f',
-      stroke: '#000000',
-      strokeThickness: 5
-    }).setOrigin(0.5).setDepth(5000);
-
-    this.battleMessagePlaque = addWoodenPanel(this, width / 2, this.battleLayout.messageY, 1500, 60, 4999).setVisible(false);
-
-    this.encounterStatusText = this.add.text(width / 2, this.battleLayout.statusY, '', {
-      fontFamily: 'Arial',
-      fontSize: '32px',
-      fontStyle: 'bold',
-      color: '#fb923c'
-    }).setOrigin(0.5).setDepth(4501);
+    addStonePanel(this, width / 2, 48, width, 96, 4500);
+    const title = stoneText(this, width * 0.40, 46, (GameState.currentDelve?.name ?? 'The Delve').toUpperCase(), 48, 4501);
+    if (title.width > width * 0.50) title.setScale(width * 0.50 / title.width);
+    addStoneOrnaments(this, width * 0.40, 44, width * 0.56, this.stoneTheme, 4502);
+    this.encounterStatusText = stoneText(this, width * 0.76, 42, '', 31, 4501);
+    this.encounterTimerText = stoneText(this, width * 0.76, 75, '', 23, 4501, { color: STONE.muted });
+    this.battleMessageText = stoneText(this, width / 2, this.battleLayout.messageY, '', 34, 5000,
+      { wordWrap: { width: 1430 }, align: 'center' });
+    this.battleMessagePlaque = addStonePanel(this, width / 2, this.battleLayout.messageY, 1500, 74, 4999).setVisible(false);
   }
 
   // This function draws the battlefield beneath its units and tactical
@@ -277,76 +265,51 @@ export default class BattleScene extends Phaser.Scene {
   // and mana for mana users. It stores references to the changing labels and
   // bars so updateHud can refresh them during combat.
   createHud(width, height) {
-
     const hudTop = height * 0.78;
-    this.add.rectangle(width / 2, (hudTop + height) / 2, width, height - hudTop, 0x0c0a09).setDepth(4500);
+    const cardHeight = height - hudTop - 14;
+    const sectionWidth = (width - 44) / 5;
     this.partyHud = [];
-
-    // Divide the space below the battlefield into five party panels.
-    const usableWidth = width - 104;
-    const sectionWidth = usableWidth / 5;
-    const hudBarWidth = sectionWidth - 175;
-    const startX = 52 + 70;
+    addStonePanel(this, width / 2, hudTop + cardHeight / 2, width, cardHeight + 24, 4500);
     this.partyUnits.forEach((unit, index) => {
-
-      const x = startX + index * sectionWidth;
-      // Give the whole portrait/name/class area one generous touch target.
-      const statusHitZone = this.add.rectangle(x + sectionWidth / 2 - 6, hudTop + 70, sectionWidth - 20, 116, 0xffffff, 0.001)
-        .setDepth(4500);
+      const left = 22 + index * sectionWidth;
+      const center = left + sectionWidth / 2;
+      const panel = addStonePanel(this, center, hudTop + cardHeight / 2, sectionWidth - 8, cardHeight, 4501);
+      const statusHitZone = this.add.rectangle(center, hudTop + cardHeight / 2, sectionWidth - 14, cardHeight - 10, 0, 0.001).setDepth(4504);
       bindSelectionDetails(this, statusHitZone, () => characterDetails(unit), () => this.toggleUnitSelection(unit));
-      const portrait = this.add.circle(x, hudTop + 72, 36, unit.color).setDepth(4501);
-      bindSelectionDetails(this, portrait, () => characterDetails(unit), () => this.toggleUnitSelection(unit));
-      const potionButton = this.add.rectangle(x, hudTop + 155, 130, 72, 0x14532d)
-        .setStrokeStyle(2, 0x86efac).setDepth(4502);
-      const potionLabel = this.add.text(x, hudTop + 155, 'POTION', {
-        fontFamily: 'Arial', fontSize: '25px', fontStyle: 'bold', color: '#ffffff', align: 'center'
-      }).setOrigin(0.5).setDepth(4503);
+      addStonePanel(this, left + 78, hudTop + 89, 132, 150, 4502);
+      const frame = unit.spriteVisual?.definition?.clips.idle?.south?.frames[0];
+      if (frame) {
+        this.add.image(left + 78, hudTop + 83, frame.key, frame.frame).setDisplaySize(143, 143).setDepth(4503);
+      } else {
+        stoneText(this, left + 78, hudTop + 83, unit.name.slice(0, 1), 62, 4503);
+      }
+      const textX = left + 159;
+      const textWidth = sectionWidth - 185;
+      const nameText = stoneText(this, textX, hudTop + 38, unit.name, 39, 4503).setOrigin(0, 0.5);
+      if (nameText.width > textWidth) nameText.setScale(textWidth / nameText.width);
+      const classText = stoneText(this, textX, hudTop + 73, unit.shortName ?? unit.className, 29, 4503,
+        { color: STONE.muted }).setOrigin(0, 0.5);
+      if (classText.width > textWidth) classText.setScale(textWidth / classText.width);
+      const hudBarWidth = textWidth;
+      const hudBarX = textX;
+      const hpY = hudTop + 122;
+      const hpGlow = this.add.rectangle(hudBarX - 3, hpY, hudBarWidth + 6, 28, 0, 0).setOrigin(0, 0.5).setDepth(4502);
+      this.add.rectangle(hudBarX, hpY, hudBarWidth, 26, 0x080f1b).setOrigin(0, 0.5).setStrokeStyle(2, STONE.edge).setDepth(4502);
+      const hpFill = this.add.rectangle(hudBarX, hpY, hudBarWidth, 22, 0xc93837).setOrigin(0, 0.5).setDepth(4503);
+      const hpText = stoneText(this, hudBarX + hudBarWidth / 2, hpY, '', 25, 4504);
+      const manaY = hudTop + 174;
+      const manaBack = this.add.rectangle(hudBarX, manaY, hudBarWidth, 22, 0x080f1b).setOrigin(0, 0.5).setStrokeStyle(2, STONE.edge).setDepth(4502);
+      const manaFill = this.add.rectangle(hudBarX, manaY, hudBarWidth, 18, 0x367ed6).setOrigin(0, 0.5).setDepth(4503);
+      const manaText = stoneText(this, hudBarX + hudBarWidth / 2, manaY, '', 24, 4504);
+      const threatText = stoneText(this, hudBarX, hudTop + 204, '', 24, 4503).setVisible(false);
+      const potionButton = addStoneButton(this, left + 78, hudTop + 187, 132, 72, 4505);
+      const potionLabel = stoneText(this, left + 78, hudTop + 187, 'POTION', 25, 4506, { align: 'center' });
       bindSelectionDetails(this, potionButton, () => this.potionDetails(unit), () => this.usePotion(unit));
-      const nameText = this.add.text(x + 85, hudTop + 38, unit.name, {
-        fontFamily:'Arial', fontSize:'39px', fontStyle:'bold', color:'#f5f5f4'
-      }).setOrigin(0,0.5).setDepth(4501);
-      this.add.text(x + 85, hudTop + 73, unit.shortName ?? unit.className, {
-        fontFamily:'Arial', fontSize:'32px', color:'#cbd5e1'
-      }).setOrigin(0,0.5).setDepth(4501);
-
-      const hudBarX = x + 85;
-      const hudBarY = hudTop + 108;
-
-      // Create the health bar objects that updateHud will resize and recolor.
-      const hpGlow = this.add.rectangle(hudBarX - 4, hudBarY, hudBarWidth + 8, 24, 0x000000, 0)
-        .setOrigin(0, 0.5)
-        .setStrokeStyle(5, 0xf97316, 0)
-        .setDepth(4501);
-      const hpBack = this.add.rectangle(hudBarX, hudBarY, hudBarWidth, 16, 0x1c1917)
-        .setOrigin(0, 0.5)
-        .setDepth(4501);
-      const hpFill = this.add.rectangle(hudBarX, hudBarY, hudBarWidth, 16, 0x22c55e)
-        .setOrigin(0, 0.5)
-        .setDepth(4502);
-
-      // Show mana only for units with a mana pool; keep it in the bottom HUD.
-      const manaBarY = hudTop + 132;
-      const manaBack = this.add.rectangle(hudBarX, manaBarY, hudBarWidth, 12, 0x111827)
-        .setOrigin(0, 0.5)
-        .setDepth(4501)
-        .setVisible(unit.maxMana > 0);
-      const manaFill = this.add.rectangle(hudBarX, manaBarY, hudBarWidth, 12, 0x3b82f6)
-        .setOrigin(0, 0.5)
-        .setDepth(4502)
-        .setVisible(unit.maxMana > 0);
-      const hpText=this.add.text(hudBarX,hudTop+158,'',{fontFamily:'Arial',fontSize:'26px',color:'#d6d3d1'}).setOrigin(0,0.5).setDepth(4501);
-      const manaText=this.add.text(hudBarX,hudTop+184,'',{fontFamily:'Arial',fontSize:'24px',color:'#93c5fd'})
-        .setOrigin(0,0.5)
-        .setDepth(4501)
-        .setVisible(unit.maxMana > 0);
-      const threatText=this.add.text(hudBarX,hudTop+208,'',{fontFamily:'Arial',fontSize:'24px',color:'#a8a29e'})
-        .setOrigin(0,0.5)
-        .setDepth(4501)
-        .setVisible(false);
-      bindSelectionDetails(this, nameText, () => characterDetails(unit), () => this.toggleUnitSelection(unit));
-      this.partyHud.push({statusHitZone,potionButton,potionLabel,unit,nameText,hpText,manaText,threatText,hpFill,hpGlow,manaBack,manaFill,hudBarWidth});
+      bindButtonPress(this, potionButton, [potionLabel]);
+      this.partyHud.push({ panel, statusHitZone, potionButton, potionLabel, unit, nameText,
+        hpText, manaText, threatText, hpFill, hpGlow, manaBack, manaFill, hudBarWidth });
     });
-    this.updatePotionHud();
+    this.updateHud();
   }
 
   // This function makes the perspective tiles usable as touch destinations.
@@ -369,57 +332,51 @@ export default class BattleScene extends Phaser.Scene {
   // This function places role selection and tactical orders beside the
   // battlefield.
   createTacticsMenus(width, height) {
-
-    const left = [
-      ['ALL', 'All'],
-      ['RANGED', 'Ranged DPS'], ['MELEE', 'Melee DPS'], ['HEALERS', 'Healer'], ['TANKS', 'Tank']
-    ];
+    const left = [['ALL', 'All'], ['MELEE', 'Melee'], ['RANGED', 'Ranged'], ['HEALERS', 'Healer'], ['TANKS', 'Tank']];
     const right = ['MOVE', 'HOLD', 'SPREAD', 'STACK', 'ATTACK', 'INTERRUPT'];
-    const firstY = height * 0.31;
-    const gap = 76;
-    // Add All above the existing role rows and keep space above the party HUD.
-    const leftFirstY = firstY - gap;
     this.roleButtons = [];
     this.commandButtons = [];
-
-    this.add.text(155, leftFirstY - 70, 'SELECT', {fontFamily:'Arial',fontSize:'33px',fontStyle:'bold',color:'#94a3b8'}).setOrigin(0.5);
+    const gap = 104;
+    const firstY = 236;
+    addStonePanel(this, 155, 460, 304, 594, 4599);
+    addStonePanel(this, width - 155, 492, 304, 714, 4599);
     left.forEach(([label, role], index) => {
-
-      const y = leftFirstY + index * gap;
-      const box = this.add.rectangle(155, y, 250, 68, 0x1f2937).setStrokeStyle(3,0x475569).setInteractive({useHandCursor:true}).setDepth(4600);
-      const text = this.add.text(155,y,label,{fontFamily:'Arial',fontSize:'33px',fontStyle:'bold',color:'#e5e7eb'}).setOrigin(0.5).setDepth(4601);
-      box.on('pointerdown',()=>this.selectRole(role));
-      bindSelectionDetails(this, box, { title: label, description: role === 'All' ? 'Select every living party member, then issue an order.' : `Select all living ${role} adventurers, then issue an order.` });
-      this.roleButtons.push({box,text,role});
+      const y = firstY + index * gap;
+      const box = addStoneButton(this, 155, y, 280, 94);
+      const icon = stoneIcon(this, 54, y, label, 40);
+      const text = stoneText(this, 177, y, label, 33);
+      box.on('pointerdown', () => this.selectRole(role));
+      bindSelectionDetails(this, box, { title: label, description: role === 'All'
+        ? 'Select every living party member, then issue an order.'
+        : `Select all living ${role} adventurers, then issue an order.` });
+      bindButtonPress(this, box, [text, icon]);
+      this.roleButtons.push({ box, text, role });
     });
-
-    const pauseY = leftFirstY + left.length * gap;
-    this.pauseButton = this.add.rectangle(155, pauseY, 250, 62, 0x1f2937).setStrokeStyle(3,0x475569).setInteractive({useHandCursor:true}).setDepth(4600);
-    this.pauseButtonText = this.add.text(155,pauseY,'PAUSE',{fontFamily:'Arial',fontSize:'31px',fontStyle:'bold',color:'#e5e7eb'}).setOrigin(0.5).setDepth(4601);
-    this.pauseButton.on('pointerdown',()=>this.togglePause());
-
-    const fleeY = leftFirstY + (left.length + 1) * gap;
-    const fleeButton = this.add.rectangle(155, fleeY, 250, 62, 0x3f1d1d).setStrokeStyle(3,0x991b1b).setInteractive({useHandCursor:true}).setDepth(4600);
-    this.add.text(155,fleeY,'FLEE',{fontFamily:'Arial',fontSize:'31px',fontStyle:'bold',color:'#fecaca'}).setOrigin(0.5).setDepth(4601);
-    fleeButton.on('pointerdown',()=>this.fleeBattle());
-
-    this.add.text(width-155, firstY - 70, 'ORDERS', {fontFamily:'Arial',fontSize:'33px',fontStyle:'bold',color:'#94a3b8'}).setOrigin(0.5);
-    right.forEach((label,index)=>{
-
-      const y=firstY+index*gap;
-      const box=this.add.rectangle(width-155,y,270,68,0x1f2937).setStrokeStyle(3,0x475569).setInteractive({useHandCursor:true}).setDepth(4600);
-      const text=this.add.text(width-155,y,label,{fontFamily:'Arial',fontSize:label.length>10?'29px':'33px',fontStyle:'bold',color:'#e5e7eb'}).setOrigin(0.5).setDepth(4601);
-      box.on('pointerdown',()=>this.armCommand(label));
-      const descriptions = {
-        MOVE: 'Choose a destination for selected allies. They move there and hold.',
-        HOLD: 'Selected allies stay at their positions while acting within range.',
-        SPREAD: 'Selected allies spread out around the chosen point to avoid area attacks.',
-        STACK: 'Selected allies gather tightly around the chosen point.',
-        ATTACK: 'Choose an enemy for selected allies to pursue and attack. Explicitly ordered healers attack until the target dies or the order changes.',
-        INTERRUPT: 'Choose a casting enemy. Selected allies with a ready interrupt try to stop its cast.'
-      };
+    this.pauseButton = addStoneButton(this, width - 178, 48, 324, 84, 4600);
+    const pauseIcon = stoneIcon(this, width - 293, 48, 'PAUSE', 36);
+    this.pauseButtonText = stoneText(this, width - 150, 48, 'PAUSE', 34);
+    bindButtonPress(this, this.pauseButton, [this.pauseButtonText, pauseIcon], () => this.togglePause());
+    const fleeButton = addStoneButton(this, width - 155, 796, 280, 78, 4600, 0x3f1d1d);
+    const fleeText = stoneText(this, width - 135, 796, 'RETREAT', 30, 4602, { color: '#ffd5be' });
+    const fleeIcon = stoneIcon(this, width - 254, 796, 'RETREAT', 36);
+    bindButtonPress(this, fleeButton, [fleeText, fleeIcon], () => this.fleeBattle());
+    const descriptions = {
+      MOVE: 'Choose a destination for selected allies. They move there and hold.',
+      HOLD: 'Selected allies stay at their positions while acting within range.',
+      SPREAD: 'Selected allies spread out around the chosen point to avoid area attacks.',
+      STACK: 'Selected allies gather tightly around the chosen point.',
+      ATTACK: 'Choose an enemy for selected allies to pursue and attack. Explicitly ordered healers attack until the target dies or the order changes.',
+      INTERRUPT: 'Choose a casting enemy. Selected allies with a ready interrupt try to stop its cast.'
+    };
+    right.forEach((label, index) => {
+      const y = 174 + index * gap;
+      const box = addStoneButton(this, width - 155, y, 280, 94);
+      const icon = stoneIcon(this, width - 256, y, label, 38);
+      const text = stoneText(this, width - 131, y, label, label === 'INTERRUPT' ? 28 : 32);
+      box.on('pointerdown', () => this.armCommand(label));
       bindSelectionDetails(this, box, { title: label, description: descriptions[label] });
-      this.commandButtons.push({box,text,label});
+      bindButtonPress(this, box, [text, icon]);
+      this.commandButtons.push({ box, text, label });
     });
     this.refreshTacticsMenus();
   }
@@ -441,9 +398,8 @@ export default class BattleScene extends Phaser.Scene {
       const ability = leaderAbilities.find((entry) => entry.id === id);
       if (!ability) return;
       const x = layout.positions[index];
-      const box = this.add.rectangle(x, layout.buttonY, layout.buttonWidth, layout.buttonHeight, 0x292524)
-        .setStrokeStyle(3, 0x84cc16).setInteractive({ useHandCursor: true }).setDepth(4700);
-      this.add.text(x, layout.buttonY - 17, ability.shortName, {
+      const box = addStoneButton(this, x, layout.buttonY, layout.buttonWidth, layout.buttonHeight, 4700);
+      const name = this.add.text(x, layout.buttonY - 17, ability.shortName, {
         fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#bef264'
       }).setOrigin(0.5).setDepth(4701);
       const status = this.add.text(x, layout.buttonY + 20, '', {
@@ -451,6 +407,7 @@ export default class BattleScene extends Phaser.Scene {
       }).setOrigin(0.5).setDepth(4701);
       box.on('pointerdown', () => this.useLeaderAbility(id));
       bindSelectionDetails(this, box, { title: ability.name, description: ability.description });
+      bindButtonPress(this, box, [name, status]);
       this.leaderButtons.push({ ability, box, status });
     });
     this.updateLeaderLoadoutBar();
@@ -691,12 +648,12 @@ export default class BattleScene extends Phaser.Scene {
       const selected = role === 'All'
         ? living.length > 0 && living.every((unit) => this.selectedUnitIds.has(unit.id))
         : living.some((unit) => unit.role === role && this.selectedUnitIds.has(unit.id));
-      box.setFillStyle(selected?0x243b53:0x1f2937).setStrokeStyle(3,selected?0x60a5fa:0x475569);
+      box.setFillStyle(selected?0x243b53:0x1f2937).setStrokeStyle(3,selected?STONE.gold:STONE.edge);
     });
     this.commandButtons?.forEach(({box,label})=>{
 
       const active=this.commandMode===label;
-      box.setFillStyle(active?0x3b321d:0x1f2937).setStrokeStyle(3,active?0xfbbf24:0x475569);
+      box.setFillStyle(active?0x3b321d:0x1f2937).setStrokeStyle(3,active?STONE.gold:STONE.edge);
     });
     this.partyUnits?.forEach((u) => u.body.setStrokeStyle(
       this.selectedUnitIds.has(u.id) ? 7 : 4,
@@ -1054,7 +1011,7 @@ export default class BattleScene extends Phaser.Scene {
     const centerX = width / 2;
     const centerY = height / 2;
     const panelWidth = Math.min(1160, width - 660);
-    const backdrop = addWoodenPanel(this, 0, 0, panelWidth, 248);
+    const backdrop = addStonePanel(this, 0, 0, panelWidth, 248);
     const labelText = this.add.text(0, -76, isBoss ? 'BOSS WAVE' : '', {
       fontFamily: 'Arial', fontSize: '31px', fontStyle: 'bold', color: '#d8b761'
     }).setOrigin(0.5);
@@ -2108,59 +2065,55 @@ export default class BattleScene extends Phaser.Scene {
 
   // Keep the camp choices on the battlefield at the saved pre-boss checkpoint.
   showDelveCamp() {
-
     this.waveTransitioning = true;
     this.waveRetreating = false;
     GameState.run.entry = 'camp';
     GameState.currentRoom = this.bossWaveIndex;
     this.clearBattleMessage();
-    const { width, height } = this.scale;
     const delve = GameState.currentDelve;
     const values = WAVE_REWARDS[delve.difficulty] ?? WAVE_REWARDS.Easy;
-    const farmIndex = this.bossWaveIndex - 1;
+    const farmIndex = Math.max(0, this.bossWaveIndex - 1);
     const farmGold = values.gold + values.goldStep * farmIndex;
     const farmXp = Math.max(1, Math.floor(values.xp / 2));
+    const { width, height } = this.scale;
+    this.encounterStatusText.setText('CAMP CHECKPOINT');
+    this.encounterTimerText.setText('Rewards saved');
     const overlay = [];
-    overlay.push(this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.78)
-      .setInteractive().setDepth(11999));
-    overlay.push(addWoodenPanel(this, width / 2, height / 2, 1390, 770, 12000));
-    overlay.push(this.add.text(width / 2, height * 0.24, 'DELVE CAMP', {
-      fontFamily: 'Arial', fontSize: '68px', fontStyle: 'bold', color: '#bef264'
-    }).setOrigin(0.5).setDepth(12001));
-    overlay.push(this.add.text(width / 2, height * 0.30,
-      `Waves 1-${this.bossWaveIndex} cleared • Rewards and camp saved`, {
-        fontFamily: 'Arial', fontSize: '31px', color: '#e7e5e4'
-      }).setOrigin(0.5).setDepth(12001));
-
-    const choice = (y, title, detail, action, color) => {
-      const button = this.add.rectangle(width / 2, y, 1180, 138, color)
-        .setStrokeStyle(3, 0x78716c).setInteractive({ useHandCursor: true }).setDepth(12001);
-      overlay.push(button);
-      overlay.push(this.add.text(width / 2, y - 25, title, {
-        fontFamily: 'Arial', fontSize: '38px', fontStyle: 'bold', color: '#ffffff'
-      }).setOrigin(0.5).setDepth(12002));
-      overlay.push(this.add.text(width / 2, y + 26, detail, {
-        fontFamily: 'Arial', fontSize: '29px', color: '#e7e5e4'
-      }).setOrigin(0.5).setDepth(12002));
-      button.on('pointerdown', () => {
+    const blocker = this.add.rectangle(width / 2, height / 2, width, height, 0, 0.001).setInteractive().setDepth(11999);
+    blocker.on('pointerdown', (pointer, x, y, event) => event?.stopPropagation?.());
+    overlay.push(blocker);
+    overlay.push(addStonePanel(this, width / 2, 506, 1700, 568, 12000));
+    overlay.push(addStoneOrnaments(this, width / 2, 274, 1630, this.stoneTheme, 12002));
+    overlay.push(stoneText(this, width / 2, 282, 'DELVE CAMP', 62, 12002));
+    overlay.push(stoneText(this, width / 2, 346, 'Rewards and checkpoint saved.', 32, 12002,
+      { color: STONE.muted }));
+    const choice = (index, title, detail, action, color) => {
+      const x = width / 2 + (index - 1) * 528;
+      const button = addStoneButton(this, x, 583, 502, 354, 12001, color);
+      const symbol = campStoneIcon(this, x, 482, index, 12003);
+      const titleText = stoneText(this, x, 601, title, 36, 12003);
+      const detailText = stoneText(this, x, 670, detail, 29, 12003,
+        { align: 'center', color: index === 1 ? '#f5d788' : STONE.muted, wordWrap: { width: 422 } });
+      overlay.push(button, symbol, titleText, detailText);
+      bindButtonPress(this, button, [symbol, titleText, detailText], () => {
         HapticsService.confirm();
-        overlay.forEach((object) => object.destroy());
+        overlay.forEach(object => object.destroy());
         action();
       });
     };
-    choice(height * 0.42, 'RETURN TO TOWN', 'Keep all banked rewards', () => {
+    choice(0, 'RETURN TO TOWN', 'Keep all banked rewards', () => {
       GameState.activeParty = [];
       const townId = delve.returnTownId ?? (delve.requiresLocation === 'duskfall' ? 'duskfall' : 'pineshire');
       GameState.world.currentLocation = townId;
       saveProfile();
       this.scene.start('TownScene', { townId });
-    }, 0x365135);
-    choice(height * 0.59, `FARM WAVE ${this.bossWaveIndex}`,
-      `${farmGold} Gold • ${values.materialCount} material • ${farmXp} XP per adventurer`, () => {
+    }, 0x1f2937);
+    choice(1, `FARM WAVE ${this.bossWaveIndex}`,
+      `${farmGold} Gold + ${values.materialCount} material\nHalf XP: ${farmXp} per adventurer`, () => {
         GameState.run.entry = 'farm';
         this.startWave(farmIndex);
       }, 0x50432e);
-    choice(height * 0.76, 'FACE THE BOSS', 'Boss rewards and Delve completion', () => {
+    choice(2, 'FACE THE BOSS', 'Boss rewards and Delve completion', () => {
       GameState.run.entry = 'boss';
       this.startWave(this.bossWaveIndex);
     }, 0x633328);
@@ -2233,9 +2186,9 @@ export default class BattleScene extends Phaser.Scene {
       const ratio = unit.maxHp > 0 ? Phaser.Math.Clamp(unit.hp / unit.maxHp, 0, 1) : 0;
       const manaRatio = unit.maxMana > 0 ? Phaser.Math.Clamp(unit.mana / unit.maxMana, 0, 1) : 0;
       const healthColor = this.getHealthBarColor(ratio);
-      hpText.setText(unit.alive ? `${Math.ceil(unit.hp)} / ${unit.maxHp} HP` : 'DOWN');
+      hpText.setText(unit.alive ? `${Math.ceil(unit.hp)} / ${unit.maxHp}` : 'DOWN');
       threatText.setText(unit.alive ? `Threat ${Math.round(this.getCombinedThreat(unit))}` : '');
-      hpFill.setDisplaySize(hudBarWidth * ratio, 16);
+      hpFill.setDisplaySize(hudBarWidth * ratio, 22);
       hpFill.setFillStyle(healthColor);
       hpFill.setVisible(unit.alive && ratio > 0);
       hpGlow.setStrokeStyle(5, healthColor, 0);
@@ -2243,8 +2196,8 @@ export default class BattleScene extends Phaser.Scene {
       if (unit.maxMana > 0) {
         manaBack.setVisible(true);
         manaFill.setVisible(unit.alive && manaRatio > 0);
-        manaFill.setDisplaySize(hudBarWidth * manaRatio, 12);
-        manaText.setVisible(true).setText(unit.alive ? `${Math.floor(unit.mana)} / ${unit.maxMana} Mana` : '');
+        manaFill.setDisplaySize(hudBarWidth * manaRatio, 18);
+        manaText.setVisible(true).setText(unit.alive ? `${Math.floor(unit.mana)} / ${unit.maxMana}` : '');
       } else {
         manaBack.setVisible(false);
         manaFill.setVisible(false);
@@ -2271,8 +2224,9 @@ export default class BattleScene extends Phaser.Scene {
     if (!this.encounterStatusText || this.currentWaveIndex < 0) return;
     const elapsed = formatDuration(Date.now() - (GameState.run.startedAt || Date.now()));
     const wave = this.waves?.[this.currentWaveIndex];
-    const waveLabel = wave?.boss ? wave.name : `Wave ${this.currentWaveIndex + 1}/${this.waves.length}`;
-    this.encounterStatusText.setText(`(${elapsed}) ${waveLabel}`);
+    const camp = GameState.run.entry === 'camp';
+    this.encounterStatusText.setText(camp ? 'CAMP CHECKPOINT' : `WAVE ${this.currentWaveIndex + 1} / ${this.waves.length}`);
+    this.encounterTimerText.setText(camp ? 'Rewards saved' : `${elapsed}${wave?.boss ? ' • BOSS' : ''}`);
   }
 
   // This function draws attention to the party member taking enemy damage.
@@ -2380,7 +2334,7 @@ export default class BattleScene extends Phaser.Scene {
       .setDepth(11999);
     inputBlocker.on('pointerdown', (pointer, localX, localY, event) => event?.stopPropagation?.());
 
-    addWoodenPanel(this, width / 2, centerY, width * 0.78, 390, 12000);
+    addStonePanel(this, width / 2, centerY, width * 0.78, 390, 12000);
 
     this.add.text(width / 2, centerY - 95, title, {
       fontFamily: 'Arial',
@@ -2395,18 +2349,16 @@ export default class BattleScene extends Phaser.Scene {
       color: '#d6d3d1'
     }).setOrigin(0.5).setDepth(12001);
 
-    const button = this.add.rectangle(width / 2, centerY + 90, width * 0.58, 96, 0x44403c)
-      .setInteractive({ useHandCursor: true })
-      .setDepth(12001);
+    const button = addStoneButton(this, width / 2, centerY + 90, width * 0.58, 96, 12001);
 
-    this.add.text(width / 2, centerY + 90, buttonLabel, {
+    const buttonText = this.add.text(width / 2, centerY + 90, buttonLabel, {
       fontFamily: 'Arial',
       fontSize: '38px',
       fontStyle: 'bold',
       color: '#ffffff'
     }).setOrigin(0.5).setDepth(12002);
 
-    button.on('pointerdown', callback);
+    bindButtonPress(this, button, [buttonText], callback);
     button.on('pointerover', () => button.setFillStyle(0x57534e));
     button.on('pointerout', () => button.setFillStyle(0x44403c));
   }

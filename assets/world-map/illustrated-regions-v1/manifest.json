@@ -1,0 +1,1492 @@
+{
+  "version": 1,
+  "status": "Artwork and proposed navigation; not integrated into runtime",
+  "locationCountPerRegion": 8,
+  "coordinateSpace": "Normalized image coordinates; visually reviewed destination anchors, route polylines require tracing for runtime travel",
+  "reference": "../../screens/map.png",
+  "regions": [
+    {
+      "id": "pineshire-reach",
+      "name": "Pineshire Reach",
+      "order": 1,
+      "theme": "Moonlit evergreen woodland, mossy ravines, blue streams, stone bridges and small waterfalls.",
+      "image": "01-pineshire-reach-v4.png",
+      "locations": [
+        {
+          "id": "pineshire-reach-town",
+          "name": "Pineshire",
+          "type": "town",
+          "position": [
+            0.13,
+            0.77
+          ]
+        },
+        {
+          "id": "pineshire-reach-delve-1",
+          "name": "The Slime Cave",
+          "type": "delve",
+          "position": [
+            0.14,
+            0.41
+          ],
+          "landmark": "mossy cave oozing green slime",
+          "order": 1
+        },
+        {
+          "id": "pineshire-reach-delve-2",
+          "name": "Thornbriar Hollow",
+          "type": "delve",
+          "position": [
+            0.3,
+            0.2
+          ],
+          "landmark": "rootbound bandit camp with red tents and a central campfire",
+          "order": 2
+        },
+        {
+          "id": "pineshire-reach-delve-3",
+          "name": "Dolmark Den",
+          "type": "delve",
+          "position": [
+            0.57,
+            0.25
+          ],
+          "landmark": "rocky skull-shaped monster den with lanterns",
+          "order": 3
+        },
+        {
+          "id": "pineshire-reach-delve-4",
+          "name": "The Old Quarry",
+          "type": "delve",
+          "position": [
+            0.48,
+            0.58
+          ],
+          "landmark": "abandoned terraced quarry mine entrance with timber machinery",
+          "order": 4
+        },
+        {
+          "id": "pineshire-reach-delve-5",
+          "name": "The Sunken Watch",
+          "type": "delve",
+          "position": [
+            0.58,
+            0.78
+          ],
+          "landmark": "drowned ancient watchtower dungeon entrance beside a small pool",
+          "order": 5
+        },
+        {
+          "id": "pineshire-reach-everdeep",
+          "name": "The Everdeep",
+          "type": "everdeep",
+          "position": [
+            0.89,
+            0.34
+          ]
+        },
+        {
+          "id": "pineshire-reach-portal",
+          "name": "The Murmuring Abyss",
+          "type": "void",
+          "position": [
+            0.92,
+            0.78
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from": "pineshire-reach-town",
+          "to": "pineshire-reach-delve-1",
+          "requiresClear": null
+        },
+        {
+          "from": "pineshire-reach-delve-1",
+          "to": "pineshire-reach-delve-2",
+          "requiresClear": "pineshire-reach-delve-1"
+        },
+        {
+          "from": "pineshire-reach-delve-2",
+          "to": "pineshire-reach-delve-3",
+          "requiresClear": "pineshire-reach-delve-2"
+        },
+        {
+          "from": "pineshire-reach-delve-3",
+          "to": "pineshire-reach-delve-4",
+          "requiresClear": "pineshire-reach-delve-3"
+        },
+        {
+          "from": "pineshire-reach-delve-4",
+          "to": "pineshire-reach-delve-5",
+          "requiresClear": "pineshire-reach-delve-4"
+        },
+        {
+          "from": "pineshire-reach-delve-5",
+          "to": "pineshire-reach-everdeep",
+          "requiresClear": "pineshire-reach-delve-5"
+        },
+        {
+          "from": "pineshire-reach-delve-5",
+          "to": "pineshire-reach-portal",
+          "requiresClear": "pineshire-reach-delve-5"
+        },
+        {
+          "from": "pineshire-reach-portal",
+          "to": "highmere-crags-town",
+          "requiresClear": "pineshire-reach-portal",
+          "exitPosition": [
+            1,
+            0.78
+          ],
+          "status": "next-region"
+        }
+      ],
+      "gate": {
+        "position": [
+          0.79,
+          0.69
+        ],
+        "junction": [
+          0.83,
+          0.69
+        ],
+        "requiresClear": "pineshire-reach-delve-5",
+        "branches": [
+          "pineshire-reach-everdeep",
+          "pineshire-reach-portal"
+        ],
+        "rendering": "Separate runtime overlay only; no gate baked into background"
+      },
+      "sourceImage": "01-pineshire-reach.png",
+      "intake": {
+        "position": [
+          0,
+          0.88
+        ],
+        "to": "pineshire-reach-town",
+        "fromPortal": null
+      }
+    },
+    {
+      "id": "highmere-crags",
+      "name": "Highmere Crags",
+      "order": 2,
+      "theme": "Steep gray mountain terraces, windswept pines, cold blue cascades, ancient stone bridges and alpine mist.",
+      "image": "02-highmere-crags-v3.png",
+      "locations": [
+        {
+          "id": "highmere-crags-town",
+          "name": "Highmere",
+          "type": "town",
+          "position": [
+            0.1,
+            0.73
+          ]
+        },
+        {
+          "id": "highmere-crags-delve-1",
+          "name": "Slatejaw Mine",
+          "type": "delve",
+          "position": [
+            0.36,
+            0.81
+          ],
+          "landmark": "timber-framed slate mine entrance",
+          "order": 1
+        },
+        {
+          "id": "highmere-crags-delve-2",
+          "name": "The Broken Aerie",
+          "type": "delve",
+          "position": [
+            0.41,
+            0.52
+          ],
+          "landmark": "ruined eagle-roost sanctuary on a crag",
+          "order": 2
+        },
+        {
+          "id": "highmere-crags-delve-3",
+          "name": "Stormroot Hollow",
+          "type": "delve",
+          "position": [
+            0.27,
+            0.3
+          ],
+          "landmark": "gnarled pine-root cave beside a waterfall",
+          "order": 3
+        },
+        {
+          "id": "highmere-crags-delve-4",
+          "name": "The Fallen Bastion",
+          "type": "delve",
+          "position": [
+            0.5,
+            0.27
+          ],
+          "landmark": "broken stone bastion dungeon",
+          "order": 4
+        },
+        {
+          "id": "highmere-crags-delve-5",
+          "name": "Crownstone Vault",
+          "type": "delve",
+          "position": [
+            0.7,
+            0.44
+          ],
+          "landmark": "ancient stone vault set into the highest mountain terrace",
+          "order": 5
+        },
+        {
+          "id": "highmere-crags-everdeep",
+          "name": "The Everdeep",
+          "type": "everdeep",
+          "position": [
+            0.9,
+            0.25
+          ]
+        },
+        {
+          "id": "highmere-crags-portal",
+          "name": "The Stormscar",
+          "type": "void",
+          "position": [
+            0.94,
+            0.65
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from": "highmere-crags-town",
+          "to": "highmere-crags-delve-1",
+          "requiresClear": null
+        },
+        {
+          "from": "highmere-crags-delve-1",
+          "to": "highmere-crags-delve-2",
+          "requiresClear": "highmere-crags-delve-1"
+        },
+        {
+          "from": "highmere-crags-delve-2",
+          "to": "highmere-crags-delve-3",
+          "requiresClear": "highmere-crags-delve-2"
+        },
+        {
+          "from": "highmere-crags-delve-3",
+          "to": "highmere-crags-delve-4",
+          "requiresClear": "highmere-crags-delve-3"
+        },
+        {
+          "from": "highmere-crags-delve-4",
+          "to": "highmere-crags-delve-5",
+          "requiresClear": "highmere-crags-delve-4"
+        },
+        {
+          "from": "highmere-crags-delve-5",
+          "to": "highmere-crags-everdeep",
+          "requiresClear": "highmere-crags-delve-5"
+        },
+        {
+          "from": "highmere-crags-delve-5",
+          "to": "highmere-crags-portal",
+          "requiresClear": "highmere-crags-delve-5"
+        },
+        {
+          "from": "highmere-crags-portal",
+          "to": "reedhaven-fen-town",
+          "requiresClear": "highmere-crags-portal",
+          "exitPosition": [
+            1,
+            0.65
+          ],
+          "status": "next-region"
+        }
+      ],
+      "gate": {
+        "position": [
+          0.81,
+          0.45
+        ],
+        "junction": [
+          0.84,
+          0.45
+        ],
+        "requiresClear": "highmere-crags-delve-5",
+        "branches": [
+          "highmere-crags-everdeep",
+          "highmere-crags-portal"
+        ],
+        "rendering": "Separate runtime overlay only; no gate baked into background"
+      },
+      "sourceImage": "02-highmere-crags.png",
+      "intake": {
+        "position": [
+          0,
+          0.85
+        ],
+        "to": "highmere-crags-town",
+        "fromPortal": "pineshire-reach-portal"
+      }
+    },
+    {
+      "id": "reedhaven-fen",
+      "name": "Reedhaven Fen",
+      "order": 3,
+      "theme": "Dark teal marshland, reed channels, twisted willows, mossy islands, wooden walkways and green witchlights.",
+      "image": "03-reedhaven-fen-v2.png",
+      "locations": [
+        {
+          "id": "reedhaven-fen-town",
+          "name": "Reedhaven",
+          "type": "town",
+          "position": [
+            0.14,
+            0.29
+          ]
+        },
+        {
+          "id": "reedhaven-fen-delve-1",
+          "name": "Mirefang Grotto",
+          "type": "delve",
+          "position": [
+            0.15,
+            0.6
+          ],
+          "landmark": "reed-fringed beast grotto",
+          "order": 1
+        },
+        {
+          "id": "reedhaven-fen-delve-2",
+          "name": "The Drowned Chapel",
+          "type": "delve",
+          "position": [
+            0.36,
+            0.86
+          ],
+          "landmark": "half-submerged ruined chapel entrance",
+          "order": 2
+        },
+        {
+          "id": "reedhaven-fen-delve-3",
+          "name": "Bogthorn Encampment",
+          "type": "delve",
+          "position": [
+            0.48,
+            0.61
+          ],
+          "landmark": "bandit camp on a raised marsh island",
+          "order": 3
+        },
+        {
+          "id": "reedhaven-fen-delve-4",
+          "name": "The Reed Crypt",
+          "type": "delve",
+          "position": [
+            0.44,
+            0.35
+          ],
+          "landmark": "ivy-covered burial crypt",
+          "order": 4
+        },
+        {
+          "id": "reedhaven-fen-delve-5",
+          "name": "Blackwater Keep",
+          "type": "delve",
+          "position": [
+            0.64,
+            0.22
+          ],
+          "landmark": "sunken fortress dungeon on a rocky island",
+          "order": 5
+        },
+        {
+          "id": "reedhaven-fen-everdeep",
+          "name": "The Everdeep",
+          "type": "everdeep",
+          "position": [
+            0.9,
+            0.24
+          ]
+        },
+        {
+          "id": "reedhaven-fen-portal",
+          "name": "The Hollow Tide",
+          "type": "void",
+          "position": [
+            0.91,
+            0.58
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from": "reedhaven-fen-town",
+          "to": "reedhaven-fen-delve-1",
+          "requiresClear": null
+        },
+        {
+          "from": "reedhaven-fen-delve-1",
+          "to": "reedhaven-fen-delve-2",
+          "requiresClear": "reedhaven-fen-delve-1"
+        },
+        {
+          "from": "reedhaven-fen-delve-2",
+          "to": "reedhaven-fen-delve-3",
+          "requiresClear": "reedhaven-fen-delve-2"
+        },
+        {
+          "from": "reedhaven-fen-delve-3",
+          "to": "reedhaven-fen-delve-4",
+          "requiresClear": "reedhaven-fen-delve-3"
+        },
+        {
+          "from": "reedhaven-fen-delve-4",
+          "to": "reedhaven-fen-delve-5",
+          "requiresClear": "reedhaven-fen-delve-4"
+        },
+        {
+          "from": "reedhaven-fen-delve-5",
+          "to": "reedhaven-fen-everdeep",
+          "requiresClear": "reedhaven-fen-delve-5"
+        },
+        {
+          "from": "reedhaven-fen-delve-5",
+          "to": "reedhaven-fen-portal",
+          "requiresClear": "reedhaven-fen-delve-5"
+        },
+        {
+          "from": "reedhaven-fen-portal",
+          "to": "amberfall-woods-town",
+          "requiresClear": "reedhaven-fen-portal",
+          "exitPosition": [
+            1,
+            0.58
+          ],
+          "status": "next-region"
+        }
+      ],
+      "gate": {
+        "position": [
+          0.78,
+          0.32
+        ],
+        "junction": [
+          0.82,
+          0.33
+        ],
+        "requiresClear": "reedhaven-fen-delve-5",
+        "branches": [
+          "reedhaven-fen-everdeep",
+          "reedhaven-fen-portal"
+        ],
+        "rendering": "Separate runtime overlay only; no gate baked into background"
+      },
+      "sourceImage": "03-reedhaven-fen.png",
+      "intake": {
+        "position": [
+          0,
+          0.56
+        ],
+        "to": "reedhaven-fen-town",
+        "fromPortal": "highmere-crags-portal"
+      }
+    },
+    {
+      "id": "amberfall-woods",
+      "name": "Amberfall Woods",
+      "order": 4,
+      "theme": "Copper autumn forest, deep moss, winding ravines, amber leaves, blue waterfalls and warm late-evening light.",
+      "image": "04-amberfall-woods-v3.png",
+      "locations": [
+        {
+          "id": "amberfall-woods-town",
+          "name": "Amberfall",
+          "type": "town",
+          "position": [
+            0.1,
+            0.46
+          ]
+        },
+        {
+          "id": "amberfall-woods-delve-1",
+          "name": "Foxglove Burrow",
+          "type": "delve",
+          "position": [
+            0.34,
+            0.3
+          ],
+          "landmark": "root-covered burrow cave",
+          "order": 1
+        },
+        {
+          "id": "amberfall-woods-delve-2",
+          "name": "The Cinder Camp",
+          "type": "delve",
+          "position": [
+            0.52,
+            0.19
+          ],
+          "landmark": "outlaw tent camp with embers",
+          "order": 2
+        },
+        {
+          "id": "amberfall-woods-delve-3",
+          "name": "Redleaf Ruins",
+          "type": "delve",
+          "position": [
+            0.6,
+            0.48
+          ],
+          "landmark": "ancient leaf-covered stone sanctuary",
+          "order": 3
+        },
+        {
+          "id": "amberfall-woods-delve-4",
+          "name": "The Hollow Mill",
+          "type": "delve",
+          "position": [
+            0.35,
+            0.72
+          ],
+          "landmark": "abandoned watermill dungeon by a stream",
+          "order": 4
+        },
+        {
+          "id": "amberfall-woods-delve-5",
+          "name": "The Briar Crown",
+          "type": "delve",
+          "position": [
+            0.61,
+            0.75
+          ],
+          "landmark": "massive thornbound ruin entrance",
+          "order": 5
+        },
+        {
+          "id": "amberfall-woods-everdeep",
+          "name": "The Everdeep",
+          "type": "everdeep",
+          "position": [
+            0.91,
+            0.4
+          ]
+        },
+        {
+          "id": "amberfall-woods-portal",
+          "name": "The Gloaming Scar",
+          "type": "void",
+          "position": [
+            0.92,
+            0.85
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from": "amberfall-woods-town",
+          "to": "amberfall-woods-delve-1",
+          "requiresClear": null
+        },
+        {
+          "from": "amberfall-woods-delve-1",
+          "to": "amberfall-woods-delve-2",
+          "requiresClear": "amberfall-woods-delve-1"
+        },
+        {
+          "from": "amberfall-woods-delve-2",
+          "to": "amberfall-woods-delve-3",
+          "requiresClear": "amberfall-woods-delve-2"
+        },
+        {
+          "from": "amberfall-woods-delve-3",
+          "to": "amberfall-woods-delve-4",
+          "requiresClear": "amberfall-woods-delve-3"
+        },
+        {
+          "from": "amberfall-woods-delve-4",
+          "to": "amberfall-woods-delve-5",
+          "requiresClear": "amberfall-woods-delve-4"
+        },
+        {
+          "from": "amberfall-woods-delve-5",
+          "to": "amberfall-woods-everdeep",
+          "requiresClear": "amberfall-woods-delve-5"
+        },
+        {
+          "from": "amberfall-woods-delve-5",
+          "to": "amberfall-woods-portal",
+          "requiresClear": "amberfall-woods-delve-5"
+        },
+        {
+          "from": "amberfall-woods-portal",
+          "to": "sunspoke-expanse-town",
+          "requiresClear": "amberfall-woods-portal",
+          "exitPosition": [
+            1,
+            0.85
+          ],
+          "status": "next-region"
+        }
+      ],
+      "gate": {
+        "position": [
+          0.75,
+          0.75
+        ],
+        "junction": [
+          0.8,
+          0.72
+        ],
+        "requiresClear": "amberfall-woods-delve-5",
+        "branches": [
+          "amberfall-woods-everdeep",
+          "amberfall-woods-portal"
+        ],
+        "rendering": "Separate runtime overlay only; no gate baked into background"
+      },
+      "sourceImage": "04-amberfall-woods.png",
+      "intake": {
+        "position": [
+          0,
+          0.52
+        ],
+        "to": "amberfall-woods-town",
+        "fromPortal": "reedhaven-fen-portal"
+      }
+    },
+    {
+      "id": "sunspoke-expanse",
+      "name": "Sunspoke Expanse",
+      "order": 5,
+      "theme": "Ochre sandstone canyons, turquoise oasis channels, palm groves, weathered ruins and cool violet desert dusk.",
+      "image": "05-sunspoke-expanse-v3.png",
+      "locations": [
+        {
+          "id": "sunspoke-expanse-town",
+          "name": "Sunspoke",
+          "type": "town",
+          "position": [
+            0.1,
+            0.8
+          ]
+        },
+        {
+          "id": "sunspoke-expanse-delve-1",
+          "name": "Sandcoil Hollow",
+          "type": "delve",
+          "position": [
+            0.34,
+            0.72
+          ],
+          "landmark": "sandstone serpent cave",
+          "order": 1
+        },
+        {
+          "id": "sunspoke-expanse-delve-2",
+          "name": "The Buried Shrine",
+          "type": "delve",
+          "position": [
+            0.17,
+            0.36
+          ],
+          "landmark": "half-buried carved desert shrine",
+          "order": 2
+        },
+        {
+          "id": "sunspoke-expanse-delve-3",
+          "name": "Dustfang Camp",
+          "type": "delve",
+          "position": [
+            0.42,
+            0.22
+          ],
+          "landmark": "desert raider camp with warm lamps",
+          "order": 3
+        },
+        {
+          "id": "sunspoke-expanse-delve-4",
+          "name": "The Glass Quarry",
+          "type": "delve",
+          "position": [
+            0.66,
+            0.38
+          ],
+          "landmark": "crystal-studded quarry mine entrance",
+          "order": 4
+        },
+        {
+          "id": "sunspoke-expanse-delve-5",
+          "name": "The Sunken Colossus",
+          "type": "delve",
+          "position": [
+            0.59,
+            0.63
+          ],
+          "landmark": "colossal ancient statue with a dungeon entrance in its base",
+          "order": 5
+        },
+        {
+          "id": "sunspoke-expanse-everdeep",
+          "name": "The Everdeep",
+          "type": "everdeep",
+          "position": [
+            0.93,
+            0.42
+          ]
+        },
+        {
+          "id": "sunspoke-expanse-portal",
+          "name": "The Violet Mirage",
+          "type": "void",
+          "position": [
+            0.92,
+            0.86
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from": "sunspoke-expanse-town",
+          "to": "sunspoke-expanse-delve-1",
+          "requiresClear": null
+        },
+        {
+          "from": "sunspoke-expanse-delve-1",
+          "to": "sunspoke-expanse-delve-2",
+          "requiresClear": "sunspoke-expanse-delve-1"
+        },
+        {
+          "from": "sunspoke-expanse-delve-2",
+          "to": "sunspoke-expanse-delve-3",
+          "requiresClear": "sunspoke-expanse-delve-2"
+        },
+        {
+          "from": "sunspoke-expanse-delve-3",
+          "to": "sunspoke-expanse-delve-4",
+          "requiresClear": "sunspoke-expanse-delve-3"
+        },
+        {
+          "from": "sunspoke-expanse-delve-4",
+          "to": "sunspoke-expanse-delve-5",
+          "requiresClear": "sunspoke-expanse-delve-4"
+        },
+        {
+          "from": "sunspoke-expanse-delve-5",
+          "to": "sunspoke-expanse-everdeep",
+          "requiresClear": "sunspoke-expanse-delve-5"
+        },
+        {
+          "from": "sunspoke-expanse-delve-5",
+          "to": "sunspoke-expanse-portal",
+          "requiresClear": "sunspoke-expanse-delve-5"
+        },
+        {
+          "from": "sunspoke-expanse-portal",
+          "to": "frostwarden-reach-town",
+          "requiresClear": "sunspoke-expanse-portal",
+          "exitPosition": [
+            1,
+            0.86
+          ],
+          "status": "next-region"
+        }
+      ],
+      "gate": {
+        "position": [
+          0.75,
+          0.61
+        ],
+        "junction": [
+          0.8,
+          0.64
+        ],
+        "requiresClear": "sunspoke-expanse-delve-5",
+        "branches": [
+          "sunspoke-expanse-everdeep",
+          "sunspoke-expanse-portal"
+        ],
+        "rendering": "Separate runtime overlay only; no gate baked into background"
+      },
+      "sourceImage": "05-sunspoke-expanse.png",
+      "intake": {
+        "position": [
+          0,
+          0.86
+        ],
+        "to": "sunspoke-expanse-town",
+        "fromPortal": "amberfall-woods-portal"
+      }
+    },
+    {
+      "id": "frostwarden-reach",
+      "name": "Frostwarden Reach",
+      "order": 6,
+      "theme": "Snowy fir forests, blue ice cliffs, frozen waterfalls, deep navy shadows and warm amber windows.",
+      "image": "06-frostwarden-reach-v3.png",
+      "locations": [
+        {
+          "id": "frostwarden-reach-town",
+          "name": "Frostwarden",
+          "type": "town",
+          "position": [
+            0.14,
+            0.24
+          ]
+        },
+        {
+          "id": "frostwarden-reach-delve-1",
+          "name": "Rimefang Cave",
+          "type": "delve",
+          "position": [
+            0.37,
+            0.2
+          ],
+          "landmark": "icy beast cave",
+          "order": 1
+        },
+        {
+          "id": "frostwarden-reach-delve-2",
+          "name": "The Frozen Chapel",
+          "type": "delve",
+          "position": [
+            0.55,
+            0.43
+          ],
+          "landmark": "ruined ice-covered chapel dungeon",
+          "order": 2
+        },
+        {
+          "id": "frostwarden-reach-delve-3",
+          "name": "Winterthorn Camp",
+          "type": "delve",
+          "position": [
+            0.2,
+            0.53
+          ],
+          "landmark": "fur-clad raider camp with a bright fire",
+          "order": 3
+        },
+        {
+          "id": "frostwarden-reach-delve-4",
+          "name": "The White Mine",
+          "type": "delve",
+          "position": [
+            0.35,
+            0.76
+          ],
+          "landmark": "snowbound timber mine entrance",
+          "order": 4
+        },
+        {
+          "id": "frostwarden-reach-delve-5",
+          "name": "The Icebound Citadel",
+          "type": "delve",
+          "position": [
+            0.63,
+            0.66
+          ],
+          "landmark": "frozen stone citadel dungeon",
+          "order": 5
+        },
+        {
+          "id": "frostwarden-reach-everdeep",
+          "name": "The Everdeep",
+          "type": "everdeep",
+          "position": [
+            0.92,
+            0.33
+          ]
+        },
+        {
+          "id": "frostwarden-reach-portal",
+          "name": "The Pale Rift",
+          "type": "void",
+          "position": [
+            0.94,
+            0.86
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from": "frostwarden-reach-town",
+          "to": "frostwarden-reach-delve-1",
+          "requiresClear": null
+        },
+        {
+          "from": "frostwarden-reach-delve-1",
+          "to": "frostwarden-reach-delve-2",
+          "requiresClear": "frostwarden-reach-delve-1"
+        },
+        {
+          "from": "frostwarden-reach-delve-2",
+          "to": "frostwarden-reach-delve-3",
+          "requiresClear": "frostwarden-reach-delve-2"
+        },
+        {
+          "from": "frostwarden-reach-delve-3",
+          "to": "frostwarden-reach-delve-4",
+          "requiresClear": "frostwarden-reach-delve-3"
+        },
+        {
+          "from": "frostwarden-reach-delve-4",
+          "to": "frostwarden-reach-delve-5",
+          "requiresClear": "frostwarden-reach-delve-4"
+        },
+        {
+          "from": "frostwarden-reach-delve-5",
+          "to": "frostwarden-reach-everdeep",
+          "requiresClear": "frostwarden-reach-delve-5"
+        },
+        {
+          "from": "frostwarden-reach-delve-5",
+          "to": "frostwarden-reach-portal",
+          "requiresClear": "frostwarden-reach-delve-5"
+        },
+        {
+          "from": "frostwarden-reach-portal",
+          "to": "tidewatch-coast-town",
+          "requiresClear": "frostwarden-reach-portal",
+          "exitPosition": [
+            1,
+            0.86
+          ],
+          "status": "next-region"
+        }
+      ],
+      "gate": {
+        "position": [
+          0.8,
+          0.61
+        ],
+        "junction": [
+          0.85,
+          0.65
+        ],
+        "requiresClear": "frostwarden-reach-delve-5",
+        "branches": [
+          "frostwarden-reach-everdeep",
+          "frostwarden-reach-portal"
+        ],
+        "rendering": "Separate runtime overlay only; no gate baked into background"
+      },
+      "sourceImage": "06-frostwarden-reach.png",
+      "intake": {
+        "position": [
+          0,
+          0.27
+        ],
+        "to": "frostwarden-reach-town",
+        "fromPortal": "sunspoke-expanse-portal"
+      }
+    },
+    {
+      "id": "tidewatch-coast",
+      "name": "Tidewatch Coast",
+      "order": 7,
+      "theme": "Stormy sea cliffs, blue-green tidal inlets, windswept woods, sea arches, pale rock terraces and lantern-lit dusk.",
+      "image": "07-tidewatch-coast-v3.png",
+      "locations": [
+        {
+          "id": "tidewatch-coast-town",
+          "name": "Tidewatch",
+          "type": "town",
+          "position": [
+            0.14,
+            0.7
+          ]
+        },
+        {
+          "id": "tidewatch-coast-delve-1",
+          "name": "Brinefang Grotto",
+          "type": "delve",
+          "position": [
+            0.28,
+            0.39
+          ],
+          "landmark": "Lower seaside cave and upper timber exit of one underground Delve",
+          "order": 1,
+          "traversal": {
+            "type": "underground",
+            "entrance": [
+              0.28,
+              0.39
+            ],
+            "exit": [
+              0.4,
+              0.18
+            ],
+            "requiresBossDefeat": "tidewatch-coast-delve-1",
+            "presentation": "Enter lower mouth; after boss victory, fade party inside, pan camera, emerge at upper exit; both mouths share one clear and checkpoint",
+            "status": "Authored integration contract; not implemented in game runtime"
+          }
+        },
+        {
+          "id": "tidewatch-coast-delve-2",
+          "name": "The Wreckers Camp",
+          "type": "delve",
+          "position": [
+            0.44,
+            0.73
+          ],
+          "landmark": "pirate camp built around a wrecked ship",
+          "order": 2
+        },
+        {
+          "id": "tidewatch-coast-delve-3",
+          "name": "The Drowned Abbey",
+          "type": "delve",
+          "position": [
+            0.61,
+            0.46
+          ],
+          "landmark": "ruined abbey dungeon above the tide",
+          "order": 3
+        },
+        {
+          "id": "tidewatch-coast-delve-4",
+          "name": "The Tidal Crypt",
+          "type": "delve",
+          "position": [
+            0.72,
+            0.27
+          ],
+          "landmark": "Small weathered stone crypt on the upper plateau between abbey and lighthouse",
+          "order": 4
+        },
+        {
+          "id": "tidewatch-coast-delve-5",
+          "name": "The Broken Beacon",
+          "type": "delve",
+          "position": [
+            0.67,
+            0.19
+          ],
+          "landmark": "ruined lighthouse dungeon on a high headland",
+          "order": 5
+        },
+        {
+          "id": "tidewatch-coast-everdeep",
+          "name": "The Everdeep",
+          "type": "everdeep",
+          "position": [
+            0.95,
+            0.21
+          ]
+        },
+        {
+          "id": "tidewatch-coast-portal",
+          "name": "The Undertow",
+          "type": "void",
+          "position": [
+            0.93,
+            0.53
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from": "tidewatch-coast-town",
+          "to": "tidewatch-coast-delve-1",
+          "requiresClear": null
+        },
+        {
+          "from": "tidewatch-coast-delve-1",
+          "to": "tidewatch-coast-delve-2",
+          "requiresClear": "tidewatch-coast-delve-1",
+          "departure": "underground-exit"
+        },
+        {
+          "from": "tidewatch-coast-delve-2",
+          "to": "tidewatch-coast-delve-3",
+          "requiresClear": "tidewatch-coast-delve-2"
+        },
+        {
+          "from": "tidewatch-coast-delve-3",
+          "to": "tidewatch-coast-delve-4",
+          "requiresClear": "tidewatch-coast-delve-3"
+        },
+        {
+          "from": "tidewatch-coast-delve-4",
+          "to": "tidewatch-coast-delve-5",
+          "requiresClear": "tidewatch-coast-delve-4"
+        },
+        {
+          "from": "tidewatch-coast-delve-5",
+          "to": "tidewatch-coast-everdeep",
+          "requiresClear": "tidewatch-coast-delve-5"
+        },
+        {
+          "from": "tidewatch-coast-delve-5",
+          "to": "tidewatch-coast-portal",
+          "requiresClear": "tidewatch-coast-delve-5"
+        },
+        {
+          "from": "tidewatch-coast-portal",
+          "to": "emberforge-caldera-town",
+          "requiresClear": "tidewatch-coast-portal",
+          "exitPosition": [
+            1,
+            0.53
+          ],
+          "status": "next-region"
+        }
+      ],
+      "gate": {
+        "position": [
+          0.8,
+          0.31
+        ],
+        "junction": [
+          0.85,
+          0.34
+        ],
+        "requiresClear": "tidewatch-coast-delve-5",
+        "branches": [
+          "tidewatch-coast-everdeep",
+          "tidewatch-coast-portal"
+        ],
+        "rendering": "Separate runtime overlay only; no gate baked into background"
+      },
+      "sourceImage": "07-tidewatch-coast.png",
+      "intake": {
+        "position": [
+          0,
+          0.78
+        ],
+        "to": "tidewatch-coast-town",
+        "fromPortal": "frostwarden-reach-portal"
+      },
+      "artReview": "Two mouths count as one Delve; replacement Tidal Crypt preserves five Delves. Surface road tracing is still required."
+    },
+    {
+      "id": "emberforge-caldera",
+      "name": "Emberforge Caldera",
+      "order": 8,
+      "theme": "Black basalt terraces, red lava ravines, scorched firs, sulfur pools, smoky violet sky and orange furnace light.",
+      "image": "08-emberforge-caldera-v3.png",
+      "locations": [
+        {
+          "id": "emberforge-caldera-town",
+          "name": "Emberforge",
+          "type": "town",
+          "position": [
+            0.1,
+            0.43
+          ]
+        },
+        {
+          "id": "emberforge-caldera-delve-1",
+          "name": "Ashmaw Cavern",
+          "type": "delve",
+          "position": [
+            0.3,
+            0.2
+          ],
+          "landmark": "basalt monster cave with ember glow",
+          "order": 1
+        },
+        {
+          "id": "emberforge-caldera-delve-2",
+          "name": "The Charred Camp",
+          "type": "delve",
+          "position": [
+            0.53,
+            0.28
+          ],
+          "landmark": "raider camp in a scorched clearing",
+          "order": 2
+        },
+        {
+          "id": "emberforge-caldera-delve-3",
+          "name": "Obsidian Quarry",
+          "type": "delve",
+          "position": [
+            0.47,
+            0.52
+          ],
+          "landmark": "obsidian quarry with a mining entrance",
+          "order": 3
+        },
+        {
+          "id": "emberforge-caldera-delve-4",
+          "name": "The Fallen Furnace",
+          "type": "delve",
+          "position": [
+            0.31,
+            0.75
+          ],
+          "landmark": "ruined underground forge entrance",
+          "order": 4
+        },
+        {
+          "id": "emberforge-caldera-delve-5",
+          "name": "The Cinder Citadel",
+          "type": "delve",
+          "position": [
+            0.59,
+            0.86
+          ],
+          "landmark": "black volcanic fortress dungeon",
+          "order": 5
+        },
+        {
+          "id": "emberforge-caldera-everdeep",
+          "name": "The Everdeep",
+          "type": "everdeep",
+          "position": [
+            0.92,
+            0.49
+          ]
+        },
+        {
+          "id": "emberforge-caldera-portal",
+          "name": "The Ember Rift",
+          "type": "void",
+          "position": [
+            0.92,
+            0.88
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from": "emberforge-caldera-town",
+          "to": "emberforge-caldera-delve-1",
+          "requiresClear": null
+        },
+        {
+          "from": "emberforge-caldera-delve-1",
+          "to": "emberforge-caldera-delve-2",
+          "requiresClear": "emberforge-caldera-delve-1"
+        },
+        {
+          "from": "emberforge-caldera-delve-2",
+          "to": "emberforge-caldera-delve-3",
+          "requiresClear": "emberforge-caldera-delve-2"
+        },
+        {
+          "from": "emberforge-caldera-delve-3",
+          "to": "emberforge-caldera-delve-4",
+          "requiresClear": "emberforge-caldera-delve-3"
+        },
+        {
+          "from": "emberforge-caldera-delve-4",
+          "to": "emberforge-caldera-delve-5",
+          "requiresClear": "emberforge-caldera-delve-4"
+        },
+        {
+          "from": "emberforge-caldera-delve-5",
+          "to": "emberforge-caldera-everdeep",
+          "requiresClear": "emberforge-caldera-delve-5"
+        },
+        {
+          "from": "emberforge-caldera-delve-5",
+          "to": "emberforge-caldera-portal",
+          "requiresClear": "emberforge-caldera-delve-5"
+        },
+        {
+          "from": "emberforge-caldera-portal",
+          "to": "starfall-verge-town",
+          "requiresClear": "emberforge-caldera-portal",
+          "exitPosition": [
+            1,
+            0.88
+          ],
+          "status": "next-region"
+        }
+      ],
+      "gate": {
+        "position": [
+          0.77,
+          0.73
+        ],
+        "junction": [
+          0.81,
+          0.74
+        ],
+        "requiresClear": "emberforge-caldera-delve-5",
+        "branches": [
+          "emberforge-caldera-everdeep",
+          "emberforge-caldera-portal"
+        ],
+        "rendering": "Separate runtime overlay only; no gate baked into background"
+      },
+      "sourceImage": "08-emberforge-caldera.png",
+      "intake": {
+        "position": [
+          0,
+          0.61
+        ],
+        "to": "emberforge-caldera-town",
+        "fromPortal": "tidewatch-coast-portal"
+      }
+    },
+    {
+      "id": "starfall-verge",
+      "name": "Starfall Verge",
+      "order": 9,
+      "theme": "Ancient midnight woodland on pale fractured stone terraces, luminous cyan streams, violet crystals and a starry silver sky.",
+      "image": "09-starfall-verge-v3.png",
+      "locations": [
+        {
+          "id": "starfall-verge-town",
+          "name": "Starfall",
+          "type": "town",
+          "position": [
+            0.13,
+            0.64
+          ]
+        },
+        {
+          "id": "starfall-verge-delve-1",
+          "name": "Moonroot Hollow",
+          "type": "delve",
+          "position": [
+            0.34,
+            0.48
+          ],
+          "landmark": "luminous root-wrapped cave",
+          "order": 1
+        },
+        {
+          "id": "starfall-verge-delve-2",
+          "name": "The Silent Camp",
+          "type": "delve",
+          "position": [
+            0.19,
+            0.27
+          ],
+          "landmark": "abandoned expedition camp with cold magical lanterns",
+          "order": 2
+        },
+        {
+          "id": "starfall-verge-delve-3",
+          "name": "The Shattered Observatory",
+          "type": "delve",
+          "position": [
+            0.51,
+            0.23
+          ],
+          "landmark": "ruined stone observatory dungeon",
+          "order": 3
+        },
+        {
+          "id": "starfall-verge-delve-4",
+          "name": "The Crystal Sepulchre",
+          "type": "delve",
+          "position": [
+            0.65,
+            0.43
+          ],
+          "landmark": "crystalline ancient tomb entrance",
+          "order": 4
+        },
+        {
+          "id": "starfall-verge-delve-5",
+          "name": "The Last Bastion",
+          "type": "delve",
+          "position": [
+            0.58,
+            0.81
+          ],
+          "landmark": "ancient final fortress dungeon on a fractured stone terrace",
+          "order": 5
+        },
+        {
+          "id": "starfall-verge-everdeep",
+          "name": "The Everdeep",
+          "type": "everdeep",
+          "position": [
+            0.91,
+            0.45
+          ]
+        },
+        {
+          "id": "starfall-verge-portal",
+          "name": "The Last Veil",
+          "type": "void",
+          "position": [
+            0.92,
+            0.86
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from": "starfall-verge-town",
+          "to": "starfall-verge-delve-1",
+          "requiresClear": null
+        },
+        {
+          "from": "starfall-verge-delve-1",
+          "to": "starfall-verge-delve-2",
+          "requiresClear": "starfall-verge-delve-1"
+        },
+        {
+          "from": "starfall-verge-delve-2",
+          "to": "starfall-verge-delve-3",
+          "requiresClear": "starfall-verge-delve-2"
+        },
+        {
+          "from": "starfall-verge-delve-3",
+          "to": "starfall-verge-delve-4",
+          "requiresClear": "starfall-verge-delve-3"
+        },
+        {
+          "from": "starfall-verge-delve-4",
+          "to": "starfall-verge-delve-5",
+          "requiresClear": "starfall-verge-delve-4"
+        },
+        {
+          "from": "starfall-verge-delve-5",
+          "to": "starfall-verge-everdeep",
+          "requiresClear": "starfall-verge-delve-5"
+        },
+        {
+          "from": "starfall-verge-delve-5",
+          "to": "starfall-verge-portal",
+          "requiresClear": "starfall-verge-delve-5"
+        },
+        {
+          "from": "starfall-verge-portal",
+          "to": null,
+          "requiresClear": "starfall-verge-portal",
+          "exitPosition": [
+            1,
+            0.86
+          ],
+          "status": "future-exit"
+        }
+      ],
+      "gate": {
+        "position": [
+          0.76,
+          0.7
+        ],
+        "junction": [
+          0.8,
+          0.72
+        ],
+        "requiresClear": "starfall-verge-delve-5",
+        "branches": [
+          "starfall-verge-everdeep",
+          "starfall-verge-portal"
+        ],
+        "rendering": "Separate runtime overlay only; no gate baked into background"
+      },
+      "sourceImage": "09-starfall-verge.png",
+      "intake": {
+        "position": [
+          0,
+          0.77
+        ],
+        "to": "starfall-verge-town",
+        "fromPortal": "emberforge-caldera-portal"
+      }
+    }
+  ]
+}

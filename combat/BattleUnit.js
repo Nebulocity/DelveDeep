@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import UnitSprite from './UnitSprite.js';
+import { monsterDeathPose } from './SpritePresentation.js';
 
 export default class BattleUnit {
 
@@ -12,8 +14,11 @@ export default class BattleUnit {
     this.scene = scene;
     this.battlefield = config.battlefield;
     this.id = config.id;
+    this.spriteId = config.spriteId;
     this.name = config.name;
     this.className = config.className ?? '';
+    this.shortName = config.shortName;
+    this.gridAbilities = config.gridAbilities === true;
     this.role = config.role ?? '';
     this.color = config.color;
     this.isBoss = config.boss === true;
@@ -24,7 +29,7 @@ export default class BattleUnit {
     this.mana = this.maxMana;
     this.manaRegen = Math.max(0, config.manaRegen ?? 0);
     this.basicHealManaCost = Math.max(0, config.basicHealManaCost ?? 0);
-    this.moveSpeed = config.moveSpeed;
+    this.moveSpeed = config.moveSpeed * 1.5;
     this.attackPower = config.attackPower;
     this.critChance = config.critChance ?? 0.1;
     this.critMultiplier = config.critMultiplier ?? 1.75;
@@ -33,6 +38,8 @@ export default class BattleUnit {
     this.attackWindup = config.attackWindup ?? 250;
     this.healPower = config.healPower ?? 0;
     this.healRange = config.healRange ?? 0;
+    this.basicHealPower = config.basicHealPower ?? 0;
+    this.basicHealRange = config.basicHealRange ?? 0;
     this.healCooldown = config.healCooldown ?? 0;
     this.healWindup = config.healWindup ?? 400;
     this.threatMultiplier = config.threatMultiplier ?? 1;
@@ -85,17 +92,34 @@ export default class BattleUnit {
     // fading affect the whole unit.
     this.container = scene.add.container(0, 0);
 
-    this.shadow = scene.add.ellipse(0, 30, this.isEnemy ? 84 : 64, this.isEnemy ? 28 : 22, 0x000000, 0.28);
     this.body = scene.add.circle(0, 0, this.bodyRadius, this.color)
       .setStrokeStyle(4, this.isEnemy ? 0x365314 : 0x1c1917);
 
-    // Enlarge the invisible touch target to ease crowded melee taps.
-    this.hitZone = scene.add.circle(0, 0, Math.max(this.bodyRadius + 20, this.isEnemy ? 68 : 58), 0xffffff, 0.001);
+    this.spriteVisual = UnitSprite.create(this);
+    if (this.spriteVisual) {
+      this.body.setVisible(false);
+    }
 
-    const bossOffset = this.isEnemy ? Math.max(0, this.bodyRadius - 45) : 0;
-    this.label = scene.add.text(0, (this.isEnemy ? -70 : -82) - bossOffset, this.name, {
+    // Enlarge the invisible touch target to ease crowded melee taps.
+    this.hitZone = this.spriteVisual
+      ? scene.add.rectangle(0, -35, 120, 180, 0xffffff, 0.001)
+      : scene.add.circle(0, 0, Math.max(this.bodyRadius + 20, this.isEnemy ? 68 : 58), 0xffffff, 0.001);
+    this.spriteVisual?.syncHitZone();
+
+    const visual = this.spriteVisual;
+    const topInset = visual?.definition.topFrameY ?? 0;
+    const spriteTop = visual
+      ? visual.image.y - (visual.image.originY * visual.image.height - topInset) * visual.definition.scale
+      : -this.bodyRadius;
+    const motion = visual?.definition.motion;
+    const motionMargin = motion
+      ? (motion.lift ?? 0) + Math.abs(spriteTop - (visual.definition.footY ?? 0)) * (motion.squish ?? 0) / 2
+      : 0;
+    const barY = Math.min(-this.bodyRadius, spriteTop) - (this.isEnemy ? 30 : 18) - motionMargin;
+    const nameY = barY - (this.isEnemy ? 34 : 28);
+    this.label = scene.add.text(0, nameY, this.name, {
       fontFamily: 'Arial',
-      fontSize: this.isEnemy ? '34px' : '30px',
+      fontSize: this.isEnemy ? '34px' : '32px',
       fontStyle: 'bold',
       color: '#ffffff',
       stroke: '#000000',
@@ -103,18 +127,18 @@ export default class BattleUnit {
     }).setOrigin(0.5);
 
     // Keep the current enemy target visible above its nameplate.
-    this.targetLabel = scene.add.text(0, -106 - bossOffset, '', {
+    this.targetLabel = scene.add.text(0, nameY - 36, '', {
       fontFamily: 'Arial',
-      fontSize: '25px',
+      fontSize: '27px',
       fontStyle: 'bold',
       color: '#fca5a5',
       stroke: '#000000',
       strokeThickness: 3
     }).setOrigin(0.5).setVisible(this.isEnemy);
 
-    this.actionLabel = scene.add.text(0, (this.isEnemy ? -138 : -112) - bossOffset, '', {
+    this.actionLabel = scene.add.text(0, nameY - (this.isEnemy ? 68 : 30), '', {
       fontFamily: 'Arial',
-      fontSize: this.isEnemy ? '27px' : '22px',
+      fontSize: this.isEnemy ? '29px' : '24px',
       fontStyle: 'bold',
       color: '#fde68a',
       stroke: '#000000',
@@ -123,23 +147,22 @@ export default class BattleUnit {
 
     const barWidth = this.isEnemy ? 116 : 92;
 
-    // Keep health below the name and above the body to avoid overlap.
-    const barY = -50 - bossOffset;
+    // Keep health below the name and above the visible sprite.
     this.hpGlow = scene.add.rectangle(0, barY, barWidth + 8, 18, 0x000000, 0)
       .setStrokeStyle(5, 0xf97316, 0)
       .setVisible(!this.isEnemy);
     this.hpBack = scene.add.rectangle(0, barY, barWidth, 12, 0x1c1917);
     this.hpFill = scene.add.rectangle(-barWidth / 2, barY, barWidth, 12, 0x22c55e).setOrigin(0, 0.5);
+    const castY = barY + (12 + 7) / 2 + 1;
 
     // Create the cast bar hidden; starting an action reveals it until the
     // action finishes.
-    this.castBack = scene.add.rectangle(0, this.isEnemy ? barY + 18 : 54, barWidth, 7, 0x0c0a09).setVisible(false);
-    this.castFill = scene.add.rectangle(-barWidth / 2, this.isEnemy ? barY + 18 : 54, barWidth, 7, 0xfbbf24)
+    this.castBack = scene.add.rectangle(0, castY, barWidth, 7, 0x0c0a09).setVisible(false);
+    this.castFill = scene.add.rectangle(-barWidth / 2, castY, barWidth, 7, 0xfbbf24)
       .setOrigin(0, 0.5)
       .setVisible(false);
 
     this.container.add([
-      this.shadow,
       this.hitZone,
       this.body,
       this.label,
@@ -152,6 +175,7 @@ export default class BattleUnit {
       this.castFill
     ]);
 
+    if (this.spriteVisual) this.container.addAt(this.spriteVisual.image, 2);
     this.setStealthed(this.stealthed);
     this.syncPresentation();
   }
@@ -280,7 +304,7 @@ export default class BattleUnit {
 
   // This function advances toward a destination without overshooting the stop
   // range.
-  moveToward(targetX, targetY, deltaSeconds, stopDistance = 0) {
+  moveToward(targetX, targetY, deltaSeconds, stopDistance = 0, avoidUnits = true) {
 
     const distance = Phaser.Math.Distance.Between(this.arenaX, this.arenaY, targetX, targetY);
     if (distance <= stopDistance || distance === 0) {
@@ -288,9 +312,12 @@ export default class BattleUnit {
     }
 
     const direction = new Phaser.Math.Vector2(targetX - this.arenaX, targetY - this.arenaY).normalize();
-    const travel = Math.min(this.moveSpeed * deltaSeconds, Math.max(0, distance - stopDistance));
+    const now = this.scene.time?.now ?? 0;
+    const moveBonus = now < (this.status.moveSpeedBonusUntil ?? 0) ? 1 + this.status.moveSpeedBonus : 1;
+    const moveSlow = now < (this.status.moveSpeedSlowUntil ?? 0) ? 1 - this.status.moveSpeedSlow : 1;
+    const travel = Math.min(this.moveSpeed * moveBonus * moveSlow * deltaSeconds, Math.max(0, distance - stopDistance));
 
-    this.moveBy(direction.x * travel, direction.y * travel);
+    this.moveBy(direction.x * travel, direction.y * travel, avoidUnits);
   }
 
   // This function retreats until the unit has the requested breathing room.
@@ -308,16 +335,22 @@ export default class BattleUnit {
       direction = new Phaser.Math.Vector2(this.arenaX - targetX, this.arenaY - targetY).normalize();
     }
 
-    const travel = Math.min(this.moveSpeed * deltaSeconds, desiredDistance - distance);
+    const now = this.scene.time?.now ?? 0;
+    const moveBonus = now < (this.status.moveSpeedBonusUntil ?? 0) ? 1 + this.status.moveSpeedBonus : 1;
+    const moveSlow = now < (this.status.moveSpeedSlowUntil ?? 0) ? 1 - this.status.moveSpeedSlow : 1;
+    const travel = Math.min(this.moveSpeed * moveBonus * moveSlow * deltaSeconds, desiredDistance - distance);
     this.moveBy(direction.x * travel, direction.y * travel);
   }
 
-  // All voluntary movement shares soft personal-space steering before the
-  // normal arena projection. Teleports/revives still use setArenaPosition.
-  moveBy(dx, dy) {
+  // Combat movement shares personal-space steering. Wave returns ignore living
+  // allies while still steering around fallen characters and terrain.
+  moveBy(dx, dy, avoidUnits = true) {
+    if (this.scene.time?.now < Math.max(this.status?.rootedUntil ?? 0, this.status?.stunnedUntil ?? 0)) return;
     const point = this.scene?.movement
-      ? this.scene.movement.steerStep(this, dx, dy)
-      : { x: this.arenaX + dx, y: this.arenaY + dy };
+      ? this.scene.movement.steerStep(this, dx, dy, avoidUnits)
+      : this.scene?.terrain?.resolveStep(this, this.arenaX + dx, this.arenaY + dy,
+        this.scene.movement?.config.terrainFootRadius)
+        ?? { x: this.arenaX + dx, y: this.arenaY + dy };
     this.setArenaPosition(point.x, point.y);
   }
 
@@ -333,14 +366,14 @@ export default class BattleUnit {
   // This function checks whether the unit can begin another basic attack.
   canAttack(time) {
 
-    return this.canStartAction(time) && time - this.lastAttackAt >= this.attackCooldown;
+    return this.canStartAction(time) && time - this.lastAttackAt >= this.attackCooldown / (time < (this.status.attackSlowUntil ?? 0) ? 1 - this.status.attackSlow : 1);
   }
 
   // This function checks whether a capable healer is ready for another basic
   // heal.
   canHeal(time) {
 
-    return this.canStartAction(time) && this.healPower > 0 && time - this.lastHealAt >= this.healCooldown;
+    return this.canStartAction(time) && this.basicHealPower > 0 && time - this.lastHealAt >= this.healCooldown;
   }
 
   // This function requires an available action, enough mana, and a ready
@@ -353,7 +386,7 @@ export default class BattleUnit {
     }
     if ((ability.manaCost ?? 0) > this.mana) return false;
 
-    return time - (this.lastAbilityAt[key] ?? -Infinity) >= ability.cooldown;
+    return time - (this.lastAbilityAt[key] ?? -Infinity) >= ability.cooldown / (time < (this.status.attackSlowUntil ?? 0) ? 1 - this.status.attackSlow : 1);
   }
 
   // This function commits the ability cooldown and its configured mana cost.
@@ -387,12 +420,11 @@ export default class BattleUnit {
 
     this.stealthed = value === true;
     if (this.body?.active) this.body.setAlpha(this.stealthed ? 0.55 : 1);
+    this.spriteVisual?.image.setAlpha(this.stealthed ? 0.55 : 1);
   }
 
   // This function reduces incoming damage using armor and active defensive
-  // effects, then subtracts it from health. It checks the Barbarian survival
-  // roll before marking a defeated unit inactive and clearing its current
-  // action.
+  // effects, then subtracts it from health. It marks a defeated unit inactive and clears its current action.
   takeDamage(amount, options = {}) {
 
     if (!this.alive) {
@@ -402,10 +434,15 @@ export default class BattleUnit {
     // Apply armor and active damage modifiers before rounding and subtracting
     // health.
     const now = options.time ?? this.scene.time.now;
+    if (now < (this.status.immuneUntil ?? 0)) return false;
+    if (now >= (this.status.temporaryHpUntil ?? Infinity)) this.status.temporaryHp = 0;
     let adjusted = Math.max(0, amount);
 
     if (!this.isEnemy) {
-      adjusted *= Math.max(0, 1 - this.armor);
+      const armor = now < (this.status.armorUntil ?? 0)
+        ? Math.min(0.9, this.armor * this.status.armorMultiplier)
+        : this.armor;
+      adjusted *= Math.max(0, 1 - armor);
     }
     adjusted *= this.damageTakenMultiplier;
 
@@ -422,33 +459,56 @@ export default class BattleUnit {
       adjusted *= options.ranged ? 0 : 0.55;
     }
 
-    adjusted = Math.max(adjusted > 0 ? 1 : 0, Math.round(adjusted));
-    this.hp = Math.max(0, this.hp - adjusted);
-
-    // Allow one successful death escape per delve; failed rolls leave the
-    // escape unused.
-    if (this.hp <= 0 && this.className === 'Barbarian' && !this.delvesUsed.shrugDeath) {
-      const chance = Math.min(0.8, 0.02 * Math.max(1, this.level ?? 1));
-      if (Math.random() < chance) {
-        this.delvesUsed.shrugDeath = true;
-        this.hp = Math.max(1, Math.round(this.maxHp * 0.10));
-        this.scene.createFloatingText?.(this.x, this.y - 110, 'SHRUG IT OFF!', '#fb923c', true);
-      }
+    if (adjusted > 0 && this.status.nextHitReduction) {
+      adjusted *= 1 - this.status.nextHitReduction;
+      this.status.nextHitReduction = 0;
     }
+    adjusted = Math.max(adjusted > 0 ? 1 : 0, Math.round(adjusted));
+    if (now < (this.status.enrageUntil ?? 0)) adjusted = Math.round(adjusted * this.status.enrageIncoming);
+    const absorbed = Math.min(adjusted, this.status.temporaryHp ?? 0);
+    this.status.temporaryHp = (this.status.temporaryHp ?? 0) - absorbed;
+    adjusted -= absorbed;
+    this.hp = Math.max(0, this.hp - adjusted);
 
     this.updateHealthBar();
 
-    // Mark an actual defeat only after the survival roll, then cancel the
-    // action and fade the unit.
+    // Cancel the action when a unit is defeated.
     if (this.hp <= 0) {
-      this.alive = false;
-      this.finishAction();
-      this.body.setFillStyle(0x44403c);
-      this.container.setAlpha(0.5);
+      this.defeat();
       return true;
     }
 
+    if (amount > 0) this.spriteVisual?.play(options.blocked ? 'block' : 'hit', options.attacker);
     return false;
+  }
+
+  defeat() {
+    this.hp = 0;
+    this.alive = false;
+    this.finishAction();
+    this.spriteVisual?.play('death');
+    this.body.setFillStyle(0x44403c, this.spriteVisual ? 0 : 1);
+    if (this.isEnemy) {
+      this.deathElapsed = 0;
+      this.hitZone.disableInteractive();
+      for (const visual of [this.label, this.targetLabel, this.actionLabel,
+        this.hpBack, this.hpFill, this.castBack, this.castFill, this.hitZone]) {
+        visual?.setVisible(false);
+      }
+    } else {
+      this.setStealthed(false);
+      this.spriteVisual?.image.setTint(0x777777);
+      this.container.setAlpha(1);
+    }
+    this.updateHealthBar();
+  }
+
+  updateDeathPresentation(delta) {
+    if (this.alive || !this.isEnemy || this.deathElapsed === undefined) return;
+    this.deathElapsed += Math.max(0, delta);
+    const pose = monsterDeathPose(this.deathElapsed);
+    this.body.setAlpha(pose.alpha);
+    if (!this.spriteVisual) this.body.setScale(pose.scale, pose.scale * 0.4);
   }
 
   // This function revives a fallen ally with partial health and mana while
@@ -456,7 +516,7 @@ export default class BattleUnit {
   // statuses and orders must not leave the revived unit disabled or frozen.
   revive(healthFraction = 0.5, manaFraction = 0.5) {
 
-    if (this.alive || this.isEnemy) return false;
+    if (this.alive || this.isEnemy || this.delvesUsed?.honorSacrifice) return false;
     this.alive = true;
     this.hp = Math.max(1, Math.round(this.maxHp * healthFraction));
     this.mana = Math.round(this.maxMana * manaFraction);
@@ -467,7 +527,8 @@ export default class BattleUnit {
     });
     this.seekingRestealth = false;
     this.setStealthed(false);
-    this.body.setFillStyle(this.color);
+    this.body.setFillStyle(this.color, this.spriteVisual ? 0 : 1);
+    this.spriteVisual?.reset();
     this.container.setAlpha(1);
     this.hitZone.setInteractive({ useHandCursor: true });
     this.updateHealthBar();
@@ -512,10 +573,18 @@ export default class BattleUnit {
   flash(color = 0xffffff) {
 
     this.body.setStrokeStyle(6, color);
+    this.spriteVisual?.image.setTintFill(color);
     this.scene.time.delayedCall(100, () => {
 
+      if (this.spriteVisual?.image.active) {
+        if (this.alive || this.isEnemy) this.spriteVisual.image.clearTint();
+        else this.spriteVisual.image.setTint(0x777777);
+      }
       if (this.body?.active) {
-        this.body.setStrokeStyle(4, this.isEnemy ? 0x365314 : 0x1c1917);
+        const selected = !this.isEnemy && this.scene.selectedUnitIds?.has(this.id);
+        this.body.setStrokeStyle(selected ? 7 : 4,
+          selected ? 0x60a5fa : (this.isEnemy ? 0x365314 : 0x1c1917),
+          selected || !this.spriteVisual || this.isEnemy ? 1 : 0);
       }
     });
   }

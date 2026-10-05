@@ -1,0 +1,19 @@
+{
+  "objectId": "17d9484d-b0c1-4103-9278-4f0536d86e02",
+  "animationGroups": {
+    "idle": "079f3a5d-f8c5-4339-a2e5-7abce206644b",
+    "walk": "d017e9c5-dc52-48ed-bfe0-1ee0c8300f98",
+    "attack": "ba6d8844-01a7-4be5-8c41-5fe730e758b3",
+    "block": "bea906f1-d992-45ec-9ba2-cc59b4a661f4",
+    "hit": "68d65a48-bad7-4931-8c42-15dd08ce909b",
+    "death": "5597f74a-e075-4324-b2b8-c753c63b90d9"
+  },
+  "animationFolders": {
+    "idle": "The_many-faced_crimson_Slime_Sovereign_throbs",
+    "walk": "Enormous_red_Slime_Sovereign_lumbers",
+    "attack": "Crimson_Slime_Sovereign_lashes",
+    "block": "The_red_Slime_Sovereign_braces",
+    "hit": "The_red_many-faced_slime_boss_recoils",
+    "death": "The_many-faced_red_Slime_Sovereign_is_defeated"
+  }
+}

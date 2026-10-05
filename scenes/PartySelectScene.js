@@ -1,3 +1,4 @@
+import { addWoodenPanel } from '../ui/WoodenPanel.js';
 import { bindSelectionDetails, addDetailsHint } from '../ui/SelectionDetails.js';
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
@@ -5,6 +6,7 @@ import { getEquippedAdventurer } from '../game/Equipment.js';
 import HapticsService from '../services/HapticsService.js';
 import { happinessLabel } from '../game/AdventurerProgression.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
+import { addReturnButton } from '../ui/ReturnButton.js';
 import { saveProfile } from '../game/GameStorage.js';
 
 const MAX_PARTY_SIZE = 5;
@@ -56,7 +58,7 @@ export default class PartySelectScene extends Phaser.Scene {
 
     this.add.text(width / 2, UI_SAFE_TOP + 14, 'PARTY SELECT', { fontFamily: 'Arial', fontSize: '68px', fontStyle: 'bold', color: '#f8fafc' }).setOrigin(0.5);
     this.add.text(width / 2, UI_SAFE_TOP + 67, GameState.currentDelve?.name ?? 'Unknown Delve', { fontFamily: 'Arial', fontSize: '34px', color: '#cbd5e1' }).setOrigin(0.5);
-    this.partyCountText = this.add.text(width / 2, UI_SAFE_TOP + 106, '', { fontFamily: 'Arial', fontSize: '30px', color: '#94a3b8' }).setOrigin(0.5);
+    this.partyCountText = this.add.text(width / 2, UI_SAFE_TOP + 106, '', { fontFamily: 'Arial', fontSize: '32px', color: '#94a3b8' }).setOrigin(0.5);
 
     // Divide the available width into four role columns with a shared viewing
     // height.
@@ -86,6 +88,20 @@ export default class PartySelectScene extends Phaser.Scene {
       if (column) this.scrollColumn(column, deltaY > 0 ? 1 : -1);
     });
 
+    let listDrag = null;
+    this.input.on('pointerdown', (pointer) => {
+      const column = this.columns.find((entry) => Phaser.Geom.Rectangle.Contains(entry.bounds, pointer.x, pointer.y));
+      if (column?.maxOffset > 0) listDrag = { id: pointer.id, y: pointer.y, startY: pointer.y, column, moved: false };
+    });
+    this.input.on('pointermove', (pointer) => {
+      if (!listDrag || listDrag.id !== pointer.id || !pointer.isDown) return;
+      if (Math.abs(pointer.y - listDrag.startY) > 6) listDrag.moved = true;
+      if (listDrag.moved) this.setColumnOffset(listDrag.column, listDrag.column.offset + listDrag.y - pointer.y, false);
+      listDrag.y = pointer.y;
+    });
+    this.input.on('pointerup', () => { listDrag = null; });
+    this.input.on('gameout', () => { listDrag = null; });
+
     // Convert scrollbar thumb movement into a bounded content offset.
     this.input.on('drag', (pointer, gameObject, dragX, dragY) => {
 
@@ -107,14 +123,7 @@ export default class PartySelectScene extends Phaser.Scene {
   // feedback.
   createBackButton() {
 
-    const y = UI_SAFE_TOP + 18;
-    const button = this.add.rectangle(180, y, 300, 64, 0x334155).setInteractive({ useHandCursor: true });
-    this.add.text(180, y, '< OVERVIEW', { fontFamily: 'Arial', fontSize: '33px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
-    button.on('pointerdown', () => {
-
-      HapticsService.tap();
-      this.scene.start('DelveSelectScene');
-    });
+    addReturnButton(this, 'Delve Overview', () => this.scene.start('DelveSelectScene'), { y: UI_SAFE_TOP + 32 });
   }
 
   // This function restores a valid previous party while leaving first-time
@@ -171,15 +180,15 @@ export default class PartySelectScene extends Phaser.Scene {
         .setInteractive({ useHandCursor: true });
       const portrait = this.add.circle(contentCenterX - width * 0.31, cardY, 36, adventurer.color).setStrokeStyle(3, 0xffffff, 0.18);
       const name = this.add.text(contentCenterX - width * 0.22, cardY - 42, adventurer.name, { fontFamily: 'Arial', fontSize: '31px', fontStyle: 'bold', color: '#ffffff' });
-      const cls = this.add.text(contentCenterX - width * 0.22, cardY - 5, adventurer.className, { fontFamily: 'Arial', fontSize: '25px', color: '#cbd5e1' });
-      const level = this.add.text(contentCenterX - width * 0.22, cardY + 28, `Lv ${adventurer.level} • ${adventurer.happiness ?? 70}%`, { fontFamily: 'Arial', fontSize: '22px', color: '#94a3b8' });
+      const cls = this.add.text(contentCenterX - width * 0.22, cardY - 5, adventurer.shortName ?? adventurer.className, { fontFamily: 'Arial', fontSize: '27px', color: '#cbd5e1' });
+      const level = this.add.text(contentCenterX - width * 0.22, cardY + 28, `Lv ${adventurer.level} • ${adventurer.happiness ?? 70}%`, { fontFamily: 'Arial', fontSize: '24px', color: '#94a3b8' });
       content.add([card, portrait, name, cls, level]);
       this.cards.set(adventurer.id, { card, portrait, name, cls, level, adventurer });
       this.bindCardInput(card, adventurer);
     });
 
     if (roster.length === 0) {
-      const empty = this.add.text(x, scrollTop + scrollHeight / 2, 'No adventurers yet', { fontFamily: 'Arial', fontSize: '26px', color: '#64748b' }).setOrigin(0.5);
+      const empty = this.add.text(x, scrollTop + scrollHeight / 2, 'No adventurers yet', { fontFamily: 'Arial', fontSize: '28px', color: '#64748b' }).setOrigin(0.5);
       content.add(empty);
     }
 
@@ -187,11 +196,11 @@ export default class PartySelectScene extends Phaser.Scene {
     const trackHeight = scrollHeight;
     const trackTop = scrollTop;
     const trackX = x + width / 2 - 18;
-    const upButton = this.add.rectangle(trackX, scrollTop + 20, 24, 24, 0x334155).setInteractive({ useHandCursor: true });
-    const upIcon = this.add.text(trackX, scrollTop + 20, '^', { fontFamily: 'Arial', fontSize: '20px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
-    const downButton = this.add.rectangle(trackX, scrollTop + scrollHeight - 20, 24, 24, 0x334155).setInteractive({ useHandCursor: true });
-    const downIcon = this.add.text(trackX, scrollTop + scrollHeight - 20, 'v', { fontFamily: 'Arial', fontSize: '20px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
-    const track = this.add.rectangle(trackX, trackTop + trackHeight / 2, 10, trackHeight - 56, 0x0f172a, 0.95).setStrokeStyle(2, 0x475569);
+    const upButton = this.add.rectangle(trackX, scrollTop + 20, 40, 40, 0x334155).setInteractive({ useHandCursor: true });
+    const upIcon = this.add.text(trackX, scrollTop + 20, '^', { fontFamily: 'Arial', fontSize: '22px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
+    const downButton = this.add.rectangle(trackX, scrollTop + scrollHeight - 20, 40, 40, 0x334155).setInteractive({ useHandCursor: true });
+    const downIcon = this.add.text(trackX, scrollTop + scrollHeight - 20, 'v', { fontFamily: 'Arial', fontSize: '22px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
+    const track = this.add.rectangle(trackX, trackTop + trackHeight / 2, 30, trackHeight - 56, 0x0f172a, 0.95).setStrokeStyle(2, 0x475569);
 
     // Calculate how far the list can scroll and size the thumb to the visible
     // fraction of the content.
@@ -199,8 +208,8 @@ export default class PartySelectScene extends Phaser.Scene {
     const maxOffset = Math.max(0, contentHeight - scrollHeight);
     const visibleRatio = Phaser.Math.Clamp(scrollHeight / Math.max(contentHeight, scrollHeight), 0.15, 1);
     const thumbHeight = Math.max(48, (trackHeight - 56) * visibleRatio);
-    const thumb = this.add.rectangle(trackX, trackTop + thumbHeight / 2, 18, thumbHeight, 0x64748b)
-      .setStrokeStyle(2, 0x93c5fd)
+    const thumb = this.add.rectangle(trackX, trackTop + thumbHeight / 2, 34, thumbHeight, 0x64748b)
+      .setStrokeStyle(3, 0x93c5fd)
       .setInteractive({ draggable: true, useHandCursor: true });
     this.input.setDraggable(thumb);
 
@@ -467,7 +476,7 @@ export default class PartySelectScene extends Phaser.Scene {
       fontFamily: 'Arial', fontSize: '36px', fontStyle: 'bold', color: '#e2e8f0'
     }).setOrigin(0.5).setDepth(depth + 2));
     addElement(this.add.text(panelX, top + 190, `Role: ${adventurer.role}`, {
-      fontFamily: 'Arial', fontSize: '30px', color: '#cbd5e1'
+      fontFamily: 'Arial', fontSize: '32px', color: '#cbd5e1'
     }).setOrigin(0.5).setDepth(depth + 2));
 
     // Build the stat list, adding healing and mana only when those resources
@@ -500,10 +509,10 @@ export default class PartySelectScene extends Phaser.Scene {
 
       const y = startY + index * lineGap;
       addElement(this.add.text(labelX, y, `${row[0]}:`, {
-        fontFamily: 'Arial', fontSize: '29px', fontStyle: 'bold', color: '#94a3b8'
+        fontFamily: 'Arial', fontSize: '31px', fontStyle: 'bold', color: '#94a3b8'
       }).setOrigin(0, 0.5).setDepth(depth + 2));
       addElement(this.add.text(valueX, y, row[1], {
-        fontFamily: 'Arial', fontSize: '29px', color: '#e2e8f0'
+        fontFamily: 'Arial', fontSize: '31px', color: '#e2e8f0'
       }).setOrigin(0, 0.5).setDepth(depth + 2));
     });
 
@@ -513,7 +522,7 @@ export default class PartySelectScene extends Phaser.Scene {
     const descriptionY = closeY - 94;
     addElement(this.add.text(panelX, descriptionY, adventurer.description, {
       fontFamily: 'Arial',
-      fontSize: '21px',
+      fontSize: '23px',
       color: '#94a3b8',
       align: 'center',
       wordWrap: { width: panelWidth - 130, useAdvancedWrap: true }
@@ -522,7 +531,7 @@ export default class PartySelectScene extends Phaser.Scene {
     const close = addElement(this.add.rectangle(panelX, closeY, 300, 72, 0x334155)
       .setInteractive({ useHandCursor: true }).setDepth(depth + 2));
     addElement(this.add.text(panelX, closeY, 'CLOSE', {
-      fontFamily: 'Arial', fontSize: '30px', fontStyle: 'bold', color: '#ffffff'
+      fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#ffffff'
     }).setOrigin(0.5).setDepth(depth + 3));
 
     // This function removes the complete adventurer detail panel when it
@@ -547,13 +556,14 @@ export default class PartySelectScene extends Phaser.Scene {
       align: 'center',
       wordWrap: { width: width * 0.78 }
     }).setOrigin(0.5).setDepth(6000);
+    const panel = addWoodenPanel(this, label.x, label.y, Math.min(width * 0.86, label.width + 100), label.height + 42, 5999);
 
     this.tweens.add({
-      targets: label,
+      targets: [panel, label],
       alpha: 0,
       delay: 1000,
       duration: 350,
-      onComplete: () => label.destroy()
+      onComplete: () => { panel.destroy(); label.destroy(); }
     });
   }
 }

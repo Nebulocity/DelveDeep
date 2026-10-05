@@ -13,9 +13,9 @@ import RewardScene from '../scenes/RewardScene.js';
 import FacilityScene from '../scenes/FacilityScene.js';
 import AdventurersHallScene from '../scenes/AdventurersHallScene.js';
 import BlacksmithScene from '../scenes/BlacksmithScene.js';
-import EquipmentScene from '../scenes/EquipmentScene.js';
 import ItemsScene from '../scenes/ItemsScene.js';
 import EncounterSummaryScene from '../scenes/EncounterSummaryScene.js';
+import EverdeepScene from '../scenes/EverdeepScene.js';
 
 const gameConfig = {
   type: Phaser.AUTO,
@@ -34,7 +34,6 @@ const gameConfig = {
     FacilityScene,
     AdventurersHallScene,
     BlacksmithScene,
-    EquipmentScene,
     ItemsScene,
     RosterScene,
     RaidLeaderScene,
@@ -44,7 +43,8 @@ const gameConfig = {
     DungeonScene,
     BattleScene,
     RewardScene,
-    EncounterSummaryScene
+    EncounterSummaryScene,
+    EverdeepScene
   ]
 };
 

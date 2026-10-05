@@ -18,6 +18,7 @@ export function grantAdventurerXp(adventurer, amount) {
   while (adventurer.xp >= xpRequired(adventurer.level)) {
     adventurer.xp -= xpRequired(adventurer.level);
     adventurer.level += 1;
+    adventurer.skillPoints = Math.max(0, adventurer.skillPoints ?? adventurer.level - 1) + 1;
     adventurer.maxHp += 6;
     adventurer.attackPower += 2;
     if (Number.isFinite(adventurer.healPower)) {

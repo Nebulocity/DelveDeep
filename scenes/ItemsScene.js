@@ -1,52 +1,65 @@
 import InventoryScene from '../ui/InventoryScene.js';
+import { ownedEquipment, equipmentOwner, equipmentStatsText } from '../game/Equipment.js';
+import { bindSelectionDetails } from '../ui/SelectionDetails.js';
 import GameState from '../game/GameState.js';
-import { EQUIPMENT_BY_ID, ITEM_RARITIES, CRAFTING_MATERIALS, equipmentDetails, equipmentStatsText } from '../data/items.js';
-import { ownedEquipment, equipmentOwner } from '../game/Equipment.js';
-import { bindSelectionDetails, TONIC_DESCRIPTION } from '../ui/SelectionDetails.js';
+import { CRAFTING_MATERIALS, CRAFTING_RECIPES, EQUIPMENT_ITEMS, POTION_ITEMS, getPotionDefinition } from '../data/items.js';
+import { canCraft, recipeIngredientText } from '../game/Crafting.js';
+
+const CATEGORIES = [
+  { id: 'armor', label: 'Armor' },
+  { id: 'accessories', label: 'Accessories' },
+  { id: 'items', label: 'Items' },
+  { id: 'materials', label: 'Materials' },
+  { id: 'potions', label: 'Potions' },
+  { id: 'recipes', label: 'Recipes' },
+  { id: 'weapons', label: 'Weapons' }
+];
 
 export default class ItemsScene extends InventoryScene {
   constructor() { super('ItemsScene'); }
 
-  create() { this.category = 'battle'; this.page = 0; this.message = ''; this.render(); }
+  create() {
+    this.category = 'armor';
+    this.page = 0;
+    this.message = '';
+    this.render();
+  }
 
   render() {
-    this.frame('ITEMS', 'AdventurersHallScene', 'HALL');
-    this.tabs([['battle', 'Battle Items'], ['materials', 'Crafting Material'], ['equipment', 'Equipment']], this.category, 155,
-      (id) => { this.category = id; this.page = 0; this.render(); });
-    this.text(80, 250, this.category === 'equipment' ? 'All owned equipment, including items in use. Change loadouts in Equipment.'
-      : this.category === 'materials' ? 'Craft at the Blacksmith. Buy starter supplies there; delve material drops will come later.'
-        : 'Tonics are used in combat. Void Keys open Void Portals from the world map.', 34, '#cbd5e1', 2200);
-    let rows = [];
-    if (this.category === 'battle') {
-      rows = [
-        { name: 'Healing Tonic', count: GameState.inventory.healingTonic, description: TONIC_DESCRIPTION },
-        { name: 'Void Key', count: GameState.inventory.voidKeys, description: 'Expedition item. Consumed when entering a Void Portal; not usable during battle.' }
-      ].filter((row) => row.count > 0);
-    } else if (this.category === 'materials') {
-      rows = Object.entries(GameState.inventory.materials ?? {}).filter(([, count]) => count > 0).map(([id, count]) => {
-        const item = CRAFTING_MATERIALS[id];
-        return { name: item?.name ?? id, count, description: item?.description ?? 'Crafting material.', rarity: item?.rarity };
-      });
-    } else {
-      rows = ownedEquipment().map((instance) => {
-        const item = EQUIPMENT_BY_ID[instance.itemId];
-        const owner = equipmentOwner(instance.id);
-        return { name: item.name, rarity: item.rarity, description: `${item.className} ${item.slot}   |   ${equipmentStatsText(item.stats)}`,
-          status: owner ? `Equipped by ${owner.name}` : 'Unequipped', details: equipmentDetails(item) };
-      });
-    }
-    const start = this.pager(rows.length, 4, 'page', 1200, 927);
-    if (!rows.length) this.text(1200, 550, this.category === 'battle' ? 'No battle items owned. Buy Healing Tonics from the Quartermaster.'
-      : this.category === 'materials' ? 'No crafting materials owned. Visit the Blacksmith to buy supplies.'
-        : 'No equipment owned. Buy or craft gear at the Blacksmith.', 38, '#94a3b8', 2000).setOrigin(0.5);
-    rows.slice(start, start + 4).forEach((row, index) => {
-      const y = 378 + index * 145;
-      const card = this.add.rectangle(1200, y, 2260, 130, 0x1e293b).setStrokeStyle(2, 0x334155);
-      bindSelectionDetails(this, card, row.details ?? { title: row.name, description: row.description });
-      const rarity = ITEM_RARITIES[row.rarity];
-      this.text(100, y - 31, row.name, 40, rarity?.color ?? '#f8fafc');
-      this.text(2220, y - 31, row.count != null ? `Owned: ${row.count}` : row.status, 32, '#cbd5e1').setOrigin(1, 0.5);
-      this.text(100, y + 28, `${rarity ? rarity.label + '  |  ' : ''}${row.description}`, 30, '#cbd5e1', 2110);
+    this.frame('ITEMS', 'AdventurersHallScene', "Adventurer's Hall");
+    this.add.rectangle(315, 565, 550, 690, 0x21130d, 0.91).setStrokeStyle(3, 0x9b6b3b);
+    this.add.rectangle(1510, 565, 1710, 690, 0x21130d, 0.91).setStrokeStyle(3, 0x9b6b3b);
+    this.text(315, 265, 'CATEGORIES', 32, '#ffe0a7').setOrigin(0.5);
+    CATEGORIES.forEach(({ id, label }, index) => this.button(315, 315 + index * 84, 490, label, () => {
+      this.category = id;
+      this.page = 0;
+      this.render();
+    }, { selected: id === this.category }));
+    const slot = this.category === 'armor' ? 'armor' : this.category === 'weapons' ? 'weapon'
+      : this.category === 'accessories' ? 'accessory' : this.category === 'potions' ? 'potion' : null;
+    const rows = slot ? ownedEquipment().filter((item) => item.slot === slot)
+      : this.category === 'materials' ? Object.entries(GameState.inventory.materials ?? {})
+        .filter(([id, count]) => CRAFTING_MATERIALS[id] && count > 0)
+        .map(([id, count]) => ({ ...CRAFTING_MATERIALS[id], count }))
+        : this.category === 'items' ? [...EQUIPMENT_ITEMS, ...POTION_ITEMS].map((definition) => ({ ...definition,
+          count: ownedEquipment().filter((item) => item.itemId === definition.id).length,
+          owned: ownedEquipment().filter((item) => item.itemId === definition.id)
+        }))
+          : this.category === 'recipes' ? CRAFTING_RECIPES.map((recipe) => ({ ...recipe, count: canCraft(recipe.id).ok ? 'Ready' : 'Gather materials' })) : [];
+    const start = this.pager(rows.length, 5, 'page', 1510, 948);
+    if (!rows.length) this.text(1510, 550, `No ${this.category} are available yet.`, 38, '#c7a982', 1500).setOrigin(0.5);
+    rows.slice(start, start + 5).forEach((item, index) => {
+      const y = 345 + index * 124;
+      const card = this.add.rectangle(1510, y, 1650, 128, 0x302018, 0.95).setStrokeStyle(3, 0x9b6b3b);
+      const stats = this.category === 'materials' ? item.description
+        : this.category === 'recipes' ? `${recipeIngredientText(item)}  •  ${item.count}`
+        : this.category === 'items' ? `${item.description}  •  ${item.count} owned`
+          : slot === 'potion' ? `${item.charges}/3 uses  •  ${getPotionDefinition(item.itemId)?.description ?? 'Effect unknown'}`
+            : equipmentStatsText(item.stats) || 'No bonuses';
+      bindSelectionDetails(this, card, { title: item.name, description: this.category === 'recipes' ? `${item.description}\nIngredients: ${stats}` : this.category === 'items' ? `${stats}\nRarity: ${item.rarity}. ${item.slot ?? 'Material'}.` : stats });
+      this.text(715, y - 31, item.name, 38, '#fff1d2', 1000);
+      this.text(2300, y - 31, this.category === 'materials' || this.category === 'items' || this.category === 'recipes' ? `${this.category === 'recipes' ? '' : 'x'}${item.count}` : equipmentOwner(item.id)?.name ?? 'Unequipped', 32, '#ffe0a7').setOrigin(1, 0.5);
+      this.text(715, y + 28, stats, 31, '#e8c89f', 1580);
     });
   }
 }

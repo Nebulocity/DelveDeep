@@ -1,0 +1,46 @@
+{
+  "referenceConversion": "3128f550-ff81-40f8-a1c9-f47a35ff9377",
+  "pixelLabCharacter": "4de79ebd-238c-44c0-bfc7-57ea59ad1b69",
+  "supersededSouthWestWalkJobs": [
+    "8d65f436-9192-44c0-a49e-2e6d14c01826",
+    "6f1e3a98-8e85-4132-9026-7bc47605a5d3"
+  ],
+  "animations": {
+    "idle": {
+      "south-east": "6ba6221b-0710-4c62-a887-8b89d720cf9e",
+      "south-west": "f7382c47-373f-455f-b4b6-c68ad05170da",
+      "north-east": "f16312c2-9511-4402-ab5e-cf5e47f54aea",
+      "north-west": "d3f95ee2-3955-4e3e-b4d4-f7a4403905c7"
+    },
+    "walk": {
+      "south-east": "d52740ab-f600-4e2d-a98b-a2c067d5e2f5",
+      "south-west": "76b1b4ff-e0e9-48b3-9ea7-08f4c90e482f",
+      "north-east": "59b773fe-3083-4bbf-a2e1-5b93bd61fe61",
+      "north-west": "73922efe-1880-4bbc-9de9-cc1204709d8b"
+    },
+    "attack": {
+      "south-east": "903d3088-aafb-4dc6-a8b2-dde355635021",
+      "south-west": "a3823696-5f0b-41f2-a431-e50da9fbbeb9",
+      "north-east": "4c5115ed-7b6b-433e-9071-804304390d1c",
+      "north-west": "29595123-5c3e-4a6a-9eee-4fc8efebafb6"
+    },
+    "block": {
+      "south-east": "e71dc6db-3aa6-4272-8ecd-a049c6aee365",
+      "south-west": "25d0f50c-68ea-4d54-afd0-2e2c24a2664b",
+      "north-east": "743dfe59-393e-4cfb-bbc1-4ce46aaf6905",
+      "north-west": "4375839c-c3ba-4e2c-852a-f2e8036294db"
+    },
+    "hit": {
+      "south-east": "2b70271d-94cf-45ba-8a6e-ad8aa88ce6be",
+      "south-west": "d31049d9-f04a-442b-9059-acbeba774aeb",
+      "north-east": "d7a98a03-c212-46f0-ab88-67b0a8b98556",
+      "north-west": "071db48c-3ffc-4b25-b0bd-ee13fb25523d"
+    },
+    "death": {
+      "south-east": "27f14943-3fde-4104-96cc-be39a6ec3bd5",
+      "south-west": "f3cd2d3a-2da0-4426-b390-e7fc1060c7d4",
+      "north-east": "7fa096c5-7db3-4ab0-a04c-9ed641253823",
+      "north-west": "9c90fe1d-1ed2-4bb5-9107-7030fcf9519a"
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "lasher": {
+    "source": "Lasher.png",
+    "conversionJob": "aa728938-79e6-48d6-9285-a6838db4209a",
+    "characterId": "4d94cd54-dd6e-4ab0-b6ac-9935ad4affd1",
+    "weapon": "whip"
+  },
+  "ruffian": {
+    "source": "Ruffian.png",
+    "conversionJob": "3ba93ed4-1b0e-4a1d-bf85-fd7c8f20d2a2",
+    "characterId": "6ee19aca-5a0d-435a-b541-977f067177ad",
+    "weapon": "paired daggers"
+  },
+  "hedgeMage": {
+    "source": "Hedge Mage.png",
+    "conversionJob": "57977734-da17-4fd5-8502-70f28d625725",
+    "characterId": "93ca3d1d-79ad-4fa6-82ad-b9c0ea4b2286",
+    "weapon": "purple crystal staff"
+  },
+  "rongarTheCrusher": {
+    "source": "Rongar the Crusher.png",
+    "conversionJob": "805954ec-236d-4d3b-a173-245c5bb33a1e",
+    "characterId": "29395351-f341-4186-abc8-f2a8229d3549",
+    "weapon": "spiked mace"
+  }
+}

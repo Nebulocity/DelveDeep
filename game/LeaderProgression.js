@@ -1,16 +1,17 @@
-const STORAGE_KEY = 'delveDeep.leaderProgression.v1';
+import { LEADER_STORAGE_KEY } from './BuildSave.js';
+
+const STORAGE_KEY = LEADER_STORAGE_KEY;
 
 export const leaderAbilities = [
-  { id: 'focusFire', name: 'Focus Fire', shortName: 'FOCUS FIRE', branch: 'Command', description: 'Choose a shared enemy target. Healers keep healing.', cost: 0, cooldown: 10000, unlockedByDefault: true },
-  { id: 'rally', name: 'Rally', shortName: 'RALLY', branch: 'Command', description: 'Gather all living allies at a point and hold there.', cost: 1, cooldown: 12000 },
-  { id: 'coordinatedAssault', name: 'Coordinated Assault', shortName: 'ASSAULT', branch: 'Command', description: 'All allies deal 20% more damage for 8 seconds.', cost: 1, cooldown: 24000, duration: 8000, damageBonus: 0.2 },
-  { id: 'encouragement', name: 'Encouragement', shortName: 'ENCOURAGE', branch: 'Morale', description: 'Restore 25% maximum health to every living ally.', cost: 1, cooldown: 20000, healFraction: 0.25 },
-  { id: 'brace', name: 'Brace!', shortName: 'BRACE!', branch: 'Survival', description: 'All allies take 30% less damage for 8 seconds.', cost: 1, cooldown: 24000, duration: 8000, damageReduction: 0.3 },
-  { id: 'preparedSupplies', name: 'Prepared Supplies', shortName: 'SUPPLIES', branch: 'Logistics', description: 'Add one Healing Tonic. Once per encounter.', cost: 1, oncePerEncounter: true, tonicAmount: 1 },
-  { id: 'arise', name: 'Arise!', shortName: 'ARISE!', branch: 'Survival', description: 'Revive all fallen allies at 50% HP and mana. Once per encounter.', cost: 2, oncePerEncounter: true, healthFraction: 0.5, manaFraction: 0.5 }
+  { id: 'focusFire', category: 'Assault', name: 'Focus Fire', shortName: 'FOCUS FIRE', branch: 'Command', description: 'Choose a shared enemy target. Healers keep healing.', cost: 0, cooldown: 10000, unlockedByDefault: true },
+  { id: 'rally', category: 'Protect', name: 'Rally', shortName: 'RALLY', branch: 'Command', description: 'Gather all living allies at a point and hold there.', cost: 1, cooldown: 12000 },
+  { id: 'coordinatedAssault', category: 'Assault', name: 'Coordinated Assault', shortName: 'ASSAULT', branch: 'Command', description: 'All allies deal 20% more damage for 8 seconds.', cost: 1, cooldown: 24000, duration: 8000, damageBonus: 0.2 },
+  { id: 'encouragement', category: 'Restore', name: 'Encouragement', shortName: 'ENCOURAGE', branch: 'Morale', description: 'Restore 25% maximum health to every living ally.', cost: 1, cooldown: 20000, healFraction: 0.25 },
+  { id: 'brace', category: 'Protect', name: 'Brace!', shortName: 'BRACE!', branch: 'Survival', description: 'All allies take 30% less damage for 8 seconds.', cost: 1, cooldown: 24000, duration: 8000, damageReduction: 0.3 },
+  { id: 'arise', category: 'Restore', name: 'Arise!', shortName: 'ARISE!', branch: 'Survival', description: 'Revive all fallen allies at 50% HP and mana. Once per encounter.', cost: 2, oncePerEncounter: true, healthFraction: 0.5, manaFraction: 0.5 }
 ];
 
-// This function starts a new Raid Leader with Focus Fire available and
+// This function starts new player progression with Focus Fire available and
 // equipped.
 const defaultLeader = () => ({
 
@@ -22,7 +23,7 @@ const defaultLeader = () => ({
   battleLoadout: ['focusFire']
 });
 
-// This function restores Raid Leader progress with valid defaults and loadout
+// This function restores player progression with valid defaults and loadout
 // entries.
 export function loadLeaderProgression() {
 
@@ -36,24 +37,27 @@ export function loadLeaderProgression() {
     // writing only the new TP fields on the next save.
     const { inspirationPoints, spentInspiration, ...progress } = saved;
     const known = new Set(leaderAbilities.map((ability) => ability.id));
+    const removedSupplies = saved.unlockedAbilities?.includes('preparedSupplies') === true;
     const unlocked = Array.from(new Set(['focusFire', ...(saved.unlockedAbilities ?? [])]))
       .filter((id) => known.has(id));
-    return {
+    const leader = {
       ...fallback,
       ...progress,
-      tacticsPoints: Math.max(0, saved.tacticsPoints ?? inspirationPoints ?? 0),
-      spentTacticsPoints: Math.max(0, saved.spentTacticsPoints ?? spentInspiration ?? 0),
+      tacticsPoints: Math.max(0, saved.tacticsPoints ?? inspirationPoints ?? 0) + (removedSupplies ? 1 : 0),
+      spentTacticsPoints: Math.max(0, (saved.spentTacticsPoints ?? spentInspiration ?? 0) - (removedSupplies ? 1 : 0)),
       unlockedAbilities: unlocked,
       battleLoadout: Array.from(new Set(saved.battleLoadout ?? ['focusFire'])).filter((id) => unlocked.includes(id)).slice(0, 5)
     };
+    if (removedSupplies) saveLeaderProgression(leader);
+    return leader;
   } catch (error) {
     console.warn('Could not load Battle Tactics progression.', error);
     return fallback;
   }
 }
 
-// This function saves Raid Leader advancement separately from the main
-// profile.
+// This function saves player progression separately from character and world
+// progress.
 export function saveLeaderProgression(leader) {
 
   try {
@@ -126,7 +130,7 @@ export function toggleLeaderLoadoutAbility(leader, abilityId) {
   return true;
 }
 
-// This function removes Raid Leader progress as part of a fresh start.
+// This function removes player progression as part of a fresh start.
 export function clearLeaderProgression() {
 
   try {
@@ -135,3 +139,4 @@ export function clearLeaderProgression() {
     console.warn('Could not clear Battle Tactics progression.', error);
   }
 }
+

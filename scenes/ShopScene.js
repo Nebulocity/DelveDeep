@@ -1,157 +1,23 @@
-import { bindSelectionDetails, addDetailsHint, TONIC_DESCRIPTION } from '../ui/SelectionDetails.js';
 import Phaser from 'phaser';
-import { showConfirmation } from '../ui/ConfirmationDialog.js';
 import GameState from '../game/GameState.js';
-import HapticsService from '../services/HapticsService.js';
-import { saveProfile } from '../game/GameStorage.js';
 import { UI_SAFE_TOP } from '../ui/Layout.js';
+import { addReturnButton } from '../ui/ReturnButton.js';
 
 export default class ShopScene extends Phaser.Scene {
+  constructor() { super('ShopScene'); }
 
-  // This function registers ShopScene so the game can navigate to this
-  // screen.
-  constructor() {
-
-    super('ShopScene');
-    this.goldText = null;
-    this.stockText = null;
-    this.messageText = null;
-  }
-
-  // This function builds the Quartermaster screen around the Healing Tonic
-  // offer. It displays the item description, price, current gold, owned
-  // quantity, and feedback from purchase attempts.
   create() {
-
     const { width, height } = this.scale;
     this.cameras.main.setBackgroundColor('#1b1713');
-    this.createBackButton();
-
+    addReturnButton(this, 'Town', () => this.scene.start('TownScene'), { y: UI_SAFE_TOP + 32 });
     this.add.text(width / 2, UI_SAFE_TOP + 20, 'QUARTERMASTER', {
-      fontFamily: 'Arial',
-      fontSize: '69px',
-      fontStyle: 'bold',
-      color: '#f5f5f4'
+      fontFamily: 'Arial', fontSize: '69px', fontStyle: 'bold', color: '#f5f5f4'
     }).setOrigin(0.5);
-
-    this.goldText = this.add.text(width - 72, UI_SAFE_TOP + 20, '', {
-      fontFamily: 'Arial',
-      fontSize: '36px',
-      color: '#fbbf24'
+    this.add.text(width - 72, UI_SAFE_TOP + 20, `Gold: ${GameState.gold}`, {
+      fontFamily: 'Arial', fontSize: '36px', color: '#fbbf24'
     }).setOrigin(1, 0.5);
-
-    // Position the tonic offer and its description in a central product
-    // panel.
-    const cardX = width / 2;
-    const cardY = height * 0.53;
-    const cardWidth = Math.min(1000, width * 0.48);
-
-    const itemCard = this.add.rectangle(cardX, cardY, cardWidth, 360, 0x292524).setStrokeStyle(4, 0x57534e);
-    bindSelectionDetails(this, itemCard, { title: 'Healing Tonic', description: TONIC_DESCRIPTION });
-    addDetailsHint(this, height * 0.76);
-    this.add.circle(cardX - cardWidth * 0.39, cardY - 60, 52, 0xdc2626);
-    this.add.text(cardX - cardWidth * 0.39, cardY - 60, '+', {
-      fontFamily: 'Arial',
-      fontSize: '72px',
-      fontStyle: 'bold',
-      color: '#ffffff'
+    this.add.text(width / 2, height * 0.53, 'No supplies are stocked yet.', {
+      fontFamily: 'Arial', fontSize: '42px', color: '#d6d3d1'
     }).setOrigin(0.5);
-
-    this.add.text(cardX - cardWidth * 0.29, cardY - 112, 'HEALING TONIC', {
-      fontFamily: 'Arial',
-      fontSize: '46px',
-      fontStyle: 'bold',
-      color: '#ffffff'
-    });
-
-    this.add.text(cardX - cardWidth * 0.29, cardY - 62,
-      'Restores 35% max HP. Use on a character in combat, or auto-use at 35% HP. Shared cooldown: 1.5s.', {
-        fontFamily: 'Arial',
-        fontSize: '28px',
-        color: '#d6d3d1',
-        wordWrap: { width: cardWidth * 0.58 }
-      });
-
-    this.stockText = this.add.text(cardX - cardWidth * 0.29, cardY + 34, '', {
-      fontFamily: 'Arial',
-      fontSize: '30px',
-      color: '#a8a29e'
-    });
-
-    // Add the purchase control beneath the item details and reserve a label
-    // for purchase feedback.
-    const buy = this.add.rectangle(cardX + cardWidth * 0.22, cardY + 105, 330, 76, 0x7c2d12)
-      .setInteractive({ useHandCursor: true });
-    this.add.text(cardX + cardWidth * 0.22, cardY + 105, 'BUY • 25 GOLD', {
-      fontFamily: 'Arial',
-      fontSize: '33px',
-      fontStyle: 'bold',
-      color: '#ffffff'
-    }).setOrigin(0.5);
-
-    this.messageText = this.add.text(width / 2, height * 0.82, '', {
-      fontFamily: 'Arial',
-      fontSize: '30px',
-      color: '#fbbf24'
-    }).setOrigin(0.5);
-
-    buy.on('pointerdown', () => this.buyTonic());
-    bindSelectionDetails(this, buy, { title: 'Healing Tonic - 25 Gold', description: TONIC_DESCRIPTION });
-    this.refresh();
-  }
-
-  // This function provides a return to town with touch feedback.
-  createBackButton() {
-
-    const y = UI_SAFE_TOP + 18;
-    const button = this.add.rectangle(172, y, 270, 64, 0x44403c)
-      .setInteractive({ useHandCursor: true });
-    this.add.text(172, y, '< TOWN', {
-      fontFamily: 'Arial',
-      fontSize: '33px',
-      fontStyle: 'bold',
-      color: '#ffffff'
-    }).setOrigin(0.5);
-    button.on('pointerdown', () => {
-
-      HapticsService.tap();
-      this.scene.start('TownScene');
-    });
-  }
-
-  // This function exchanges enough gold for one tonic and saves the updated
-  // supplies.
-  buyTonic() {
-    showConfirmation(this, {
-      title: 'Confirm purchase',
-      description: `Buy 1 Healing Tonic for 25 gold?\n\nCurrent gold: ${GameState.gold}`,
-      onConfirm: () => this.confirmBuyTonic()
-    });
-  }
-
-  // Recheck the balance at confirmation, then commit and save together.
-  confirmBuyTonic() {
-
-    if (GameState.gold < 25) {
-      HapticsService.tap();
-      this.messageText.setText('Not enough gold.');
-      return;
-    }
-
-    // Commit the gold cost and added tonic together, then save before
-    // refreshing the displayed stock.
-    GameState.gold -= 25;
-    GameState.inventory.healingTonic += 1;
-    saveProfile();
-    HapticsService.confirm();
-    this.messageText.setText('Healing Tonic added to expedition supplies.');
-    this.refresh();
-  }
-
-  // This function keeps shop gold and owned stock in sync after a purchase.
-  refresh() {
-
-    this.goldText.setText(`Gold: ${GameState.gold}`);
-    this.stockText.setText(`Owned: ${GameState.inventory.healingTonic}`);
   }
 }

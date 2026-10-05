@@ -1,0 +1,17 @@
+{
+  "denWarden": {
+    "source": "references/DenWarden.png",
+    "characterId": "9217d8db-caea-47ee-8ada-1403866ef99a",
+    "mode": "pro quadruped cat"
+  },
+  "denProtector": {
+    "source": "references/DenProtector.png",
+    "characterId": "0a16093d-76e9-450f-b680-5bd558424d24",
+    "mode": "pro quadruped bear"
+  },
+  "silvanarkTheForestLord": {
+    "source": "references/SilvanarkTheForestLord.png",
+    "characterId": "704c62ff-4bf5-448c-a26f-feb7a45bd84c",
+    "mode": "v3 reference"
+  }
+}

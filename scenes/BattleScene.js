@@ -1,7 +1,15 @@
-import { bindSelectionDetails, characterDetails, TONIC_DESCRIPTION } from '../ui/SelectionDetails.js';
+import { addWoodenPanel } from '../ui/WoodenPanel.js';
+import { preloadSlimeSprites } from '../data/slimeSprites.js';
+import { chooseWaveLandings } from '../combat/WaveLanding.js';
+import { bindSelectionDetails, characterDetails } from '../ui/SelectionDetails.js';
 import Phaser from 'phaser';
+import ClassAbilitySystem from '../combat/ClassAbilitySystem.js';
+import { preloadCharacterSprites } from '../data/characterSprites.js';
+import { preloadEnemySprites } from '../data/enemySprites.js';
 import GameState from '../game/GameState.js';
-import { getEquippedAdventurer } from '../game/Equipment.js';
+import { getEquippedAdventurer, equippedItem, consumePotionCharge } from '../game/Equipment.js';
+import { getPotionDefinition } from '../data/items.js';
+import { battleAbilities } from '../game/AdventurerAbilities.js';
 import enemies from '../data/enemies.js';
 import { createEncounterWaves } from '../data/encounters.js';
 import { leaderAbilities } from '../game/LeaderProgression.js';
@@ -16,7 +24,10 @@ import CombatLog from '../combat/CombatLog.js';
 import HapticsService from '../services/HapticsService.js';
 import { completeExpedition, failExpedition, fleeExpedition, formatDuration } from '../game/ExpeditionProgression.js';
 import { saveProfile } from '../game/GameStorage.js';
+import { awardOrdinaryWave, getDelveCheckpoint, isOrdinaryDelve, WAVE_REWARDS } from '../game/DelveCheckpoints.js';
 import { getBattleLayout } from '../ui/Layout.js';
+import { preloadEnvironment, createEnvironment, getDelveGridFloor } from '../combat/LayeredEnvironment.js';
+import { trackLoading, hideLoadingScreenAfterRender } from '../ui/LoadingScreen.js';
 
 export default class BattleScene extends Phaser.Scene {
 
@@ -30,7 +41,13 @@ export default class BattleScene extends Phaser.Scene {
   // Encounter visual data supplies only the assets needed by the selected
   // delve. Other delves retain the existing battlefield presentation.
   preload() {
+    trackLoading(this);
+    preloadCharacterSprites(this);
+    preloadEnemySprites(this);
+    preloadSlimeSprites(this);
 
+    const environment = GameState.currentDelve?.visuals?.environment;
+    if (environment) preloadEnvironment(this, environment);
     const background = GameState.currentDelve?.visuals?.battlefieldBackground;
     if (background?.key && background?.url && !this.textures.exists(background.key)) {
       this.load.image(background.key, background.url);
@@ -39,8 +56,9 @@ export default class BattleScene extends Phaser.Scene {
 
   // This function starts a new battle by resetting encounter state, creating
   // the perspective arena and combatants, and building the tactical controls.
-  // It also starts the combat log and spawns the first enemy wave.
+  // It also starts the combat log and announces the first enemy wave.
   create() {
+    this.classAbilitySystem = new ClassAbilitySystem(this);
 
     const { width, height } = this.scale;
 
@@ -48,13 +66,16 @@ export default class BattleScene extends Phaser.Scene {
     // leader cooldowns for a fresh battle.
     this.battleOver = false;
     this.waveTransitioning = false;
+    this.waveRetreating = false;
+    this.waveReturnPositions = new Map();
+    this.waveReturnTargets = new Map();
     this.activeTelegraphs = [];
     this.currentWaveIndex = -1;
     this.enemySerial = 0;
     this.earnedGold = 0;
     this.enemyThreat = new Map();
     this.enemies = [];
-    this.lastTonicUseAt = -Infinity;
+    this.lastPotionUseAt = new Map();
     this.selectedUnitIds = new Set();
     this.manualTargets = new Map();
     this.attackTargets = new Map();
@@ -75,18 +96,19 @@ export default class BattleScene extends Phaser.Scene {
     // Define the logical combat area and the screen-space perspective used to
     // display its grid and units.
     this.battlefield = new BattlefieldGeometry(this, {
-      bottomLeftX: 345,
-      bottomRightX: width - 345,
-      topLeftX: width * 0.29,
-      topRightX: width * 0.71,
+      bottomLeftX: 310,
+      bottomRightX: width - 310,
+      topLeftX: width * 0.27,
+      topRightX: width * 0.73,
       bottomY: height * 0.775,
       topY: this.battleLayout.arenaTop,
-      logicalWidth: 1400,
+      logicalWidth: 1750,
       logicalHeight: 900,
-      columns: 8,
+      columns: 10,
       rows: 6,
       nearScale: 1.05,
-      farScale: 0.74
+      farScale: 0.74,
+      ...getDelveGridFloor(width, height)
     });
 
     // Create the formation controller and copy the appropriate encounter wave
@@ -94,7 +116,7 @@ export default class BattleScene extends Phaser.Scene {
     this.terrain = new BattlefieldTerrain(this, this.battlefield, GameState.currentDelve?.terrain ?? []);
 
     // Uncomment this while authoring terrain to see blocked polygons over the art.
-    this.terrainDebug = this.terrain.drawDebug();
+    this.terrainDebug = null;
 
     this.tactics = new TacticsController(this.battlefield, GameState.tactics);
     this.movement = new CombatMovement(this);
@@ -112,18 +134,25 @@ export default class BattleScene extends Phaser.Scene {
     this.createLeaderLoadoutBar(width);
     this.createHud(width, height);
     this.createTerrainEditorButton(width);
-    this.startWave(0);
+    this.bossWaveIndex = Math.max(0, this.waves.findIndex((wave) => wave.boss));
+    const checkpoint = getDelveCheckpoint(GameState.currentDelve, this.bossWaveIndex);
+    const entry = GameState.run.entry;
+    if (entry === 'camp' && checkpoint?.campUnlocked) this.showDelveCamp();
+    else this.startWave(entry === 'boss' ? this.bossWaveIndex
+      : entry === 'farm' ? this.bossWaveIndex - 1 : checkpoint?.nextWave ?? 0);
+    hideLoadingScreenAfterRender(this);
   }
 
 
   // This function adds a developer button for authoring blocked battlefield terrain.
   createTerrainEditorButton(width) {
+    if (!GameState.development.toolsVisible) return;
 
     this.terrainEditor = new BattlefieldTerrainEditor(this, this.battlefield, this.terrain);
     this.terrainEditorButton = this.add.rectangle(width - 125, 34, 220, 48, 0x292524)
       .setStrokeStyle(2, 0xfacc15).setInteractive({ useHandCursor: true }).setDepth(11000);
     this.terrainEditorButtonLabel = this.add.text(width - 125, 34, 'EDIT TERRAIN', {
-      fontFamily: 'Arial', fontSize: '20px', fontStyle: 'bold', color: '#facc15'
+      fontFamily: 'Arial', fontSize: '22px', fontStyle: 'bold', color: '#facc15'
     }).setOrigin(0.5).setDepth(11001);
     this.terrainEditorButton.on('pointerdown', (pointer, localX, localY, event) => {
       event?.stopPropagation?.();
@@ -135,7 +164,7 @@ export default class BattleScene extends Phaser.Scene {
   // guardian.
   buildEncounterWaves() {
 
-    const waves = createEncounterWaves(GameState.currentDelve ?? {});
+    const waves = createEncounterWaves(GameState.currentDelve ?? {}, this.battlefield.logicalWidth);
 
     if (GameState.currentDelve) GameState.currentDelve.rooms = waves.length;
     return waves;
@@ -150,7 +179,7 @@ export default class BattleScene extends Phaser.Scene {
       fontSize: '48px',
       fontStyle: 'bold',
       color: '#f5f5f4'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setDepth(4501);
 
     this.battleMessageText = this.add.text(width / 2, this.battleLayout.messageY, '', {
       fontFamily: 'Arial',
@@ -161,18 +190,26 @@ export default class BattleScene extends Phaser.Scene {
       strokeThickness: 5
     }).setOrigin(0.5).setDepth(5000);
 
+    this.battleMessagePlaque = addWoodenPanel(this, width / 2, this.battleLayout.messageY, 1500, 60, 4999).setVisible(false);
+
     this.encounterStatusText = this.add.text(width / 2, this.battleLayout.statusY, '', {
       fontFamily: 'Arial',
       fontSize: '32px',
       fontStyle: 'bold',
       color: '#fb923c'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setDepth(4501);
   }
 
   // This function draws the battlefield beneath its units and tactical
   // controls.
   createArena(width, height) {
 
+    const environment = GameState.currentDelve?.visuals?.environment;
+    if (environment) {
+      this.battlefieldVisualLayers = createEnvironment(this, environment);
+      this.battlefield.drawPerspectiveFloor(GameState.development.showGridLines !== false);
+      return;
+    }
     const background = GameState.currentDelve?.visuals?.battlefieldBackground;
     let staticBackground = null;
     if (background?.key && this.textures.exists(background.key)) {
@@ -188,7 +225,7 @@ export default class BattleScene extends Phaser.Scene {
       staticBackground,
       scenery: this.add.container(0, 0).setDepth(90)
     };
-    this.battlefield.drawPerspectiveFloor();
+    this.battlefield.drawPerspectiveFloor(GameState.development.showGridLines !== false);
   }
 
 
@@ -200,13 +237,17 @@ export default class BattleScene extends Phaser.Scene {
       ? GameState.activeParty
       : GameState.roster.slice(0, 5);
 
-    this.partyUnits = party.map((adventurer) => new BattleUnit(this, {
-      ...getEquippedAdventurer(GameState.roster.find((hero) => hero.id === adventurer.id) ?? adventurer),
-      battlefield: this.battlefield,
-      arenaX: 500,
-      arenaY: 110,
-      isEnemy: false
-    }));
+    this.partyUnits = party.map((adventurer) => {
+      const hero = getEquippedAdventurer(GameState.roster.find((entry) => entry.id === adventurer.id) ?? adventurer);
+      return new BattleUnit(this, {
+        ...hero,
+        abilities: battleAbilities(hero),
+        battlefield: this.battlefield,
+        arenaX: this.battlefield.logicalWidth / 2 - 200,
+        arenaY: 110,
+        isEnemy: false
+      });
+    });
 
     this.tactics.registerParty(this.partyUnits);
     this.partyUnits.forEach((unit, index) => {
@@ -214,6 +255,7 @@ export default class BattleScene extends Phaser.Scene {
       const spawn = this.tactics.getSpawnPosition(unit, index);
       unit.setArenaPosition(spawn.x, spawn.y);
       this.movement.validateUnitPosition(unit);
+      this.waveReturnPositions.set(unit.id, { x: unit.arenaX, y: unit.arenaY });
     });
 
     this.partyUnits.forEach((unit) => {
@@ -245,37 +287,26 @@ export default class BattleScene extends Phaser.Scene {
     const sectionWidth = usableWidth / 5;
     const hudBarWidth = sectionWidth - 175;
     const startX = 52 + 70;
-    this.tonicCountText = this.add.text(70, height * 0.75, '', {
-      fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: '#86efac'
-    }).setOrigin(0, 0.5).setDepth(4501);
-    this.tonicHintText = this.add.text(width / 2, height * 0.738, 'Tap TONIC to heal.', {
-      fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: '#86efac'
-    }).setOrigin(0.5).setDepth(4501);
-    this.hadHealingTonics = GameState.inventory.healingTonic > 0;
-    this.tonicFlashUntil = 0;
-
     this.partyUnits.forEach((unit, index) => {
 
       const x = startX + index * sectionWidth;
       // Give the whole portrait/name/class area one generous touch target.
-      // It sits behind the visible labels and stops above the separate TONIC
-      // button, so selecting a character never accidentally uses a tonic.
       const statusHitZone = this.add.rectangle(x + sectionWidth / 2 - 6, hudTop + 70, sectionWidth - 20, 116, 0xffffff, 0.001)
         .setDepth(4500);
       bindSelectionDetails(this, statusHitZone, () => characterDetails(unit), () => this.toggleUnitSelection(unit));
       const portrait = this.add.circle(x, hudTop + 72, 36, unit.color).setDepth(4501);
       bindSelectionDetails(this, portrait, () => characterDetails(unit), () => this.toggleUnitSelection(unit));
-      const tonicButton = this.add.rectangle(x, hudTop + 155, 120, 72, 0x14532d)
+      const potionButton = this.add.rectangle(x, hudTop + 155, 130, 72, 0x14532d)
         .setStrokeStyle(2, 0x86efac).setDepth(4502);
-      const tonicLabel = this.add.text(x, hudTop + 155, 'TONIC', {
-        fontFamily: 'Arial', fontSize: '25px', fontStyle: 'bold', color: '#ffffff'
+      const potionLabel = this.add.text(x, hudTop + 155, 'POTION', {
+        fontFamily: 'Arial', fontSize: '25px', fontStyle: 'bold', color: '#ffffff', align: 'center'
       }).setOrigin(0.5).setDepth(4503);
-      bindSelectionDetails(this, tonicButton, { title: 'Healing Tonic', description: TONIC_DESCRIPTION }, () => this.useHealingTonic(unit));
+      bindSelectionDetails(this, potionButton, () => this.potionDetails(unit), () => this.usePotion(unit));
       const nameText = this.add.text(x + 85, hudTop + 38, unit.name, {
         fontFamily:'Arial', fontSize:'39px', fontStyle:'bold', color:'#f5f5f4'
       }).setOrigin(0,0.5).setDepth(4501);
-      this.add.text(x + 85, hudTop + 73, unit.className, {
-        fontFamily:'Arial', fontSize:'30px', color:'#cbd5e1'
+      this.add.text(x + 85, hudTop + 73, unit.shortName ?? unit.className, {
+        fontFamily:'Arial', fontSize:'32px', color:'#cbd5e1'
       }).setOrigin(0,0.5).setDepth(4501);
 
       const hudBarX = x + 85;
@@ -303,19 +334,19 @@ export default class BattleScene extends Phaser.Scene {
         .setOrigin(0, 0.5)
         .setDepth(4502)
         .setVisible(unit.maxMana > 0);
-      const hpText=this.add.text(hudBarX,hudTop+158,'',{fontFamily:'Arial',fontSize:'24px',color:'#d6d3d1'}).setOrigin(0,0.5).setDepth(4501);
-      const manaText=this.add.text(hudBarX,hudTop+184,'',{fontFamily:'Arial',fontSize:'22px',color:'#93c5fd'})
+      const hpText=this.add.text(hudBarX,hudTop+158,'',{fontFamily:'Arial',fontSize:'26px',color:'#d6d3d1'}).setOrigin(0,0.5).setDepth(4501);
+      const manaText=this.add.text(hudBarX,hudTop+184,'',{fontFamily:'Arial',fontSize:'24px',color:'#93c5fd'})
         .setOrigin(0,0.5)
         .setDepth(4501)
         .setVisible(unit.maxMana > 0);
-      const threatText=this.add.text(hudBarX,hudTop+208,'',{fontFamily:'Arial',fontSize:'22px',color:'#a8a29e'})
+      const threatText=this.add.text(hudBarX,hudTop+208,'',{fontFamily:'Arial',fontSize:'24px',color:'#a8a29e'})
         .setOrigin(0,0.5)
         .setDepth(4501)
         .setVisible(false);
       bindSelectionDetails(this, nameText, () => characterDetails(unit), () => this.toggleUnitSelection(unit));
-      this.partyHud.push({statusHitZone,tonicButton,tonicLabel,unit,nameText,hpText,manaText,threatText,hpFill,hpGlow,manaBack,manaFill,hudBarWidth});
+      this.partyHud.push({statusHitZone,potionButton,potionLabel,unit,nameText,hpText,manaText,threatText,hpFill,hpGlow,manaBack,manaFill,hudBarWidth});
     });
-    this.updateTonicHud();
+    this.updatePotionHud();
   }
 
   // This function makes the perspective tiles usable as touch destinations.
@@ -346,8 +377,7 @@ export default class BattleScene extends Phaser.Scene {
     const right = ['MOVE', 'HOLD', 'SPREAD', 'STACK', 'ATTACK', 'INTERRUPT'];
     const firstY = height * 0.31;
     const gap = 76;
-    // Add All above the existing role rows so Pause, Flee, and the tonic
-    // inventory line keep their current spacing above the party HUD.
+    // Add All above the existing role rows and keep space above the party HUD.
     const leftFirstY = firstY - gap;
     this.roleButtons = [];
     this.commandButtons = [];
@@ -378,7 +408,7 @@ export default class BattleScene extends Phaser.Scene {
 
       const y=firstY+index*gap;
       const box=this.add.rectangle(width-155,y,270,68,0x1f2937).setStrokeStyle(3,0x475569).setInteractive({useHandCursor:true}).setDepth(4600);
-      const text=this.add.text(width-155,y,label,{fontFamily:'Arial',fontSize:label.length>10?'27px':'33px',fontStyle:'bold',color:'#e5e7eb'}).setOrigin(0.5).setDepth(4601);
+      const text=this.add.text(width-155,y,label,{fontFamily:'Arial',fontSize:label.length>10?'29px':'33px',fontStyle:'bold',color:'#e5e7eb'}).setOrigin(0.5).setDepth(4601);
       box.on('pointerdown',()=>this.armCommand(label));
       const descriptions = {
         MOVE: 'Choose a destination for selected allies. They move there and hold.',
@@ -401,7 +431,7 @@ export default class BattleScene extends Phaser.Scene {
     const layout = getBattleLayout(width, this.scale.height, equipped.length);
     this.leaderButtons = [];
     this.add.text(width / 2, layout.labelY, 'BATTLE TACTICS', {
-      fontFamily: 'Arial', fontSize: '26px', fontStyle: 'bold', color: '#94a3b8'
+      fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: '#94a3b8'
     }).setOrigin(0.5).setDepth(4700);
 
     // Each button has a name row and a separate cooldown or usage row.
@@ -414,10 +444,10 @@ export default class BattleScene extends Phaser.Scene {
       const box = this.add.rectangle(x, layout.buttonY, layout.buttonWidth, layout.buttonHeight, 0x292524)
         .setStrokeStyle(3, 0x84cc16).setInteractive({ useHandCursor: true }).setDepth(4700);
       this.add.text(x, layout.buttonY - 17, ability.shortName, {
-        fontFamily: 'Arial', fontSize: '30px', fontStyle: 'bold', color: '#bef264'
+        fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#bef264'
       }).setOrigin(0.5).setDepth(4701);
       const status = this.add.text(x, layout.buttonY + 20, '', {
-        fontFamily: 'Arial', fontSize: '23px', color: '#d6d3d1'
+        fontFamily: 'Arial', fontSize: '25px', color: '#d6d3d1'
       }).setOrigin(0.5).setDepth(4701);
       box.on('pointerdown', () => this.useLeaderAbility(id));
       bindSelectionDetails(this, box, { title: ability.name, description: ability.description });
@@ -646,7 +676,7 @@ export default class BattleScene extends Phaser.Scene {
 
     this.enemies?.forEach((enemy) => {
 
-      if (!enemy.alive) return;
+      if (!enemy.alive || enemy.landing) return;
       // Keep enemy inspection available even before allies are selected.
       enemy.hitZone.setInteractive({ useHandCursor: true });
     });
@@ -668,7 +698,11 @@ export default class BattleScene extends Phaser.Scene {
       const active=this.commandMode===label;
       box.setFillStyle(active?0x3b321d:0x1f2937).setStrokeStyle(3,active?0xfbbf24:0x475569);
     });
-    this.partyUnits?.forEach((u)=>u.body.setStrokeStyle(this.selectedUnitIds.has(u.id)?7:4,this.selectedUnitIds.has(u.id)?0x60a5fa:(u.isEnemy?0x365314:0x1c1917)));
+    this.partyUnits?.forEach((u) => u.body.setStrokeStyle(
+      this.selectedUnitIds.has(u.id) ? 7 : 4,
+      this.selectedUnitIds.has(u.id) ? 0x60a5fa : 0x1c1917,
+      this.selectedUnitIds.has(u.id) || !u.spriteVisual ? 1 : 0
+    ));
   }
 
   // This function interprets a battlefield tile tap using the current
@@ -747,6 +781,10 @@ export default class BattleScene extends Phaser.Scene {
       const rawPoint = positions[index];
       const point = this.terrain.nearestSafeUnitPoint(unit, rawPoint.x, rawPoint.y, combatSpacing.terrainFootRadius);
       unit.spacingMode = 'normal';
+      if (unit.gridAbilities) {
+        this.classAbilitySystem ??= new ClassAbilitySystem(this);
+        this.classAbilitySystem.move(unit, point, this.time.now);
+      }
       this.manualTargets.set(unit.id, point);
       this.attackTargets.delete(unit.id);
 
@@ -837,6 +875,10 @@ export default class BattleScene extends Phaser.Scene {
       return false;
     }
 
+    if (unit.gridAbilities) {
+      this.classAbilitySystem ??= new ClassAbilitySystem(this);
+      this.classAbilitySystem.move(unit, target, this.time.now);
+    }
     if (unit.distanceToPoint(target.x, target.y) > combatSpacing.arrivalTolerance) {
       unit.moveToward(target.x, target.y, deltaSeconds, combatSpacing.arrival);
       return true;
@@ -864,7 +906,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
     const living = this.partyUnits.filter((unit) => unit.alive);
-    const fallen = this.partyUnits.filter((unit) => !unit.alive);
+    const fallen = this.partyUnits.filter((unit) => !unit.alive && !unit.delvesUsed?.honorSacrifice);
     if (id === 'arise' && fallen.length === 0) {
       this.showBattleMessage('No fallen adventurers to revive', '#a8a29e');
       return;
@@ -905,11 +947,6 @@ export default class BattleScene extends Phaser.Scene {
         this.createFloatingText(unit.x, unit.y - 80, '+' + (unit.hp - before), '#86efac');
       });
       this.showBattleMessage('ENCOURAGEMENT - party healed', '#bef264', false, 1.5);
-    } else if (id === 'preparedSupplies') {
-      GameState.inventory.healingTonic = Math.max(0, GameState.inventory.healingTonic ?? 0) + ability.tonicAmount;
-      saveProfile();
-      this.updateTonicHud();
-      this.showBattleMessage(`+${ability.tonicAmount} HEALING TONIC (${GameState.inventory.healingTonic} TOTAL)`, '#bef264', false, 1.5);
     } else if (id === 'arise') {
       fallen.forEach((unit) => {
 
@@ -978,8 +1015,7 @@ export default class BattleScene extends Phaser.Scene {
       && this.time.now - (this.leaderAbilityCooldowns.get(id) ?? -Infinity) >= (ability.cooldown ?? 0));
   }
 
-  // This function introduces the next enemy group or finishes a fully cleared
-  // encounter.
+  // This function announces the next enemy group before it enters the arena.
   startWave(index) {
 
     if (index >= this.waves.length) {
@@ -990,17 +1026,86 @@ export default class BattleScene extends Phaser.Scene {
     this.currentWaveIndex = index;
     GameState.currentRoom = index;
     const wave = this.waves[index];
+    this.waveTransitioning = true;
     this.updateEncounterStatus();
-    this.showBattleMessage(`WAVE ${index + 1}: ${wave.name}`, '#fb923c');
+    this.showWaveAnnouncement(wave.boss ? wave.name : `WAVE ${index + 1}`, Boolean(wave.boss));
+    let secondsRemaining = 3;
+    this.updateWaveCountdown(secondsRemaining);
+
+    const countDown = () => {
+
+      if (this.battleOver) return;
+      secondsRemaining -= 1;
+      if (secondsRemaining > 0) {
+        this.updateWaveCountdown(secondsRemaining);
+        this.time.delayedCall(1000, countDown);
+      } else {
+        this.clearWaveAnnouncement();
+        this.spawnWave(index);
+      }
+    };
+    this.time.delayedCall(1000, countDown);
+  }
+
+  // Keep the wave name and countdown readable over bright or detailed arenas.
+  showWaveAnnouncement(title, isBoss = false) {
+
+    const { width, height } = this.scale;
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const panelWidth = Math.min(1160, width - 660);
+    const backdrop = addWoodenPanel(this, 0, 0, panelWidth, 248);
+    const labelText = this.add.text(0, -76, isBoss ? 'BOSS WAVE' : '', {
+      fontFamily: 'Arial', fontSize: '31px', fontStyle: 'bold', color: '#d8b761'
+    }).setOrigin(0.5);
+    const titleText = this.add.text(0, isBoss ? -12 : -29, title, {
+      fontFamily: 'Arial', fontSize: '70px', fontStyle: 'bold', color: '#fff1cc',
+      stroke: '#211606', strokeThickness: 2, align: 'center'
+    }).setOrigin(0.5);
+    titleText.setScale(Math.min(1, (panelWidth - 96) / titleText.width));
+    const divider = this.add.rectangle(0, 48, panelWidth - 140, 2, 0x9c7c39, 0.65);
+    this.waveCountdownText = this.add.text(0, 85, '', {
+      fontFamily: 'Arial', fontSize: '36px', fontStyle: 'bold', color: '#e6d9b8'
+    }).setOrigin(0.5);
+    this.waveAnnouncement = this.add.container(centerX, centerY,
+      [backdrop, labelText, titleText, divider, this.waveCountdownText]).setDepth(9000);
+  }
+
+  updateWaveCountdown(secondsRemaining) {
+
+    this.waveCountdownText?.setText(`IN ${secondsRemaining} ${secondsRemaining === 1 ? 'SECOND' : 'SECONDS'}`);
+  }
+
+  clearWaveAnnouncement() {
+
+    this.waveAnnouncement?.destroy();
+    this.waveAnnouncement = null;
+    this.waveCountdownText = null;
+  }
+
+  // This function creates the announced enemies once the countdown ends.
+  spawnWave(index) {
+
+    const wave = this.waves[index];
     this.combatLog?.add('wave', `Wave ${index + 1} started: ${wave.name}`, { wave: index + 1 });
 
-    this.enemies = wave.enemies.map((spawn, spawnIndex) => this.createEnemy(spawn.type, spawn, spawnIndex));
+    const landings = chooseWaveLandings(wave, this.battlefield, this.terrain, this.partyUnits);
+    this.pendingWaveSpawns = [];
+    this.enemies = wave.enemies.map((spawn, spawnIndex) => {
+      const landing = landings[spawnIndex];
+      if (!landing) {
+        this.pendingWaveSpawns.push({ spawn, spawnIndex });
+        return null;
+      }
+      return this.createEnemy(spawn.type, landing, spawnIndex);
+    }).filter(Boolean);
+    this.enemies.forEach(enemy => this.animateEnemyLanding(enemy));
+    if (this.pendingWaveSpawns.length > 0) this.schedulePendingLandings();
     this.attackTargets.clear();
     this.setTargetingInputState(['ATTACK', 'FOCUS', 'INTERRUPT'].includes(this.commandMode));
     this.waveTransitioning = false;
 
     if (wave.boss) {
-      this.showBattleMessage('BOSS INCOMING', '#f97316');
       HapticsService.heavy();
     }
   }
@@ -1014,9 +1119,10 @@ export default class BattleScene extends Phaser.Scene {
     const enemy = new BattleUnit(this, {
       ...definition,
       id: `${definition.id}-${this.currentWaveIndex}-${spawnIndex}-${serial}`,
+      spriteId: type,
       battlefield: this.battlefield,
-      arenaX: spawn.arenaX + Phaser.Math.Between(-30, 30),
-      arenaY: spawn.arenaY + Phaser.Math.Between(-22, 22),
+      arenaX: spawn.x,
+      arenaY: spawn.y,
       isEnemy: true
     });
     enemy.enemyType = type;
@@ -1034,13 +1140,68 @@ export default class BattleScene extends Phaser.Scene {
     return enemy;
   }
 
+  // Retry crowded waves as characters move, without losing any monsters.
+  schedulePendingLandings() {
+
+    this.time.delayedCall(300, () => {
+      if (this.battleOver || this.pendingWaveSpawns.length === 0) return;
+      const wave = { enemies: this.pendingWaveSpawns.map(({ spawn }) => spawn) };
+      const reserved = this.enemies.map(enemy => this.battlefield.arenaPointToCell(enemy.arenaX, enemy.arenaY));
+      const landings = chooseWaveLandings(wave, this.battlefield, this.terrain,
+        this.partyUnits, Math.random, reserved);
+      this.pendingWaveSpawns = this.pendingWaveSpawns.filter(({ spawn, spawnIndex }, index) => {
+        if (!landings[index]) return true;
+        const enemy = this.createEnemy(spawn.type, landings[index], spawnIndex);
+        this.enemies.push(enemy);
+        this.animateEnemyLanding(enemy);
+        return false;
+      });
+      if (this.pendingWaveSpawns.length > 0) this.schedulePendingLandings();
+    });
+  }
+
+  // Keep combat and targeting paused for each monster until its feet bounce onto the floor.
+  animateEnemyLanding(enemy) {
+
+    enemy.landing = true;
+    const visual = enemy.spriteVisual?.image ?? enemy.body;
+    const floorY = visual.y;
+    const scale = this.battlefield.getUnitScale(enemy.arenaY);
+    visual.y = floorY - (enemy.container.y - this.battlefield.topY + 220) / scale;
+    for (const label of [enemy.label, enemy.targetLabel, enemy.actionLabel,
+      enemy.hpBack, enemy.hpFill, enemy.castBack, enemy.castFill]) label.setAlpha(0);
+    this.tweens.add({
+      targets: visual, y: floorY, duration: 720, ease: 'Bounce.Out',
+      onComplete: () => {
+        if (!enemy.container.active) return;
+        enemy.landing = false;
+        enemy.hitZone.setInteractive({ useHandCursor: true });
+        for (const label of [enemy.label, enemy.targetLabel, enemy.actionLabel,
+          enemy.hpBack, enemy.hpFill, enemy.castBack, enemy.castFill]) label.setAlpha(1);
+      }
+    });
+  }
+
   // This function advances one frame of combat while the encounter is active.
   // It updates resources and actions, runs party and enemy decisions,
   // separates crowded units, and checks for a cleared wave or defeated party.
   update(time, delta) {
 
-    this.updateTonicHud();
+    this.classAbilitySystem?.syncChargeTweens?.(this.combatPaused);
+    this.updatePotionHud();
+    if (!this.combatPaused) this.enemies?.filter(enemy => enemy.container?.active !== false).forEach((enemy) => {
+      enemy.spriteVisual?.update(delta);
+      enemy.updateDeathPresentation?.(delta);
+    });
+    if (this.waveRetreating && !this.combatPaused && !this.battleOver) {
+      this.updateWaveRetreat(time, Math.min(delta / 1000, 0.05), delta);
+      return;
+    }
     if (this.battleOver || this.waveTransitioning || this.combatPaused) {
+      // Finish a fall even when its lethal hit ended the battle or wave.
+      if (!this.combatPaused) this.partyUnits?.forEach(unit => {
+        unit.spriteVisual?.update(delta);
+      });
       return;
     }
 
@@ -1062,12 +1223,16 @@ export default class BattleScene extends Phaser.Scene {
 
     const livingEnemies = this.getLivingEnemies();
     if (livingEnemies.length === 0) {
-      this.completeWave();
+      if (this.pendingWaveSpawns?.length > 0) {
+        this.partyUnits.forEach(unit => this.updatePartyUnit(unit, time, deltaSeconds));
+      } else if (!this.enemies.some(enemy => enemy.alive && enemy.landing)) this.completeWave();
       return;
     }
 
     // Run party decisions, resolve crowding, and then let enemies choose
     // their actions.
+    this.classAbilitySystem ??= new ClassAbilitySystem(this);
+    this.classAbilitySystem.tickWorld(time);
     this.partyUnits.forEach((unit) => this.updatePartyUnit(unit, time, deltaSeconds));
     this.updateEnemies(time, deltaSeconds);
     this.movement.separate(deltaSeconds);
@@ -1075,7 +1240,8 @@ export default class BattleScene extends Phaser.Scene {
     this.partyUnits.forEach((unit) => this.movement.validateUnitPosition(unit));
     livingEnemies.forEach((enemy) => this.movement.validateUnitPosition(enemy));
 
-    this.tryUseHealingTonic(time);
+    this.partyUnits.forEach((unit) => unit.spriteVisual?.update(delta));
+
     this.updateHud();
 
     if (this.partyUnits.every((unit) => !unit.alive)) {
@@ -1089,55 +1255,10 @@ export default class BattleScene extends Phaser.Scene {
   }
 
 
-  // This function automatically spends a tonic on a critically injured party
-  // member.
-  tryUseHealingTonic(time) {
-
-    if (GameState.inventory.healingTonic <= 0 || time - this.lastTonicUseAt < 1500) {
-      return;
-    }
-
-    // Choose the living ally with the lowest health fraction among those at
-    // or below the tonic threshold.
-    const target = this.partyUnits
-      .filter((unit) => unit.alive && unit.hp / unit.maxHp <= 0.35)
-      .sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp))[0];
-
-    if (!target) {
-      return;
-    }
-
-    this.useHealingTonic(target, time);
-  }
-
-  // Manual and automatic use share validation, inventory and cooldown.
-  canUseHealingTonic(target, time = this.time.now) {
-    return !this.battleOver && !this.combatPaused && !this.waveTransitioning
-      && this.partyUnits.includes(target) && target.alive && target.hp < target.maxHp
-      && GameState.inventory.healingTonic > 0 && time - this.lastTonicUseAt >= 1500;
-  }
-
-  useHealingTonic(target, time = this.time.now) {
-    if (!this.canUseHealingTonic(target, time)) return false;
-    this.lastTonicUseAt = time;
-    GameState.inventory.healingTonic -= 1;
-    const before = target.hp;
-    target.heal(Math.max(1, Math.round(target.maxHp * 0.35)));
-    const amount = target.hp - before;
-    target.flash(0x86efac);
-    this.createFloatingText(target.x, target.y - 100, `TONIC +${amount}`, '#86efac', true);
-    this.showBattleMessage(`${target.name} drinks a Healing Tonic`, '#86efac');
-    this.combatLog?.add('item', `${target.name} restored ${amount} HP with a Healing Tonic`, { target: target.name, healing: amount });
-    HapticsService.confirm();
-    saveProfile();
-    this.updateHud();
-    return true;
-  }
-
   // This function excludes defeated enemies from active combat decisions.
   getLivingEnemies() {
 
-    return this.enemies.filter((enemy) => enemy.alive);
+    return this.enemies.filter((enemy) => enemy.alive && !enemy.landing);
   }
 
   // This function honors Focus first, then favors bosses and nearby enemies.
@@ -1170,49 +1291,12 @@ export default class BattleScene extends Phaser.Scene {
   // hazard avoidance; the remaining decisions come from the unit's combat
   // role.
   updatePartyUnit(unit, time, deltaSeconds) {
-
     if (!unit?.alive) return;
-
-    this.runClassPassive(unit, time);
-    if (unit.role === 'Tank') this.tryTankTaunts(unit, time);
-
+    this.classAbilitySystem ??= new ClassAbilitySystem(this);
+    this.classAbilitySystem.tick(unit, time);
     if (this.applyManualMovement(unit, deltaSeconds)) return;
     if (!this.isPositionLocked(unit) && this.tryEvadeTelegraph(unit, deltaSeconds)) return;
-
-    const ordered = this.getLivingEnemies().find((enemy) => enemy.id === this.attackTargets.get(unit.id));
-    if (!ordered) this.attackTargets.delete(unit.id);
-    if (ordered && unit.role !== 'Tank' && !this.isEnemyEngaged(ordered)) return;
-
-    // Explicit Attack orders chase the chosen enemy into usable range.
-    // Healers use basic attacks for this order, never healing spells as
-    // damage.
-    if (ordered && unit.canStartAction(time)) {
-      this.movement.moveToCombatPosition(unit, ordered, time, deltaSeconds);
-    }
-    if (ordered && unit.role === 'Healer') {
-      if (unit.distanceTo(ordered) <= unit.attackRange && unit.canAttack(time)) {
-        this.beginBasicAttack(unit, ordered, time, 'ranged');
-      }
-      return;
-    }
-
-    if (unit.role === 'Healer') {
-      this.updateHealerUnit(unit, time, deltaSeconds);
-      return;
-    }
-
-    const target = this.getPrimaryTarget(unit);
-    if (!target) return;
-
-    this.tryClassUtility(unit, target, time);
-
-    if (unit.role === 'Tank') {
-      this.updateTankUnit(unit, target, time, deltaSeconds);
-    } else if (unit.role === 'Melee DPS') {
-      this.updateMeleeUnit(unit, target, time, deltaSeconds);
-    } else {
-      this.updateRangedUnit(unit, target, time, deltaSeconds);
-    }
+    this.classAbilitySystem.update(unit, time, deltaSeconds);
   }
 
   // Melee reach is measured from centers in the combat data. Extend it only
@@ -1223,395 +1307,32 @@ export default class BattleScene extends Phaser.Scene {
     return attacker.distanceTo(target) <= attacker.attackRange + meleePadding + padding;
   }
 
-  // This function applies the Naturalist aura when its healing interval comes
-  // around.
-  runClassPassive(unit, time) {
-
-    if (unit.className !== 'Naturalist') return;
-    const passive = unit.abilities?.passive;
-    if (!passive || time - (unit.lastAbilityAt.natureAura ?? -Infinity) < passive.interval) return;
-
-    unit.lastAbilityAt.natureAura = time;
-    this.announceAbility(unit, passive.name, '#86efac');
-    this.partyUnits.filter((ally) => ally.alive).forEach((ally) => {
-
-      ally.heal(passive.power);
-      this.createFloatingText(ally.x, ally.y - 74, `+${passive.power}`, '#86efac');
-    });
-  }
-
-  // This function selects the support effect associated with the adventurer's
-  // class. Each branch checks its own conditions before spending mana,
-  // starting the utility cooldown, and applying the configured buff or
-  // debuff.
-  tryClassUtility(unit, target, time) {
-
-    const utility = unit.abilities?.utility;
-    if (!utility || !unit.abilityReady('utility', time)) return;
-
-    // Protect an injured eligible ally, while limiting this Paladin shield
-    // use to once per delve.
-    if (unit.className === 'Paladin') {
-      const ally = this.partyUnits
-        .filter((candidate) => candidate.alive && !candidate.delvesUsed?.protectiveShield)
-        .sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp))[0];
-      if (!ally || ally.hp / ally.maxHp > 0.42 || unit.delvesUsed.protectiveShield) return;
-      unit.delvesUsed.protectiveShield = true;
-      this.announceAbility(unit, utility.name, '#fde68a');
-      unit.markAbilityUsed('utility', time);
-      ally.status.shieldUntil = time + utility.duration;
-      this.createFloatingText(ally.x, ally.y - 100, 'PROTECTED', '#fde68a', true);
-      return;
-    }
-
-    // Apply a temporary blind that gives the target a chance to miss attacks.
-    if (unit.className === 'Gladiator') {
-      this.announceAbility(unit, utility.name, '#fde68a');
-      unit.markAbilityUsed('utility', time);
-      target.status.blindUntil = time + utility.duration;
-      target.status.blindChance = utility.missChance;
-      this.createFloatingText(target.x, target.y - 96, 'BLINDED', '#fde68a');
-      return;
-    }
-
-    // Reduce the target's outgoing damage for the configured duration.
-    if (unit.className === 'Guardian') {
-      this.announceAbility(unit, utility.name, '#86efac');
-      unit.markAbilityUsed('utility', time);
-      target.status.outgoingDamageReductionUntil = time + utility.duration;
-      target.status.outgoingDamageReduction = utility.damageReduction;
-      this.createFloatingText(target.x, target.y - 96, 'WITHERED', '#86efac');
-      return;
-    }
-
-    // Use the damage-boosting roar only when at least two living allies are
-    // in its radius.
-    if (unit.className === 'Barbarian') {
-      const nearbyAllies = this.partyUnits.filter((ally) => ally.alive && unit.distanceTo(ally) <= utility.radius);
-      if (nearbyAllies.length < 2) return;
-      this.announceAbility(unit, utility.name, '#fb923c');
-      unit.markAbilityUsed('utility', time);
-      nearbyAllies.forEach((ally) => {
-
-        ally.status.damageBoostUntil = time + utility.duration;
-        ally.status.damageBoost = utility.damageBoost;
-      });
-      this.createFloatingText(unit.x, unit.y - 105, 'WAR ROAR!', '#fb923c', true);
-      return;
-    }
-
-    // Use the emergency shield at low health and apply its accompanying spell
-    // lock.
-    if (unit.className === 'Wizard') {
-      if (unit.hp / unit.maxHp > 0.35) return;
-      this.announceAbility(unit, utility.name, '#93c5fd');
-      unit.markAbilityUsed('utility', time);
-      unit.status.arcaneShieldUntil = time + utility.duration;
-      unit.status.spellLockUntil = time + utility.silenceDuration;
-      this.createFloatingText(unit.x, unit.y - 105, 'ARCANE SHIELD', '#93c5fd', true);
-      return;
-    }
-
-    // Mark the enemy to increase the damage it takes during the effect.
-    if (unit.className === 'Ranger') {
-      this.announceAbility(unit, utility.name, '#fbbf24');
-      unit.markAbilityUsed('utility', time);
-      target.status.damageTakenBoostUntil = time + utility.duration;
-      target.status.damageTakenBoost = utility.damageTakenBoost;
-      this.createFloatingText(target.x, target.y - 96, "HUNTER'S MARK", '#fbbf24');
-      return;
-    }
-
-    // Apply both increased incoming damage and reduced outgoing damage to the
-    // cursed target.
-    if (unit.className === 'Bloodwarder') {
-      this.announceAbility(unit, utility.name, '#f87171');
-      unit.markAbilityUsed('utility', time);
-      target.status.damageTakenBoostUntil = time + utility.duration;
-      target.status.damageTakenBoost = utility.damageTakenBoost;
-      target.status.outgoingDamageReductionUntil = time + utility.duration;
-      target.status.outgoingDamageReduction = utility.damageReduction;
-      this.createFloatingText(target.x, target.y - 96, 'BLOOD CURSE', '#f87171');
-    }
-  }
-
-  // This function uses ready tank taunts to recover nearby enemies that are
-  // not already targeting the tank. A group pull takes priority when several
-  // enemies qualify; cooldowns start only after a successful pull.
-  tryTankTaunts(tank, time) {
-
-    if (!tank.canStartAction(time)) return;
-    const candidates = this.getLivingEnemies()
-      .filter((enemy) => enemy.currentTargetId !== tank.id)
-      .sort((a, b) => tank.distanceTo(a) - tank.distanceTo(b));
-
-    // Prefer the area taunt for groups, saving it for later when a single
-    // enemy can be handled by the shorter cooldown instead.
-    const area = tank.abilities.areaTaunt;
-    const nearby = candidates.filter((enemy) => tank.distanceTo(enemy) <= (area?.range ?? 0));
-    const single = tank.abilities.taunt;
-    if (nearby.length >= 2 && tank.abilityReady('areaTaunt', time)) {
-      this.applyTankTaunt(tank, nearby.slice(0, area.targets), 'areaTaunt', time);
-    } else if (single && tank.abilityReady('taunt', time)) {
-      const enemy = candidates.find((candidate) => tank.distanceTo(candidate) <= single.range);
-      if (enemy) this.applyTankTaunt(tank, [enemy], 'taunt', time);
-    } else if (nearby.length > 0 && tank.abilityReady('areaTaunt', time)) {
-      this.applyTankTaunt(tank, nearby.slice(0, area.targets), 'areaTaunt', time);
-    }
-  }
-
   // This function raises the tank above each target's existing threat and
   // redirects it immediately. Canceling its old action prevents a queued
   // attack from still hitting the ally the taunt just protected.
-  applyTankTaunt(tank, enemies, key, time) {
+  applyTankTaunt(tank, enemies, key, time, commit = true) {
+    tank.spriteVisual?.play('block', enemies[0]);
 
-    tank.markAbilityUsed(key, time);
-    this.announceAbility(tank, tank.abilities[key].name, '#fde68a');
+    if (commit) {
+      tank.markAbilityUsed(key, time);
+      this.announceAbility(tank, tank.abilities[key].name, '#fde68a');
+    }
     enemies.forEach((enemy) => {
 
       const table = this.enemyThreat.get(enemy.id);
       const highest = Math.max(0, ...table.values());
-      table.set(tank.id, highest + 1);
+      table.set(tank.id, highest * (1 + (tank.abilities[key].threatBonus ?? 0)) + 1);
       enemy.engagedByTank = true;
+      if (tank.abilities[key].duration) {
+        enemy.status.forcedApproach = tank.abilities[key].farthest === true;
+        enemy.status.forcedTargetId = tank.id;
+        enemy.status.forcedTargetUntil = time + tank.abilities[key].duration;
+      }
       enemy.finishAction();
       this.activeTelegraphs.filter((telegraph) => telegraph.attacker === enemy)
         .forEach((telegraph) => this.removeTelegraph(telegraph));
       this.setEnemyTarget(enemy, tank, tank.abilities[key].name);
     });
-  }
-
-  // This function lets tanks approach and attack while respecting held
-  // positions.
-  updateTankUnit(unit, target, time, deltaSeconds) {
-
-    // Approach a reserved position within attack range, never the target center.
-    if (!this.attackTargets.has(unit.id) && !this.isPositionLocked(unit) && unit.canStartAction(time)) {
-      this.movement.moveToCombatPosition(unit, target, time, deltaSeconds);
-    }
-
-    if (!this.isWithinAttackReach(unit, target, 24)) return;
-
-    const primary = unit.abilities?.primary;
-    if (primary && unit.abilityReady('primary', time)) {
-      if (primary.aoe) this.beginAoeDamageAbility(unit, target, 'primary', time, 'melee');
-      else this.beginDamageAbility(unit, target, 'primary', time, 'melee');
-    } else if (unit.canAttack(time)) {
-      this.beginBasicAttack(unit, target, time, 'melee');
-    }
-  }
-
-  // This function manages melee attacks and Rogue retreat windows for
-  // re-stealth.
-  updateMeleeUnit(unit, target, time, deltaSeconds) {
-
-    // Re-stealth depends on time since dealing or receiving damage. A
-    // retreating Rogue moves away to try to create that quiet window.
-    if (!this.attackTargets.has(unit.id) && unit.className === 'Rogue' && !unit.stealthed && unit.seekingRestealth) {
-      const quietFor = time - Math.max(unit.lastDealtDamageAt ?? -Infinity, unit.lastTakenDamageAt ?? -Infinity);
-      if (quietFor >= 5000) {
-        unit.setStealthed(true);
-        unit.seekingRestealth = false;
-        this.announceAbility(unit, 'STEALTH', '#c4b5fd');
-      } else if (!this.isPositionLocked(unit) && !unit.isBusy(time)) {
-        const nearest = this.getLivingEnemies().sort((a, b) => unit.distanceTo(a) - unit.distanceTo(b))[0];
-        if (nearest) unit.moveAwayFrom(nearest.arenaX, nearest.arenaY, deltaSeconds, 320);
-        return;
-      }
-    }
-
-    if (!this.attackTargets.has(unit.id)) {
-      this.movement.moveToCombatPosition(unit, target, time, deltaSeconds);
-    }
-
-    if (!this.isWithinAttackReach(unit, target, 28)) return;
-
-    const primary = unit.abilities?.primary;
-    if (primary && unit.abilityReady('primary', time)) {
-      if (primary.aoe) this.beginAoeDamageAbility(unit, target, 'primary', time, 'melee');
-      else this.beginDamageAbility(unit, target, 'primary', time, 'melee');
-    } else if (unit.canAttack(time)) {
-      this.beginBasicAttack(unit, target, time, 'melee');
-    }
-  }
-
-  // This function manages ranged positioning and chooses available attacks or
-  // spells.
-  updateRangedUnit(unit, target, time, deltaSeconds) {
-
-    if (!this.attackTargets.has(unit.id)) {
-      this.movement.moveToCombatPosition(unit, target, time, deltaSeconds);
-    }
-
-    if (unit.className === 'Ranger') this.tryRangerTrap(unit, target, time);
-    if (!this.isWithinAttackReach(unit, target)) return;
-    if (!unit.canCast(time) && unit.className === 'Wizard') return;
-
-    if (unit.className === 'Wizard') {
-      const close = unit.distanceTo(target) <= 145;
-      if (close && unit.abilityReady('close', time)) {
-        this.beginAoeDamageAbility(unit, target, 'close', time, 'spell');
-        return;
-      }
-      if (unit.abilityReady('primary', time)) {
-        this.beginAoeDamageAbility(unit, target, 'primary', time, 'spell');
-        return;
-      }
-      if (unit.abilityReady('secondary', time)) {
-        this.beginDamageAbility(unit, target, 'secondary', time, 'spell');
-        return;
-      }
-    } else {
-      const primary = unit.abilities?.primary;
-      if (primary && unit.abilityReady('primary', time)) {
-        if (primary.aoe) this.beginAoeDamageAbility(unit, target, 'primary', time, 'ranged');
-        else this.beginDamageAbility(unit, target, 'primary', time, 'ranged');
-        return;
-      }
-    }
-
-    if (unit.canAttack(time)) this.beginBasicAttack(unit, target, time, 'ranged');
-  }
-
-  // This function prioritizes wounded allies while keeping healers in
-  // supporting range.
-  updateHealerUnit(unit, time, deltaSeconds) {
-
-    const priorityTarget = this.getHealerPriorityTarget(unit);
-    const injured = priorityTarget ?? this.getMostInjuredPartyMember();
-    const nearestEnemy = this.getLivingEnemies().sort((a, b) => unit.distanceTo(a) - unit.distanceTo(b))[0];
-    const canReposition = !this.isPositionLocked(unit) && unit.canStartAction(time);
-    // Retreat from immediate danger even while supporting an injured ally.
-    const retreating = canReposition && nearestEnemy
-      && this.movement.maintainRange(unit, nearestEnemy, deltaSeconds, true);
-
-    if (injured && (priorityTarget || injured.hp / injured.maxHp < 0.84)) {
-      if (canReposition && !retreating && unit.distanceTo(injured) > unit.healRange * 0.9) {
-        unit.moveToward(injured.arenaX, injured.arenaY, deltaSeconds, unit.healRange * 0.72);
-      }
-
-      if (unit.distanceTo(injured) <= unit.healRange) {
-        const primary = unit.abilities?.primary;
-        if (primary && injured.hp / injured.maxHp < 0.62 && unit.abilityReady('primary', time)) {
-          if (unit.className === 'Naturalist') this.beginMultiHeal(unit, time, primary);
-          else this.beginHealAbility(unit, injured, 'primary', time);
-        } else if (unit.canHeal(time)) {
-          this.beginBasicHeal(unit, injured, time);
-        }
-      }
-      return;
-    }
-
-    if (nearestEnemy && canReposition && !retreating) {
-      this.movement.maintainRange(unit, nearestEnemy, deltaSeconds);
-    }
-
-    const target = this.getPrimaryTarget(unit);
-    if (!target) return;
-
-    this.tryClassUtility(unit, target, time);
-    if (unit.className === 'Priest' && unit.abilityReady('utility', time) && unit.canCast(time)) {
-      unit.markAbilityUsed('utility', time);
-      const burst = unit.abilities.utility;
-      this.beginInstantDamage(unit, target, burst.power, 'holy', burst.name);
-      return;
-    }
-
-    if (this.isWithinAttackReach(unit, target) && unit.canAttack(time)) {
-      this.beginBasicAttack(unit, target, time, unit.className === 'Bloodwarder' ? 'spell' : 'holy');
-    }
-  }
-
-  // This function lets Rangers control nearby enemies with their configured
-  // trap.
-  tryRangerTrap(unit, target, time) {
-
-    const trap = unit.abilities?.trap;
-    if (!trap || time - (unit.lastAbilityAt.trap ?? -Infinity) < trap.cooldown || unit.isBusy(time)) return;
-    if (!unit.spendMana(trap.manaCost ?? 0)) return;
-    unit.lastAbilityAt.trap = time;
-    unit.trapCycle = ((unit.trapCycle ?? -1) + 1) % 3;
-
-    if (unit.trapCycle === 0) {
-      this.announceAbility(unit, 'Freezing Trap', '#93c5fd');
-      target.status.stunnedUntil = time + 15000;
-      this.createFloatingText(target.x, target.y - 96, 'FROZEN', '#93c5fd');
-    } else if (unit.trapCycle === 1) {
-      this.announceAbility(unit, 'Explosive Trap', '#fb923c');
-      this.getLivingEnemies().filter((enemy) => enemy.distanceTo(target) <= 145).forEach((enemy) => {
-
-        this.resolveDamage(unit, enemy, 18, 'ranged', 0.6, 'Explosive Trap', false);
-      });
-    } else {
-      this.announceAbility(unit, 'Smoke Trap', '#cbd5e1');
-      this.getLivingEnemies().filter((enemy) => enemy.distanceTo(target) <= 145).forEach((enemy) => {
-
-        enemy.status.blindUntil = time + 15000;
-        enemy.status.blindChance = 0.5;
-      });
-      this.createFloatingText(target.x, target.y - 96, 'SMOKE TRAP', '#cbd5e1');
-    }
-  }
-
-  // This function winds up an area attack before resolving nearby victims.
-  beginAoeDamageAbility(attacker, target, key, time, attackType) {
-
-    const ability = attacker.abilities[key];
-    if (!ability || !attacker.startAction(ability.name, time, ability.windup)) return;
-
-    this.announceAbility(attacker, ability.name, attackType === 'spell' ? '#93c5fd' : '#fbbf24');
-    this.logActionStart(attacker, target, ability.name);
-    attacker.markAbilityUsed(key, time);
-    if (ability.healthCost) {
-      const cost = Math.max(1, Math.round(attacker.maxHp * ability.healthCost));
-      attacker.hp = Math.max(1, attacker.hp - cost);
-      attacker.updateHealthBar();
-      this.createFloatingText(attacker.x, attacker.y - 80, `-${cost}`, '#f87171');
-    }
-
-    const action = attacker.pendingAction;
-    this.time.delayedCall(ability.windup, () => {
-
-      if (!this.isActionCurrent(attacker, action)) return;
-      const victims = this.getLivingEnemies().filter((enemy) => enemy.distanceToPoint(target.arenaX, target.arenaY) <= ability.radius);
-      let total = 0;
-      victims.forEach((enemy) => {
-
-        this.resolveDamage(attacker, enemy, ability.power, attackType, ability.threatMultiplier ?? attacker.threatMultiplier, ability.name);
-        total += ability.power;
-      });
-      if (ability.lifeSteal && total > 0) attacker.heal(Math.max(1, Math.round(total * ability.lifeSteal)));
-      attacker.finishAction();
-    });
-  }
-
-  // This function winds up a group heal and chooses injured allies when it
-  // resolves.
-  beginMultiHeal(healer, time, ability) {
-
-    if (!healer.startAction(ability.name, time, ability.windup)) return;
-    this.announceAbility(healer, ability.name, '#86efac');
-    this.logActionStart(healer, null, ability.name);
-    healer.markAbilityUsed('primary', time);
-    const action = healer.pendingAction;
-    this.time.delayedCall(ability.windup, () => {
-
-      if (!this.isActionCurrent(healer, action)) return;
-      const targets = this.partyUnits
-        .filter((unit) => unit.alive && unit.hp < unit.maxHp)
-        .sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp))
-        .slice(0, ability.targets ?? 3);
-      targets.forEach((target) => this.resolveHeal(healer, target, ability.power, ability.name));
-      healer.finishAction();
-    });
-  }
-
-  // This function announces and resolves an attack that does not need a
-  // windup.
-  beginInstantDamage(attacker, target, power, attackType, abilityName) {
-
-    this.announceAbility(attacker, abilityName, attackType === 'holy' ? '#fde68a' : '#93c5fd');
-    this.logActionStart(attacker, target, abilityName);
-    this.resolveDamage(attacker, target, power, attackType, attacker.threatMultiplier, abilityName);
   }
 
   // This function drives enemy targeting, abilities, movement, and basic
@@ -1628,6 +1349,10 @@ export default class BattleScene extends Phaser.Scene {
       }
       if (!enemy.isBusy(time)) this.setEnemyTarget(enemy, target, 'highest threat');
 
+      if (enemy.status.forcedApproach && time < enemy.status.forcedTargetUntil && enemy.distanceTo(target) > 90) {
+        if (!enemy.isBusy(time)) enemy.moveToward(target.arenaX, target.arenaY, deltaSeconds, 85);
+        return;
+      }
       const primary = enemy.abilities?.primary;
       if (primary?.telegraph && enemy.abilityReady('primary', time) && enemy.distanceTo(target) <= 220) {
         this.setEnemyTarget(enemy, target, 'highest threat');
@@ -1656,7 +1381,7 @@ export default class BattleScene extends Phaser.Scene {
   isActionCurrent(unit, action, target = null) {
 
     if (unit.pendingAction !== action) return false;
-    if (!unit.alive || this.battleOver || (target && !target.alive)) {
+    if (!unit.alive || this.battleOver || this.time.now < (unit.status?.stunnedUntil ?? 0) || (target && (!target.alive || (unit.isEnemy && target.stealthed)))) {
       unit.finishAction();
       return false;
     }
@@ -1667,17 +1392,23 @@ export default class BattleScene extends Phaser.Scene {
   // hit.
   beginBasicAttack(attacker, target, time, attackType) {
 
+    if (attacker.role === 'Healer' && this.partyUnits.some(unit => unit.alive && unit.hp / unit.maxHp < 0.8)) return;
     if (!attacker.startAction('Attack', time, attacker.attackWindup)) {
       return;
     }
 
     attacker.lastAttackAt = time;
+    attacker.spriteVisual?.play('attack', target);
     if (attacker.isEnemy) this.setEnemyTarget(attacker, target, 'highest threat');
     this.logActionStart(attacker, target, 'Attack');
     const action = attacker.pendingAction;
     this.time.delayedCall(attacker.attackWindup, () => {
 
       if (!this.isActionCurrent(attacker, action, target)) return;
+      if (attacker.role === 'Healer' && this.partyUnits.some(unit => unit.alive && unit.hp / unit.maxHp < 0.8)) {
+        attacker.finishAction();
+        return;
+      }
       if (this.isWithinAttackReach(attacker, target, 28)) {
         this.resolveDamage(attacker, target, attacker.attackPower, attackType, attacker.threatMultiplier, 'Attack');
       }
@@ -1685,57 +1416,23 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
-  // This function commits a damage ability and resolves its hit after the
-  // windup.
-  beginDamageAbility(attacker, target, key, time, attackType) {
+  // A healer's basic action restores a small amount to one injured ally.
+  beginBasicHeal(healer, target, time) {
+    if (!target.alive || target.hp >= target.maxHp || !healer.canHeal(time)
+      || this.classAbilitySystem.distance(healer, target) > healer.basicHealRange
+      || !healer.startAction('Mend', time, healer.healWindup)) return;
 
-    const ability = attacker.abilities[key];
-    if (!ability || !attacker.startAction(ability.name, time, ability.windup)) {
-      return;
-    }
-
-    this.announceAbility(attacker, ability.name, attackType === 'spell' ? '#93c5fd' : attackType === 'ranged' ? '#86efac' : '#fbbf24');
-    this.logActionStart(attacker, target, ability.name);
-    attacker.markAbilityUsed(key, time);
-    if (ability.healthCost) {
-      const cost = Math.max(1, Math.round(attacker.maxHp * ability.healthCost));
-      attacker.hp = Math.max(1, attacker.hp - cost);
-      attacker.updateHealthBar();
-      this.createFloatingText(attacker.x, attacker.y - 80, `-${cost}`, '#f87171');
-    }
-
-    const action = attacker.pendingAction;
-    this.time.delayedCall(ability.windup, () => {
-
-      if (!this.isActionCurrent(attacker, action, target)) return;
-      const rangePadding = attackType === 'spell' ? 50 : 30;
-      if (this.isWithinAttackReach(attacker, target, rangePadding)) {
-        this.resolveDamage(
-          attacker,
-          target,
-          ability.power,
-          attackType,
-          ability.threatMultiplier ?? attacker.threatMultiplier,
-          ability.name
-        );
-        if (ability.lifeSteal) attacker.heal(Math.max(1, Math.round(ability.power * ability.lifeSteal)));
-        if (ability.bleedPower && target.alive) this.applyBleed(attacker, target, ability);
+    healer.lastHealAt = time;
+    healer.spriteVisual?.play('block', target);
+    this.logActionStart(healer, target, 'Mend');
+    const action = healer.pendingAction;
+    this.time.delayedCall(healer.healWindup, () => {
+      if (!this.isActionCurrent(healer, action, target)) return;
+      if (target.hp < target.maxHp && this.classAbilitySystem.distance(healer, target) <= healer.basicHealRange) {
+        this.resolveHeal(healer, target, healer.basicHealPower, 'Mend');
       }
-      attacker.finishAction();
+      healer.finishAction();
     });
-  }
-
-  // This function spreads bleed damage across timed ticks that cannot
-  // critically hit.
-  applyBleed(attacker, target, ability) {
-
-    for (let tick = 1; tick <= ability.bleedTicks; tick += 1) {
-      this.time.delayedCall(ability.bleedInterval * tick, () => {
-
-        if (!attacker.alive || !target.alive || this.battleOver) return;
-        this.resolveDamage(attacker, target, ability.bleedPower, 'melee', 0.35, 'Bleed', false);
-      });
-    }
   }
 
   // This function announces an enemy cast and resolves it if the action
@@ -1746,6 +1443,7 @@ export default class BattleScene extends Phaser.Scene {
     if (!ability || !attacker.startAction(ability.name, time, ability.windup)) {
       return;
     }
+    attacker.spriteVisual?.play('attack', target);
     this.announceAbility(attacker, ability.name, '#c084fc');
     this.setEnemyTarget(attacker, target, 'highest threat');
     this.logActionStart(attacker, target, ability.name);
@@ -1761,57 +1459,6 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
-  // This function pays for a basic heal and resolves it after its casting
-  // time.
-  beginBasicHeal(healer, target, time) {
-
-    if (healer.maxMana > 0 && healer.mana < healer.basicHealManaCost) return;
-    if (!healer.startAction('Mend', time, healer.healWindup)) {
-      return;
-    }
-    if (!healer.spendMana(healer.basicHealManaCost)) { healer.finishAction(); return; }
-    this.announceAbility(healer, 'Mend', '#86efac');
-    this.logActionStart(healer, target, 'Mend');
-    healer.lastHealAt = time;
-    const action = healer.pendingAction;
-    this.time.delayedCall(healer.healWindup, () => {
-
-      if (!this.isActionCurrent(healer, action, target)) return;
-      if (healer.distanceTo(target) <= healer.healRange + 30) {
-        this.resolveHeal(healer, target, healer.healPower, 'Mend');
-      }
-      healer.finishAction();
-    });
-  }
-
-  // This function commits a healing ability and checks its target after the
-  // windup.
-  beginHealAbility(healer, target, key, time) {
-
-    const ability = healer.abilities[key];
-    if (!ability || !healer.startAction(ability.name, time, ability.windup)) {
-      return;
-    }
-    this.announceAbility(healer, ability.name, '#86efac');
-    this.logActionStart(healer, target, ability.name);
-    healer.markAbilityUsed(key, time);
-    if (ability.healthCost) {
-      const cost = Math.max(1, Math.round(healer.maxHp * ability.healthCost));
-      healer.hp = Math.max(1, healer.hp - cost);
-      healer.updateHealthBar();
-      this.createFloatingText(healer.x, healer.y - 80, `-${cost}`, '#f87171');
-    }
-    const action = healer.pendingAction;
-    this.time.delayedCall(ability.windup, () => {
-
-      if (!this.isActionCurrent(healer, action, target)) return;
-      if (healer.distanceTo(target) <= healer.healRange + 40) {
-        this.resolveHeal(healer, target, ability.power, ability.name);
-      }
-      healer.finishAction();
-    });
-  }
-
   // This function starts an enemy area attack and draws a warning at the
   // target's current position. After the warning delay, it damages living
   // party members still inside that fixed area and removes the warning.
@@ -1820,6 +1467,7 @@ export default class BattleScene extends Phaser.Scene {
     if (!attacker.startAction(ability.name, time, ability.telegraph)) {
       return;
     }
+    attacker.spriteVisual?.play('attack', target);
     this.announceAbility(attacker, ability.name, '#f87171');
     this.setEnemyTarget(attacker, target, 'highest threat');
     this.logActionStart(attacker, target, ability.name);
@@ -1923,24 +1571,8 @@ export default class BattleScene extends Phaser.Scene {
   // it.
   rollCritical(attacker, allowCrit = true) {
 
-    return allowCrit && Math.random() < (attacker.critChance ?? 0);
-  }
-
-  // This function flashes the perspective-grid cell containing a targeted unit.
-  flashTargetCell(target, color = 0xffffff) {
-
-    if (!target?.alive || !this.battlefield) return;
-    const cell = this.battlefield.arenaPointToCell(target.arenaX, target.arenaY);
-    const polygon = this.battlefield.getCellPolygon(cell.column, cell.row);
-    const graphics = this.add.graphics().setDepth(39);
-
-    graphics.lineStyle(10, color, 1);
-    graphics.strokePoints(polygon, true);
-    graphics.setAlpha(1);
-
-    this.time.delayedCall(2000, () => {
-      if (graphics.active) graphics.destroy();
-    });
+    const bonus = this.time.now < (attacker.status.abilityCritUntil ?? 0) ? attacker.status.abilityCritBonus ?? 0 : 0;
+    return allowCrit && Math.random() < Math.min(0.95, (attacker.critChance ?? 0) + bonus);
   }
 
   // This function resolves an attack from its base damage through critical
@@ -1954,14 +1586,9 @@ export default class BattleScene extends Phaser.Scene {
     if (!attacker.isEnemy && attacker.role !== 'Tank' && target.isEnemy && !this.isEnemyEngaged(target)) return;
     const now = this.time.now;
 
-    // Flash only non-basic abilities that target another unit, using the target's slot color.
-    if (attacker !== target && abilityName !== 'Attack' && abilityName !== 'Bleed') {
-      this.flashTargetCell(target, target.color ?? 0xffffff);
-    }
-
     // Resolve blindness before damage modifiers; a miss stops the rest of the
     // hit processing.
-    if (now < (attacker.status.blindUntil ?? 0) && Math.random() < (attacker.status.blindChance ?? 0)) {
+    if (attackType !== 'reflection' && now < (attacker.status.blindUntil ?? 0) && Math.random() < (attacker.status.blindChance ?? 0)) {
       this.createFloatingText(target.x, target.y - 82, 'MISS', '#cbd5e1', false, 'miss');
       this.combatLog?.add('miss', `${attacker.name}'s ${abilityName} missed ${target.name}`, {
         wave: this.currentWaveIndex + 1,
@@ -1971,48 +1598,66 @@ export default class BattleScene extends Phaser.Scene {
       });
       return;
     }
+    const interceptor = target.status.interceptSource;
+    if (attacker.isEnemy && interceptor?.alive && interceptor !== target
+      && now < (target.status.interceptUntil ?? 0)) {
+      target.status.interceptUntil = 0;
+      target.status.interceptSource = null;
+      this.resolveDamage(attacker, interceptor, baseAmount, attackType, threatMultiplier, abilityName, allowCrit);
+      return 0;
+    }
 
     // Roll the critical result and apply outgoing damage bonuses or
     // penalties.
     const critical = this.rollCritical(attacker, allowCrit);
+    if (attacker.status.abilityCritOnce) { attacker.status.abilityCritUntil = 0; attacker.status.abilityCritOnce = false; }
     let amount = Math.round(baseAmount * (critical ? attacker.critMultiplier : 1));
+    if (attackType !== 'reflection' && attacker.status.nextAttackBoost) {
+      amount = Math.round(amount * (1 + attacker.status.nextAttackBoost));
+      attacker.status.nextAttackBoost = 0;
+    }
 
-    if (!attacker.isEnemy && now < (attacker.status.damageBoostUntil ?? 0)) {
+    if (attackType !== 'reflection' && !attacker.isEnemy && now < (attacker.status.damageBoostUntil ?? 0)) {
       amount = Math.round(amount * (1 + (attacker.status.damageBoost ?? 0)));
     }
     if (attacker.isEnemy && now < (attacker.status.outgoingDamageReductionUntil ?? 0)) {
       amount = Math.round(amount * Math.max(0, 1 - (attacker.status.outgoingDamageReduction ?? 0)));
     }
-    if (!attacker.isEnemy && attackType === 'melee' && now < (target.status.armorExposeUntil ?? 0)) {
-      amount = Math.round(amount * (1 + (target.status.armorReduction ?? 0)));
-    }
-
-    // Consume a stealthed Rogue opener, expose the target, and begin seeking
-    // the next re-stealth opportunity.
-    if (!attacker.isEnemy && attacker.className === 'Rogue' && attacker.stealthed) {
-      const opener = attacker.abilities?.opener;
-      if (opener) {
-        amount = Math.round(amount * opener.multiplier);
-        target.status.armorExposeUntil = now + opener.duration;
-        target.status.armorReduction = opener.armorReduction;
-        attacker.setStealthed(false);
-        attacker.seekingRestealth = true;
-        this.createFloatingText(attacker.x, attacker.y - 110, 'AMBUSH!', '#c4b5fd', true);
-      }
-    }
-
-    if (!attacker.isEnemy && now < this.assaultUntil) amount = Math.round(amount * (1 + this.assaultBonus));
+    if (now < (attacker.status.enrageUntil ?? 0)) amount = Math.round(amount * attacker.status.enrageDamage);
+    else if (now < (attacker.status.exhaustedUntil ?? 0)) amount = Math.round(amount * attacker.status.exhaustedDamage);
+    if (attackType !== 'reflection' && now < (attacker.status.honorDamageUntil ?? 0)) amount = Math.round(amount * (1 + attacker.status.honorDamageBoost));
+    if (attackType !== 'reflection' && !attacker.isEnemy && now < this.assaultUntil) amount = Math.round(amount * (1 + this.assaultBonus));
     if (attacker.isEnemy && !target.isEnemy && now < this.braceUntil) amount = Math.max(1, Math.round(amount * (1 - this.braceReduction)));
 
     // Let the target apply its defenses, then measure actual health loss for
     // the combat log.
     const ranged = attackType === 'spell' || attackType === 'ranged' || attacker.attackRange > 180;
+    if (now < (target.status.immuneUntil ?? 0)) {
+      this.createFloatingText(target.x, target.y - 82, 'IMMUNE', '#fde68a');
+      return 0;
+    }
+    if (attacker.isEnemy && now < (target.status.abilityDodgeUntil ?? 0)
+      && (!target.status.abilityDodgeRangedOnly || attackType === 'ranged' || attackType === 'spell' || attacker.attackRange > 180)
+      && Math.random() < (target.status.abilityDodgeChance ?? 0)) return 0;
+    if (attacker.isEnemy && this.classAbilitySystem?.tryParry(target, attacker, amount, now)) return 0;
     const hpBefore = target.hp;
-    target.takeDamage(amount, { time: now, ranged });
+    target.takeDamage(amount, { time: now, ranged, attacker,
+      blocked: (!target.isEnemy && now < this.braceUntil)
+        || now < (target.status.shieldUntil ?? 0)
+        || now < (target.status.damageReductionUntil ?? 0) });
     const actualDamage = hpBefore - target.hp;
+    if (actualDamage > 0 && target.isEnemy && attacker.status.nextPoisonPower) {
+      target.status.poison = {
+        caster: attacker,
+        power: attacker.status.nextPoisonPower,
+        interval: 2000,
+        next: now + 2000,
+        until: now + 6000
+      };
+      attacker.status.nextPoisonPower = 0;
+    }
 
-    // Update the combat interaction timestamps used by the Rogue quiet-time
-    // rule.
+    // Record recent combat interaction timestamps.
     if (amount > 0) {
       attacker.lastCombatActionAt = now;
       target.lastCombatActionAt = now;
@@ -2020,7 +1665,7 @@ export default class BattleScene extends Phaser.Scene {
       target.lastTakenDamageAt = now;
     }
 
-    if (target.isEnemy && now < (target.status.stunnedUntil ?? 0) && amount > 0) {
+    if (target.isEnemy && now < (target.status.stunnedUntil ?? 0) && now >= (target.status.hardStunUntil ?? 0) && amount > 0) {
       target.status.stunnedUntil = 0;
       this.createFloatingText(target.x, target.y - 96, 'UNFROZEN', '#cbd5e1');
     }
@@ -2041,7 +1686,10 @@ export default class BattleScene extends Phaser.Scene {
       this.getLivingEnemies().forEach((enemy) => {
 
         if (enemy === target) {
-          this.addThreat(enemy, attacker, amount * threatMultiplier);
+          const threatReduction = now < (attacker.status.threatReductionUntil ?? 0) ? 1 - (attacker.status.threatReduction ?? 0) : 1;
+          const preparedThreat = attacker.status.nextThreatBonus ?? 1;
+          this.addThreat(enemy, attacker, amount * threatMultiplier * threatReduction * preparedThreat);
+          attacker.status.nextThreatBonus = 1;
         }
       });
     }
@@ -2054,12 +1702,18 @@ export default class BattleScene extends Phaser.Scene {
       target: target.name,
       ability: abilityName,
       amount: actualDamage,
+      targetSide: target.isEnemy ? 'enemy' : 'party',
       critical,
       targetHp: target.hp,
       targetMaxHp: target.maxHp,
       threat: target.isEnemy ? this.getThreatSnapshot(target) : undefined
     });
 
+    if (attacker.isEnemy && target.status.bramble && amount > 0) {
+      const bramble = target.status.bramble;
+      target.status.bramble = null;
+      if (attacker.alive) this.resolveDamage(bramble.caster, attacker, bramble.power, 'spell', 1, 'Bramble Mend', false);
+    }
     if (attackType === 'spell' || attackType === 'holy') {
       this.createProjectile(attacker, target, attackType === 'holy' ? 0xfde68a : 0x60a5fa);
     } else {
@@ -2079,23 +1733,25 @@ export default class BattleScene extends Phaser.Scene {
         wave: this.currentWaveIndex + 1,
         actor: attacker.name,
         target: target.name,
-        ability: abilityName
+      ability: abilityName,
+      targetSide: target.isEnemy ? 'enemy' : 'party'
       });
     }
+    return actualDamage;
   }
 
   // This function applies a heal, including its critical roll, and measures
   // how much health was actually restored for feedback and the combat log.
   // Healing generates threat only on enemies already engaged by a tank.
-  resolveHeal(healer, target, baseAmount, abilityName) {
+  resolveHeal(healer, target, baseAmount, abilityName, allowCrit = true) {
 
-    // Flash only named healing abilities cast on someone else, not routine Mend casts or self-targets.
-    if (healer !== target && abilityName !== 'Mend') {
-      this.flashTargetCell(target, target.color ?? 0xffffff);
-    }
-
-    const critical = this.rollCritical(healer, true);
-    const amount = Math.round(baseAmount * (critical ? healer.critMultiplier : 1));
+    const critical = this.rollCritical(healer, allowCrit);
+    const healingBoost = this.time.now < (healer.status.healingBoostUntil ?? 0) ? 1 + healer.status.healingBoost : 1;
+    const honorBoost = this.time.now < (healer.status.honorHealingUntil ?? 0) ? 1 + healer.status.honorHealingBoost : 1;
+    const targetReduction = this.time.now < (target.status.healingReductionUntil ?? 0) ? 1 - target.status.healingReduction : 1;
+    const preparedBoost = healer.status.nextHealBoost ?? 0;
+    healer.status.nextHealBoost = 0;
+    const amount = Math.round(baseAmount * healingBoost * honorBoost * targetReduction * (1 + preparedBoost) * (critical ? healer.critMultiplier : 1));
     const before = target.hp;
     target.heal(amount);
 
@@ -2114,6 +1770,7 @@ export default class BattleScene extends Phaser.Scene {
       target: target.name,
       ability: abilityName,
       amount: effectiveHealing,
+      targetSide: target.isEnemy ? 'enemy' : 'party',
       critical,
       targetHp: target.hp,
       targetMaxHp: target.maxHp,
@@ -2131,11 +1788,9 @@ export default class BattleScene extends Phaser.Scene {
     const definition = enemy.definition;
     this.earnedGold += Phaser.Math.Between(definition.goldMin ?? 0, definition.goldMax ?? 0);
 
-    // Enemies remain in the wave array for reward accounting and delayed
-    // action checks, but their battlefield body should not occupy the scene
-    // after defeat. Floating damage text is separate and can finish normally.
+    // Keep the container until the death clip and shared fade/pop finish.
+    // Wave cleanup removes it after the animation.
     enemy.hitZone?.disableInteractive?.();
-    enemy.container?.destroy?.();
   }
 
   // This function checks whether allies may engage an enemy. A tank hit or
@@ -2167,10 +1822,12 @@ export default class BattleScene extends Phaser.Scene {
   // take priority before distance, including at the start of a wave.
   getHighestThreatTarget(enemy) {
 
-    const living = this.partyUnits.filter((unit) => unit.alive);
+    const living = this.partyUnits.filter((unit) => unit.alive && !unit.stealthed);
     if (living.length === 0) {
       return null;
     }
+    const forced = living.find(unit => unit.id === enemy.status?.forcedTargetId);
+    if (forced && this.time.now < (enemy.status.forcedTargetUntil ?? 0)) return forced;
     const table = this.enemyThreat.get(enemy.id) ?? new Map();
 
     return living.sort((a, b) => {
@@ -2317,6 +1974,7 @@ export default class BattleScene extends Phaser.Scene {
 
     this.tweens.killTweensOf(this.battleMessageText);
     this.battleMessageText.setText(text).setColor(color).setAlpha(1);
+    this.battleMessagePlaque?.setVisible(Boolean(text));
 
     if (!persistent) {
       this.tweens.add({
@@ -2327,6 +1985,7 @@ export default class BattleScene extends Phaser.Scene {
         onComplete: () => {
 
           if (this.battleMessageText?.active) this.battleMessageText.setText('').setAlpha(1);
+          this.battleMessagePlaque?.setVisible(false);
         }
       });
     }
@@ -2339,6 +1998,7 @@ export default class BattleScene extends Phaser.Scene {
     if (!this.battleMessageText) return;
     this.tweens.killTweensOf(this.battleMessageText);
     this.battleMessageText.setText('').setAlpha(1);
+    this.battleMessagePlaque?.setVisible(false);
   }
 
   // This function clears wave visuals and paces the transition to the next
@@ -2352,8 +2012,40 @@ export default class BattleScene extends Phaser.Scene {
     // Stop active combat updates during the wave transition and clear
     // remaining ground warnings.
     this.waveTransitioning = true;
+    let waveReward = null;
+    if (isOrdinaryDelve() && this.currentWaveIndex < this.bossWaveIndex) {
+      waveReward = awardOrdinaryWave(GameState.currentDelve, this.currentWaveIndex,
+        this.bossWaveIndex, GameState.run.entry === 'farm');
+      if (waveReward) {
+        this.earnedGold = 0;
+      }
+    }
+    this.waveRetreating = true;
+    this.waveReturnReadyAt = null;
+    this.waveReturnStartedAt = this.time.now;
+    this.waveReturnTimedOut = false;
+    this.waveReturnProgress = new Map();
+    this.waveReturnSettled = new Set();
+    this.waveReturnTargets = new Map(this.partyUnits.filter(unit => unit.alive).map(unit => {
+      const home = this.waveReturnPositions.get(unit.id);
+      if (!home) return [unit.id, { x: unit.arenaX, y: unit.arenaY }];
+      const clear = this.movement.clearCorpseDestination(unit, home);
+      return [unit.id, this.movement.clamp(clear.x, clear.y, unit)];
+    }));
+    if (this.currentWaveIndex + 1 < this.waves.length) {
+      this.partyUnits.filter(unit => unit.alive).forEach(unit => {
+        const halfway = Math.ceil(unit.maxHp * 0.5);
+        if (unit.hp < halfway) unit.heal(halfway - unit.hp);
+      });
+      this.updateHud();
+    }
+    this.manualTargets.clear();
+    this.heldUnitIds.clear();
+    this.attackTargets.clear();
     this.activeTelegraphs.forEach((telegraph) => this.removeTelegraph(telegraph));
-    this.showBattleMessage('WAVE CLEARED', '#bef264');
+    this.showBattleMessage(waveReward
+      ? `+${waveReward.gold} GOLD  +${waveReward.materialCount} MATERIAL  +${waveReward.xp} XP`
+      : 'WAVE CLEARED', '#bef264');
     this.combatLog?.add('wave', `Wave ${this.currentWaveIndex + 1} cleared`, { wave: this.currentWaveIndex + 1 });
     this.combatLog?.persist();
 
@@ -2362,35 +2054,171 @@ export default class BattleScene extends Phaser.Scene {
       this.tweens.add({
         targets: enemy.container,
         alpha: 0,
-        duration: 500,
+        delay: enemy.alive ? 0 : Math.max(0, 1100 - (enemy.deathElapsed ?? 0)),
+        duration: 250,
         onComplete: () => enemy.container.destroy()
       });
     });
 
-    if (this.currentWaveIndex + 1 >= this.waves.length) {
-      this.time.delayedCall(900, () => this.finishVictory());
-    } else {
-      this.time.delayedCall(1200, () => this.startWave(this.currentWaveIndex + 1));
-    }
   }
 
-  // Watch the shared inventory so any source of Tonics restores the controls.
-  // Three gentle pulses announce newly available stock without moving targets.
-  updateTonicHud() {
-    const hasTonics = GameState.inventory.healingTonic > 0;
-    const now = this.time.now;
-    if (hasTonics && this.hadHealingTonics === false) this.tonicFlashUntil = now + 1500;
-    if (!hasTonics) this.tonicFlashUntil = 0;
-    this.hadHealingTonics = hasTonics;
-    const remaining = Math.max(0, (this.tonicFlashUntil ?? 0) - now);
-    const alpha = remaining > 0 ? 0.7 + 0.3 * Math.cos(remaining * Math.PI * 2 / 500) : 1;
-    this.tonicHintText?.setVisible(hasTonics).setAlpha(alpha);
-    this.tonicCountText?.setText(`Healing Tonics: ${GameState.inventory.healingTonic}`).setVisible(hasTonics);
-    this.partyHud?.forEach(({ unit, tonicButton, tonicLabel }) => {
-      const ready = this.canUseHealingTonic(unit);
-      tonicButton?.setVisible(hasTonics).setAlpha(alpha).setFillStyle(ready ? 0x14532d : 0x292524);
-      if (tonicButton?.input) tonicButton.input.enabled = hasTonics;
-      tonicLabel?.setVisible(hasTonics).setAlpha(alpha * (ready ? 1 : 0.45));
+  // Return living adventurers to their original positions before the next wave.
+  updateWaveRetreat(time, deltaSeconds, delta) {
+
+    const living = this.partyUnits.filter((unit) => unit.alive);
+    for (const unit of living) {
+      const destination = this.waveReturnTargets.get(unit.id);
+      if (!destination) continue;
+      const distance = Math.hypot(unit.arenaX - destination.x, unit.arenaY - destination.y);
+      if (distance > 6 && !this.waveReturnTimedOut && !this.waveReturnSettled.has(unit.id)) {
+        unit.moveToward(destination.x, destination.y, deltaSeconds * 2, 0, false);
+      } else if (distance > 0 && distance <= 6) {
+        unit.setArenaPosition(destination.x, destination.y);
+      }
+      const remaining = Math.hypot(unit.arenaX - destination.x, unit.arenaY - destination.y);
+      const progress = this.waveReturnProgress.get(unit.id);
+      if (!progress || remaining < progress.bestDistance - 6) {
+        this.waveReturnProgress.set(unit.id, { bestDistance: remaining, lastProgressAt: time });
+      } else if (remaining > 6 && time - progress.lastProgressAt >= 2000) {
+        this.waveReturnSettled.add(unit.id);
+      }
+      unit.spriteVisual?.update(delta);
+    }
+
+    const allHome = living.every((unit) => {
+      const destination = this.waveReturnTargets.get(unit.id);
+      return destination && (this.waveReturnSettled.has(unit.id)
+        || Math.hypot(unit.arenaX - destination.x, unit.arenaY - destination.y) <= 6);
+    });
+    if (!allHome && time - this.waveReturnStartedAt < 10000) {
+      this.waveReturnReadyAt = null;
+      return;
+    }
+
+    if (!allHome) this.waveReturnTimedOut = true;
+    this.waveReturnReadyAt ??= time + 2000;
+    if (time < this.waveReturnReadyAt) return;
+    this.waveRetreating = false;
+    if (isOrdinaryDelve() && (GameState.run.entry === 'farm'
+      || this.currentWaveIndex + 1 === this.bossWaveIndex)) {
+      this.showDelveCamp();
+    } else if (this.currentWaveIndex + 1 >= this.waves.length) this.finishVictory();
+    else this.startWave(this.currentWaveIndex + 1);
+  }
+
+  // Keep the camp choices on the battlefield at the saved pre-boss checkpoint.
+  showDelveCamp() {
+
+    this.waveTransitioning = true;
+    this.waveRetreating = false;
+    GameState.run.entry = 'camp';
+    GameState.currentRoom = this.bossWaveIndex;
+    this.clearBattleMessage();
+    const { width, height } = this.scale;
+    const delve = GameState.currentDelve;
+    const values = WAVE_REWARDS[delve.difficulty] ?? WAVE_REWARDS.Easy;
+    const farmIndex = this.bossWaveIndex - 1;
+    const farmGold = values.gold + values.goldStep * farmIndex;
+    const farmXp = Math.max(1, Math.floor(values.xp / 2));
+    const overlay = [];
+    overlay.push(this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.78)
+      .setInteractive().setDepth(11999));
+    overlay.push(addWoodenPanel(this, width / 2, height / 2, 1390, 770, 12000));
+    overlay.push(this.add.text(width / 2, height * 0.24, 'DELVE CAMP', {
+      fontFamily: 'Arial', fontSize: '68px', fontStyle: 'bold', color: '#bef264'
+    }).setOrigin(0.5).setDepth(12001));
+    overlay.push(this.add.text(width / 2, height * 0.30,
+      `Waves 1-${this.bossWaveIndex} cleared • Rewards and camp saved`, {
+        fontFamily: 'Arial', fontSize: '31px', color: '#e7e5e4'
+      }).setOrigin(0.5).setDepth(12001));
+
+    const choice = (y, title, detail, action, color) => {
+      const button = this.add.rectangle(width / 2, y, 1180, 138, color)
+        .setStrokeStyle(3, 0x78716c).setInteractive({ useHandCursor: true }).setDepth(12001);
+      overlay.push(button);
+      overlay.push(this.add.text(width / 2, y - 25, title, {
+        fontFamily: 'Arial', fontSize: '38px', fontStyle: 'bold', color: '#ffffff'
+      }).setOrigin(0.5).setDepth(12002));
+      overlay.push(this.add.text(width / 2, y + 26, detail, {
+        fontFamily: 'Arial', fontSize: '29px', color: '#e7e5e4'
+      }).setOrigin(0.5).setDepth(12002));
+      button.on('pointerdown', () => {
+        HapticsService.confirm();
+        overlay.forEach((object) => object.destroy());
+        action();
+      });
+    };
+    choice(height * 0.42, 'RETURN TO TOWN', 'Keep all banked rewards', () => {
+      GameState.activeParty = [];
+      const townId = delve.returnTownId ?? (delve.requiresLocation === 'duskfall' ? 'duskfall' : 'pineshire');
+      GameState.world.currentLocation = townId;
+      saveProfile();
+      this.scene.start('TownScene', { townId });
+    }, 0x365135);
+    choice(height * 0.59, `FARM WAVE ${this.bossWaveIndex}`,
+      `${farmGold} Gold • ${values.materialCount} material • ${farmXp} XP per adventurer`, () => {
+        GameState.run.entry = 'farm';
+        this.startWave(farmIndex);
+      }, 0x50432e);
+    choice(height * 0.76, 'FACE THE BOSS', 'Boss rewards and Delve completion', () => {
+      GameState.run.entry = 'boss';
+      this.startWave(this.bossWaveIndex);
+    }, 0x633328);
+  }
+
+  potionDetails(unit) {
+    const hero = GameState.roster.find((entry) => entry.id === unit.id);
+    const item = hero && equippedItem(hero, 'potion', GameState);
+    const definition = getPotionDefinition(item?.itemId);
+    return definition ? { title: definition.name, description: `${definition.description} ${item.charges}/${definition.uses} uses remain. Tap POTION to use it on ${unit.name}.` }
+      : { title: 'Potion', description: 'Equip a potion pack on this adventurer at the Adventurer\'s Hall.' };
+  }
+
+  canUsePotion(unit, time = this.time.now) {
+    if (this.battleOver || this.combatPaused || this.waveTransitioning || !this.partyUnits.includes(unit) || !unit.alive) return false;
+    const hero = GameState.roster.find((entry) => entry.id === unit.id);
+    const item = hero && equippedItem(hero, 'potion', GameState);
+    const definition = getPotionDefinition(item?.itemId);
+    if (!definition || time - (this.lastPotionUseAt?.get(unit.id) ?? -Infinity) < 1500) return false;
+    return definition.effect.resource === 'hp' ? unit.hp < unit.maxHp
+      : definition.effect.resource === 'mana' && unit.maxMana > 0 && unit.mana < unit.maxMana;
+  }
+
+  usePotion(unit, time = this.time.now) {
+    if (!this.canUsePotion(unit, time)) return false;
+    const hero = GameState.roster.find((entry) => entry.id === unit.id);
+    const item = equippedItem(hero, 'potion', GameState);
+    const definition = getPotionDefinition(item.itemId);
+    const resource = definition.effect.resource;
+    const maximum = resource === 'hp' ? unit.maxHp : unit.maxMana;
+    const before = resource === 'hp' ? unit.hp : unit.mana;
+    const restored = Math.max(1, Math.round(maximum * definition.effect.fraction));
+    if (resource === 'hp') unit.heal(restored);
+    else unit.mana = Math.min(unit.maxMana, unit.mana + restored);
+    const amount = Math.round((resource === 'hp' ? unit.hp : unit.mana) - before);
+    consumePotionCharge(hero.id, GameState);
+    this.lastPotionUseAt ??= new Map();
+    this.lastPotionUseAt.set(unit.id, time);
+    unit.flash?.(0x86efac);
+    this.createFloatingText(unit.x, unit.y - 100, `+${amount} ${resource === 'hp' ? 'HP' : 'MANA'}`, '#86efac', true);
+    this.showBattleMessage(`${unit.name} uses ${definition.name}`, '#86efac');
+    this.combatLog?.add('item', `${unit.name} restored ${amount} ${resource === 'hp' ? 'HP' : 'mana'} with ${definition.name}`, { target: unit.name, amount, resource });
+    HapticsService.confirm();
+    saveProfile();
+    this.updateHud();
+    return true;
+  }
+
+  updatePotionHud() {
+    this.partyHud?.forEach(({ unit, potionButton, potionLabel }) => {
+      const hero = GameState.roster.find((entry) => entry.id === unit.id);
+      const item = hero && equippedItem(hero, 'potion', GameState);
+      const definition = getPotionDefinition(item?.itemId);
+      const available = Boolean(definition);
+      const ready = available && this.canUsePotion(unit);
+      potionButton?.setVisible(available).setFillStyle(ready ? 0x14532d : 0x292524);
+      if (potionButton?.input) potionButton.input.enabled = available;
+      potionLabel?.setVisible(available).setAlpha(ready ? 1 : 0.55).setText(available ? `POTION\n${item.charges}/${definition.uses}` : '');
     });
   }
 
@@ -2399,7 +2227,7 @@ export default class BattleScene extends Phaser.Scene {
   updateHud() {
 
     this.updateLeaderLoadoutBar();
-    this.updateTonicHud();
+    this.updatePotionHud();
     this.partyHud?.forEach(({ unit, hpText, manaText, threatText, hpFill, hpGlow, manaBack, manaFill, hudBarWidth }) => {
 
       const ratio = unit.maxHp > 0 ? Phaser.Math.Clamp(unit.hp / unit.maxHp, 0, 1) : 0;
@@ -2437,15 +2265,14 @@ export default class BattleScene extends Phaser.Scene {
     return 0x22c55e;
   }
 
-  // This function shows the run timer beside the current wave and enemy
-  // group.
+  // Show the run timer with the wave number or the boss name.
   updateEncounterStatus() {
 
     if (!this.encounterStatusText || this.currentWaveIndex < 0) return;
     const elapsed = formatDuration(Date.now() - (GameState.run.startedAt || Date.now()));
     const wave = this.waves?.[this.currentWaveIndex];
-    const waveName = wave?.name ?? '';
-    this.encounterStatusText.setText(`(${elapsed}) Wave ${this.currentWaveIndex + 1}/${this.waves.length} - ${waveName}`);
+    const waveLabel = wave?.boss ? wave.name : `Wave ${this.currentWaveIndex + 1}/${this.waves.length}`;
+    this.encounterStatusText.setText(`(${elapsed}) ${waveLabel}`);
   }
 
   // This function draws attention to the party member taking enemy damage.
@@ -2488,7 +2315,7 @@ export default class BattleScene extends Phaser.Scene {
     const summary = completeExpedition();
     saveProfile();
     HapticsService.success();
-    this.showResultOverlay('VICTORY', `${GameState.currentDelve?.name ?? 'The Delve'} has been cleared.`, 'COLLECT REWARDS', () => {
+    this.showResultOverlay('DELVE CLEARED!', `${GameState.currentDelve?.name ?? 'The Delve'} has been cleared.`, 'CONFIRM', () => {
 
       HapticsService.confirm();
       this.scene.start('RewardScene');
@@ -2502,7 +2329,7 @@ export default class BattleScene extends Phaser.Scene {
     this.battleOver = true;
     this.combatLog?.finish('defeat');
     failExpedition();
-    this.showResultOverlay('DEFEAT', 'The party was driven back.', 'ENCOUNTER SUMMARY', () => {
+    this.showResultOverlay('DEFEATED', 'The party was driven back.', 'CONFIRM', () => {
 
       HapticsService.confirm();
       this.scene.start('EncounterSummaryScene');
@@ -2544,41 +2371,40 @@ export default class BattleScene extends Phaser.Scene {
 
     const { width, height } = this.scale;
     const centerY = height * 0.5;
+    const victory = title === 'DELVE CLEARED!';
 
     // Place an invisible input blocker behind the result panel so taps cannot
     // reach the battlefield.
     const inputBlocker = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.001)
       .setInteractive()
-      .setDepth(5999);
+      .setDepth(11999);
     inputBlocker.on('pointerdown', (pointer, localX, localY, event) => event?.stopPropagation?.());
 
-    this.add.rectangle(width / 2, centerY, width * 0.78, 390, 0x0c0a09, 0.97)
-      .setStrokeStyle(5, title === 'VICTORY' ? 0x84cc16 : 0x991b1b)
-      .setDepth(6000);
+    addWoodenPanel(this, width / 2, centerY, width * 0.78, 390, 12000);
 
     this.add.text(width / 2, centerY - 95, title, {
       fontFamily: 'Arial',
       fontSize: '78px',
       fontStyle: 'bold',
-      color: title === 'VICTORY' ? '#bef264' : '#fca5a5'
-    }).setOrigin(0.5).setDepth(6001);
+      color: victory ? '#bef264' : '#ef4444'
+    }).setOrigin(0.5).setDepth(12001);
 
     this.add.text(width / 2, centerY - 22, subtitle, {
       fontFamily: 'Arial',
       fontSize: '36px',
       color: '#d6d3d1'
-    }).setOrigin(0.5).setDepth(6001);
+    }).setOrigin(0.5).setDepth(12001);
 
     const button = this.add.rectangle(width / 2, centerY + 90, width * 0.58, 96, 0x44403c)
       .setInteractive({ useHandCursor: true })
-      .setDepth(6001);
+      .setDepth(12001);
 
     this.add.text(width / 2, centerY + 90, buttonLabel, {
       fontFamily: 'Arial',
       fontSize: '38px',
       fontStyle: 'bold',
       color: '#ffffff'
-    }).setOrigin(0.5).setDepth(6002);
+    }).setOrigin(0.5).setDepth(12002);
 
     button.on('pointerdown', callback);
     button.on('pointerover', () => button.setFillStyle(0x57534e));

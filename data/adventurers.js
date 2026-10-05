@@ -1,6 +1,8 @@
 import { createAdventurer } from './classes.js';
 
 const adventurers = [
+  createAdventurer('dalamar', 'Dalamar', 'Mage of the Umbral Veil'),
+  createAdventurer('palin', 'Palin', 'Mage of the Luminous Archive'),
   createAdventurer('caramon-gladiator', 'Caramon', 'Gladiator', {
     maxHp: 168,
     attackPower: 15,
@@ -8,7 +10,7 @@ const adventurers = [
     critChance: 0.12,
     happiness: 74
   }),
-  createAdventurer('sturm', 'Sturm', 'Paladin', {
+  createAdventurer('sturm', 'Sturm', 'Oathwarden', {
     maxHp: 190,
     attackPower: 8,
     moveSpeed: 132,
@@ -16,7 +18,7 @@ const adventurers = [
     critChance: 0.06,
     happiness: 70
   }),
-  createAdventurer('laurana', 'Laurana', 'Paladin', {
+  createAdventurer('laurana', 'Laurana', 'Dawnwarden', {
     color: 0xfacc15,
     maxHp: 176,
     attackPower: 10,
@@ -40,14 +42,14 @@ const adventurers = [
     critChance: 0.13,
     happiness: 72
   }),
-  createAdventurer('tasslehoff', 'Tasslehoff', 'Rogue', {
+  createAdventurer('tasslehoff', 'Tasslehoff', 'Scoundrel', {
     maxHp: 89,
     attackPower: 14,
     moveSpeed: 215,
     critChance: 0.28,
     happiness: 84
   }),
-  createAdventurer('tika', 'Tika', 'Rogue', {
+  createAdventurer('tika', 'Tika', 'Barmaid', {
     color: 0xc026d3,
     maxHp: 97,
     attackPower: 12,
@@ -63,7 +65,7 @@ const adventurers = [
     critChance: 0.20,
     happiness: 77
   }),
-  createAdventurer('raistlin', 'Raistlin', 'Wizard', {
+  createAdventurer('raistlin', 'Raistlin', 'Mage of the Crimson Spire', {
     maxHp: 72,
     attackPower: 19,
     moveSpeed: 124,
@@ -71,21 +73,21 @@ const adventurers = [
     happiness: 66
   }),
 
-  createAdventurer('goldmoon', 'Goldmoon', 'Naturalist', {
+  createAdventurer('goldmoon', 'Goldmoon', 'Cleric of the Verdant Covenant', {
     maxHp: 116,
     healPower: 18,
     moveSpeed: 150,
     critChance: 0.12,
     happiness: 82
   }),
-  createAdventurer('mishakal', 'Mishakal', 'Priest', {
+  createAdventurer('mishakal', 'Mishakal', 'Cleric of the Everbright', {
     maxHp: 97,
     healPower: 24,
     moveSpeed: 132,
     critChance: 0.16,
     happiness: 79
   }),
-  createAdventurer('aoth', 'Aoth', 'Bloodwarder', {
+  createAdventurer('fistandantilus', 'Fistandantilus', 'Cleric of the Sanguine Song', {
     maxHp: 126,
     attackPower: 10,
     healPower: 26,

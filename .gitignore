@@ -1,8 +1,31 @@
 node_modules/
 
-# Local Codex/ChatGPT guidance and project documentation
-AGENTS.md
-docs/
+# Keep project notes, changelogs, and Codex instructions local.
+# The root README remains public.
+*.md
+!/README.md
+AGENTS.md*
+/docs/
+/changelog/
+/change_log/
+
+# Local development work and generated reports.
+/work/
+/tests/*
+!/tests/visual/
+/tests/visual/screenshots/*
+/tests/visual/test-results/
+!/tests/visual/README.md
+/scripts/
+/outputs/
+/.tmp/
+/buildapk.sh
+
+# Native IDE settings and sample tests are not needed to package the app.
+/android/.idea/
+/android/app/src/androidTest/
+/android/app/src/test/
+
 .agents/
 .codex/
 
@@ -10,6 +33,7 @@ docs/
 .env.local
 
 .vscode/
+.preview-profile/
 
 *.log
 
@@ -19,3 +43,25 @@ android/build/
 
 .DS_Store
 Thumbs.db
+
+# Generated web output: build locally, do not version hashed bundles.
+/dist/
+/dist-editor/
+
+# Blender authoring files stay local; ship only Phaser runtime exports.
+/assets/blender/*
+!/assets/blender/the_slime_cave/
+/assets/blender/the_slime_cave/*
+!/assets/blender/the_slime_cave/export_phaser_stills.py
+*.blend1
+*.blend2
+
+# Imported modeling sources and visual references (already embedded in Blender).
+/assets/*.glb
+/assets/mrglmrglmrghl_*.png
+/assets/screenshot*.png
+/assets/environments/slime-cave/layer-check.png
+
+# Local conversation attachments
+/.codex-remote-attachments/
+/project-backup/

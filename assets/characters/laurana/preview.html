@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Laurana · Sprite Preview</title>
+<style>
+  *{box-sizing:border-box}body{margin:0;background:#111827;color:#f8fafc;font:18px system-ui,sans-serif}main{max-width:960px;margin:24px auto;padding:20px}h1{margin:0;font-size:32px}p{color:#cbd5e1;line-height:1.5}nav{display:flex;gap:12px;flex-wrap:wrap;margin:20px 0}button,select{font:inherit;padding:12px 18px;min-height:48px;border:1px solid #64748b;border-radius:8px;background:#263449;color:white}button[aria-pressed=true]{background:#854d0e;border-color:#fbbf24}canvas{width:100%;height:auto;image-rendering:pixelated;border:1px solid #64748b;border-radius:12px;background:#1b2434}.note{font-size:15px}#status{min-height:28px}
+</style>
+<main>
+<h1>Laurana</h1><p>Dawnwarden · Spear &amp; shield · PixelLab</p>
+<nav aria-label="Sprite preview controls">
+<button data-mode="idle" aria-pressed="true">Idle</button>
+<button data-mode="walk" aria-pressed="false">Walk</button>
+<button data-mode="attack" aria-pressed="false">attack</button>
+<button data-mode="block" aria-pressed="false">block</button>
+<button data-mode="hit" aria-pressed="false">hit</button>
+<button data-mode="death" aria-pressed="false">death</button>
+<button data-mode="dead" aria-pressed="false">dead</button>
+<select aria-label="Facing direction" id="direction"><option value="south-east">South-east</option><option>south</option><option value="south-west">South-west</option><option>west</option><option value="north-west">North-west</option><option>north</option><option value="north-east">North-east</option><option>east</option></select>
+<button id="pause" aria-pressed="false">Pause</button>
+</nav>
+<canvas width="900" height="430" aria-label="Animated sprite at gameplay size and enlarged"></canvas>
+<p id="status">Loading sprite frames…</p>
+<p class="note">Left: battlefield size before perspective scaling. Right: enlarged for inspection. Idle and walk play in place so foot alignment is easy to compare.</p>
+</main>
+<script type="module">
+import { CHARACTER_SPRITES } from '../../../../data/characterSprites.js';
+const definition=CHARACTER_SPRITES.laurana;
+const images=new Map();
+const canvas=document.querySelector('canvas'), ctx=canvas.getContext('2d');
+const status=document.querySelector('#status');
+let mode='idle', direction='south-east', paused=false, elapsed=0, last=performance.now();
+document.querySelectorAll('[data-mode]').forEach(button=>button.onclick=()=>{
+  mode=button.dataset.mode;elapsed=0;
+  document.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',b===button));
+});
+document.querySelector('#direction').onchange=e=>{direction=e.target.value;elapsed=0;};
+document.querySelector('#pause').onclick=e=>{paused=!paused;e.target.textContent=paused?'Resume':'Pause';e.target.setAttribute('aria-pressed',paused);};
+try {
+ await Promise.all(definition.textures.map(({key,url})=>new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>{images.set(key,im);resolve();};im.onerror=()=>reject(new Error('Could not load '+key));im.src=url;})));
+ function render(now){
+  const delta=Math.min(now-last,100);last=now;if(!paused)elapsed+=delta;
+  ctx.clearRect(0,0,900,430);ctx.imageSmoothingEnabled=false;
+  for(let x=0;x<900;x+=24)for(let y=0;y<430;y+=24){ctx.fillStyle=((x+y)/24)%2?'#202c3c':'#263344';ctx.fillRect(x,y,24,24);}
+  const clip=definition.clips[mode][direction];const frameIndex=Math.floor(elapsed/clip.frameMs);const i=['idle','walk'].includes(mode)?frameIndex%clip.frames.length:Math.min(frameIndex,clip.frames.length-1);const f=clip.frames[i],im=images.get(f.key);
+  for(const [x,y,scale,label] of [[220,320,definition.scale,'Gameplay size'],[650,355,1,'Native pixels']]){
+   ctx.fillStyle='#0005';ctx.beginPath();ctx.ellipse(x,y+2,25*scale,6*scale,0,0,Math.PI*2);ctx.fill();
+   ctx.save();ctx.translate(x,y);ctx.scale(f.flipX?-scale:scale,scale);
+   ctx.drawImage(im,-f.originX*im.width,-f.originY*im.height);ctx.restore();
+   ctx.font='18px system-ui';ctx.fillStyle='#e2e8f0';ctx.textAlign='center';ctx.fillText(label,x,400);
+  }
+  status.textContent=`${mode} · ${direction} · Frame ${i+1}/${clip.frames.length}${paused?' · Paused':''}`;
+  requestAnimationFrame(render);
+ }
+ requestAnimationFrame(render);
+} catch(error){status.textContent=error.message;}
+</script>
+</html>

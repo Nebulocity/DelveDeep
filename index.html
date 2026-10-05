@@ -3,11 +3,30 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#111827" />
+    <meta name="theme-color" content="#142b31" />
     <title>Delve Deep</title>
+    <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
     <div id="game"></div>
+    <div id="loading-screen" class="loading-screen" role="status" aria-live="polite">
+      <div class="loading-content">
+        <img class="loading-art" src="./assets/screens/splashscreen.png" alt="" aria-hidden="true" fetchpriority="high" />
+        <div class="loading-vignette"></div>
+        <svg class="loading-title" viewBox="0 0 1200 230" role="img" aria-label="Delve Deep!">
+          <defs>
+            <path id="loading-title-arc" d="M 110 170 Q 600 15 1090 170" />
+          </defs>
+          <text>
+            <textPath href="#loading-title-arc" startOffset="50%" text-anchor="middle">Delve Deep!</textPath>
+          </text>
+        </svg>
+        <div class="loading-footer">
+          <div class="loading-status"><span id="loading-message">Preparing the world map</span><span id="loading-percent">0%</span></div>
+          <div class="loading-track"><div class="loading-progress" id="loading-progress"></div></div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="./main.js"></script>
   </body>
 </html>

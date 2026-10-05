@@ -1,0 +1,2557 @@
+[
+  {
+    "name": "tanis",
+    "direction": "south-east",
+    "state": "idle",
+    "job": "9c33b0a4-f264-4eed-9722-99607472ba4e",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "tanis",
+    "direction": "south-east",
+    "state": "walk",
+    "job": "d8fae108-fdf1-47ed-bd4d-fb21392a53f1",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "tanis",
+    "direction": "south-east",
+    "state": "attack",
+    "job": "60d7d004-48b2-4206-9551-630c6b13b97e",
+    "count": 7,
+    "completed": true
+  },
+  {
+    "name": "tanis",
+    "direction": "south-east",
+    "state": "block",
+    "job": "2f85f579-8ae0-4bbb-a0f2-d4d6f2941767",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "tanis",
+    "direction": "south-east",
+    "state": "hit",
+    "job": "d2ed5846-5f75-4e49-9e02-56f1cc28d6b9",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "tanis",
+    "direction": "south-east",
+    "state": "death",
+    "job": "12bbbc15-e1ca-4f02-a577-4f2e75dcef8a",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "tanis",
+    "direction": "south-west",
+    "state": "idle",
+    "job": "171fd72c-70b3-46c0-afc2-c1217c5d890e",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "tanis",
+    "direction": "south-west",
+    "state": "walk",
+    "job": "ffb18b89-d4cb-43e9-97a8-51d90b9a1f2c",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "tanis",
+    "direction": "south-west",
+    "state": "attack",
+    "job": "aa8e2afe-f5c2-40a5-9f86-38373e82dcb1",
+    "count": 7,
+    "completed": true
+  },
+  {
+    "name": "tanis",
+    "direction": "south-west",
+    "state": "block",
+    "job": "b122e2f4-01fd-4e75-b250-f7a619555911",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "tanis",
+    "direction": "south-west",
+    "state": "hit",
+    "job": "bea882fa-dbfd-4d42-a62b-3835557cd310",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "tanis",
+    "direction": "south-west",
+    "state": "death",
+    "job": "6e0a9237-0c4e-4e6c-a2d6-32cc3885f5ad",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "tanis",
+    "direction": "north-east",
+    "state": "idle",
+    "job": "c040b52a-fa1b-4649-95bc-7a0f11d6a515",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "tanis",
+    "direction": "north-east",
+    "state": "walk",
+    "job": "02148139-14ce-4554-9595-ebcaa9c41e90",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "tanis",
+    "direction": "north-east",
+    "state": "attack",
+    "job": "c6adbd0c-4d5a-4ff0-9ee5-ec087aa89591",
+    "count": 7,
+    "completed": true
+  },
+  {
+    "name": "tanis",
+    "direction": "north-east",
+    "state": "block",
+    "job": "67c4eeb5-622a-41ac-9d31-d987e11273dd",
+    "count": 5,
+    "completed": true,
+    "replacedJob": "d8c7e830-cbef-40ff-bb64-2ca3164b5e27"
+  },
+  {
+    "name": "tanis",
+    "direction": "north-east",
+    "state": "hit",
+    "job": "93f231d9-4955-40a5-a54d-c9f40c4d05c6",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "tanis",
+    "direction": "north-east",
+    "state": "death",
+    "job": "055ae35d-6f7a-4e69-a8ae-207fe780ee9f",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "tanis",
+    "direction": "north-west",
+    "state": "idle",
+    "job": "c69bf724-7929-4b36-90dc-9a2e5d54838c",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "tanis",
+    "direction": "north-west",
+    "state": "walk",
+    "job": "34947b71-4e23-4552-99c3-18edbea40f0e",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "tanis",
+    "direction": "north-west",
+    "state": "attack",
+    "job": "c8747a23-11bd-4a0b-8968-312e0c79f916",
+    "count": 7,
+    "completed": true
+  },
+  {
+    "name": "tanis",
+    "direction": "north-west",
+    "state": "block",
+    "job": "a6999779-332b-4f43-bb19-588eb258cbc1",
+    "count": 5,
+    "completed": true,
+    "replacedJob": "3d1e74f5-894f-473b-9003-54a256e53b6b"
+  },
+  {
+    "name": "tanis",
+    "direction": "north-west",
+    "state": "hit",
+    "job": "276014b8-5b11-44d1-8035-773a54ef7e3f",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "tanis",
+    "direction": "north-west",
+    "state": "death",
+    "job": "c1c62f22-0d7a-4f4d-ae25-14d6de9ff3e7",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "laurana",
+    "direction": "south-east",
+    "state": "idle",
+    "job": "b6110b7e-7790-4ee0-af12-521c8996b5df",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "laurana",
+    "direction": "south-east",
+    "state": "walk",
+    "job": "653467c2-6ceb-4e4c-9af9-5f1f45c9d1ac",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "laurana",
+    "direction": "south-east",
+    "state": "attack",
+    "job": "e0911745-bef4-4775-87c2-ee6b738f3c8d",
+    "count": 6,
+    "completed": true,
+    "selectedFrames": [
+      0,
+      1,
+      2,
+      3,
+      2,
+      1
+    ]
+  },
+  {
+    "name": "laurana",
+    "direction": "south-east",
+    "state": "block",
+    "job": "ef5d35a6-2a53-4f80-97f5-948798c755c9",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "laurana",
+    "direction": "south-east",
+    "state": "hit",
+    "job": "c447c855-a1e3-4c1b-8ea8-5aa1dde31ab1",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "laurana",
+    "direction": "south-east",
+    "state": "death",
+    "job": "141f2ebb-a8bc-4d87-b95c-091e1d0cb2b9",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "laurana",
+    "direction": "south-west",
+    "state": "idle",
+    "job": "55f6e950-3aaa-4e05-b720-e0fb7a0d956c",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "laurana",
+    "direction": "south-west",
+    "state": "walk",
+    "job": "762e3c88-4ec6-4447-a7e0-b0ec982acd22",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "laurana",
+    "direction": "south-west",
+    "state": "attack",
+    "job": "c193124d-67e5-4ef0-85b6-08ae55747294",
+    "count": 5,
+    "completed": true,
+    "selectedFrames": [
+      0,
+      1,
+      2,
+      1,
+      0
+    ]
+  },
+  {
+    "name": "laurana",
+    "direction": "south-west",
+    "state": "block",
+    "job": "433a93da-fcbe-44b0-a947-e15c56085356",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "laurana",
+    "direction": "south-west",
+    "state": "hit",
+    "job": "109351c3-bbfe-40eb-838b-1341c1d7e0ba",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "laurana",
+    "direction": "south-west",
+    "state": "death",
+    "job": "2cd1d3c2-a2eb-4222-86fa-ae6beb016483",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "laurana",
+    "direction": "north-east",
+    "state": "idle",
+    "job": "545d997c-e55e-4c59-8116-ee4371d4b312",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "laurana",
+    "direction": "north-east",
+    "state": "walk",
+    "job": "1d081349-aa0e-4c57-9ae3-c0ca7a5775ff",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "laurana",
+    "direction": "north-east",
+    "state": "attack",
+    "job": "c201751e-d97b-4ae2-9e1f-88328e442acf",
+    "count": 6,
+    "completed": true,
+    "selectedFrames": [
+      0,
+      1,
+      2,
+      3,
+      2,
+      1
+    ]
+  },
+  {
+    "name": "laurana",
+    "direction": "north-east",
+    "state": "block",
+    "job": "11ade38c-d353-4bce-8acc-5cc7abc4ba73",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "laurana",
+    "direction": "north-east",
+    "state": "hit",
+    "job": "dfe83775-9029-408a-b71a-97abfeee4319",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "laurana",
+    "direction": "north-east",
+    "state": "death",
+    "job": "eb7ef2c4-65ca-47a7-ab62-b1aabd1966a0",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "laurana",
+    "direction": "north-west",
+    "state": "idle",
+    "job": "10e815f4-80bf-41c2-8049-20dcfa3c1aa6",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "laurana",
+    "direction": "north-west",
+    "state": "walk",
+    "job": "8eaafc0b-dd01-44d5-a784-edb3b3f86a85",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "laurana",
+    "direction": "north-west",
+    "state": "attack",
+    "job": "b65ee85d-4804-40ba-8f9f-84e9ca436b7d",
+    "count": 6,
+    "completed": true,
+    "selectedFrames": [
+      0,
+      1,
+      2,
+      3,
+      2,
+      1
+    ]
+  },
+  {
+    "name": "laurana",
+    "direction": "north-west",
+    "state": "block",
+    "job": "321eb005-d163-48bd-a0d2-d49b81d26cff",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "laurana",
+    "direction": "north-west",
+    "state": "hit",
+    "job": "cc7dfc73-1d9e-4b12-94e4-c11913b8739e",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "laurana",
+    "direction": "north-west",
+    "state": "death",
+    "job": "05a3dd09-c174-4b97-81cd-dc3fa9d62cba",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "tika",
+    "direction": "south-east",
+    "state": "idle",
+    "job": "57a33c75-dc7d-4c74-b052-f29656e886cf",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "tika",
+    "direction": "south-east",
+    "state": "walk",
+    "job": "22275589-69c1-443f-ad2a-aa8f08405fb5",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "tika",
+    "direction": "south-east",
+    "state": "attack",
+    "job": "69923ba0-daff-4a8c-a714-e003f688ecf9",
+    "count": 7,
+    "completed": true
+  },
+  {
+    "name": "tika",
+    "direction": "south-east",
+    "state": "block",
+    "job": "51034a89-9355-47b9-870a-8dc2c7b81dce",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "tika",
+    "direction": "south-east",
+    "state": "hit",
+    "job": "0cdda931-ee54-47db-b852-1d43a5f2520b",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "tika",
+    "direction": "south-east",
+    "state": "death",
+    "job": "e8859039-5993-4e25-8153-b7cd4c00bfea",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "tika",
+    "direction": "south-west",
+    "state": "idle",
+    "job": "3ea27eda-3a98-4bcd-9372-a3f676e85e83",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "tika",
+    "direction": "south-west",
+    "state": "walk",
+    "job": "32021fc3-f46b-4324-af9a-dc2515daa31f",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "tika",
+    "direction": "south-west",
+    "state": "attack",
+    "job": "ca9df05c-0801-428f-817f-f2f079378316",
+    "count": 5,
+    "completed": true,
+    "replacedJob": "e22eea6a-b59d-4112-a103-e9c4671d56f1"
+  },
+  {
+    "name": "tika",
+    "direction": "south-west",
+    "state": "block",
+    "job": "8b175e5e-d6c5-4cf7-b7d4-ebb54888e2ff",
+    "count": 5,
+    "completed": true,
+    "replacedJob": "370a713f-d57a-43a6-b6fc-0fbf63d14a87"
+  },
+  {
+    "name": "tika",
+    "direction": "south-west",
+    "state": "hit",
+    "job": "495f8f62-c1cd-40f9-a1d2-f835fc4a288d",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "tika",
+    "direction": "south-west",
+    "state": "death",
+    "job": "02c90ac7-af39-4f00-8d36-b5d1738eec15",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "tika",
+    "direction": "north-east",
+    "state": "idle",
+    "job": "016450cd-19ae-4bd1-9723-ba9585ec7e48",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "tika",
+    "direction": "north-east",
+    "state": "walk",
+    "job": "14ec7b79-c716-4d2d-b33a-f274aadb0f0c",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "tika",
+    "direction": "north-east",
+    "state": "attack",
+    "job": "834f49ae-8460-4410-8987-57f5d25a8a37",
+    "count": 5,
+    "completed": true,
+    "selectedFrames": [
+      0,
+      1,
+      2,
+      1,
+      0
+    ]
+  },
+  {
+    "name": "tika",
+    "direction": "north-east",
+    "state": "block",
+    "job": "b0d325ed-14ba-4b5e-9413-3b99c23396d0",
+    "count": 5,
+    "completed": true,
+    "replacedJob": "c219d7a1-1f8c-4c06-811a-bb3cd0bec808"
+  },
+  {
+    "name": "tika",
+    "direction": "north-east",
+    "state": "hit",
+    "job": "fadf536e-baef-44d2-b6f0-a51dacdd6ab9",
+    "count": 5,
+    "completed": true,
+    "selectedFrames": [
+      0,
+      1,
+      2,
+      1,
+      0
+    ]
+  },
+  {
+    "name": "tika",
+    "direction": "north-east",
+    "state": "death",
+    "job": "dc8c9066-20aa-49fa-b5fc-6a5d65e93813",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "tika",
+    "direction": "north-west",
+    "state": "idle",
+    "job": "650884dc-3162-4cd9-acd7-18dab9a60067",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "tika",
+    "direction": "north-west",
+    "state": "walk",
+    "job": "c57588de-b5b2-4202-9457-87c7709f3789",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "tika",
+    "direction": "north-west",
+    "state": "attack",
+    "job": "9a5e3bc6-497b-4887-b5cc-5158c4c8f492",
+    "count": 7,
+    "completed": true
+  },
+  {
+    "name": "tika",
+    "direction": "north-west",
+    "state": "block",
+    "job": "187954ca-67ab-4db6-bbef-3afb2a29d63e",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "tika",
+    "direction": "north-west",
+    "state": "hit",
+    "job": "d69e6d6d-559c-4c92-b680-b3a98215b5ee",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "tika",
+    "direction": "north-west",
+    "state": "death",
+    "job": "af2d6d6d-0c90-4971-9f2a-21c46909d02a",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "sturm",
+    "direction": "south-east",
+    "state": "idle",
+    "job": "a4ed3aaa-d5ca-4523-b162-66092bcef461",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "sturm",
+    "direction": "south-east",
+    "state": "walk",
+    "job": "e1b3c5fd-e0c7-4b0e-8915-51003b2997d2",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "sturm",
+    "direction": "south-east",
+    "state": "attack",
+    "job": "e499c8e0-8cb6-4764-b11e-091e6005da09",
+    "count": 7,
+    "completed": true
+  },
+  {
+    "name": "sturm",
+    "direction": "south-east",
+    "state": "block",
+    "job": "1690a580-9341-495d-bb0b-b26102c76df1",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "sturm",
+    "direction": "south-east",
+    "state": "hit",
+    "job": "f1396c07-5e55-4ca2-998c-187a7df16002",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "sturm",
+    "direction": "south-east",
+    "state": "death",
+    "job": "016a5303-2895-452a-96c9-fe7927686ae3",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "sturm",
+    "direction": "south-west",
+    "state": "idle",
+    "job": "8a5e30f8-fc35-44ce-99ca-8e913d8af887",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "sturm",
+    "direction": "south-west",
+    "state": "walk",
+    "job": "e52e3d82-2376-4447-b0b6-c458eaea45ba",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "sturm",
+    "direction": "south-west",
+    "state": "attack",
+    "job": "3aa90536-f586-4f31-baea-c11671b71c15",
+    "count": 7,
+    "completed": true
+  },
+  {
+    "name": "sturm",
+    "direction": "south-west",
+    "state": "block",
+    "job": "229711a6-9169-45f8-8964-aa83deea597a",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "sturm",
+    "direction": "south-west",
+    "state": "hit",
+    "job": "f61d644c-8a98-485d-b7ba-08356ce174f1",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "sturm",
+    "direction": "south-west",
+    "state": "death",
+    "job": "54877bd7-9c9f-4742-965e-5454b205dfa8",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "sturm",
+    "direction": "north-east",
+    "state": "idle",
+    "job": "42ba7b98-2d74-4b98-8851-30813717c0d4",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "sturm",
+    "direction": "north-east",
+    "state": "walk",
+    "job": "d8a6e558-8d13-4662-b27a-dce73d7b83bb",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "sturm",
+    "direction": "north-east",
+    "state": "attack",
+    "job": "4937f66c-d034-45d7-9501-a4de3d9deafd",
+    "count": 7,
+    "completed": true
+  },
+  {
+    "name": "sturm",
+    "direction": "north-east",
+    "state": "block",
+    "job": "d6367ec0-e734-4508-a741-d1b7f0c487bf",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "sturm",
+    "direction": "north-east",
+    "state": "hit",
+    "job": "ede9e500-8793-427e-81f4-40cd6a181d80",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "sturm",
+    "direction": "north-east",
+    "state": "death",
+    "job": "4891e04e-c368-4929-83b2-d21b5ffd18ec",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "sturm",
+    "direction": "north-west",
+    "state": "idle",
+    "job": "f6c1c78c-b499-492c-bc8e-cb14bc08f37d",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "sturm",
+    "direction": "north-west",
+    "state": "walk",
+    "job": "324777a9-9e5f-4d96-bd10-af86f3371ae2",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "sturm",
+    "direction": "north-west",
+    "state": "attack",
+    "job": "4ab3d77b-ee52-4d06-bc6f-57039fd6d2a6",
+    "count": 7,
+    "completed": true
+  },
+  {
+    "name": "sturm",
+    "direction": "north-west",
+    "state": "block",
+    "job": "35bf3106-ec31-4a10-bdb8-7f6a773bbb86",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "sturm",
+    "direction": "north-west",
+    "state": "hit",
+    "job": "31225a5f-b1d6-4b66-831b-51063bfa14c4",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "sturm",
+    "direction": "north-west",
+    "state": "death",
+    "job": "15d23d53-5279-49ba-b87b-6e61d90c4b89",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "goldmoon",
+    "direction": "south-east",
+    "state": "idle",
+    "job": "7c2d9379-c737-4d0b-a5ee-1079dbced159",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "goldmoon",
+    "direction": "south-east",
+    "state": "walk",
+    "job": "50ee75bb-7193-4436-885d-542ddb556136",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "goldmoon",
+    "direction": "south-east",
+    "state": "attack",
+    "job": "2da47ba1-b78b-4039-b7d6-c28d396188a8",
+    "count": 7,
+    "completed": true
+  },
+  {
+    "name": "goldmoon",
+    "direction": "south-east",
+    "state": "block",
+    "job": "76049e1d-3d92-4951-915e-55c37aeca9ba",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "goldmoon",
+    "direction": "south-east",
+    "state": "hit",
+    "job": "0e625f0b-4a48-4c76-8ee8-97f51d049104",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "goldmoon",
+    "direction": "south-east",
+    "state": "death",
+    "job": "2b5fe25c-97fe-4cf9-af32-279474e69ace",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "goldmoon",
+    "direction": "south-west",
+    "state": "idle",
+    "job": "8f9d476d-eaed-4b71-90ee-9c0828962134",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "goldmoon",
+    "direction": "south-west",
+    "state": "walk",
+    "job": "3184378d-447d-4aa5-9807-1106c92368f2",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "goldmoon",
+    "direction": "south-west",
+    "state": "attack",
+    "job": "27748cd9-b4f0-4fb5-a499-5b231a55c2ea",
+    "count": 7,
+    "completed": true
+  },
+  {
+    "name": "goldmoon",
+    "direction": "south-west",
+    "state": "block",
+    "job": "a7b1fc31-520c-4646-b7f1-26e401e147ad",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "goldmoon",
+    "direction": "south-west",
+    "state": "hit",
+    "job": "26cd3433-2ea9-4a69-81b6-006856d49199",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "goldmoon",
+    "direction": "south-west",
+    "state": "death",
+    "job": "ef75dbec-8650-4a4f-b4fa-fe0d393e00ff",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "goldmoon",
+    "direction": "north-east",
+    "state": "idle",
+    "job": "0c055d34-d060-4ec2-bc29-ab8004b8cee4",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "goldmoon",
+    "direction": "north-east",
+    "state": "walk",
+    "job": "2ccb6d1a-28d6-401e-ad98-f19e26649c55",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "goldmoon",
+    "direction": "north-east",
+    "state": "attack",
+    "job": "57fcc49f-7a46-4d4c-8947-6f4e2e338ab3",
+    "count": 7,
+    "completed": true
+  },
+  {
+    "name": "goldmoon",
+    "direction": "north-east",
+    "state": "block",
+    "job": "c696d006-8235-49a7-85bb-bcd9c8368099",
+    "count": 5,
+    "completed": true,
+    "replacedJob": "a4620315-a24c-405c-a242-d4626f140143"
+  },
+  {
+    "name": "goldmoon",
+    "direction": "north-east",
+    "state": "hit",
+    "job": "ffe7ee50-fae1-4de4-897f-bb80c6f84c41",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "goldmoon",
+    "direction": "north-east",
+    "state": "death",
+    "job": "f5dd5546-b311-47c6-8830-c51e50d94612",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "goldmoon",
+    "direction": "north-west",
+    "state": "idle",
+    "job": "2695e0ef-3fab-4c8f-aee3-63e9a53b6570",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "goldmoon",
+    "direction": "north-west",
+    "state": "walk",
+    "job": "a433a64f-57c3-4f08-8e4c-c902407ebe97",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "goldmoon",
+    "direction": "north-west",
+    "state": "attack",
+    "job": "50bac90a-9ce0-4bb1-a2b3-db3f6d6ee3ab",
+    "count": 6,
+    "completed": true,
+    "selectedFrames": [
+      0,
+      1,
+      2,
+      3,
+      2,
+      1
+    ]
+  },
+  {
+    "name": "goldmoon",
+    "direction": "north-west",
+    "state": "block",
+    "job": "95bc5ba5-0518-48db-93a6-480b95686609",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "goldmoon",
+    "direction": "north-west",
+    "state": "hit",
+    "job": "01938c10-cd6e-48ec-aefc-919eaa635e9a",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "goldmoon",
+    "direction": "north-west",
+    "state": "death",
+    "job": "a0a5f09d-7935-42ac-9954-4567cb1ae744",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "south-east",
+    "state": "idle",
+    "job": "c48580eb-2148-4e25-8e33-1df938fdaae3",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "south-west",
+    "state": "idle",
+    "job": "c2b28885-8328-4d34-a06c-c5d47f34a815",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "north-east",
+    "state": "idle",
+    "job": "776b778c-8247-4508-9a11-d10611827ab6",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "north-west",
+    "state": "idle",
+    "job": "30f54d07-b1e7-43c1-ad20-a5c5254e33fe",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "south-east",
+    "state": "walk",
+    "job": "a854ce8f-b8f6-4d08-aa40-9524bfebf842",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "south-west",
+    "state": "walk",
+    "job": "849c4d00-be2c-4092-9f58-b0d39e6e5ffc",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "north-east",
+    "state": "walk",
+    "job": "b754aa0b-a9b9-4d3f-992b-39c0e80cb682",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "north-west",
+    "state": "walk",
+    "job": "65f3e91d-ceea-4aa1-8571-9e9e4132e842",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "south-east",
+    "state": "attack",
+    "job": "9c6b597c-6f8d-416d-a681-e968775bf9d4",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "south-west",
+    "state": "attack",
+    "job": "b5b220af-a983-4941-a7db-f52e9208f8d3",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "north-east",
+    "state": "attack",
+    "job": "670a5b56-951c-4874-8e2c-e95c7e631c14",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "north-west",
+    "state": "attack",
+    "job": "4b6dbc4b-eca7-471d-9cce-e4f22d09215e",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "south-east",
+    "state": "block",
+    "job": "9016301f-e2d5-4650-b452-074921c7ccbe",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "south-west",
+    "state": "block",
+    "job": "2a5884f2-1120-4a73-aab1-07beffe47e6c",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "north-east",
+    "state": "block",
+    "job": "c87188cc-21d7-499f-885c-386c4cef3d7a",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "north-west",
+    "state": "block",
+    "job": "a46bac23-ca6a-470b-9079-ce0d2138d713",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "south-east",
+    "state": "hit",
+    "job": "5d847980-2cae-46a5-a7b4-774b9ec5de7d",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "south-west",
+    "state": "hit",
+    "job": "8da87821-2afd-4c78-8768-b0066423e454",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "north-east",
+    "state": "hit",
+    "job": "63111b57-2c25-4ade-8cf5-2065d45fb4cd",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "north-west",
+    "state": "hit",
+    "job": "ae6108c9-8df7-4098-9de5-ccae567abfbf",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "south-east",
+    "state": "death",
+    "job": "977fea15-10ae-454c-ae0c-8fe160368a54",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "south-west",
+    "state": "death",
+    "job": "9b07d75a-1916-457f-9ab4-03afec106907",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "north-east",
+    "state": "death",
+    "job": "429f6e58-4158-47e7-a84b-6c6bc1382100",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "raistlin",
+    "direction": "north-west",
+    "state": "death",
+    "job": "e9b04414-1ab8-4b0b-8031-1cb2e044d8e2",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "dalamar",
+    "direction": "south-east",
+    "state": "idle",
+    "job": "4adc53e2-4534-45d8-bd44-4b6e9657f8bb",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "dalamar",
+    "direction": "south-west",
+    "state": "idle",
+    "job": "94266d45-db91-4ba9-96c5-af42b98de264",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "dalamar",
+    "direction": "north-east",
+    "state": "idle",
+    "job": "83f82227-27f4-4fb7-9244-c1374e342ff8",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "dalamar",
+    "direction": "north-west",
+    "state": "idle",
+    "job": "02becc4b-646f-4fa4-9300-e2dfb672ce36",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "dalamar",
+    "direction": "south-east",
+    "state": "walk",
+    "job": "0c30bc77-598b-45d1-9ade-bdee38aadbe5",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "dalamar",
+    "direction": "south-west",
+    "state": "walk",
+    "job": "116218f9-95b1-4498-84e3-f17697bfd4d7",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "dalamar",
+    "direction": "north-east",
+    "state": "walk",
+    "job": "e7987394-cef4-4b03-98af-07eb70ffc522",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "dalamar",
+    "direction": "north-west",
+    "state": "walk",
+    "job": "4c609c68-c792-4d39-9ddf-13c86aff9f7e",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "dalamar",
+    "direction": "south-east",
+    "state": "attack",
+    "job": "c4d67be3-0371-48ae-8a77-0205a66fe75c",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "dalamar",
+    "direction": "south-west",
+    "state": "attack",
+    "job": "aad58110-93ea-4013-8184-98818deab6e5",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "dalamar",
+    "direction": "north-east",
+    "state": "attack",
+    "job": "2f2df8f8-9949-4677-a2fd-c61a76119c47",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "dalamar",
+    "direction": "north-west",
+    "state": "attack",
+    "job": "393c6538-b9dc-4d56-a60f-0eb5efa78d30",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "dalamar",
+    "direction": "south-east",
+    "state": "block",
+    "job": "94fe958c-365d-42c1-b35c-d3d116b7d731",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "dalamar",
+    "direction": "south-west",
+    "state": "block",
+    "job": "54a124e5-257b-47d6-aa37-959b0fcc9443",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "dalamar",
+    "direction": "north-east",
+    "state": "block",
+    "job": "9e1a5261-a9fd-406e-8806-3d8e6c3a3ef0",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "dalamar",
+    "direction": "north-west",
+    "state": "block",
+    "job": "77de8d87-ad31-4850-aac4-f3a9d7797e41",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "dalamar",
+    "direction": "south-east",
+    "state": "hit",
+    "job": "ae43c62b-f47b-4004-8238-d9bad681cf7b",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "dalamar",
+    "direction": "south-west",
+    "state": "hit",
+    "job": "ee8b2f67-9902-4c0f-ae8e-3d54ad1fd5d9",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "dalamar",
+    "direction": "north-east",
+    "state": "hit",
+    "job": "868b7029-2d47-4b8a-ab63-5e8a096f729b",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "dalamar",
+    "direction": "north-west",
+    "state": "hit",
+    "job": "2b010d3b-d2f8-4a7d-91ad-a34abddc3e26",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "dalamar",
+    "direction": "south-east",
+    "state": "death",
+    "job": "b8315d6a-cd6d-42c0-9d7c-7821f4c1d43c",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "dalamar",
+    "direction": "south-west",
+    "state": "death",
+    "job": "9c06386b-e7a0-49a0-b8de-2c9aea745779",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "dalamar",
+    "direction": "north-east",
+    "state": "death",
+    "job": "710eff01-f1bf-4ec6-9939-65615a377549",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "dalamar",
+    "direction": "north-west",
+    "state": "death",
+    "job": "93878b97-ef71-4ace-bc82-4cc9970d7747",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "palin",
+    "direction": "south-east",
+    "state": "idle",
+    "job": "23238654-490c-4d22-bb9c-575b8c99b053",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "palin",
+    "direction": "south-east",
+    "state": "walk",
+    "job": "e756748b-b2fd-425b-8d4f-f263ca41854b",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "palin",
+    "direction": "south-west",
+    "state": "idle",
+    "job": "5cd20645-f93d-495e-bd59-45e3c93f0e5f",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "palin",
+    "direction": "south-west",
+    "state": "walk",
+    "job": "8641c1e9-a4c2-441b-a4bd-b6e03c289481",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "palin",
+    "direction": "north-east",
+    "state": "idle",
+    "job": "539a44b7-3723-4e2c-92f6-aba6a6a2222c",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "palin",
+    "direction": "north-east",
+    "state": "walk",
+    "job": "a5cc22af-9cdb-40ad-8041-8a5f7e8fee60",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "palin",
+    "direction": "north-west",
+    "state": "idle",
+    "job": "4693d145-25f9-4ef0-94ee-822d84b837f5",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "palin",
+    "direction": "north-west",
+    "state": "walk",
+    "job": "a98d391d-ac00-4a4f-bf9c-0fa74dfbf2c5",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "palin",
+    "direction": "south-east",
+    "state": "attack",
+    "job": "ce4f9322-a241-4b46-af89-e4fb866d736a",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "palin",
+    "direction": "south-west",
+    "state": "attack",
+    "job": "4ffd80eb-7685-475b-ac64-4ed677d6b1d2",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "palin",
+    "direction": "south-east",
+    "state": "block",
+    "job": "3a9c5e2e-a620-4170-833c-54b5df905edf",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "palin",
+    "direction": "north-east",
+    "state": "attack",
+    "job": "f5357bba-d107-45c3-9108-5ba7ce762a86",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "palin",
+    "direction": "north-west",
+    "state": "attack",
+    "job": "657e60c7-8ed3-4486-ba66-a22bfd15d2e9",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "palin",
+    "direction": "south-west",
+    "state": "block",
+    "job": "5d9dd113-3865-44af-b215-f374dc5337dd",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "palin",
+    "direction": "north-east",
+    "state": "block",
+    "job": "46787c12-dddb-4806-bd8d-044db1d4e326",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "palin",
+    "direction": "north-west",
+    "state": "block",
+    "job": "a573a2dd-38d5-4f65-9140-e98c0a9329bd",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "palin",
+    "direction": "south-east",
+    "state": "hit",
+    "job": "41ffa4c2-9c47-4b38-a54a-eb9acf541d4f",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "palin",
+    "direction": "south-west",
+    "state": "hit",
+    "job": "af1f34b3-060d-4163-a969-6a6ea2ee141e",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "palin",
+    "direction": "north-east",
+    "state": "hit",
+    "job": "1abfbfbe-38b7-4267-a2e3-a46880cceb97",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "palin",
+    "direction": "north-west",
+    "state": "hit",
+    "job": "383c8d1e-9abb-497a-a00c-271aaae88673",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "palin",
+    "direction": "south-east",
+    "state": "death",
+    "job": "00d8b50d-9723-4902-ab1f-7a9b3ee6e686",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "palin",
+    "direction": "south-west",
+    "state": "death",
+    "job": "9da5ca0b-2817-4f2b-a37c-88e734404159",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "palin",
+    "direction": "north-east",
+    "state": "death",
+    "job": "4a307e6b-6d09-4985-8fff-7f4816bc7454",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "palin",
+    "direction": "north-west",
+    "state": "death",
+    "job": "4fa8d435-b978-4e3b-8a05-63e88a521940",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "tasslehoff",
+    "direction": "south-east",
+    "state": "idle",
+    "job": "860f7998-d765-475e-984d-7946c34b042a",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "tasslehoff",
+    "direction": "south-east",
+    "state": "walk",
+    "job": "3466ad08-3798-4bf5-b1b4-2d610340bdc2",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "tasslehoff",
+    "direction": "south-west",
+    "state": "idle",
+    "job": "f831712e-6b58-4bb9-90c1-15f2187fe4a7",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "tasslehoff",
+    "direction": "south-west",
+    "state": "walk",
+    "job": "4dfbce78-663c-44e3-9b09-e89657722b5e",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "tasslehoff",
+    "direction": "north-east",
+    "state": "idle",
+    "job": "878fee8d-d07b-4737-b6c1-b62fc9efb86d",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "tasslehoff",
+    "direction": "north-east",
+    "state": "walk",
+    "job": "13b75977-c86b-4f01-ba82-4ed044c5714b",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "tasslehoff",
+    "direction": "north-west",
+    "state": "idle",
+    "job": "1d82544a-0125-49b6-a0fc-6538ef1a1381",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "tasslehoff",
+    "direction": "north-west",
+    "state": "walk",
+    "job": "dd2014e9-c83a-419b-a510-cda7343da772",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "tasslehoff",
+    "direction": "south-east",
+    "state": "attack",
+    "job": "aed06864-b93d-4bec-b2da-d2682f276138",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "tasslehoff",
+    "direction": "south-west",
+    "state": "attack",
+    "job": "5768cb34-bf38-414d-a505-17d60300358c",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "tasslehoff",
+    "direction": "south-east",
+    "state": "block",
+    "job": "f6028f7f-1994-4aba-b607-e686fb3de5fe",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "tasslehoff",
+    "direction": "north-east",
+    "state": "attack",
+    "job": "3d62a9ab-e701-4c91-aa26-e4f055b7af6b",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "tasslehoff",
+    "direction": "north-west",
+    "state": "attack",
+    "job": "35358a44-7181-43b7-9aa3-d7dfa429e54c",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "tasslehoff",
+    "direction": "south-west",
+    "state": "block",
+    "job": "1781003f-cf82-4086-bcf6-9b261be78dfc",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "tasslehoff",
+    "direction": "north-east",
+    "state": "block",
+    "job": "fc2ca3a1-d1c4-4601-8ae4-ceb57dd427ea",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "tasslehoff",
+    "direction": "north-west",
+    "state": "block",
+    "job": "c7244636-c5f7-4f30-b448-5a2b834d00c5",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "tasslehoff",
+    "direction": "south-east",
+    "state": "hit",
+    "job": "e0996555-afc1-40c8-91b8-252b443944a7",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "tasslehoff",
+    "direction": "south-west",
+    "state": "hit",
+    "job": "25569f51-f339-422b-be18-cfda4b578bbc",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "tasslehoff",
+    "direction": "north-east",
+    "state": "hit",
+    "job": "01449951-0e94-4486-a15b-45e2bd96caa7",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "tasslehoff",
+    "direction": "north-west",
+    "state": "hit",
+    "job": "4d88dacc-266d-49e1-b4d3-7eb73ccd4a8a",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "tasslehoff",
+    "direction": "south-east",
+    "state": "death",
+    "job": "6ae20965-b211-4bbe-a0d2-84ae7f4fd3e6",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "tasslehoff",
+    "direction": "south-west",
+    "state": "death",
+    "job": "e1e6f7d5-a9a9-4bb8-ae9b-8ce748899a6f",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "tasslehoff",
+    "direction": "north-east",
+    "state": "death",
+    "job": "b5b235c2-8af0-4e6b-90a6-7b704a1b4c6d",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "tasslehoff",
+    "direction": "north-west",
+    "state": "death",
+    "job": "f0ad2198-cf3c-45de-98ee-517fd03c5ee2",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "flint",
+    "direction": "south-east",
+    "state": "idle",
+    "job": "08dcebd1-83a9-406a-8d5a-e635183736de",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "flint",
+    "direction": "south-east",
+    "state": "walk",
+    "job": "c6428171-9cfd-44ce-ac05-118b5e0a0c50",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "flint",
+    "direction": "south-west",
+    "state": "idle",
+    "job": "d78ec584-94f0-442a-88e8-ecbbbd81daa1",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "flint",
+    "direction": "south-west",
+    "state": "walk",
+    "job": "86edcf77-8e26-4fd4-8e7b-fb4998d19cee",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "flint",
+    "direction": "north-east",
+    "state": "idle",
+    "job": "f1902b50-1217-47c7-bd54-04a4937edb31",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "flint",
+    "direction": "north-east",
+    "state": "walk",
+    "job": "e74a2515-fb8a-40ae-87ea-b8d2ef0be388",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "flint",
+    "direction": "north-west",
+    "state": "idle",
+    "job": "e1357485-42d5-484e-80d6-9721591a0fde",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "flint",
+    "direction": "north-west",
+    "state": "walk",
+    "job": "1c772a6a-1a77-422c-a13a-262b2ab33194",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "flint",
+    "direction": "south-east",
+    "state": "attack",
+    "job": "b66e05bc-55e2-4dff-9256-862427742ec8",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "flint",
+    "direction": "south-west",
+    "state": "attack",
+    "job": "049897a7-056b-4088-b450-90f623f43352",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "flint",
+    "direction": "north-east",
+    "state": "attack",
+    "job": "05333e63-065a-452d-9649-c76bf9eb422a",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "flint",
+    "direction": "north-west",
+    "state": "attack",
+    "job": "f5704e6e-1552-4095-b866-8c0a35613a0b",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "flint",
+    "direction": "south-east",
+    "state": "block",
+    "job": "9016611e-c819-4dd5-9141-2b824592fa9f",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "flint",
+    "direction": "south-west",
+    "state": "block",
+    "job": "1d5c40a9-f3c7-41be-a572-f4980ffdf647",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "flint",
+    "direction": "north-east",
+    "state": "block",
+    "job": "1c169aad-6eab-4828-a630-fec3ea3068d7",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "flint",
+    "direction": "north-west",
+    "state": "block",
+    "job": "defeb3a6-f096-44f6-adeb-b75c9679562c",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "flint",
+    "direction": "south-east",
+    "state": "hit",
+    "job": "603f9354-b7ae-4c18-8166-b9e38ce564f0",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "flint",
+    "direction": "south-west",
+    "state": "hit",
+    "job": "1ed1eba2-4b79-4565-8254-db77c3f6f109",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "flint",
+    "direction": "north-east",
+    "state": "hit",
+    "job": "7885ed57-de22-4972-9031-97580cc7f237",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "flint",
+    "direction": "north-west",
+    "state": "hit",
+    "job": "e3b05063-70e8-4a52-a2b5-8c2430121985",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "flint",
+    "direction": "south-east",
+    "state": "death",
+    "job": "7726eede-be4f-4648-b0ac-2b5a8201023b",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "flint",
+    "direction": "south-west",
+    "state": "death",
+    "job": "ec95e333-96e5-4827-bb2c-4bbb0c333911",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "flint",
+    "direction": "north-east",
+    "state": "death",
+    "job": "b0d40ea2-c95d-4228-b523-63a05dfa99be",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "flint",
+    "direction": "north-west",
+    "state": "death",
+    "job": "5cb010e9-85e8-40cb-b226-626072d41e26",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "riverwind",
+    "direction": "south-east",
+    "state": "idle",
+    "job": "ac2243a8-b25c-46ec-abc1-f1a69f3d7cbf",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "riverwind",
+    "direction": "south-west",
+    "state": "idle",
+    "job": "8b37d17b-b9ba-4e02-8e93-ad323cfaa748",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "riverwind",
+    "direction": "north-east",
+    "state": "idle",
+    "job": "2ea3fc35-371a-42d2-8b23-b1d9a4acb39c",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "riverwind",
+    "direction": "north-west",
+    "state": "idle",
+    "job": "6f2a4f80-5c2c-42e7-9277-d870f5ca181c",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "riverwind",
+    "direction": "south-east",
+    "state": "walk",
+    "job": "19e3f3fc-17f8-4aa0-899b-b3db65b0c680",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "riverwind",
+    "direction": "south-west",
+    "state": "walk",
+    "job": "0e90cc44-6369-4a30-96f4-660dc4e4e62b",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "riverwind",
+    "direction": "north-east",
+    "state": "walk",
+    "job": "88e80eba-2815-4889-b7a2-e9fc5407bc34",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "riverwind",
+    "direction": "north-west",
+    "state": "walk",
+    "job": "379f7f2c-5cf0-4426-94a9-698ba07cc61d",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "riverwind",
+    "direction": "south-east",
+    "state": "attack",
+    "job": "29e0b663-837d-4dbc-b950-2fae20add061",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "riverwind",
+    "direction": "south-west",
+    "state": "attack",
+    "job": "e9f48882-1beb-4f6b-a25f-b744b75d6a46",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "riverwind",
+    "direction": "north-east",
+    "state": "attack",
+    "job": "df165433-2552-49f6-ba59-969a1c5e2f76",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "riverwind",
+    "direction": "north-west",
+    "state": "attack",
+    "job": "a3166056-6011-43b9-bf51-083687ea8c61",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "riverwind",
+    "direction": "south-east",
+    "state": "block",
+    "job": "b4067c8b-56df-4436-a462-d43eec15bc82",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "riverwind",
+    "direction": "south-west",
+    "state": "block",
+    "job": "0e288341-adf6-4692-b343-264ba0f4c1c6",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "riverwind",
+    "direction": "north-east",
+    "state": "block",
+    "job": "702bfb70-f813-4d8f-b2c4-1bf7f33bdd3b",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "riverwind",
+    "direction": "north-west",
+    "state": "block",
+    "job": "c734dc58-7bf6-458a-a5be-0d46f5f30191",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "riverwind",
+    "direction": "south-east",
+    "state": "hit",
+    "job": "1476f67b-24e9-4ec6-9c21-2b4a35db6355",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "riverwind",
+    "direction": "south-west",
+    "state": "hit",
+    "job": "25708546-38b8-466f-8e52-6d22e2b3c5f8",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "riverwind",
+    "direction": "north-east",
+    "state": "hit",
+    "job": "553bf19d-8038-4e63-9d87-5ade54adc9d5",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "riverwind",
+    "direction": "north-west",
+    "state": "hit",
+    "job": "1d04268b-7da8-4d8e-bd39-17779b0b6d68",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "riverwind",
+    "direction": "south-east",
+    "state": "death",
+    "job": "9f56b426-0e58-4f0b-b533-21498a6a24cf",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "riverwind",
+    "direction": "south-west",
+    "state": "death",
+    "job": "9803c1ab-14e5-40a6-b7d1-a45694e1bbb5",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "riverwind",
+    "direction": "north-east",
+    "state": "death",
+    "job": "5f5340e0-7496-49b1-aed5-cabf22291631",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "riverwind",
+    "direction": "north-west",
+    "state": "death",
+    "job": "213bfc8f-1d53-44a9-8cb3-32cf192ef0d8",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "fistandantilus",
+    "direction": "south-east",
+    "state": "idle",
+    "job": "e68ec3c5-bfef-4d28-a1d8-f00e8427067b",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "fistandantilus",
+    "direction": "south-west",
+    "state": "idle",
+    "job": "448408dd-0f35-4182-acc1-7e0b052889b0",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "fistandantilus",
+    "direction": "north-east",
+    "state": "idle",
+    "job": "0f9ded18-abf0-491a-9554-8c9dd78fc350",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "fistandantilus",
+    "direction": "north-west",
+    "state": "idle",
+    "job": "33030fb4-1207-4074-b5f9-2a32985d94bc",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "fistandantilus",
+    "direction": "south-east",
+    "state": "walk",
+    "job": "57191c6b-a9e6-4613-89e9-3455a0ea05b5",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "fistandantilus",
+    "direction": "south-west",
+    "state": "walk",
+    "job": "a5105b3f-720f-40f2-ad1d-8433d092364e",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "fistandantilus",
+    "direction": "north-east",
+    "state": "walk",
+    "job": "75d2129e-5246-40c0-8927-4adb662ff525",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "fistandantilus",
+    "direction": "north-west",
+    "state": "walk",
+    "job": "b2ef9f02-eb1d-4504-80fd-5be616f199c7",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "fistandantilus",
+    "direction": "south-east",
+    "state": "attack",
+    "job": "49dc2123-440c-43b9-95ff-88711942e572",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "fistandantilus",
+    "direction": "south-west",
+    "state": "attack",
+    "job": "b8519ea5-838a-4f67-9ef8-997b613076c3",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "fistandantilus",
+    "direction": "north-east",
+    "state": "attack",
+    "job": "11f45c21-bd1a-4dcc-bcab-f7055cfc4a7c",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "fistandantilus",
+    "direction": "north-west",
+    "state": "attack",
+    "job": "89325498-e230-435f-9ad5-0ba3ea2fb241",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "fistandantilus",
+    "direction": "south-east",
+    "state": "block",
+    "job": "a1b226dd-f567-4a3d-91c9-e586f662b567",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "fistandantilus",
+    "direction": "south-west",
+    "state": "block",
+    "job": "1aaa1e87-e55d-497d-9978-0d55ffd61d6f",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "fistandantilus",
+    "direction": "north-east",
+    "state": "block",
+    "job": "d6348b77-b66d-4f6d-928c-ec97397ba127",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "fistandantilus",
+    "direction": "north-west",
+    "state": "block",
+    "job": "85801a00-2e86-40aa-9950-96faac6cf70f",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "fistandantilus",
+    "direction": "south-east",
+    "state": "hit",
+    "job": "32c0dc7a-ab72-432a-bb67-a49cff12a00e",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "fistandantilus",
+    "direction": "south-west",
+    "state": "hit",
+    "job": "1b403766-ce69-4667-927e-3991adcf7c6f",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "fistandantilus",
+    "direction": "north-east",
+    "state": "hit",
+    "job": "2e77c425-da73-4a58-a54b-bf099adaf741",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "fistandantilus",
+    "direction": "north-west",
+    "state": "hit",
+    "job": "4593ae07-3dd2-4617-8dd2-13cffd2cb6a9",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "fistandantilus",
+    "direction": "south-east",
+    "state": "death",
+    "job": "9f229bba-5803-4e91-8231-c2f5d96b40fe",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "fistandantilus",
+    "direction": "south-west",
+    "state": "death",
+    "job": "1b117434-3138-423a-afb2-2053c0911c06",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "fistandantilus",
+    "direction": "north-east",
+    "state": "death",
+    "job": "25a61c9c-1bab-4245-8c92-ce53ca262a97",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "fistandantilus",
+    "direction": "north-west",
+    "state": "death",
+    "job": "7f338ec0-c53d-4d4b-bc57-773367350dbb",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "mishakal",
+    "direction": "south-east",
+    "state": "idle",
+    "job": "2700a354-765e-4bce-bfbb-611628bdebbc",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "mishakal",
+    "direction": "south-west",
+    "state": "idle",
+    "job": "93f2a0e1-2f11-457b-af8c-3928df494b6a",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "mishakal",
+    "direction": "north-east",
+    "state": "idle",
+    "job": "24bbf277-8e34-49c3-93d5-13b4c7d9b3b5",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "mishakal",
+    "direction": "north-west",
+    "state": "idle",
+    "job": "c2e7d054-eea4-4ef2-b02a-48a064e8be51",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "mishakal",
+    "direction": "south-east",
+    "state": "walk",
+    "job": "af9a9d19-66d7-44b8-9898-93eab84b7ccc",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "mishakal",
+    "direction": "south-west",
+    "state": "walk",
+    "job": "9fb65859-b7f8-47a0-a8b9-0e0cd1b4362f",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "mishakal",
+    "direction": "north-east",
+    "state": "walk",
+    "job": "303c600d-45a1-4880-8f85-2817ec6cd92d",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "mishakal",
+    "direction": "north-west",
+    "state": "walk",
+    "job": "18221633-83c2-4172-a83f-22b9d389d60f",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "mishakal",
+    "direction": "south-east",
+    "state": "attack",
+    "job": "e44566ad-87be-43d9-b5c5-ee32e4506e7d",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "mishakal",
+    "direction": "south-west",
+    "state": "attack",
+    "job": "75c9e4ee-f0da-4934-81b0-3f06cdc0aa5e",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "mishakal",
+    "direction": "north-east",
+    "state": "attack",
+    "job": "29137c55-59b3-4ced-977d-3d9e6fa003ad",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "mishakal",
+    "direction": "north-west",
+    "state": "attack",
+    "job": "60a6d1ea-2793-4a21-abc9-83cc80ee66f4",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "mishakal",
+    "direction": "south-east",
+    "state": "block",
+    "job": "c378a558-5be6-4336-afc8-2f93224c9af0",
+    "count": 4,
+    "completed": true
+  },
+  {
+    "name": "mishakal",
+    "direction": "south-west",
+    "state": "block",
+    "job": "e55c40d9-2a23-4970-8467-9aa62ceed6b4",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "mishakal",
+    "direction": "north-east",
+    "state": "block",
+    "job": "62d4a0ac-152c-468e-b5ed-9ab2a0244447",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "mishakal",
+    "direction": "north-west",
+    "state": "block",
+    "job": "2bcce22a-9bb1-4f9f-8134-ed661ccef0ed",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "mishakal",
+    "direction": "south-east",
+    "state": "hit",
+    "job": "7e3e98f6-14cc-4ed9-a5ae-dc8deec04050",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "mishakal",
+    "direction": "south-west",
+    "state": "hit",
+    "job": "b0309ff3-bebe-4a41-bb5d-dcc1943097b9",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "mishakal",
+    "direction": "north-east",
+    "state": "hit",
+    "job": "78c2fb7b-4654-4617-90cb-92d0e16c6d07",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "mishakal",
+    "direction": "north-west",
+    "state": "hit",
+    "job": "4a8d9a01-7ca1-40cb-977b-2049cbb05aa4",
+    "count": 5,
+    "completed": true
+  },
+  {
+    "name": "mishakal",
+    "direction": "south-east",
+    "state": "death",
+    "job": "0f6bfdee-379a-4ad5-ba77-aff2c6d58494",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "mishakal",
+    "direction": "south-west",
+    "state": "death",
+    "job": "8aa59299-f5b9-4e2d-b842-abe4ac36f911",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "mishakal",
+    "direction": "north-east",
+    "state": "death",
+    "job": "9f79c1f9-31be-4326-af62-2ecab9fa84d4",
+    "count": 9,
+    "completed": true
+  },
+  {
+    "name": "mishakal",
+    "direction": "north-west",
+    "state": "death",
+    "job": "c94a39ec-63b9-473a-bfc8-c97fbe0ddac0",
+    "count": 9,
+    "completed": true
+  }
+]

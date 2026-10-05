@@ -1,241 +1,118 @@
-export const TANK_TAUNTS = {
-  taunt: { name: 'Taunt', cooldown: 8000, range: 600, targets: 1 },
-  areaTaunt: { name: 'Challenging Shout', cooldown: 16000, range: 450, targets: 3 }
-};
+import { addAbilityProgression } from './abilityProgression.js';
 
+// Powers and unspecified durations are provisional balance values; see docs/CLASS_ABILITIES.md.
+const spell = (name, cooldown, range, effect, extra = {}) => ({ name, cooldown: cooldown * 1000, range, effect, windup: 300, ...extra });
+const mage = (shortName, color, abilities) => ({ role: 'Ranged DPS', shortName, color, maxHp: 80, maxMana: 120, manaRegen: 8, moveSpeed: 130, attackPower: 15, attackRange: 345, attackCooldown: 1500, attackWindup: 400, critChance: 0.15, critMultiplier: 1.75, gridAbilities: true, abilities });
+const cleric = (shortName, color, abilities) => ({ role: 'Healer', shortName, color, armor: 0.08, maxHp: 110, maxMana: 120, manaRegen: 8, moveSpeed: 140, attackPower: 7, attackRange: 300, attackCooldown: 1600, attackWindup: 400, healPower: 22, healRange: 600, basicHealPower: 8, basicHealRange: 3, healCooldown: 1600, healWindup: 400, gridAbilities: true, abilities });
 export const CLASS_DEFINITIONS = {
-  Paladin: {
-    role: 'Tank',
-    color: 0xeab308,
-    maxHp: 185,
-    maxMana: 80,
-    manaRegen: 5,
-    moveSpeed: 135,
-    attackPower: 9,
-    attackRange: 74,
-    attackCooldown: 1100,
-    attackWindup: 280,
-    threatMultiplier: 3.4,
-    critChance: 0.08,
-    critMultiplier: 1.6,
-    armor: 0.22,
-    description: 'Holy shield tank with strong mitigation, area threat, self-healing, and a once-per-delve protective shield.',
-    abilities: {
-      ...TANK_TAUNTS,
-      primary: { name: 'Righteous Blast', cooldown: 4300, windup: 300, power: 12, radius: 185, threatMultiplier: 5.2, aoe: true, lifeSteal: 0.18, manaCost: 18 },
-      utility: { name: 'Protective Shield', cooldown: 9999999, duration: 10000, oncePerDelve: true, manaCost: 22 }
-    }
-  },
   Gladiator: {
-    role: 'Tank',
-    color: 0xb45309,
-    maxHp: 155,
-    moveSpeed: 160,
-    attackPower: 14,
-    attackRange: 82,
-    attackCooldown: 900,
-    attackWindup: 220,
-    threatMultiplier: 2.7,
-    critChance: 0.14,
-    critMultiplier: 1.8,
-    armor: 0.08,
-    description: 'Aggressive two-handed tank with high single-target damage, health-for-damage attacks, and dirty tricks.',
+    role: 'Tank', color: 0xd99b35, maxHp: 185, moveSpeed: 150, attackPower: 15, attackRange: 74, attackCooldown: 1100, attackWindup: 280, armor: 0.22, threatMultiplier: 3.4, gridAbilities: true,
     abilities: {
-      ...TANK_TAUNTS,
-      primary: { name: 'Blood Price', cooldown: 3600, windup: 250, power: 34, healthCost: 0.07, threatMultiplier: 4.2 },
-      utility: { name: 'Sand Kick', cooldown: 7200, windup: 180, duration: 4500, missChance: 0.5 }
+      roar: spell('Roar', 10, 4, 'taunt', { duration: 6000, targets: 1 }),
+      net: spell('Throw Net', 15, 6, 'damage', { power: 12, damageType: 'physical', root: 10000, farthest: true }),
+      cleave: spell('Whirling Cleave', 10, 0, 'damage', { power: 40, damageType: 'physical', radius: 4, totalThreat: 2 }),
+      sand: spell('Kick Sand', 10, 1, 'damage', { power: 12, damageType: 'physical', blind: 6000, blindChance: 0.6 })
     }
   },
-  Guardian: {
-    role: 'Tank',
-    color: 0x4d7c0f,
-    maxHp: 195,
-    moveSpeed: 125,
-    attackPower: 11,
-    attackRange: 76,
-    attackCooldown: 1050,
-    attackWindup: 280,
-    threatMultiplier: 4.2,
-    critChance: 0.08,
-    critMultiplier: 1.65,
-    armor: 0.18,
-    description: 'Nature tank focused on one enemy, self-healing, and reducing incoming damage for the party.',
+  Oathwarden: {
+    role: 'Tank', color: 0x94a3b8, maxHp: 190, moveSpeed: 132, attackPower: 9, attackRange: 74, attackCooldown: 1100, attackWindup: 280, armor: 0.26, threatMultiplier: 3.4, gridAbilities: true,
     abilities: {
-      ...TANK_TAUNTS,
-      primary: { name: 'Heartwood Smash', cooldown: 3900, windup: 330, power: 28, threatMultiplier: 6.2, lifeSteal: 0.35 },
-      utility: { name: 'Withering Mark', cooldown: 8200, windup: 220, duration: 6000, damageReduction: 0.2 }
+      sacrifice: spell('My Honor is My Life', 0, 0, 'sacrifice', { duration: 10000, damageBoost: 0.5, healingBoost: 0.5 }),
+      vow: spell('Solemn Vow', 20, 6, 'vow', { duration: 10000, immunityDuration: 5000 }),
+      defense: spell('Staunch Defense', 20, 4, 'taunt', { targets: Infinity, duration: 6000, reduction: 0.75 }),
+      parry: spell('Parry', 2, 0, 'parry', { chance: 0.65, reactive: true })
     }
   },
-  Rogue: {
-    role: 'Melee DPS',
-    color: 0x7c3aed,
-    maxHp: 92,
-    moveSpeed: 205,
-    attackPower: 13,
-    attackRange: 70,
-    attackCooldown: 780,
-    attackWindup: 170,
-    threatMultiplier: 0.8,
-    critChance: 0.24,
-    critMultiplier: 1.85,
-    description: 'Stealth melee attacker with a devastating opener, bleeds, and short armor vulnerabilities.',
-    startsStealthed: true,
+  Barmaid: {
+    role: 'Melee DPS', color: 0xc026d3, maxHp: 110, moveSpeed: 175, attackPower: 14, attackRange: 74, attackCooldown: 1000, attackWindup: 250, critChance: 0.16, critMultiplier: 1.75, gridAbilities: true,
     abilities: {
-      primary: { name: 'Hemorrhage', cooldown: 3900, windup: 230, power: 25, threatMultiplier: 0.7, bleedPower: 5, bleedTicks: 4, bleedInterval: 1200 },
-      opener: { name: 'Ambush', multiplier: 3, armorReduction: 0.25, duration: 10000 }
+      pan: spell('Frying Pan', 8, 1, 'damage', { power: 40, damageType: 'physical', stun: 4000 }),
+      swing: spell('Clumsy Swing', 15, 0, 'damage', { power: 24, damageType: 'physical', radius: 1 }),
+      bash: spell('Shield Bash', 10, 1, 'damage', { power: 24, damageType: 'physical', stun: 4000 }),
+      lastCall: spell('Last Call', 20, 6, 'damage', { power: 40, damageType: 'physical', beam: true, endpoint: true, stun: 4000 })
+    }
+  },
+  Scoundrel: {
+    role: 'Melee DPS', color: 0x7c3aed, maxHp: 92, moveSpeed: 205, attackPower: 13, attackRange: 70, attackCooldown: 780, attackWindup: 170, threatMultiplier: 0.8, critChance: 0.24, critMultiplier: 1.85, gridAbilities: true,
+    abilities: {
+      stealth: spell('Stealth', 8, 0, 'stealth'),
+      surprise: spell('Surprise Attack', 10, 1, 'damage', { power: 60, damageType: 'physical', requiresStealth: true, behind: true, stun: 4000 }),
+      poison: spell('Poison', 10, 1, 'damage', { power: 0, damageType: 'poison', poison: { power: 8, interval: 2000, duration: 6000 }, attackSlow: 0.5 }),
+      dagger: spell('Dagger Throw', 4, 6, 'damage', { power: 12, damageType: 'physical' })
     }
   },
   Barbarian: {
-    role: 'Melee DPS',
-    color: 0xdc2626,
-    maxHp: 132,
-    moveSpeed: 170,
-    attackPower: 16,
-    attackRange: 84,
-    attackCooldown: 980,
-    attackWindup: 250,
-    threatMultiplier: 1.0,
-    critChance: 0.16,
-    critMultiplier: 1.85,
-    damageTakenMultiplier: 1.15,
-    description: 'Greataxe bruiser that enrages for more damage, cleaves groups, and can roar to empower nearby allies.',
+    role: 'Melee DPS', color: 0xdc2626, maxHp: 132, moveSpeed: 170, attackPower: 16, attackRange: 84, attackCooldown: 980, attackWindup: 250, threatMultiplier: 1, critChance: 0.16, critMultiplier: 1.85, gridAbilities: true,
     abilities: {
-      primary: { name: 'Sweeping Cleave', cooldown: 4300, windup: 300, power: 25, radius: 155, aoe: true, threatMultiplier: 1.0 },
-      utility: { name: 'War Roar', cooldown: 9000, duration: 10000, radius: 270, damageBoost: 0.15 }
-    }
-  },
-  Wizard: {
-    role: 'Ranged DPS',
-    color: 0x2563eb,
-    maxHp: 78,
-    maxMana: 120,
-    manaRegen: 8,
-    moveSpeed: 130,
-    attackPower: 15,
-    attackRange: 345,
-    attackCooldown: 1500,
-    attackWindup: 480,
-    threatMultiplier: 1.0,
-    critChance: 0.19,
-    critMultiplier: 1.85,
-    description: 'Fragile high-output spellcaster with ranged and close-range magic plus an emergency Arcane Shield.',
-    abilities: {
-      primary: { name: 'Fireball', cooldown: 4200, windup: 760, power: 34, radius: 125, aoe: true, threatMultiplier: 1.1, manaCost: 28 },
-      secondary: { name: 'Magic Missile', cooldown: 2600, windup: 420, power: 24, threatMultiplier: 1.0, manaCost: 16 },
-      close: { name: 'Cone of Cold', cooldown: 5200, windup: 360, power: 22, radius: 145, aoe: true, manaCost: 24 },
-      melee: { name: 'Arcane Blast', cooldown: 3400, windup: 300, power: 28, manaCost: 20 },
-      utility: { name: 'Arcane Shield', cooldown: 12000, duration: 10000, silenceDuration: 5000, manaCost: 30 }
+      enrage: spell('Enrage', 30, 0, 'enrage', { duration: 10000, recovery: 10000, damageMultiplier: 3, incomingMultiplier: 2, recoveryMultiplier: 0.5 }),
+      charge: spell('Charge', 15, 6, 'damage', { power: 40, damageType: 'physical', charge: true, stun: 6000 }),
+      strike: spell('Heroic Strike', 10, 1, 'damage', { power: 40, damageType: 'physical' }),
+      rend: spell('Agonizing Rend', 15, 1, 'damage', { power: 60, damageType: 'physical' })
     }
   },
   Ranger: {
-    role: 'Ranged DPS',
-    color: 0x15803d,
-    maxHp: 102,
-    maxMana: 70,
-    manaRegen: 4,
-    moveSpeed: 165,
-    attackPower: 15,
-    attackRange: 360,
-    attackCooldown: 1050,
-    attackWindup: 290,
-    threatMultiplier: 0.9,
-    critChance: 0.18,
-    critMultiplier: 1.8,
-    description: 'Long-range damage dealer with Hunter\'s Mark and battlefield traps.',
+    role: 'Ranged DPS', color: 0x15803d, maxHp: 102, moveSpeed: 165, attackPower: 15, attackRange: 360, attackCooldown: 1050, attackWindup: 290, threatMultiplier: 0.9, critChance: 0.18, critMultiplier: 1.8, gridAbilities: true,
     abilities: {
-      primary: { name: 'Rain of Arrows', cooldown: 5000, windup: 420, power: 19, radius: 145, aoe: true, threatMultiplier: 0.8, manaCost: 18 },
-      utility: { name: "Hunter's Mark", cooldown: 9000, duration: 9000, damageTakenBoost: 0.1, manaCost: 14 },
-      trap: { name: 'Hunter Trap', cooldown: 7200, manaCost: 12 }
+      mark: spell("Hunter's Mark", 15, 6, 'mark', { duration: 10000, damageTakenBoost: 0.25 }),
+      rain: spell('Rain of Arrows', 15, 4, 'damage', { power: 24, damageType: 'physical', zone: [2, 2] }),
+      trap: spell("Hunter's Trap", 15, 1, 'trap', { power: 40, damageType: 'poison', stun: 10000 }),
+      arrow: spell('Exploding Arrow', 15, 6, 'damage', { power: 60, damageType: 'physical' })
     }
   },
-  Naturalist: {
-    role: 'Healer',
-    color: 0x22c55e,
-    maxHp: 108,
-    maxMana: 120,
-    manaRegen: 7,
-    basicHealManaCost: 8,
-    moveSpeed: 145,
-    attackPower: 6,
-    attackRange: 285,
-    attackCooldown: 1650,
-    attackWindup: 400,
-    healPower: 16,
-    healRange: 315,
-    healCooldown: 1250,
-    healWindup: 390,
-    critChance: 0.10,
-    critMultiplier: 1.6,
-    description: 'Elemental support healer with a constant nature aura and gentle multi-target healing.',
+  Dawnwarden: {
+    role: 'Tank', color: 0xeab308, maxHp: 185, maxMana: 80, manaRegen: 5, moveSpeed: 135, attackPower: 9, attackRange: 74, attackCooldown: 1100, attackWindup: 280, armor: 0.22, threatMultiplier: 3.4, gridAbilities: true,
     abilities: {
-      primary: { name: 'Healing Breeze', cooldown: 3600, windup: 500, power: 17, targets: 3, manaCost: 22 },
-      passive: { name: 'Nature Aura', interval: 2600, power: 3 }
+      challenge: spell('Challenge', 10, 4, 'taunt', { duration: 6000, targets: 1 }),
+      defiant: spell('Defiant Stance', 15, Infinity, 'taunt', { duration: 6000, targets: 3, farthest: true }),
+      nova: spell('Sanctity Nova', 8, 0, 'damage', { power: 24, damageType: 'holy', radius: 4, totalThreat: 2 }),
+      strike: spell('Sunbrand Strike', 4, 1, 'damage', { power: 24, damageType: 'holy' })
     }
   },
-  Priest: {
-    role: 'Healer',
-    color: 0xe5e7eb,
-    maxHp: 100,
-    maxMana: 130,
-    manaRegen: 8,
-    basicHealManaCost: 9,
-    moveSpeed: 135,
-    attackPower: 7,
-    attackRange: 285,
-    attackCooldown: 1600,
-    attackWindup: 390,
-    healPower: 22,
-    healRange: 320,
-    healCooldown: 1250,
-    healWindup: 410,
-    critChance: 0.14,
-    critMultiplier: 1.9,
-    description: 'Holy single-target specialist with powerful direct healing and a flexible Holy Burst.',
-    abilities: {
-      primary: { name: 'Greater Heal', cooldown: 3500, windup: 680, power: 42, manaCost: 24 },
-      utility: { name: 'Holy Burst', cooldown: 6200, windup: 420, power: 30, manaCost: 18 }
-    }
-  },
-  Bloodwarder: {
-    role: 'Healer',
-    color: 0x991b1b,
-    maxHp: 122,
-    maxMana: 100,
-    manaRegen: 6,
-    basicHealManaCost: 8,
-    moveSpeed: 140,
-    attackPower: 9,
-    attackRange: 300,
-    attackCooldown: 1450,
-    attackWindup: 360,
-    healPower: 24,
-    healRange: 310,
-    healCooldown: 1350,
-    healWindup: 400,
-    critChance: 0.11,
-    critMultiplier: 1.7,
-    description: 'Blood-magic healer that sacrifices its own health for stronger heals and curses enemies.',
-    abilities: {
-      primary: { name: 'Blood Mend', cooldown: 3100, windup: 430, power: 38, healthCost: 0.06, manaCost: 16 },
-      utility: { name: 'Blood Curse', cooldown: 7600, duration: 7000, damageTakenBoost: 0.12, damageReduction: 0.12, manaCost: 20 }
-    }
-  }
+  'Mage of the Umbral Veil': mage('Umbral Mage', 0x292333, {
+    grasp: spell('Umbral Grasp', 10, 1, 'damage', { power: 24, damageType: 'necrotic' }),
+    nightbolt: spell('Nightbolt', 5, 5, 'damage', { power: 24, damageType: 'necrotic' }),
+    gloom: spell('Gloomburst', 10, 4, 'damage', { power: 24, damageType: 'necrotic', zone: [3, 3] }),
+    veilstep: spell('Veilstep', 10, Infinity, 'teleport', { moveThreshold: 3 })
+  }),
+  'Mage of the Crimson Spire': mage('Crimson Mage', 0xb91c1c, {
+    stabilization: spell('Arcane Stabilization', 10, 0, 'stabilize', { duration: 5000, reduction: 0.5, spellBoost: 0.25 }),
+    lash: spell('Crimson Lash', 10, 1, 'damage', { power: 24, damageType: 'force', targets: 2 }),
+    arcflare: spell('Arcflare', 5, 6, 'damage', { power: 12, damageType: 'force', splash: 1 }),
+    spire: spell('Spireburst', 10, 5, 'damage', { power: 24, damageType: 'force', beam: true, friendlyFire: true })
+  }),
+  'Mage of the Luminous Archive': mage('Luminous Mage', 0xf8fafc, {
+    refuge: spell('Scripted Refuge', 15, 0, 'refuge', { duration: 15000, interval: 3000, power: 15 }),
+    touch: spell('Radiant Touch', 10, 1, 'damage', { power: 12, damageType: 'radiant', healRatio: 3, healScope: 'lowest' }),
+    spear: spell('Lumenspear', 5, 6, 'damage', { power: 24, damageType: 'radiant', healRatio: 2, healScope: 'near' }),
+    libram: spell('Libram of Knowledge', 15, 3, 'damage', { power: 40, damageType: 'radiant', zone: [2, 2], healRatio: 2, healScope: 'all' })
+  }),
+  'Cleric of the Everbright': cleric('Everbright Cleric', 0xffe58a, {
+    aegis: spell('Solar Aegis', 10, 0, 'aegis'),
+    blessing: spell('Blessing of the Dawn', 5, 1, 'heal', { power: 42 }),
+    ray: spell('Ray of Benediction', 3, 5, 'heal', { power: 24 }),
+    pulse: spell('Everbright Pulse', 8, 3, 'heal', { power: 24, zone: [2, 2] }),
+    judgement: spell('Judgement Spark', 8, 4, 'damage', { power: 8, highPower: 40, damageType: 'radiant', judgement: true })
+  }),
+  'Cleric of the Verdant Covenant': cleric('Verdant Cleric', 0x22c55e, {
+    refuge: spell('Rootbound Refuge', 10, 0, 'armor', { armorMultiplier: 4, duration: 8000 }),
+    touch: spell('Verdant Touch', 5, 1, 'heal', { power: 42 }),
+    mend: spell('Bramble Mend', 5, 5, 'heal', { power: 24, retaliation: 24 }),
+    bloom: spell('Bloomfield Surge', 10, 3, 'heal', { power: 12, zone: [3, 3] }),
+    thorn: spell('Thornlance', 6, 5, 'damage', { power: 12, damageType: 'nature', root: 4000 })
+  }),
+  'Cleric of the Sanguine Song': cleric('Sanguine Cleric', 0x991b1b, {
+    ascendance: spell('Bloodsong Ascendance', 10, 0, 'ascendance', { duration: 8000, healingBoost: 0.25, teleportRange: 2 }),
+    transfer: spell('Sanguine Transfer', 5, 1, 'heal', { power: 42, selfDamage: 12 }),
+    beam: spell('Hemoflow Beam', 5, 6, 'heal', { power: 24, lowHealthPower: 42 }),
+    chorus: spell('Crimson Chorus', 10, 4, 'heal', { power: 24, zone: [2, 3], temporaryHp: 1 }),
+    rend: spell('Vessel Rend', 6, 4, 'damage', { power: 12, damageType: 'blood/necrotic', missingHealthBonus: true })
+  })
 };
 
-// This function builds an adventurer from class defaults and individual
-// overrides.
-export function createAdventurer(id, name, className, overrides = {}) {
+addAbilityProgression(CLASS_DEFINITIONS);
 
+export function createAdventurer(id, name, className, overrides = {}) {
   const definition = CLASS_DEFINITIONS[className];
   if (!definition) throw new Error(`Unknown class: ${className}`);
-
-  return {
-    id,
-    name,
-    className,
-    level: 1,
-    ...definition,
-    abilities: { ...definition.abilities },
-    ...overrides
-  };
+  return { id, name, className, level: 1, ...definition, abilities: { ...definition.abilities }, ...overrides };
 }

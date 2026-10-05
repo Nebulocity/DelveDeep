@@ -25,6 +25,17 @@ export default class TacticsController {
   // new ones every frame.
   registerParty(units) {
 
+    const slots = [0, 2, 4, 6, 8];
+    const centralSlots = [2, 1, 3];
+    const outerSlots = [0, 4, 1, 3];
+    const assigned = new Map();
+    const supports = units.filter((unit) => unit.role === 'Tank' || unit.role === 'Healer')
+      .sort((a, b) => Number(b.role === 'Tank') - Number(a.role === 'Tank'));
+    supports.forEach((unit, index) => assigned.set(unit.id, centralSlots[index]));
+    units.filter((unit) => !assigned.has(unit.id)).forEach((unit, index) => {
+      assigned.set(unit.id, outerSlots.filter((slot) => ![...assigned.values()].includes(slot))[0] ?? index);
+    });
+
     units.forEach((unit, index) => {
 
       const jitterX = Phaser.Math.Between(-55, 55);
@@ -35,24 +46,18 @@ export default class TacticsController {
         jitterY,
         side,
         reactionDelay: Phaser.Math.Between(40, 180),
-        slot: index
+        slot: index,
+        spawnColumn: slots[assigned.get(unit.id)] ?? slots[index]
       });
     });
   }
 
-  // This function starts each role in formation with a little individual
-  // variation.
+  // This function places the party in distinct squares of the bottom row.
   getSpawnPosition(unit, index) {
 
-    const preference = this.preferences.get(unit.id) ?? { jitterX: 0, jitterY: 0, side: 1 };
-    const rolePositions = {
-      Tank: { x: 700, y: 300 },
-      Healer: { x: 420, y: 125 },
-      'Melee DPS': { x: 760, y: 190 },
-      'Ranged DPS': { x: 1040, y: 125 }
-    };
-    const base = rolePositions[unit.role] ?? { x: 260 + index * 150, y: 150 };
-    return this.safePoint(base.x + preference.jitterX, base.y + preference.jitterY, 70);
+    const column = this.preferences.get(unit.id)?.spawnColumn ?? [0, 2, 4, 6, 8][index] ?? 4;
+    const cell = this.battlefield.getCellBounds(column, 0);
+    return { x: (cell.left + cell.right) / 2, y: cell.top - 10 };
   }
 
   // This function places the tank near the enemy while favoring the arena
@@ -60,7 +65,8 @@ export default class TacticsController {
   getTankPosition(tank, primaryEnemy) {
 
     const preference = this.preferences.get(tank.id) ?? { jitterX: 0 };
-    const desiredX = Phaser.Math.Clamp(primaryEnemy.arenaX, 520, 880) + preference.jitterX * 0.25;
+    const centerX = this.battlefield.logicalWidth / 2;
+    const desiredX = Phaser.Math.Clamp(primaryEnemy.arenaX, centerX - 180, centerX + 180) + preference.jitterX * 0.25;
     const desiredY = Phaser.Math.Clamp(primaryEnemy.arenaY - 100, 380, 650);
     return this.safePoint(desiredX, desiredY, 100);
   }
@@ -84,7 +90,7 @@ export default class TacticsController {
 
     const preference = this.preferences.get(unit.id) ?? { side: 1, jitterX: 0, jitterY: 0 };
     const spread = this.tactics.rangedFormation === 'spread' ? 1 : 0.45;
-    const x = 700 + preference.side * (330 * spread) + preference.jitterX;
+    const x = this.battlefield.logicalWidth / 2 + preference.side * (330 * spread) + preference.jitterX;
     const y = Phaser.Math.Clamp(enemy.arenaY - 380 + preference.jitterY, 90, 310);
     return this.safePoint(x, y, 75);
   }

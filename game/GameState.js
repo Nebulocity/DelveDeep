@@ -1,3 +1,4 @@
+// Session state is rebuilt from saved profile data when the game boots.
 const GameState = {
   gold: 0,
   roster: [],
@@ -8,28 +9,31 @@ const GameState = {
   rewards: [],
   leader: null,
   inventory: {
-    healingTonic: 0,
-    voidKeys: 0,
     equipment: [],
+    materials: {},
     nextEquipmentId: 1,
-    materials: {}
+    equipmentSchemaVersion: 1
   },
   records: {},
+  delveCheckpoints: {},
+  everdeep: { schemaVersion: 1, activeRun: null, totals: { runsStarted: 0, chestsClaimed: 0 } },
   development: {
     unlockAll: false,
-    replayCleared: false
+    replayCleared: false,
+    showGridLines: false
   },
   world: {
     currentLocation: 'pineshire',
     discoveredLocations: ['pineshire', 'slime-cave'],
-    clearedDelves: []
+    clearedDelves: [],
+    travel: null
   },
   run: {
     startedAt: 0,
     elapsedMs: 0,
     summary: null,
     startingGold: 0,
-    startingInventory: null
+    entry: 'progress'
   },
   tactics: {
     tankPosition: 'center',

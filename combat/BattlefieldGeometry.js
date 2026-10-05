@@ -138,17 +138,16 @@ export default class BattlefieldGeometry {
   }
 
   // This function draws the arena grid that players use to issue orders.
-  drawPerspectiveFloor() {
+  drawPerspectiveFloor(showGridLines = true) {
 
     const graphics = this.scene.add.graphics();
+    if (!showGridLines) return graphics;
     const floor = [
       new Phaser.Geom.Point(this.bottomLeftX, this.bottomY),
       new Phaser.Geom.Point(this.bottomRightX, this.bottomY),
       new Phaser.Geom.Point(this.topRightX, this.topY),
       new Phaser.Geom.Point(this.topLeftX, this.topY)
     ];
-    graphics.fillStyle(0x111111, 0.36);
-    graphics.fillPoints(floor, true);
     graphics.lineStyle(5, 0xd4a514, 0.95);
     graphics.strokePoints(floor, true);
     graphics.lineStyle(2, 0x8b6f1c, 0.72);

@@ -2,6 +2,8 @@
 
 Run `npm run test:visual` from the repository root. Playwright starts Vite, launches Chromium at a 1920×1080 landscape viewport, waits for Phaser and the loading overlay, then captures `TitleScene`. Use `npm run test:visual:headed` to watch the run. Install Chromium once with `npx playwright install chromium` if Playwright reports that its browser is missing.
 
+The maintained `illustrated-map.spec.js` and `ui-corrections.spec.js` exercise desktop and phone-sized map travel, reload, holds/drags, visible Dev Tools, full wooden How to Play, actual battlefield previews, Enchanter BUY/SELL empty states and potion quantities. Use `--workers=1` when software-rendered Chromium causes slow gesture dispatch. Windows sandbox `spawn EPERM` can require authorized escalation for Vite/esbuild/Chromium.
+
 Screenshots and matching JSON bounds reports are written to `tests/visual/screenshots/<SceneName>.png` and `<SceneName>.json`. They are generated locally and ignored by Git. Open the PNG and inspect the whole scene. The screenshot is the deciding evidence; the JSON warnings are only leads for inspection. Playwright also attaches the PNG to its test result.
 
 ## Capture a scene

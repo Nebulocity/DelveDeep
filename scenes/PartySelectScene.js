@@ -464,7 +464,7 @@ export default class PartySelectScene extends Phaser.Scene {
     };
 
     const blocker = addElement(this.add.rectangle(panelX, panelY, width, height, 0x000000, 0.58).setDepth(depth).setInteractive());
-    addElement(this.add.rectangle(panelX, panelY, panelWidth, panelHeight, 0x111827, 0.99).setStrokeStyle(5, 0x64748b).setDepth(depth + 1));
+    addElement(addWoodenPanel(this, panelX, panelY, panelWidth, panelHeight, depth + 1));
 
     const top = panelY - panelHeight / 2;
     const bottom = panelY + panelHeight / 2;

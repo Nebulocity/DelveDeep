@@ -52,7 +52,7 @@ export default class DungeonScene extends Phaser.Scene {
     // List the chosen adventurers with their class, role, and current level.
     GameState.activeParty.forEach((adventurer, index) => {
 
-      const y = height * 0.38 + index * 92;
+      const y = height * 0.40 + index * 92;
       const card = this.add.rectangle(width * 0.28, y + 7, 700, 82, 0xffffff, 0);
       bindSelectionDetails(this, card, () => characterDetails(getEquippedAdventurer(GameState.roster.find((hero) => hero.id === adventurer.id) ?? adventurer)));
       this.add.circle(width * 0.15, y, 30, adventurer.color);
@@ -67,7 +67,7 @@ export default class DungeonScene extends Phaser.Scene {
     equipped.forEach((id, index) => {
 
       const ability = leaderAbilities.find((entry) => entry.id === id);
-      const y = height * 0.39 + index * 88;
+      const y = height * 0.41 + index * 88;
       const card = this.add.rectangle(width * 0.70, y, 700, 64, 0x292524).setStrokeStyle(2, 0x84cc16);
       this.add.text(width * 0.70, y, ability?.name ?? id, { fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#bef264' }).setOrigin(0.5);
       if (ability) this.bindTacticDescription(card, ability);

@@ -60,7 +60,6 @@ for (const viewport of [{ width: 1920, height: 1080 }, { width: 915, height: 412
       return raw?.world?.travel?.destinationId === 'slime-cave';
     });
     await page.reload();
-    await ready(page);
     await ready(page, 'DelveSelectScene');
     expect(await page.evaluate(async () => (await import('/game/GameState.js')).default.currentDelve.id)).toBe('slime-cave');
 

@@ -139,6 +139,7 @@ export function selectPoi(scene, poi) {
   } else {
     advanceEdge(scene);
   }
+  persistTravel(scene);
 }
 
 function advanceEdge(scene) {

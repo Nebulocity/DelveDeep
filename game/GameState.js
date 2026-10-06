@@ -3,6 +3,7 @@ const GameState = {
   gold: 0,
   roster: [],
   activeParty: [],
+  activeBattle: null,
   lastPartyIds: [],
   currentDelve: null,
   currentRoom: 0,

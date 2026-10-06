@@ -109,7 +109,7 @@ export default class TacticsController {
   // enabled.
   shouldAvoidMechanics(unit) {
 
-    return this.tactics.mechanicResponse === 'avoid' && unit.role !== 'Tank';
+    return this.tactics.mechanicResponse === 'avoid';
   }
 
   // This function keeps formation positions clear of arena edges and lower

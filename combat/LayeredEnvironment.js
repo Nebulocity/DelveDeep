@@ -14,7 +14,9 @@ export function getEnvironmentTransform(environment, width, height) {
 export function getDelveArena(environment, width, height) {
   const t = getEnvironmentTransform(environment, width, height);
   const authored = environment.walkable.map(([x, y]) => ({ x: t.x + x * t.scale, y: t.y + y * t.scale }));
-  const bottomLimit = height * 0.775 - 8;
+
+  // The full-width HUD frame begins 12 pixels above the individual party cards.
+  const bottomLimit = height * 0.78 - 12;
   const boundary = [];
 
   // Clip the floor to the usable battlefield above the party cards.

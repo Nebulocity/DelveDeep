@@ -1,0 +1,160 @@
+{
+  "character": "Bozak Draconian",
+  "source": "PixelLab export; 256x256 RGBA frames",
+  "frameSize": [
+    256,
+    256
+  ],
+  "animations": {
+    "idle": {
+      "file": "idle.png",
+      "columns": 8,
+      "rows": 4,
+      "directions": [
+        "south-east",
+        "south-west",
+        "north-east",
+        "north-west"
+      ],
+      "framesPerDirection": {
+        "south-east": 8,
+        "south-west": 8,
+        "north-east": 8,
+        "north-west": 8
+      },
+      "playableFrameCount": {
+        "south-east": 8,
+        "south-west": 8,
+        "north-east": 8,
+        "north-west": 8
+      },
+      "frameSize": [
+        256,
+        256
+      ]
+    },
+    "walk": {
+      "file": "walk.png",
+      "columns": 8,
+      "rows": 4,
+      "directions": [
+        "south-east",
+        "south-west",
+        "north-east",
+        "north-west"
+      ],
+      "framesPerDirection": {
+        "south-east": 8,
+        "south-west": 8,
+        "north-east": 8,
+        "north-west": 8
+      },
+      "playableFrameCount": {
+        "south-east": 8,
+        "south-west": 8,
+        "north-east": 8,
+        "north-west": 8
+      },
+      "frameSize": [
+        256,
+        256
+      ]
+    },
+    "block": {
+      "file": "block.png",
+      "columns": 5,
+      "rows": 4,
+      "directions": [
+        "south-east",
+        "south-west",
+        "north-east",
+        "north-west"
+      ],
+      "framesPerDirection": {
+        "south-east": 5,
+        "south-west": 5,
+        "north-east": 5,
+        "north-west": 5
+      },
+      "playableFrameCount": {
+        "south-east": 5,
+        "south-west": 5,
+        "north-east": 5,
+        "north-west": 5
+      },
+      "frameSize": [
+        256,
+        256
+      ]
+    },
+    "attack": {
+      "file": "attack.png",
+      "columns": 6,
+      "rows": 4,
+      "directions": [
+        "south-east",
+        "south-west",
+        "north-east",
+        "north-west"
+      ],
+      "framesPerDirection": {
+        "south-east": 6,
+        "south-west": 6,
+        "north-east": 6,
+        "north-west": 6
+      },
+      "playableFrameCount": {
+        "south-east": 6,
+        "south-west": 6,
+        "north-east": 6,
+        "north-west": 6
+      },
+      "frameSize": [
+        256,
+        256
+      ]
+    },
+    "death": {
+      "file": "death.png",
+      "columns": 7,
+      "rows": 4,
+      "directions": [
+        "south-east",
+        "south-west",
+        "north-east",
+        "north-west"
+      ],
+      "framesPerDirection": {
+        "south-east": 7,
+        "south-west": 7,
+        "north-east": 7,
+        "north-west": 7
+      },
+      "playableFrameCount": {
+        "south-east": 7,
+        "south-west": 7,
+        "north-east": 7,
+        "north-west": 7
+      },
+      "frameSize": [
+        256,
+        256
+      ]
+    }
+  },
+  "facing": {
+    "file": "facing.png",
+    "columns": 4,
+    "rows": 2,
+    "directions": [
+      "south",
+      "south-east",
+      "east",
+      "north-east",
+      "north",
+      "north-west",
+      "west",
+      "south-west"
+    ]
+  }
+}

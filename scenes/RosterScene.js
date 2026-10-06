@@ -2,6 +2,7 @@ import { CLASS_DESCRIPTIONS } from '../data/classDescriptions.js';
 import { STAT_DESCRIPTIONS } from '../data/statDescriptions.js';
 import { showSelectionDetails } from '../ui/SelectionDetails.js';
 import Phaser from 'phaser';
+import { UI_FONT_SIZES } from '../config/uiTypography.js';
 import { abilityPower } from '../game/CharacterStats.js';
 import GameState from '../game/GameState.js';
 import { saveProfile } from '../game/GameStorage.js';
@@ -135,7 +136,7 @@ export default class RosterScene extends Phaser.Scene {
       hallIcon(this, slotIcons[slot], x - 220, y, HALL.gold, 1.4);
       hallText(this, x - 160, y - 64, slot.toUpperCase(), 27, { color: HALL.muted });
       hallText(this, x - 160, y - 9, item?.name ?? 'Empty slot', 36, { fontStyle: 'bold', wordWrap: { width: 412 } });
-      hallText(this, x - 160, y + 66, item ? slot === 'potion' ? `${item.charges}/3 potions` : equipmentStatsText(item.stats) : 'Unequipped', 28, {
+      hallText(this, x - 160, y + 66, item ? slot === 'potion' ? `${item.charges}/3 potions` : equipmentStatsText(item.stats) : 'Unequipped', UI_FONT_SIZES.itemSummary, {
         color: item ? HALL.green : HALL.muted, wordWrap: { width: 412 }
       });
     });
@@ -275,7 +276,7 @@ export default class RosterScene extends Phaser.Scene {
       const y = 395 + index * 170;
       hallPanel(this, 1200, y, 1260, 150);
       hallText(this, 594, y - 28, item.name, 34, { fontStyle: 'bold', wordWrap: { width: 842 } });
-      hallText(this, 594, y + 37, slot === 'potion' ? `${item.charges}/3 uses · ${getPotionDefinition(item.itemId)?.description ?? ''}` : equipmentStatsText(item.stats), 29, {
+      hallText(this, 594, y + 37, slot === 'potion' ? `${item.charges}/3 uses · ${getPotionDefinition(item.itemId)?.description ?? ''}` : equipmentStatsText(item.stats), UI_FONT_SIZES.itemSummary, {
         color: HALL.muted, wordWrap: { width: 840 }
       });
       hallButton(this, 1680, y, 270, 112, 'Compare', () => {

@@ -2,7 +2,8 @@ import Phaser from 'phaser';
 import { FACILITIES, renderFacilityMenu } from '../ui/FacilityMenu.js';
 import GameState from '../game/GameState.js';
 import { saveProfile } from '../game/GameStorage.js';
-import { buyPotionPack, equipmentStatsText } from '../game/Equipment.js';
+import { buyPotionPack, equipmentOwner, equipmentStatsText } from '../game/Equipment.js';
+import { UI_FONT_SIZES } from '../config/uiTypography.js';
 import { POTION_ITEMS, CRAFTING_RECIPES } from '../data/items.js';
 import { ENCHANTMENTS, ENCHANTMENT_BY_ID } from '../data/enchantments.js';
 import { bindSelectionDetails } from '../ui/SelectionDetails.js';
@@ -81,10 +82,17 @@ export default class FacilityScene extends Phaser.Scene {
         run: () => { this.selectedScroll = item.id; this.category = 'all'; this.page = 0; return { ok: false, message: 'Choose gear to enchant. The selected scroll will be consumed.' }; }
       }));
       const definition = ENCHANTMENT_BY_ID[scroll.enchantmentId];
-      return state.inventory.equipment.filter(item => !item.enchantmentId && definition.slots.includes(item.slot)).map(item => ({
-        id: item.id, category: item.slot, name: item.name, description: `${definition.description} Uses ${scroll.name}.`, enabled: true, action: 'ENCHANT',
-        run: () => { const result = applyEnchantment(scroll.id, item.id); if (result.ok) this.selectedScroll = null; return result; }
-      }));
+      return state.inventory.equipment.filter(item => !item.enchantmentId && definition.slots.includes(item.slot)).map(item => {
+        const owner = equipmentOwner(item.id, state);
+        const ownership = owner ? `Equipped by ${owner.name}` : 'Unequipped';
+        return {
+          id: item.id, category: item.slot, name: item.name,
+          description: `${ownership} | ${definition.description}`,
+          detailsDescription: `${ownership}\n\n${definition.description} Uses ${scroll.name}.`,
+          enabled: true, action: 'ENCHANT',
+          run: () => { const result = applyEnchantment(scroll.id, item.id); if (result.ok) this.selectedScroll = null; return result; }
+        };
+      });
     }
     return [];
   }
@@ -117,11 +125,12 @@ export default class FacilityScene extends Phaser.Scene {
       const card = this.add.rectangle(1400, y, 1520, 112, theme.face, 0.64).setStrokeStyle(2, theme.edge, 0.7);
       addCategoryIcon(this, CATEGORIES[row.category]?.[1] ?? 'satchel', 686, y, theme.edge);
       this.add.text(728, y - 25, row.name, { fontFamily: 'Arial', fontSize: '34px', fontStyle: 'bold', color: theme.text }).setOrigin(0, 0.5);
-      this.add.text(728, y + 0, row.description, { fontFamily: 'Arial', fontSize: '26px', color: '#ddd5c7', wordWrap: { width: 1080 } });
-      bindSelectionDetails(this, card, { title: row.name, description: row.description, shopTheme: theme });
+      this.add.text(728, y + 0, row.description, { fontFamily: 'Arial', fontSize: `${UI_FONT_SIZES.itemDescription}px`, color: '#ddd5c7', wordWrap: { width: 1080 } });
+      const details = { title: row.name, description: row.detailsDescription ?? row.description, shopTheme: theme };
+      bindSelectionDetails(this, card, details);
       const button = this.add.rectangle(1990, y, 285, 86, theme.face).setStrokeStyle(3, theme.edge).setAlpha(row.enabled ? 1 : 0.45);
       this.add.text(1990, y, row.action, { fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: theme.text }).setOrigin(0.5).setAlpha(row.enabled ? 1 : 0.55);
-      if (row.enabled) bindSelectionDetails(this, button, { title: row.name, description: row.description, shopTheme: theme }, () => this.transact(row.run));
+      if (row.enabled) bindSelectionDetails(this, button, details, () => this.transact(row.run));
     });
     this.add.text(1400, 759, this.message || `${this.page + 1} / ${pages}`, { fontFamily: 'Arial', fontSize: '27px', color: theme.text, align: 'center', wordWrap: { width: 1000 } }).setOrigin(0.5);
     for (const [x, label, delta] of [[760, 'PREV', -1], [2040, 'NEXT >', 1]]) {

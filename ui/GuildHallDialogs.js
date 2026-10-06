@@ -3,6 +3,7 @@ import { bindButtonPress } from './ButtonPress.js';
 import HapticsService from '../services/HapticsService.js';
 import GameState from '../game/GameState.js';
 import { CHARACTER_SPRITES } from '../data/characterSprites.js';
+import { UI_FONT_SIZES } from '../config/uiTypography.js';
 
 function text(scene, x, y, value, size, options = {}) {
   return scene.add.text(x, y, value, { fontFamily: 'Arial', fontSize: `${size}px`, color: GUILD.ink, ...options }).setOrigin(0.5);
@@ -55,7 +56,7 @@ function start(scene, title, width, height, label, preserveEquipment = false) {
 export function showGuildDetails(scene, details) {
   const hero = GameState.roster.find((entry) => entry.name === details.title);
   const width = Math.min(hero ? 1560 : 1380, scene.scale.width - 120);
-  const body = !hero ? text(scene, 0, 0, details.description, 34, { align: 'center', wordWrap: { width: width - 180 }, lineSpacing: 12 }) : null;
+  const body = !hero ? text(scene, 0, 0, details.description, UI_FONT_SIZES.detailBody, { align: 'center', wordWrap: { width: width - 180 }, lineSpacing: 12 }) : null;
   const height = hero ? Math.min(970, scene.scale.height - 90) : Math.min(scene.scale.height - 90, Math.max(540, body.height + 430));
   const modal = start(scene, details.title, width, height, hero ? 'GUILD REGISTRY' : 'GUILD HANDBOOK', details.preserveEquipment);
   const { x, top, depth } = modal;
@@ -82,7 +83,7 @@ export function showGuildDetails(scene, details) {
     text(scene, left + 235, top + 618, hero.shortName ?? hero.className, 29, { align: 'center', wordWrap: { width: 290 }, fontFamily: 'Georgia' }).setDepth(depth + 5);
   } else {
     body.setPosition(x, top + (height + 10) / 2).setDepth(depth + 5);
-    if (body.height > height - 402) body.setFontSize(32);
+    if (body.height > height - 402) body.setFontSize(UI_FONT_SIZES.detailBodyCompact);
   }
   button(scene, x, top + height - 87, 380, 'CLOSE', modal.close, depth + 6);
   modal.finish(body);

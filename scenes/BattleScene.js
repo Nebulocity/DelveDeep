@@ -31,6 +31,7 @@ import { awardOrdinaryWave, getDelveCheckpoint, isOrdinaryDelve, WAVE_REWARDS } 
 import { getBattleLayout } from '../ui/Layout.js';
 import { preloadEnvironment, createEnvironment, getDelveArena } from '../combat/LayeredEnvironment.js';
 import { trackLoading, hideLoadingScreenAfterRender } from '../ui/LoadingScreen.js';
+import { installBattlePersistence, restoreBattle } from '../combat/BattlePersistence.js';
 
 export default class BattleScene extends Phaser.Scene {
 
@@ -69,6 +70,7 @@ export default class BattleScene extends Phaser.Scene {
     // Reset encounter flags, selections, movement orders, threat tables, and
     // leader cooldowns for a fresh battle.
     this.battleOver = false;
+    this.battleEvents = new Set();
     this.waveTransitioning = false;
     this.waveRetreating = false;
     this.farmStopRequested = false;
@@ -141,11 +143,23 @@ export default class BattleScene extends Phaser.Scene {
 
     this.bossWaveIndex = Math.max(0, this.waves.findIndex((wave) => wave.boss));
     this.createFarmControls();
+    if (GameState.activeBattle?.scene.currentWaveIndex >= this.waves.length) GameState.activeBattle = null;
+    if (GameState.activeBattle) {
+      this.restoringBattle = true;
+      queueMicrotask(() => {
+        restoreBattle(this, GameState.activeBattle);
+        this.restoringBattle = false;
+        installBattlePersistence(this);
+      });
+      hideLoadingScreenAfterRender(this);
+      return;
+    }
     const checkpoint = getDelveCheckpoint(GameState.currentDelve, this.bossWaveIndex);
     const entry = GameState.run.entry;
     if (entry === 'camp' && checkpoint?.campUnlocked) this.showDelveCamp();
     else this.startWave(entry === 'boss' ? this.bossWaveIndex
       : entry === 'farm' ? this.bossWaveIndex - 1 : checkpoint?.nextWave ?? 0);
+    installBattlePersistence(this);
     hideLoadingScreenAfterRender(this);
   }
 
@@ -1045,22 +1059,59 @@ export default class BattleScene extends Phaser.Scene {
     this.waveTransitioning = true;
     this.updateEncounterStatus();
     this.showWaveAnnouncement(`WAVE ${index + 1}`, Boolean(wave.boss));
-    let secondsRemaining = 3;
-    this.updateWaveCountdown(secondsRemaining);
+    this.updateWaveCountdown(3);
+    this.scheduleBattleEvent(1000, { kind: 'countdown', index, secondsRemaining: 3 });
+  }
 
-    const countDown = () => {
+  // Gameplay timers carry data so their remaining delay survives a restart.
+  scheduleBattleEvent(delay, data, callback = null) {
+    this.battleEvents ??= new Set();
+    const event = { data, timer: null };
+    event.timer = this.time.delayedCall(delay, () => {
+      this.battleEvents.delete(event);
+      if (callback) callback();
+      else this.resolveBattleEvent(data);
+    });
+    this.battleEvents.add(event);
+    return event.timer;
+  }
 
+  actionEvent(kind, unit, target, details = {}) {
+    return { kind, unitId: unit.id, targetId: target?.id, point: target?.id ? null : target,
+      actionId: unit.pendingAction.id, actionStartAt: unit.pendingAction.startAt,
+      actionName: unit.pendingAction.name, ...details };
+  }
+
+  resolveBattleEvent(data) {
+    if (data.kind === 'countdown') {
       if (this.battleOver) return;
-      secondsRemaining -= 1;
+      const secondsRemaining = data.secondsRemaining - 1;
       if (secondsRemaining > 0) {
         this.updateWaveCountdown(secondsRemaining);
-        this.time.delayedCall(1000, countDown);
+        this.scheduleBattleEvent(1000, { ...data, secondsRemaining });
       } else {
         this.clearWaveAnnouncement();
-        this.spawnWave(index);
+        this.spawnWave(data.index);
       }
-    };
-    this.time.delayedCall(1000, countDown);
+      return;
+    }
+    if (data.kind === 'pendingLandings') return this.retryPendingLandings();
+    const units = [...this.partyUnits, ...this.enemies];
+    const unit = units.find(entry => entry.id === data.unitId);
+    if (!unit) return;
+    if (data.kind === 'landing') return this.finishEnemyLanding(unit);
+    const action = unit.pendingAction;
+    if (!action || action.id !== data.actionId || action.startAt !== data.actionStartAt || action.name !== data.actionName) return;
+    const target = data.targetId ? units.find(entry => entry.id === data.targetId) : data.point;
+    if (data.targetId && !target) { unit.finishAction(); return; }
+    if (data.kind === 'attack') this.resolveBasicAttack(unit, action, target, data.attackType);
+    else if (data.kind === 'heal') this.resolveBasicHeal(unit, action, target);
+    else if (data.kind === 'enemyAbility') this.resolveEnemyAbility(unit, action, target, unit.abilities[data.key]);
+    else if (data.kind === 'classAbility') this.classAbilitySystem.resolveCast(unit, action, target, data.ability);
+    else if (data.kind === 'groundSlam') {
+      const telegraph = this.activeTelegraphs.find(entry => entry.attacker === unit);
+      this.resolveGroundSlam(unit, action, data.center, data.ability, telegraph);
+    }
   }
 
   // Keep the wave number and countdown readable over bright or detailed arenas.
@@ -1158,22 +1209,23 @@ export default class BattleScene extends Phaser.Scene {
 
   // Retry crowded waves as characters move, without losing any monsters.
   schedulePendingLandings() {
+    this.scheduleBattleEvent(300, { kind: 'pendingLandings' });
+  }
 
-    this.time.delayedCall(300, () => {
-      if (this.battleOver || this.pendingWaveSpawns.length === 0) return;
-      const wave = { enemies: this.pendingWaveSpawns.map(({ spawn }) => spawn) };
-      const reserved = this.enemies.filter(enemy => enemy.alive).map(enemy => ({ x: enemy.arenaX, y: enemy.arenaY }));
-      const landings = chooseWaveLandings(wave, this.battlefield, this.terrain,
-        this.partyUnits, Math.random, reserved);
-      this.pendingWaveSpawns = this.pendingWaveSpawns.filter(({ spawn, spawnIndex }, index) => {
-        if (!landings[index]) return true;
-        const enemy = this.createEnemy(spawn.type, landings[index], spawnIndex);
-        this.enemies.push(enemy);
-        this.animateEnemyLanding(enemy);
-        return false;
-      });
-      if (this.pendingWaveSpawns.length > 0) this.schedulePendingLandings();
+  retryPendingLandings() {
+    if (this.battleOver || this.pendingWaveSpawns.length === 0) return;
+    const wave = { enemies: this.pendingWaveSpawns.map(({ spawn }) => spawn) };
+    const reserved = this.enemies.filter(enemy => enemy.alive).map(enemy => ({ x: enemy.arenaX, y: enemy.arenaY }));
+    const landings = chooseWaveLandings(wave, this.battlefield, this.terrain,
+      this.partyUnits, Math.random, reserved);
+    this.pendingWaveSpawns = this.pendingWaveSpawns.filter(({ spawn, spawnIndex }, index) => {
+      if (!landings[index]) return true;
+      const enemy = this.createEnemy(spawn.type, landings[index], spawnIndex);
+      this.enemies.push(enemy);
+      this.animateEnemyLanding(enemy);
+      return false;
     });
+    if (this.pendingWaveSpawns.length > 0) this.schedulePendingLandings();
   }
 
   // Keep combat and targeting paused for each monster until its feet bounce onto the floor.
@@ -1182,26 +1234,30 @@ export default class BattleScene extends Phaser.Scene {
     enemy.landing = true;
     const visual = enemy.spriteVisual?.image ?? enemy.body;
     const floorY = visual.y;
+    enemy.landingFloorY = floorY;
     const scale = this.battlefield.getUnitScale(enemy.arenaY);
     visual.y = floorY - (enemy.container.y - this.battlefield.topY + 220) / scale;
     for (const label of [enemy.label, enemy.targetLabel, enemy.actionLabel,
       enemy.hpBack, enemy.hpFill, enemy.castBack, enemy.castFill]) label.setAlpha(0);
     this.tweens.add({
-      targets: visual, y: floorY, duration: 720, ease: 'Bounce.Out',
-      onComplete: () => {
-        if (!enemy.container.active) return;
-        enemy.landing = false;
-        enemy.hitZone.setInteractive({ useHandCursor: true });
-        for (const label of [enemy.label, enemy.targetLabel, enemy.actionLabel,
-          enemy.hpBack, enemy.hpFill, enemy.castBack, enemy.castFill]) label.setAlpha(1);
-      }
+      targets: visual, y: floorY, duration: 720, ease: 'Bounce.Out'
     });
+    this.scheduleBattleEvent(720, { kind: 'landing', unitId: enemy.id });
+  }
+
+  finishEnemyLanding(enemy) {
+    if (!enemy.container.active) return;
+    enemy.landing = false;
+    enemy.hitZone.setInteractive({ useHandCursor: true });
+    for (const label of [enemy.label, enemy.targetLabel, enemy.actionLabel,
+      enemy.hpBack, enemy.hpFill, enemy.castBack, enemy.castFill]) label.setAlpha(1);
   }
 
   // This function advances one frame of combat while the encounter is active.
   // It updates resources and actions, runs party and enemy decisions,
   // separates crowded units, and checks for a cleared wave or defeated party.
   update(time, delta) {
+    if (this.restoringBattle) return;
 
     this.classAbilitySystem?.syncChargeTweens?.(this.combatPaused);
     this.updatePotionHud();
@@ -1428,19 +1484,26 @@ export default class BattleScene extends Phaser.Scene {
     if (attacker.isEnemy) this.setEnemyTarget(attacker, target, 'highest threat');
     this.logActionStart(attacker, target, 'Attack');
     const action = attacker.pendingAction;
-    this.time.delayedCall(attacker.attackWindup, () => {
+    this.scheduleBattleEvent(attacker.attackWindup, this.actionEvent('attack', attacker, target, { attackType }),
+      () => this.resolveBasicAttack(attacker, action, target, attackType));
+  }
 
-      if (!this.isActionCurrent(attacker, action, target)) return;
-      if (attacker.role === 'Healer' && this.partyUnits.some(unit => unit.alive && unit.hp / unit.maxHp < 0.8)) {
-        attacker.finishAction();
-        return;
-      }
-      if (this.isWithinAttackReach(attacker, target, 28)) {
-        const power = attacker.isEnemy && attacker.basicAttackDamageType === 'spell' ? attacker.spellDamage : attacker.attackPower;
-        this.resolveDamage(attacker, target, power, attackType, attacker.threatMultiplier, 'Attack');
-      }
+  isWaitingForPlayer() {
+    return this.battleOver || this.combatPaused || this.awaitingRevive || GameState.run.entry === 'camp';
+  }
+
+  resolveBasicAttack(attacker, action, target, attackType) {
+
+    if (!this.isActionCurrent(attacker, action, target)) return;
+    if (attacker.role === 'Healer' && this.partyUnits.some(unit => unit.alive && unit.hp / unit.maxHp < 0.8)) {
       attacker.finishAction();
-    });
+      return;
+    }
+    if (this.isWithinAttackReach(attacker, target, 28)) {
+      const power = attacker.isEnemy && attacker.basicAttackDamageType === 'spell' ? attacker.spellDamage : attacker.attackPower;
+      this.resolveDamage(attacker, target, power, attackType, attacker.threatMultiplier, 'Attack');
+    }
+    attacker.finishAction();
   }
 
   // A healer's basic action restores a small amount to one injured ally.
@@ -1453,13 +1516,16 @@ export default class BattleScene extends Phaser.Scene {
     healer.spriteVisual?.play('block', target);
     this.logActionStart(healer, target, 'Mend');
     const action = healer.pendingAction;
-    this.time.delayedCall(healer.healWindup, () => {
-      if (!this.isActionCurrent(healer, action, target)) return;
-      if (target.hp < target.maxHp && this.classAbilitySystem.distance(healer, target) <= healer.basicHealRange) {
-        this.resolveHeal(healer, target, abilityPower(healer, {}, healer.basicHealPower, true), 'Mend');
-      }
-      healer.finishAction();
-    });
+    this.scheduleBattleEvent(healer.healWindup, this.actionEvent('heal', healer, target),
+      () => this.resolveBasicHeal(healer, action, target));
+  }
+
+  resolveBasicHeal(healer, action, target) {
+    if (!this.isActionCurrent(healer, action, target)) return;
+    if (target.hp < target.maxHp && this.classAbilitySystem.distance(healer, target) <= healer.basicHealRange) {
+      this.resolveHeal(healer, target, abilityPower(healer, {}, healer.basicHealPower, true), 'Mend');
+    }
+    healer.finishAction();
   }
 
   // This function announces an enemy cast and resolves it if the action
@@ -1477,18 +1543,21 @@ export default class BattleScene extends Phaser.Scene {
     attacker.markAbilityUsed(key, time);
 
     const action = attacker.pendingAction;
-    this.time.delayedCall(ability.windup, () => {
+    this.scheduleBattleEvent(ability.windup, this.actionEvent('enemyAbility', attacker, target, { key }),
+      () => this.resolveEnemyAbility(attacker, action, target, ability));
+  }
 
-      if (!this.isActionCurrent(attacker, action, target)) return;
-      this.createProjectile(attacker, target, 0xa855f7);
-      if (ability.effect === 'heal') {
-        this.resolveHeal(attacker, target, abilityPower(attacker, ability, ability.power, true), ability.name);
-      } else {
-        this.resolveDamage(attacker, target, abilityPower(attacker, ability),
-          ability.damageType === 'physical' ? 'enemy' : 'spell', 1, ability.name);
-      }
-      attacker.finishAction();
-    });
+  resolveEnemyAbility(attacker, action, target, ability) {
+
+    if (!this.isActionCurrent(attacker, action, target)) return;
+    this.createProjectile(attacker, target, 0xa855f7);
+    if (ability.effect === 'heal') {
+      this.resolveHeal(attacker, target, abilityPower(attacker, ability, ability.power, true), ability.name);
+    } else {
+      this.resolveDamage(attacker, target, abilityPower(attacker, ability),
+        ability.damageType === 'physical' ? 'enemy' : 'spell', 1, ability.name);
+    }
+    attacker.finishAction();
   }
 
   // This function starts an enemy area attack and draws a warning at the
@@ -1508,6 +1577,13 @@ export default class BattleScene extends Phaser.Scene {
     // Capture the target location at cast start so the warning stays fixed
     // and can be dodged.
     const center = { arenaX: target.arenaX, arenaY: target.arenaY };
+    const telegraph = this.createSlamTelegraph(attacker, ability, center, ability.telegraph);
+    const action = attacker.pendingAction;
+    this.scheduleBattleEvent(ability.telegraph, this.actionEvent('groundSlam', attacker, null, { center, ability }),
+      () => this.resolveGroundSlam(attacker, action, center, ability, telegraph));
+  }
+
+  createSlamTelegraph(attacker, ability, center, duration) {
     const screenCenter = this.battlefield.arenaToScreen(center.arenaX, center.arenaY);
     const radii = this.battlefield.getGroundEllipseRadii(ability.radius, center.arenaY);
 
@@ -1534,43 +1610,45 @@ export default class BattleScene extends Phaser.Scene {
       displayWidth: radii.width * 2,
       displayHeight: radii.height * 2,
       alpha: 0.08,
-      duration: ability.telegraph,
+      duration,
       ease: 'Linear'
     });
 
-    // Resolve the delayed strike against current party positions, then remove
-    // the warning visuals.
-    const action = attacker.pendingAction;
-    this.time.delayedCall(ability.telegraph, () => {
+    return telegraph;
+  }
 
-      if (!this.isActionCurrent(attacker, action)) {
-        this.removeTelegraph(telegraph);
-        return;
-      }
+  // Resolve a saved strike against current positions and remove its warning.
+  resolveGroundSlam(attacker, action, center, ability, telegraph) {
 
-      HapticsService.heavy();
-      this.partyUnits.filter((unit) => unit.alive).forEach((unit) => {
-
-        if (unit.distanceToPoint(center.arenaX, center.arenaY) <= ability.radius) {
-          this.resolveDamage(attacker, unit, abilityPower(attacker, ability),
-            ability.damageType === 'physical' ? 'enemy' : 'spell', 1, ability.name, false);
-        }
-      });
-
-      const burst = this.add.ellipse(screenCenter.x, screenCenter.y, radii.width * 0.8, radii.height * 0.8, 0xef4444, 0.42)
-        .setDepth(45 + screenCenter.y);
-      this.tweens.add({
-        targets: burst,
-        displayWidth: radii.width * 2.6,
-        displayHeight: radii.height * 2.6,
-        alpha: 0,
-        duration: 260,
-        onComplete: () => burst.destroy()
-      });
-
+    if (!this.isActionCurrent(attacker, action)) {
       this.removeTelegraph(telegraph);
-      attacker.finishAction();
+      return;
+    }
+
+    HapticsService.heavy();
+    this.partyUnits.filter((unit) => unit.alive).forEach((unit) => {
+
+      if (unit.distanceToPoint(center.arenaX, center.arenaY) <= ability.radius) {
+        this.resolveDamage(attacker, unit, abilityPower(attacker, ability),
+          ability.damageType === 'physical' ? 'enemy' : 'spell', 1, ability.name, false);
+      }
     });
+
+    const screenCenter = this.battlefield.arenaToScreen(center.arenaX, center.arenaY);
+    const radii = this.battlefield.getGroundEllipseRadii(ability.radius, center.arenaY);
+    const burst = this.add.ellipse(screenCenter.x, screenCenter.y, radii.width * 0.8, radii.height * 0.8, 0xef4444, 0.42)
+      .setDepth(45 + screenCenter.y);
+    this.tweens.add({
+      targets: burst,
+      displayWidth: radii.width * 2.6,
+      displayHeight: radii.height * 2.6,
+      alpha: 0,
+      duration: 260,
+      onComplete: () => burst.destroy()
+    });
+
+    this.removeTelegraph(telegraph);
+    attacker.finishAction();
   }
 
   // This function lets eligible units abandon their action to escape a ground
@@ -1594,6 +1672,7 @@ export default class BattleScene extends Phaser.Scene {
   // This function retires a ground warning from both the display and hazard
   // tracking.
   removeTelegraph(telegraph) {
+    if (!telegraph) return;
 
     this.activeTelegraphs = this.activeTelegraphs.filter((item) => item !== telegraph);
     telegraph.warning?.destroy();

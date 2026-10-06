@@ -7,6 +7,7 @@ import { bindButtonPress } from './ButtonPress.js';
 import { addRegionPanel, addRegionNotice, regionMessageBounds } from './RegionMapTheme.js';
 import { isGuildHall } from './GuildHallTheme.js';
 import { showGuildDetails } from './GuildHallDialogs.js';
+import { UI_FONT_SIZES } from '../config/uiTypography.js';
 
 export const DETAILS_HINT = 'Long-press or hold-click a selection for details.';
 
@@ -66,8 +67,7 @@ export function delveDetails(delve) {
   return { title: delve.name, description: `${delve.subtitle}\n\n${delve.difficulty} | Recommended level ${delve.recommendedLevel} | ${delve.rooms} waves\n\nPossible Drops:\n${delveDropNames(delve).map(name => `• ${name}`).join('\n')}`, image: delve.visuals?.environment?.layers[0]?.key, align: 'left', titleAboveBody: true, panelWidth: 1600 };
 }
 
-// Modal details block underlying controls. Combat clocks and decisions pause
-// together so reading never costs the party health or consumes a queued cast.
+// Modal details block underlying controls while gameplay and timers continue.
 export function showSelectionDetails(scene, details) {
   if (isGuildHall(scene)) return showGuildDetails(scene, details);
   scene.selectionDetailsClose?.();
@@ -81,18 +81,8 @@ export function showSelectionDetails(scene, details) {
   const shopTheme = details.shopTheme;
   const shop = Boolean(shopTheme);
   const objects = [];
-  const wasPaused = scene.combatPaused;
-  const clockPaused = scene.time.paused;
-  if (typeof wasPaused === 'boolean') {
-    scene.combatPaused = true;
-    scene.time.paused = true;
-  }
   const close = () => {
     objects.forEach((object) => object.destroy());
-    if (typeof wasPaused === 'boolean') {
-      scene.combatPaused = wasPaused;
-      scene.time.paused = clockPaused;
-    }
     scene.selectionDetailsClose = null;
     scene.events.off('shutdown', close);
   };
@@ -107,7 +97,7 @@ export function showSelectionDetails(scene, details) {
   const bodyWidth = panelWidth - bodyMargin * 2 - imageColumn;
   const bodyCenter = centerX + imageColumn / 2;
   const body = scene.add.text(bodyCenter, 0, details.description, {
-    fontFamily: 'Arial', fontSize: '32px', color: stone ? STONE.text : shop ? shopTheme.text : warm ? '#f1dfca' : '#e2e8f0',
+    fontFamily: 'Arial', fontSize: `${UI_FONT_SIZES.detailBody}px`, color: stone ? STONE.text : shop ? shopTheme.text : warm ? '#f1dfca' : '#e2e8f0',
     wordWrap: { width: bodyWidth }, fixedWidth: bodyWidth, align: details.align ?? 'center'
   }).setOrigin(0.5, 0).setDepth(depth + 2);
   const panelHeight = Math.min(height - 140, Math.max(hasImage ? 540 : 340, body.height + (details.gear ? 480 : 210)));

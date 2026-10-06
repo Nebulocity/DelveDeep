@@ -5,6 +5,8 @@ import OrientationService from '../services/OrientationService.js';
 import { loadLeaderProgression } from '../game/LeaderProgression.js';
 import { loadProfile } from '../game/GameStorage.js';
 import { prepareBuildSave } from '../game/BuildSave.js';
+import { unpackBattleValue } from '../game/BattleSnapshot.js';
+import enemies from '../data/enemies.js';
 import partyIdleUrl from '../assets/characters/caramon-gladiator/reference-v2/sheets/idle.png?url';
 import partyWalkUrl from '../assets/characters/caramon-gladiator/reference-v2/sheets/walk.png?url';
 import townUrl from '../assets/screens/town.png?url';
@@ -77,7 +79,7 @@ export default class BootScene extends Phaser.Scene {
     this.textures.get('world-pineshire-final').setFilter(1);
     this.initializeGameState();
     OrientationService.lockLandscape();
-    this.scene.start('TitleScene');
+    this.scene.start(GameState.activeBattle ? 'BattleScene' : 'TitleScene');
   }
 
   // This function restores persistent progress and prepares clean encounter
@@ -106,7 +108,7 @@ export default class BootScene extends Phaser.Scene {
       .sort((a, b) => GameState.lastPartyIds.indexOf(a.id) - GameState.lastPartyIds.indexOf(b.id))
       .map((adventurer) => ({ ...adventurer }));
 
-    // Clear expedition details so a new session cannot resume a stale run.
+    // Start with clean expedition details, then restore a validated saved battle.
     GameState.currentDelve = null;
     GameState.currentRoom = 0;
     GameState.rewards = [];
@@ -118,5 +120,14 @@ export default class BootScene extends Phaser.Scene {
       summary: null,
       startingGold: GameState.gold
     };
+    const snapshot = GameState.activeBattle;
+    const delve = snapshot && delves.find(entry => entry.id === snapshot.delveId);
+    if (delve && snapshot.enemies.every(unit => enemies[unit.enemyType])) {
+      GameState.currentDelve = delve;
+      GameState.activeParty = unpackBattleValue(snapshot.partyTemplates);
+      GameState.leader = unpackBattleValue(snapshot.leader);
+      GameState.tactics = unpackBattleValue(snapshot.tactics);
+      GameState.run = unpackBattleValue(snapshot.run);
+    } else GameState.activeBattle = null;
   }
 }

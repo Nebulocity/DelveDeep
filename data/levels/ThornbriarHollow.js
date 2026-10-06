@@ -13,14 +13,12 @@ export default {
     environment: {
       width: 1672, height: 941, offsetY: -105, pixelArt: true,
 
-      // Camera-space outline of open ground, excluding scenery and foreground obstacles.
+      // Keep the rear floor outline; the lower floor continues beneath foreground scenery.
       walkable: [
         [330, 486], [523, 454], [717, 433], [842, 438],
         [992, 439], [1172, 469], [1325, 498], [1460, 556],
-        [1480, 591], [1380, 635], [1302, 715], [1205, 769],
-        [1115, 821], [1020, 857], [856, 883], [753, 859],
-        [643, 819], [563, 777], [491, 723], [416, 700],
-        [356, 657], [316, 609], [241, 590], [243, 556]
+        [1480, 591], [1480, 941], [241, 941], [241, 590],
+        [243, 556]
       ],
       layers: [
         { key: 'thornbriar-hollow-pixel-art',

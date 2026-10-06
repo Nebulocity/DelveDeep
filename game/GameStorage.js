@@ -6,9 +6,18 @@ import { grantStartingEquipment } from './StartingEquipment.js';
 import { restoreAdventurerAbilities } from './AdventurerAbilities.js';
 import { CRAFTING_MATERIALS } from '../data/items.js';
 import { PROFILE_STORAGE_KEY } from './BuildSave.js';
+import { validBattleSnapshot } from './BattleSnapshot.js';
 import { roads, pois, nodes, WORLD_LAYOUT_ID } from '../data/worldMap.js';
 
 const STORAGE_KEY = PROFILE_STORAGE_KEY;
+let battleSaveProvider = null;
+let pendingSave = false;
+let saveGeneration = 0;
+
+// A single profile write commits resources, progression and the battle position together.
+export function setBattleSaveProvider(provider) {
+  battleSaveProvider = provider;
+}
 
 // This function restores character and shared world progress into GameState.
 // Adventurer identity and base stats come from the
@@ -90,13 +99,35 @@ export function loadProfile(baseRoster) {
 
   // Discard saved party IDs that no longer exist in the current roster.
   GameState.lastPartyIds = GameState.lastPartyIds.filter((id) => GameState.roster.some((adventurer) => adventurer.id === id));
+  GameState.activeBattle = validBattleSnapshot(saved?.activeBattle, GameState.roster) ? saved.activeBattle : null;
 }
 
 // This function writes the persistent portion of GameState to local storage.
 // It includes currencies, inventory, world progress, records, the previous
-// party, and roster advancement, while leaving temporary battle state out of
-// the profile.
+// party, roster advancement and a restorable active battle snapshot.
 export function saveProfile() {
+  if (battleSaveProvider) {
+    if (!pendingSave) {
+      pendingSave = true;
+      const generation = saveGeneration;
+      queueMicrotask(() => {
+        if (generation !== saveGeneration) return;
+        pendingSave = false;
+        writeProfile();
+      });
+    }
+    return;
+  }
+  writeProfile();
+}
+
+function writeProfile() {
+  try {
+    if (battleSaveProvider) GameState.activeBattle = battleSaveProvider();
+  } catch (error) {
+    console.warn('Could not capture the active Delve Deep battle.', error);
+    return;
+  }
 
   // Select the fields that persist between sessions instead of serializing
   // the entire live game state.
@@ -109,6 +140,7 @@ export function saveProfile() {
     development: GameState.development,
     world: GameState.world,
     everdeep: GameState.everdeep,
+    activeBattle: GameState.activeBattle,
     roster: GameState.roster.map((adventurer) => ({
       id: adventurer.id,
       equipment: adventurer.equipment ?? { weapon: null, armor: null, accessory: null, potion: null },
@@ -135,6 +167,9 @@ export function saveProfile() {
 
 // This function removes character and shared world progress on reset.
 export function clearSavedProfile() {
+  saveGeneration += 1;
+  pendingSave = false;
+  GameState.activeBattle = null;
 
   try {
     localStorage.removeItem(STORAGE_KEY);

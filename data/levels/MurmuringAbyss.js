@@ -13,13 +13,11 @@ export default {
     environment: {
       width: 1672, height: 941, offsetY: -40, pixelArt: true,
 
-      // Camera-space outline of open ground, excluding scenery and foreground obstacles.
+      // Keep the rear floor outline; the lower floor continues beneath foreground scenery.
       walkable: [
         [343, 514], [577, 498], [811, 493], [1099, 502],
-        [1320, 520], [1490, 558], [1571, 593], [1496, 662],
-        [1427, 737], [1284, 804], [1115, 853], [921, 862],
-        [741, 849], [514, 811], [349, 746], [213, 678],
-        [136, 603], [194, 558]
+        [1320, 520], [1490, 558], [1571, 593], [1571, 941],
+        [136, 941], [136, 603], [194, 558]
       ],
       layers: [
         { key: 'murmuring-abyss-pixel-art',

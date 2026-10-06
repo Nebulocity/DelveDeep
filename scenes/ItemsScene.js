@@ -6,6 +6,7 @@ import { ENCHANTMENTS } from '../data/enchantments.js';
 import { CRAFTING_MATERIALS, CRAFTING_RECIPES, getPotionDefinition } from '../data/items.js';
 import { canCraft, recipeIngredientText } from '../game/Crafting.js';
 import { guildSurface } from '../ui/GuildHallTheme.js';
+import { UI_FONT_SIZES } from '../config/uiTypography.js';
 
 const CATEGORIES = [
   { id: 'equipment', label: 'Equipment', icon: 'sword' },
@@ -56,10 +57,10 @@ export default class ItemsScene extends Phaser.Scene {
       hallDetails(this, card, { title: item.name, description: `${stats}${equipmentOwner(item.id) ? `\n\nEquipped by ${equipmentOwner(item.id).name}` : ''}` });
       hallIcon(this, this.category === 'materials' ? 'ingot' : this.category === 'recipes' ? 'scroll' : item.slot === 'weapon' ? 'sword' : item.slot === 'potion' ? 'flask' : item.slot === 'scroll' ? 'scroll' : 'shield', 606, y);
       hallText(this, 660, y - 29, item.name, 35, { fontStyle: 'bold', wordWrap: { width: 1170 } });
-      hallText(this, 2265, y - 29, this.category === 'materials' ? `×${item.count}` : this.category === 'recipes' ? canCraft(item.id).ok ? 'Ready' : 'Gather materials' : equipmentOwner(item.id)?.name ?? 'Unequipped', 29, {
+      hallText(this, 2265, y - 29, this.category === 'materials' ? `×${item.count}` : this.category === 'recipes' ? canCraft(item.id).ok ? 'Ready' : 'Gather materials' : equipmentOwner(item.id)?.name ?? 'Unequipped', UI_FONT_SIZES.itemOwner, {
         color: '#ffe0a7'
       }).setOrigin(1, 0.5);
-      hallText(this, 660, y + 30, stats, 30, { color: HALL.muted, wordWrap: { width: 1590 } });
+      hallText(this, 660, y + 30, stats, UI_FONT_SIZES.itemSummary, { color: HALL.muted, wordWrap: { width: 1590 } });
     });
     hallButton(this, 1100, 950, 270, 112, 'Prev', () => { this.page--; this.render(); }, { enabled: this.page > 0 });
     hallText(this, 1431, 950, `${this.page + 1} / ${pages}`, 32).setOrigin(0.5);

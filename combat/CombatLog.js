@@ -66,7 +66,7 @@ export default class CombatLog {
   persist() {
 
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.record));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...this.record, entries: this.entries.slice(-2000) }));
     } catch (error) {
       console.warn('Could not save the combat log.', error);
     }

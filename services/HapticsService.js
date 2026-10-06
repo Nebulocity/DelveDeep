@@ -4,6 +4,7 @@ class HapticsService {
 
   // This function gives ordinary presses a light tactile response.
   static async tap() {
+    if (this.background) return;
 
     try {
       await Haptics.impact({
@@ -17,6 +18,7 @@ class HapticsService {
 
   // This function gives committed choices a stronger tactile response.
   static async confirm() {
+    if (this.background) return;
 
     try {
       await Haptics.impact({
@@ -31,6 +33,7 @@ class HapticsService {
   // This function emphasizes major combat events with a heavy tactile
   // response.
   static async heavy() {
+    if (this.background) return;
 
     try {
       await Haptics.impact({
@@ -44,6 +47,7 @@ class HapticsService {
 
   // This function celebrates success with the device notification feedback.
   static async success() {
+    if (this.background) return;
 
     try {
       await Haptics.notification({

@@ -61,7 +61,7 @@ test('Delve selection highlights cards only and ally taps command the group', as
     const s = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
     const body = s.children.list.find(o => o.type === 'Text' && o.depth === 10002 && o.text.includes('HP:'));
     return { align: body.style.align, origin: body.originX, paused: s.combatPaused, selected: s.selectedUnitIds.size };
-  })).toEqual({ align: 'center', origin: 0.5, paused: true, selected: 0 });
+  })).toEqual({ align: 'center', origin: 0.5, paused: false, selected: 0 });
   await page.screenshot({ path: 'output/qa/delve-feedback/centered-details.png' });
   expect(errors).toEqual([]);
 });

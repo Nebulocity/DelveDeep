@@ -7,6 +7,7 @@ export default class CombatMovement {
     this.config = config;
     this.slots = new Map();
     this.rangeStates = new Map();
+    this.paths = new WeakMap();
   }
 
   getUnits() {
@@ -220,6 +221,138 @@ export default class CombatMovement {
     if (unit.distanceToPoint(point.x, point.y) > this.config.arrivalTolerance) {
       unit.moveToward(point.x, point.y, delta, this.config.arrival);
     }
+  }
+
+  // Imagine the arena as graph paper. A* finds safe stepping stones around bodies and walls.
+  getNavigationWaypoint(unit, destination) {
+    const corpses = this.getCorpses().filter(corpse => corpse !== unit);
+    if (corpses.length === 0) {
+      this.paths.delete(unit);
+      return destination;
+    }
+    const spacing = corpse => this.getSpacing(unit, corpse);
+    // Check the whole line so a long step cannot jump through a body or wall.
+    const blockedSegment = (from, to) => {
+      const dx = to.x - from.x, dy = to.y - from.y;
+      const length = dx * dx + dy * dy;
+      const blockedByBody = corpses.some(corpse => {
+        const t = length ? Math.max(0, Math.min(1, ((corpse.arenaX - from.x) * dx + (corpse.arenaY - from.y) * dy) / length)) : 0;
+        return Math.hypot(from.x + dx * t - corpse.arenaX, from.y + dy * t - corpse.arenaY) < spacing(corpse);
+      });
+      if (blockedByBody) return true;
+      const distance = Math.sqrt(length);
+      const intervals = Math.ceil(distance / 12);
+      for (let index = 1; index < intervals; index += 1) {
+        const ratio = index / intervals;
+        if (this.scene.terrain?.isUnitBlocked(unit, from.x + dx * ratio, from.y + dy * ratio,
+          this.config.terrainFootRadius)) return true;
+      }
+      return false;
+    };
+    const start = { x: unit.arenaX, y: unit.arenaY };
+    if (!blockedSegment(start, destination)) {
+      this.paths.delete(unit);
+      return destination;
+    }
+    const now = this.scene.time?.now ?? 0;
+    const old = this.paths.get(unit);
+    const signature = corpses.map(c => `${Math.round(c.arenaX / 24)},${Math.round(c.arenaY / 24)}`).join('|');
+    if (old && now < old.recheckAt && old.signature === signature
+      && Math.hypot(old.destination.x - destination.x, old.destination.y - destination.y) < 48
+      && Math.hypot(old.waypoint.x - start.x, old.waypoint.y - start.y) > 20) return old.waypoint;
+
+    // Put stepping stones 48 units apart. Each stone is one place the unit could stand.
+    const step = 48;
+    const width = Math.ceil(this.scene.battlefield.logicalWidth / step);
+    const height = Math.ceil(this.scene.battlefield.logicalHeight / step);
+    const key = (x, y) => y * width + x;
+    const point = (x, y) => ({ x: Math.min(x * step + step / 2, this.scene.battlefield.logicalWidth), y: Math.min(y * step + step / 2, this.scene.battlefield.logicalHeight) });
+    const clear = p => !corpses.some(c => Math.hypot(p.x - c.arenaX, p.y - c.arenaY) < spacing(c))
+      && !this.scene.terrain?.isUnitBlocked(unit, p.x, p.y, this.config.terrainFootRadius);
+    const sx = Math.max(0, Math.min(width - 1, Math.floor(start.x / step)));
+    const sy = Math.max(0, Math.min(height - 1, Math.floor(start.y / step)));
+    const baseX = Math.max(0, Math.min(width - 1, Math.floor(destination.x / step)));
+    const baseY = Math.max(0, Math.min(height - 1, Math.floor(destination.y / step)));
+    let gx = baseX, gy = baseY;
+    if (!clear(point(gx, gy))) {
+      // If the goal is inside a wall or body, use the closest safe stone nearby.
+      let nearest = Infinity;
+      for (let radius = 1; radius <= 6; radius += 1) {
+        for (let y = Math.max(0, baseY - radius); y <= Math.min(height - 1, baseY + radius); y += 1) {
+          for (let x = Math.max(0, baseX - radius); x <= Math.min(width - 1, baseX + radius); x += 1) {
+            if (Math.max(Math.abs(x - baseX), Math.abs(y - baseY)) !== radius) continue;
+            const candidate = point(x, y);
+            const distance = Math.hypot(candidate.x - destination.x, candidate.y - destination.y);
+            if (distance < nearest && clear(candidate)) { nearest = distance; gx = x; gy = y; }
+          }
+        }
+        if (nearest < Infinity) break;
+      }
+    }
+    const startKey = key(sx, sy), goalKey = key(gx, gy);
+    const open = [];
+    // Keep the most promising stone at the front of this little waiting line.
+    const pushOpen = node => {
+      let index = open.length;
+      open.push(node);
+      while (index > 0) {
+        const parent = Math.floor((index - 1) / 2);
+        if (open[parent].f <= node.f) break;
+        open[index] = open[parent];
+        index = parent;
+      }
+      open[index] = node;
+    };
+    const popOpen = () => {
+      const first = open[0];
+      const last = open.pop();
+      if (open.length) {
+        let index = 0;
+        while (true) {
+          const left = index * 2 + 1, right = left + 1;
+          if (left >= open.length) break;
+          const child = right < open.length && open[right].f < open[left].f ? right : left;
+          if (open[child].f >= last.f) break;
+          open[index] = open[child];
+          index = child;
+        }
+        open[index] = last;
+      }
+      return first;
+    };
+    // The score adds the walk already taken to a straight-line guess of what is left.
+    pushOpen({ x: sx, y: sy, id: startKey, g: 0, f: Math.hypot(gx - sx, gy - sy) });
+    // Remember the cheapest path so far and the stone that led to each new stone.
+    const best = new Map([[startKey, 0]]), parents = new Map(), closed = new Set();
+    let reached = false;
+    while (open.length) {
+      const current = popOpen();
+      if (current.id === goalKey) { reached = true; break; }
+      if (closed.has(current.id)) continue;
+      closed.add(current.id);
+      for (let oy = -1; oy <= 1; oy += 1) for (let ox = -1; ox <= 1; ox += 1) {
+        if (!ox && !oy) continue;
+        const x = current.x + ox, y = current.y + oy;
+        if (x < 0 || y < 0 || x >= width || y >= height) continue;
+        const next = point(x, y), id = key(x, y);
+        const from = current.id === startKey ? start : point(current.x, current.y);
+        // Only step onto safe stones, and only when the line between stones is clear.
+        if (closed.has(id) || !clear(next) || blockedSegment(from, next)) continue;
+        const cost = current.g + (ox && oy ? 1.4142 : 1);
+        if (cost >= (best.get(id) ?? Infinity)) continue;
+        best.set(id, cost); parents.set(id, current.id);
+        // Diagonal stones cost a little more because they are farther apart.
+        pushOpen({ x, y, id, g: cost, f: cost + Math.hypot(gx - x, gy - y) });
+      }
+    }
+    if (!reached) return destination;
+    // Follow the remembered stones backward, then take just the first step.
+    const route = [goalKey];
+    while (route[route.length - 1] !== startKey && parents.has(route[route.length - 1])) route.push(parents.get(route[route.length - 1]));
+    const waypoint = route.length > 1 ? point(...[route[route.length - 2] % width, Math.floor(route[route.length - 2] / width)]) : destination;
+    // Reuse this first step briefly so we do not redraw the map every frame.
+    this.paths.set(unit, { waypoint, destination: { ...destination }, signature, recheckAt: now + 500 });
+    return waypoint;
   }
 
   maintainRange(unit, target, delta, retreatOnly = false) {

@@ -23,7 +23,116 @@
         "north-east": 1,
         "east": 1,
         "south-east": 1
-      }
+      },
+      "file": "facing.png",
+      "rows": 1,
+      "rowDirections": [
+        "south",
+        "south-west",
+        "west",
+        "north-west",
+        "north",
+        "north-east",
+        "east",
+        "south-east"
+      ],
+      "transparent": true
+    },
+    "idle": {
+      "file": "idle.png",
+      "columns": 8,
+      "rows": 4,
+      "counts": {
+        "south-east": 8,
+        "south-west": 8,
+        "north-east": 8,
+        "north-west": 8
+      },
+      "rowDirections": [
+        "south-east",
+        "south-west",
+        "north-east",
+        "north-west"
+      ],
+      "transparent": true
+    },
+    "walk": {
+      "file": "walk.png",
+      "columns": 8,
+      "rows": 4,
+      "counts": {
+        "south-east": 8,
+        "south-west": 8,
+        "north-east": 8,
+        "north-west": 8
+      },
+      "rowDirections": [
+        "south-east",
+        "south-west",
+        "north-east",
+        "north-west"
+      ],
+      "transparent": true
+    },
+    "block": {
+      "file": "block.png",
+      "columns": 5,
+      "rows": 4,
+      "counts": {
+        "south-east": 5,
+        "south-west": 5,
+        "north-east": 5,
+        "north-west": 5
+      },
+      "rowDirections": [
+        "south-east",
+        "south-west",
+        "north-east",
+        "north-west"
+      ],
+      "transparent": true
+    },
+    "attack": {
+      "file": "attack.png",
+      "columns": 3,
+      "rows": 4,
+      "counts": {
+        "south-east": 3,
+        "south-west": 3,
+        "north-east": 3,
+        "north-west": 3
+      },
+      "rowDirections": [
+        "south-east",
+        "south-west",
+        "north-east",
+        "north-west"
+      ],
+      "transparent": true
+    },
+    "death": {
+      "file": "death.png",
+      "columns": 7,
+      "rows": 4,
+      "counts": {
+        "south-east": 7,
+        "south-west": 7,
+        "north-east": 7,
+        "north-west": 7
+      },
+      "rowDirections": [
+        "south-east",
+        "south-west",
+        "north-east",
+        "north-west"
+      ],
+      "transparent": true
     }
-  }
+  },
+  "animationDirections": [
+    "south-east",
+    "south-west",
+    "north-east",
+    "north-west"
+  ]
 }

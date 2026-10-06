@@ -19,21 +19,11 @@ export function showConfirmation(scene, { title, description, confirmLabel = 'CO
   const depth = 11000;
   const panelWidth = Math.min(1200, width - 120);
   let closed = false;
-  const wasPaused = scene.combatPaused;
-  const clockPaused = scene.time?.paused;
-  if (typeof wasPaused === 'boolean') {
-    scene.combatPaused = true;
-    scene.time.paused = true;
-  }
   const close = () => {
     if (closed) return;
     closed = true;
     scene.events.off('shutdown', close);
     if (scene.selectionDetailsClose === close) scene.selectionDetailsClose = null;
-    if (typeof wasPaused === 'boolean') {
-      scene.combatPaused = wasPaused;
-      scene.time.paused = clockPaused;
-    }
     objects.forEach((object) => object.destroy());
   };
   scene.selectionDetailsClose = close;

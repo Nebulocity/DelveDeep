@@ -294,31 +294,38 @@ export default class ClassAbilitySystem {
     const action=unit.pendingAction;
 
     // Recheck action identity and range after windup because targets may move or die.
-    scene.time.delayedCall(windup,()=>{
-      if(!scene.isActionCurrent(unit,action)) return;
-      if(unit.role === 'Healer' && (a.effect === 'damage' || a.effect === 'mark')
-        && this.allies().some(ally => ally.hp / ally.maxHp < 0.8)) {
-        unit.finishAction();
+    const schedule = scene.scheduleBattleEvent?.bind(scene) ?? ((delay, data, callback) => scene.time.delayedCall(delay, callback));
+    schedule(windup, scene.actionEvent?.('classAbility', unit, target, { ability: a }),
+      () => this.resolveCast(unit, action, target, a));
+  }
+
+  resolveCast(unit, action, target, a) {
+    const scene = this.scene;
+    if(!scene.isActionCurrent(unit,action)) return;
+    if(unit.role === 'Healer' && (a.effect === 'damage' || a.effect === 'mark')
+      && this.allies().some(ally => ally.hp / ally.maxHp < 0.8)) {
+      unit.finishAction();
+      return;
+    }
+    if (target.alive && (target === unit || this.distance(unit, target) <= (a.radius ?? a.range))) {
+      if (a.charge) {
+        if (!this.startCharge(unit, target, a, action)) unit.finishAction();
         return;
       }
-      if (target.alive && (target === unit || this.distance(unit, target) <= (a.radius ?? a.range))) {
-        if (a.charge) {
-          if (!this.startCharge(unit, target, a, action)) unit.finishAction();
-          return;
-        }
-        this.resolve(unit,target,a,scene.time.now);
-      }
-      unit.finishAction();
-    });
+      this.resolve(unit,target,a,scene.time.now);
+    }
+    unit.finishAction();
   }
-  startCharge(unit, target, ability, action) {
+  startCharge(unit, target, ability, action, saved = null) {
     const scene = this.scene;
     if (scene.isPositionLocked(unit) || unit.status.rootedUntil > scene.time.now) return false;
-    const point = this.adjacentPoint(unit, target);
+    const point = saved?.point ?? this.adjacentPoint(unit, target);
     if (!point) return false;
     const startX = unit.arenaX, startY = unit.arenaY;
     const distance = Math.hypot(point.x - startX, point.y - startY);
-    const duration = Math.max(180, Math.min(900, distance / 1100 * 1000));
+    const duration = saved ? Math.max(1, saved.duration - saved.elapsed)
+      : Math.max(180, Math.min(900, distance / 1100 * 1000));
+    unit.charge = { point, startX, startY, duration, elapsed: 0, targetId: target.id, ability };
     unit.busyUntil = scene.time.now + duration;
     unit.spriteVisual?.play('walk', target);
     const tween = scene.tweens.addCounter({
@@ -327,14 +334,17 @@ export default class ClassAbilitySystem {
         if (!scene.isActionCurrent(unit, action, target)) {
           tween.stop();
           this.chargeTweens.delete(tween);
+          unit.charge = null;
           return;
         }
         const progress = tween.getValue();
+        unit.charge.elapsed = progress * duration;
         const x = startX + (point.x - startX) * progress;
         const y = startY + (point.y - startY) * progress;
         if (scene.terrain?.isUnitBlocked(unit, x, y, 12)) {
           tween.stop();
           this.chargeTweens.delete(tween);
+          unit.charge = null;
           unit.finishAction();
           return;
         }
@@ -342,6 +352,7 @@ export default class ClassAbilitySystem {
       },
       onComplete: () => {
         this.chargeTweens.delete(tween);
+        unit.charge = null;
         if (!scene.isActionCurrent(unit, action, target)) return;
         unit.setArenaPosition(point.x, point.y);
         if (this.distance(unit, target) <= 1) {

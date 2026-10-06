@@ -271,7 +271,8 @@ export default class BattleUnit {
       return false;
     }
 
-    this.pendingAction = { name, startAt: time, duration };
+    this.actionSerial = (this.actionSerial ?? 0) + 1;
+    this.pendingAction = { id: this.actionSerial, name, startAt: time, duration };
     this.busyUntil = time + duration;
     this.actionLabel.setText(name === 'Attack' ? '' : name);
     this.castBack.setVisible(true);
@@ -331,11 +332,19 @@ export default class BattleUnit {
       return;
     }
 
-    const direction = new Phaser.Math.Vector2(targetX - this.arenaX, targetY - this.arenaY).normalize();
+    let destination = { x: targetX, y: targetY };
+    if (stopDistance > 0 && distance > stopDistance) {
+      destination = { x: this.arenaX + (targetX - this.arenaX) * (distance - stopDistance) / distance,
+        y: this.arenaY + (targetY - this.arenaY) * (distance - stopDistance) / distance };
+    }
+    // Ask for the next safe stepping stone before taking this frame's step.
+    destination = this.scene?.movement?.getNavigationWaypoint(this, destination) ?? destination;
+    const direction = new Phaser.Math.Vector2(destination.x - this.arenaX, destination.y - this.arenaY).normalize();
     const now = this.scene.time?.now ?? 0;
     const moveBonus = now < (this.status.moveSpeedBonusUntil ?? 0) ? 1 + this.status.moveSpeedBonus : 1;
     const moveSlow = now < (this.status.moveSpeedSlowUntil ?? 0) ? 1 - this.status.moveSpeedSlow : 1;
-    const travel = Math.min(this.moveSpeed * moveBonus * moveSlow * deltaSeconds, Math.max(0, distance - stopDistance));
+    const travel = Math.min(this.moveSpeed * moveBonus * moveSlow * deltaSeconds,
+      Phaser.Math.Distance.Between(this.arenaX, this.arenaY, destination.x, destination.y));
 
     this.moveBy(direction.x * travel, direction.y * travel, avoidUnits);
   }
@@ -358,8 +367,14 @@ export default class BattleUnit {
     const now = this.scene.time?.now ?? 0;
     const moveBonus = now < (this.status.moveSpeedBonusUntil ?? 0) ? 1 + this.status.moveSpeedBonus : 1;
     const moveSlow = now < (this.status.moveSpeedSlowUntil ?? 0) ? 1 - this.status.moveSpeedSlow : 1;
-    const travel = Math.min(this.moveSpeed * moveBonus * moveSlow * deltaSeconds, desiredDistance - distance);
-    this.moveBy(direction.x * travel, direction.y * travel);
+    const destination = this.scene?.movement?.getNavigationWaypoint(this, {
+      x: this.arenaX + direction.x * (desiredDistance - distance),
+      y: this.arenaY + direction.y * (desiredDistance - distance)
+    }) ?? { x: this.arenaX + direction.x * (desiredDistance - distance), y: this.arenaY + direction.y * (desiredDistance - distance) };
+    const route = new Phaser.Math.Vector2(destination.x - this.arenaX, destination.y - this.arenaY);
+    const travel = Math.min(this.moveSpeed * moveBonus * moveSlow * deltaSeconds, route.length());
+    if (route.lengthSq() > 0) route.normalize();
+    this.moveBy(route.x * travel, route.y * travel);
   }
 
   // Combat movement shares personal-space steering. Wave returns ignore living

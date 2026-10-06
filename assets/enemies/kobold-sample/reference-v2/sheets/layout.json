@@ -1,0 +1,66 @@
+{
+  "frameWidth": 256,
+  "frameHeight": 256,
+  "directions": [
+    "south-east",
+    "south-west",
+    "north-east",
+    "north-west"
+  ],
+  "states": {
+    "facing": {
+      "columns": 1,
+      "counts": {
+        "south-east": 1,
+        "south-west": 1,
+        "north-east": 1,
+        "north-west": 1
+      }
+    },
+    "idle": {
+      "columns": 4,
+      "counts": {
+        "south-east": 4,
+        "south-west": 4,
+        "north-east": 4,
+        "north-west": 4
+      }
+    },
+    "walk": {
+      "columns": 8,
+      "counts": {
+        "south-east": 8,
+        "south-west": 8,
+        "north-east": 8,
+        "north-west": 8
+      }
+    },
+    "block": {
+      "columns": 5,
+      "counts": {
+        "south-east": 5,
+        "south-west": 5,
+        "north-east": 5,
+        "north-west": 5
+      }
+    },
+    "attack": {
+      "columns": 3,
+      "counts": {
+        "south-east": 3,
+        "south-west": 3,
+        "north-east": 3,
+        "north-west": 3
+      }
+    },
+    "death": {
+      "columns": 7,
+      "counts": {
+        "south-east": 7,
+        "south-west": 7,
+        "north-east": 7,
+        "north-west": 7
+      }
+    }
+  }
+}

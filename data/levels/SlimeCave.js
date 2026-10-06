@@ -10,22 +10,18 @@ export default {
   possibleDrops: ['Gold / Adventurer XP', 'Cured Leather', 'Wild Herbs', 'Arcane Essence'],
   prerequisites: [],
   map: { x: 0.307, y: 0.475, radius: 0.055 },
-  // The walkable boundary follows open ground between scenery and foreground rocks.
+
+  // Foreground rocks occlude sprites without blocking the lower arena.
   terrain: [],
   visuals: {
     environment: {
       width: 1672, height: 941, offsetY: -105, pixelArt: true,
 
-      // Camera-space outline of open ground, excluding scenery and foreground obstacles.
+      // Keep the rear floor outline; the lower floor continues beneath foreground scenery.
       walkable: [
         [460, 562], [570, 552], [714, 559], [839, 551],
         [1017, 559], [1232, 565], [1382, 602], [1388, 664],
-        [1340, 714], [1304, 771], [1215, 785], [1150, 833],
-        [1044, 840], [960, 766], [913, 753], [880, 786],
-        [831, 823], [797, 802], [750, 860], [704, 875],
-        [651, 811], [625, 760], [580, 753], [520, 782],
-        [480, 768], [433, 780], [398, 761], [368, 780],
-        [341, 763], [301, 719], [267, 677], [269, 606],
+        [1388, 941], [267, 941], [267, 677], [269, 606],
         [339, 578]
       ],
       layers: [

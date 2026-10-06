@@ -18,6 +18,61 @@
       },
       "frameMs": 1000,
       "loop": false
+    },
+    "idle": {
+      "columns": 4,
+      "counts": {
+        "south-east": 4,
+        "south-west": 4,
+        "north-east": 4,
+        "north-west": 4
+      },
+      "frameMs": 100,
+      "loop": true
+    },
+    "walk": {
+      "columns": 8,
+      "counts": {
+        "south-east": 8,
+        "south-west": 8,
+        "north-east": 8,
+        "north-west": 8
+      },
+      "frameMs": 100,
+      "loop": true
+    },
+    "block": {
+      "columns": 5,
+      "counts": {
+        "south-east": 5,
+        "south-west": 5,
+        "north-east": 5,
+        "north-west": 5
+      },
+      "frameMs": 100,
+      "loop": false
+    },
+    "attack": {
+      "columns": 6,
+      "counts": {
+        "south-east": 6,
+        "south-west": 6,
+        "north-east": 6,
+        "north-west": 6
+      },
+      "frameMs": 100,
+      "loop": false
+    },
+    "death": {
+      "columns": 7,
+      "counts": {
+        "south-east": 7,
+        "south-west": 7,
+        "north-east": 7,
+        "north-west": 7
+      },
+      "frameMs": 100,
+      "loop": false
     }
   }
 }

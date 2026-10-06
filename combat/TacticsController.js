@@ -47,17 +47,16 @@ export default class TacticsController {
         side,
         reactionDelay: Phaser.Math.Between(40, 180),
         slot: index,
-        spawnColumn: slots[assigned.get(unit.id)] ?? slots[index]
+        spawnSlot: slots[assigned.get(unit.id)] ?? slots[index]
       });
     });
   }
 
-  // This function places the party in distinct squares of the bottom row.
+  // Spread initial positions across the lower part of each walkable arena.
   getSpawnPosition(unit, index) {
-
-    const column = this.preferences.get(unit.id)?.spawnColumn ?? [0, 2, 4, 6, 8][index] ?? 4;
-    const cell = this.battlefield.getCellBounds(column, 0);
-    return { x: (cell.left + cell.right) / 2, y: cell.top - 10 };
+    const slot = this.preferences.get(unit.id)?.spawnSlot ?? [0, 2, 4, 6, 8][index] ?? 4;
+    return { x: this.battlefield.logicalWidth * (0.18 + slot * 0.08),
+      y: this.battlefield.logicalHeight * 0.22 };
   }
 
   // This function places the tank near the enemy while favoring the arena

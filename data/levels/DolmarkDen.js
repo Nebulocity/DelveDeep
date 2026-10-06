@@ -12,6 +12,16 @@ export default {
   visuals: {
     environment: {
       width: 1672, height: 941, offsetY: -105, pixelArt: true,
+
+      // Camera-space outline of open ground, excluding scenery and foreground obstacles.
+      walkable: [
+        [260, 557], [450, 529], [689, 506], [840, 511],
+        [1080, 512], [1260, 543], [1394, 567], [1535, 614],
+        [1545, 673], [1445, 726], [1325, 746], [1234, 801],
+        [1157, 850], [1086, 874], [816, 896], [657, 856],
+        [512, 813], [405, 753], [288, 737], [211, 691],
+        [143, 632], [160, 595]
+      ],
       layers: [
         { key: 'dolmark-den-pixel-art',
           url: new URL('../../assets/environments/dolmark-den-pixel/den-v2.png', import.meta.url).href,

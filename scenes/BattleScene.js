@@ -9,7 +9,7 @@ import { preloadCharacterSprites } from '../data/characterSprites.js';
 import { preloadEnemySprites } from '../data/enemySprites.js';
 import GameState from '../game/GameState.js';
 import { getEquippedAdventurer, equippedItem, consumePotionCharge } from '../game/Equipment.js';
-import { getPotionDefinition } from '../data/items.js';
+import { getPotionDefinition, getMaterialDefinition } from '../data/items.js';
 import { battleAbilities } from '../game/AdventurerAbilities.js';
 import enemies from '../data/enemies.js';
 import { createEncounterWaves } from '../data/encounters.js';
@@ -27,7 +27,7 @@ import { completeExpedition, failExpedition, fleeExpedition, formatDuration } fr
 import { saveProfile } from '../game/GameStorage.js';
 import { awardOrdinaryWave, getDelveCheckpoint, isOrdinaryDelve, WAVE_REWARDS } from '../game/DelveCheckpoints.js';
 import { getBattleLayout } from '../ui/Layout.js';
-import { preloadEnvironment, createEnvironment, getDelveGridFloor } from '../combat/LayeredEnvironment.js';
+import { preloadEnvironment, createEnvironment, getDelveArena } from '../combat/LayeredEnvironment.js';
 import { trackLoading, hideLoadingScreenAfterRender } from '../ui/LoadingScreen.js';
 
 export default class BattleScene extends Phaser.Scene {
@@ -69,6 +69,7 @@ export default class BattleScene extends Phaser.Scene {
     this.battleOver = false;
     this.waveTransitioning = false;
     this.waveRetreating = false;
+    this.farmStopRequested = false;
     this.waveReturnPositions = new Map();
     this.waveReturnTargets = new Map();
     this.activeTelegraphs = [];
@@ -85,7 +86,6 @@ export default class BattleScene extends Phaser.Scene {
     this.heldUnitIds = new Set();
     this.commandMode = null;
     this.focusTargetId = null;
-    this.gridCells = [];
     this.leaderAbilityCooldowns = new Map();
     this.assaultUntil = 0;
     this.braceUntil = 0;
@@ -98,7 +98,7 @@ export default class BattleScene extends Phaser.Scene {
     this.stoneTheme = delveStoneTheme(GameState.currentDelve);
 
     // Define the logical combat area and the screen-space perspective used to
-    // display its grid and units.
+    // display its arena and units.
     this.battlefield = new BattlefieldGeometry(this, {
       bottomLeftX: 310,
       bottomRightX: width - 310,
@@ -108,11 +108,10 @@ export default class BattleScene extends Phaser.Scene {
       topY: this.battleLayout.arenaTop,
       logicalWidth: 1750,
       logicalHeight: 900,
-      columns: 10,
-      rows: 6,
       nearScale: 1.05,
       farScale: 0.74,
-      ...getDelveGridFloor(width, height)
+      ...(GameState.currentDelve?.visuals?.environment
+        ? getDelveArena(GameState.currentDelve.visuals.environment, width, height) : {})
     });
 
     // Create the formation controller and copy the appropriate encounter wave
@@ -133,12 +132,13 @@ export default class BattleScene extends Phaser.Scene {
     this.createArena(width, height);
     this.createParty();
     this.combatLog = new CombatLog(GameState.currentDelve?.name ?? 'The Delve', this.partyUnits);
-    this.createGridInteraction();
+    this.createArenaInteraction();
     this.createTacticsMenus(width, height);
     this.createLeaderLoadoutBar(width);
     this.createHud(width, height);
     this.createTerrainEditorButton(width);
     this.bossWaveIndex = Math.max(0, this.waves.findIndex((wave) => wave.boss));
+    this.createFarmControls();
     const checkpoint = getDelveCheckpoint(GameState.currentDelve, this.bossWaveIndex);
     const entry = GameState.run.entry;
     if (entry === 'camp' && checkpoint?.campUnlocked) this.showDelveCamp();
@@ -195,7 +195,7 @@ export default class BattleScene extends Phaser.Scene {
     const environment = GameState.currentDelve?.visuals?.environment;
     if (environment) {
       this.battlefieldVisualLayers = createEnvironment(this, environment);
-      this.battlefield.drawPerspectiveFloor(GameState.development.showGridLines !== false);
+      this.battlefield.drawArenaBorder(GameState.development.showArenaBorder !== false);
       return;
     }
     const background = GameState.currentDelve?.visuals?.battlefieldBackground;
@@ -213,7 +213,7 @@ export default class BattleScene extends Phaser.Scene {
       staticBackground,
       scenery: this.add.container(0, 0).setDepth(90)
     };
-    this.battlefield.drawPerspectiveFloor(GameState.development.showGridLines !== false);
+    this.battlefield.drawArenaBorder(GameState.development.showArenaBorder !== false);
   }
 
 
@@ -270,13 +270,24 @@ export default class BattleScene extends Phaser.Scene {
     const sectionWidth = (width - 44) / 5;
     this.partyHud = [];
     addStonePanel(this, width / 2, hudTop + cardHeight / 2, width, cardHeight + 24, 4500);
-    this.partyUnits.forEach((unit, index) => {
+
+    // Keep portrait slots aligned with the starting formation throughout combat.
+    const lineup = [...this.partyUnits].sort((a, b) => {
+      const left = this.waveReturnPositions.get(a.id);
+      const right = this.waveReturnPositions.get(b.id);
+      return this.battlefield.arenaToScreen(left.x, left.y).x - this.battlefield.arenaToScreen(right.x, right.y).x;
+    });
+    lineup.forEach((unit, index) => {
       const left = 22 + index * sectionWidth;
       const center = left + sectionWidth / 2;
       const panel = addStonePanel(this, center, hudTop + cardHeight / 2, sectionWidth - 8, cardHeight, 4501);
       const statusHitZone = this.add.rectangle(center, hudTop + cardHeight / 2, sectionWidth - 14, cardHeight - 10, 0, 0.001).setDepth(4504);
       bindSelectionDetails(this, statusHitZone, () => characterDetails(unit), () => this.toggleUnitSelection(unit));
       addStonePanel(this, left + 78, hudTop + 89, 132, 150, 4502);
+      const portraitHighlight = this.add.rectangle(left + 78, hudTop + 89, 132, 150, 0, 0)
+        .setStrokeStyle(5, STONE.gold).setDepth(4503.5).setVisible(false);
+      const cardHighlight = this.add.rectangle(center, hudTop + cardHeight / 2, sectionWidth - 14, cardHeight - 10, 0, 0)
+        .setStrokeStyle(4, STONE.gold).setDepth(4503.5).setVisible(false);
       const frame = unit.spriteVisual?.definition?.clips.idle?.south?.frames[0];
       if (frame) {
         this.add.image(left + 78, hudTop + 83, frame.key, frame.frame).setDisplaySize(143, 143).setDepth(4503);
@@ -306,27 +317,21 @@ export default class BattleScene extends Phaser.Scene {
       const potionLabel = stoneText(this, left + 78, hudTop + 187, 'POTION', 25, 4506, { align: 'center' });
       bindSelectionDetails(this, potionButton, () => this.potionDetails(unit), () => this.usePotion(unit));
       bindButtonPress(this, potionButton, [potionLabel]);
-      this.partyHud.push({ panel, statusHitZone, potionButton, potionLabel, unit, nameText,
+      this.partyHud.push({ panel, portraitHighlight, cardHighlight, statusHitZone, potionButton, potionLabel, unit, nameText,
         hpText, manaText, threatText, hpFill, hpGlow, manaBack, manaFill, hudBarWidth });
     });
     this.updateHud();
   }
 
-  // This function makes the perspective tiles usable as touch destinations.
-  createGridInteraction() {
-
-    for (let row = 0; row < this.battlefield.rows; row += 1) {
-      for (let column = 0; column < this.battlefield.columns; column += 1) {
-        const points = this.battlefield.getCellPolygon(column, row);
-        const polygon = new Phaser.Geom.Polygon(points);
-        const hit = this.add.polygon(0, 0, points, 0x60a5fa, 0.001)
-          .setOrigin(0, 0)
-          .setDepth(30)
-          .setInteractive(polygon, Phaser.Geom.Polygon.Contains);
-        hit.on('pointerdown', () => this.handleGridCellTap(column, row));
-        this.gridCells.push({ column, row, hit });
-      }
-    }
+  // Battlefield taps retain their exact position rather than snapping to cells.
+  createArenaInteraction() {
+    const hit = this.add.zone(this.scale.width / 2, this.scale.height / 2,
+      this.scale.width, this.scale.height).setDepth(30).setInteractive();
+    hit.on('pointerdown', pointer => {
+      if (this.battleOver || this.combatPaused || this.waveTransitioning) return;
+      const point = this.battlefield.screenToArena(pointer.worldX, pointer.worldY);
+      if (point && !this.terrain.isBlocked(point.x, point.y)) this.handleArenaTap(point);
+    });
   }
 
   // This function places role selection and tactical orders beside the
@@ -381,6 +386,32 @@ export default class BattleScene extends Phaser.Scene {
     this.refreshTacticsMenus();
   }
 
+  // Cancellation queues a return to camp without ending or resetting the current fight.
+  createFarmControls() {
+    this.farmCancelButton = addStoneButton(this, 155, 750, 280, 96, 4600, 0x50432e);
+    this.farmCancelText = stoneText(this, 155, 750, '', 28, 4602, { align: 'center' });
+    bindButtonPress(this, this.farmCancelButton, [this.farmCancelText], () => this.requestFarmStop());
+    this.refreshFarmControls();
+  }
+
+  requestFarmStop() {
+    if (!isOrdinaryDelve() || GameState.run.entry !== 'farm' || this.battleOver || this.farmStopRequested) return false;
+    this.farmStopRequested = true;
+    this.refreshFarmControls();
+    HapticsService.tap();
+    return true;
+  }
+
+  refreshFarmControls() {
+    const farming = isOrdinaryDelve() && GameState.run.entry === 'farm' && !this.battleOver;
+    this.farmCancelButton?.setVisible(farming);
+    this.farmCancelText?.setVisible(farming).setText(this.farmStopRequested
+      ? 'STOPPING\nAFTER COMBAT' : 'CANCEL FARM\nAfter this combat');
+    if (this.farmCancelButton?.input) this.farmCancelButton.input.enabled = farming && !this.farmStopRequested;
+    this.terrainEditorButton?.setVisible(!farming);
+    this.terrainEditorButtonLabel?.setVisible(!farming);
+  }
+
   // This function exposes the equipped leadership abilities above the arena.
   createLeaderLoadoutBar(width) {
 
@@ -405,8 +436,7 @@ export default class BattleScene extends Phaser.Scene {
       const status = this.add.text(x, layout.buttonY + 20, '', {
         fontFamily: 'Arial', fontSize: '25px', color: '#d6d3d1'
       }).setOrigin(0.5).setDepth(4701);
-      box.on('pointerdown', () => this.useLeaderAbility(id));
-      bindSelectionDetails(this, box, { title: ability.name, description: ability.description });
+      bindSelectionDetails(this, box, { title: ability.name, description: ability.description }, () => this.useLeaderAbility(id));
       bindButtonPress(this, box, [name, status]);
       this.leaderButtons.push({ ability, box, status });
     });
@@ -433,7 +463,7 @@ export default class BattleScene extends Phaser.Scene {
 
     if (!unit?.alive) return;
 
-    if (this.assignHealerPriority(unit)) return;
+    if (this.assignAllyTarget(unit)) return;
 
     if (this.selectedUnitIds.has(unit.id)) {
       this.selectedUnitIds.delete(unit.id);
@@ -445,42 +475,48 @@ export default class BattleScene extends Phaser.Scene {
       if (remaining.length === 0) {
         this.clearBattleMessage();
       } else {
-        this.showBattleMessage(`${remaining.length} selected - tap a tile to move or an enemy to attack`, '#93c5fd', true);
+        this.showBattleMessage(`${remaining.length} selected - tap ground to move, an ally to assist, or an enemy to attack`, '#93c5fd', true);
       }
     } else {
       this.selectedUnitIds = new Set([unit.id]);
       this.commandMode = null;
       this.refreshTacticsMenus();
       this.setTargetingInputState(false);
-      this.showBattleMessage(`${unit.name} - tap a tile to move or an enemy to attack`, '#93c5fd', true);
+      this.showBattleMessage(`${unit.name} - tap ground to move, an ally to assist, or an enemy to attack`, '#93c5fd', true);
     }
 
     HapticsService.tap();
   }
 
-  // A healer-only selection turns a tap on an ally into a healing priority
-  // instead of changing selection. The direct order replaces Hold/Attack so
-  // the healer can safely move into healing range when necessary.
-  assignHealerPriority(target) {
+  // Ally taps command the existing selection, including mixed role groups.
+  assignAllyTarget(target) {
     const selected = this.getSelectedUnits();
-    const healers = selected.filter((unit) => unit.role === 'Healer');
-    if (healers.length === 0 || healers.length !== selected.length || healers.includes(target)) return false;
-    if (target.hp >= target.maxHp) {
-      this.showBattleMessage(`${target.name} is already at full health`, '#a8a29e');
-      HapticsService.tap();
-      return true;
-    }
+    if (!target?.alive || selected.length === 0 || (selected.length === 1 && selected[0] === target)) return false;
+    const movers = selected.filter((unit) => unit !== target);
+    const positions = this.movement.getFormationPositions(movers, { x: target.arenaX, y: target.arenaY });
     this.healerPriorityTargets ??= new Map();
-    healers.forEach((healer) => {
-      this.healerPriorityTargets.set(healer.id, target.id);
-      this.manualTargets.delete(healer.id);
-      this.attackTargets.delete(healer.id);
-      this.heldUnitIds.delete(healer.id);
+    selected.forEach((unit) => {
+      const raw = unit === target ? { x: target.arenaX, y: target.arenaY } : positions[movers.indexOf(unit)];
+      const point = this.terrain.nearestSafeUnitPoint(unit, raw.x, raw.y, combatSpacing.terrainFootRadius);
+      unit.spacingMode = 'normal';
+      unit.finishAction();
+      this.attackTargets.delete(unit.id);
+      this.healerPriorityTargets.delete(unit.id);
+      if (unit.role === 'Healer') {
+        this.heldUnitIds.delete(unit.id);
+        if (target.hp < target.maxHp) {
+          this.healerPriorityTargets.set(unit.id, target.id);
+          this.manualTargets.delete(unit.id);
+        } else this.manualTargets.set(unit.id, point);
+      } else {
+        this.manualTargets.set(unit.id, point);
+        this.heldUnitIds.add(unit.id);
+      }
     });
     this.commandMode = null;
     this.setTargetingInputState(false);
     this.refreshTacticsMenus();
-    this.showBattleMessage(`${healers.length === 1 ? healers[0].name : 'Healers'} prioritizing ${target.name}`, '#86efac', true);
+    this.showBattleMessage(`Move to ${target.name}${movers.some(unit => unit.role === 'Healer') ? ' / heal if injured' : ''}`, '#86efac', true);
     HapticsService.confirm();
     return true;
   }
@@ -490,7 +526,8 @@ export default class BattleScene extends Phaser.Scene {
   getHealerPriorityTarget(healer) {
     const targetId = this.healerPriorityTargets?.get(healer.id);
     const target = this.partyUnits.find((unit) => unit.id === targetId && unit.alive);
-    if (!target || target.hp >= target.maxHp) {
+    if (!target || target.hp >= target.maxHp || this.heldUnitIds.has(healer.id)
+      || this.attackTargets.has(healer.id) || this.manualTargets.has(healer.id)) {
       this.healerPriorityTargets?.delete(healer.id);
       return null;
     }
@@ -500,7 +537,8 @@ export default class BattleScene extends Phaser.Scene {
   // This function selects a role or the whole living party for a shared command.
   selectRole(role) {
 
-    const matching = this.partyUnits.filter((unit) => unit.alive && (role === 'All' || unit.role === role));
+    const matching = this.partyUnits.filter((unit) => unit.alive
+      && (role === 'All' || unit.role === role || unit.role === `${role} DPS`));
     const groupName = role === 'All' ? 'All adventurers' : role;
     const alreadySelected = matching.length > 0
       && matching.length === this.getSelectedUnits().length
@@ -522,7 +560,7 @@ export default class BattleScene extends Phaser.Scene {
     this.setTargetingInputState(false);
 
     this.showBattleMessage(
-      matching.length > 0 ? `${groupName} - tap a tile to move or an enemy to attack` : role === 'All' ? 'No living adventurers' : `No living ${role}`,
+      matching.length > 0 ? `${groupName} - tap ground to move, an ally to assist, or an enemy to attack` : role === 'All' ? 'No living adventurers' : `No living ${role}`,
       matching.length > 0 ? '#93c5fd' : '#fca5a5',
       matching.length > 0
     );
@@ -647,7 +685,7 @@ export default class BattleScene extends Phaser.Scene {
       const living = this.partyUnits?.filter((unit) => unit.alive) ?? [];
       const selected = role === 'All'
         ? living.length > 0 && living.every((unit) => this.selectedUnitIds.has(unit.id))
-        : living.some((unit) => unit.role === role && this.selectedUnitIds.has(unit.id));
+        : living.some((unit) => (unit.role === role || unit.role === `${role} DPS`) && this.selectedUnitIds.has(unit.id));
       box.setFillStyle(selected?0x243b53:0x1f2937).setStrokeStyle(3,selected?STONE.gold:STONE.edge);
     });
     this.commandButtons?.forEach(({box,label})=>{
@@ -655,22 +693,33 @@ export default class BattleScene extends Phaser.Scene {
       const active=this.commandMode===label;
       box.setFillStyle(active?0x3b321d:0x1f2937).setStrokeStyle(3,active?STONE.gold:STONE.edge);
     });
+    this.refreshPartySelection();
+  }
+
+  // Refresh battlefield and card selection together, including fallen allies.
+  refreshPartySelection() {
     this.partyUnits?.forEach((u) => u.body.setStrokeStyle(
       this.selectedUnitIds.has(u.id) ? 7 : 4,
       this.selectedUnitIds.has(u.id) ? 0x60a5fa : 0x1c1917,
       this.selectedUnitIds.has(u.id) || !u.spriteVisual ? 1 : 0
     ));
+    this.partyUnits?.forEach((unit) => unit.hitZone.setStrokeStyle(5, STONE.gold,
+      unit.alive && this.selectedUnitIds.has(unit.id) ? 1 : 0));
+    this.partyHud?.forEach(({ unit, portraitHighlight, cardHighlight }) => {
+      const selected = unit.alive && this.selectedUnitIds.has(unit.id);
+      portraitHighlight.setVisible(selected);
+      cardHighlight.setVisible(selected);
+    });
   }
 
-  // This function interprets a battlefield tile tap using the current
+  // This function interprets a battlefield tap using the current
   // command. It locates targets for Attack, Focus Fire, and Interrupt, or
   // assigns movement destinations and keeps the selected units under Hold.
-  handleGridCellTap(column, row) {
+  handleArenaTap(center) {
 
-    const center = this.battlefield.getCellCenter(column, row);
-    this.highlightGridCell(column, row);
+    this.highlightArenaPoint(center);
 
-    // A tile tap with selected units defaults to Move. With no selection,
+    // A floor tap with selected units defaults to Move. With no selection,
     // show guidance instead of moving the whole party.
     if (!this.commandMode) {
       if (this.getSelectedUnits().length > 0) {
@@ -682,14 +731,11 @@ export default class BattleScene extends Phaser.Scene {
       }
     }
 
-    // Find a living enemy in the tapped tile for commands that need an enemy
+    // Find a living enemy near the tapped point for commands that need an enemy
     // target.
     if (['ATTACK', 'FOCUS', 'INTERRUPT'].includes(this.commandMode)) {
-      const enemy = this.getLivingEnemies().find((candidate) => {
-
-        const cell = this.battlefield.arenaPointToCell(candidate.arenaX, candidate.arenaY);
-        return cell.column === column && cell.row === row;
-      });
+      const enemy = this.getLivingEnemies().find(candidate =>
+        Math.hypot(candidate.arenaX - center.x, candidate.arenaY - center.y) <= 100);
 
       if (!enemy) {
         this.showBattleMessage('No enemy there - tap the enemy you want', '#fca5a5', true);
@@ -708,7 +754,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    // Place selected units around the tile center using a wide spread or a
+    // Place selected units around the tapped point using a wide spread or a
     // tight stack, then hold those positions.
     if (this.commandMode === 'SPREAD' || this.commandMode === 'STACK') {
       const formationMode = this.commandMode;
@@ -738,7 +784,7 @@ export default class BattleScene extends Phaser.Scene {
       const rawPoint = positions[index];
       const point = this.terrain.nearestSafeUnitPoint(unit, rawPoint.x, rawPoint.y, combatSpacing.terrainFootRadius);
       unit.spacingMode = 'normal';
-      if (unit.gridAbilities) {
+      if (unit.classAbilities) {
         this.classAbilitySystem ??= new ClassAbilitySystem(this);
         this.classAbilitySystem.move(unit, point, this.time.now);
       }
@@ -757,15 +803,14 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   // This function sends selected adventurers to attack a tapped enemy by
-  // default. Explicit movement still uses the enemy's tile as a destination;
+  // default. Explicit movement still uses the enemy's position as a destination;
   // Focus Fire and Interrupt retain their separate targeting behavior.
   handleEnemyTap(enemy) {
 
     if (!enemy?.alive) return;
 
     if (['MOVE', 'SPREAD', 'STACK'].includes(this.commandMode)) {
-      const cell = this.battlefield.arenaPointToCell(enemy.arenaX, enemy.arenaY);
-      this.handleGridCellTap(cell.column, cell.row);
+      this.handleArenaTap({ x: enemy.arenaX, y: enemy.arenaY });
       return;
     }
 
@@ -803,24 +848,14 @@ export default class BattleScene extends Phaser.Scene {
     this.refreshTacticsMenus();
   }
 
-  // This function briefly marks the tile the player tapped.
-  highlightGridCell(column, row) {
-
-    this.gridHighlight?.destroy();
-
-    const points = this.battlefield.getCellPolygon(column, row);
-    this.gridHighlight = this.add.polygon(0, 0, points, 0x60a5fa, 0.16)
-      .setOrigin(0, 0)
-      .setStrokeStyle(4, 0x60a5fa, 0.95)
-      .setDepth(35);
-
-    this.time.delayedCall(650, () => {
-
-      if (this.gridHighlight?.active) {
-        this.gridHighlight.destroy();
-        this.gridHighlight = null;
-      }
-    });
+  // A brief ring marks the exact movement destination.
+  highlightArenaPoint(point) {
+    this.destinationHighlight?.destroy();
+    const screen = this.battlefield.arenaToScreen(point.x, point.y);
+    const marker = this.add.ellipse(screen.x, screen.y, 40, 18, 0x60a5fa, 0.16)
+      .setStrokeStyle(3, 0x60a5fa, 0.95).setDepth(35);
+    this.destinationHighlight = marker;
+    this.time.delayedCall(650, () => marker.destroy());
   }
 
   // This function advances toward player destinations while retaining held
@@ -832,7 +867,7 @@ export default class BattleScene extends Phaser.Scene {
       return false;
     }
 
-    if (unit.gridAbilities) {
+    if (unit.classAbilities) {
       this.classAbilitySystem ??= new ClassAbilitySystem(this);
       this.classAbilitySystem.move(unit, target, this.time.now);
     }
@@ -982,6 +1017,7 @@ export default class BattleScene extends Phaser.Scene {
 
     this.currentWaveIndex = index;
     GameState.currentRoom = index;
+    this.refreshFarmControls();
     const wave = this.waves[index];
     this.waveTransitioning = true;
     this.updateEncounterStatus();
@@ -1103,7 +1139,7 @@ export default class BattleScene extends Phaser.Scene {
     this.time.delayedCall(300, () => {
       if (this.battleOver || this.pendingWaveSpawns.length === 0) return;
       const wave = { enemies: this.pendingWaveSpawns.map(({ spawn }) => spawn) };
-      const reserved = this.enemies.map(enemy => this.battlefield.arenaPointToCell(enemy.arenaX, enemy.arenaY));
+      const reserved = this.enemies.filter(enemy => enemy.alive).map(enemy => ({ x: enemy.arenaX, y: enemy.arenaY }));
       const landings = chooseWaveLandings(wave, this.battlefield, this.terrain,
         this.partyUnits, Math.random, reserved);
       this.pendingWaveSpawns = this.pendingWaveSpawns.filter(({ spawn, spawnIndex }, index) => {
@@ -1931,6 +1967,15 @@ export default class BattleScene extends Phaser.Scene {
 
     this.tweens.killTweensOf(this.battleMessageText);
     this.battleMessageText.setText(text).setColor(color).setAlpha(1);
+    if (this.battleMessagePlaque) {
+      const panelWidth = Math.min(this.scale.width - 80, Math.max(500, this.battleMessageText.width + 70));
+      const panelHeight = Math.max(74, this.battleMessageText.height + 30);
+      this.battleMessagePlaque.destroy();
+      this.battleMessagePlaque = addStonePanel(this, this.scale.width / 2, this.battleLayout.messageY, panelWidth, panelHeight, 4999);
+      const messageY = Math.max(this.battleLayout.messageY, 100 + panelHeight / 2);
+      this.battleMessageText.setY(messageY);
+      this.battleMessagePlaque.setY(messageY);
+    }
     this.battleMessagePlaque?.setVisible(Boolean(text));
 
     if (!persistent) {
@@ -2000,9 +2045,14 @@ export default class BattleScene extends Phaser.Scene {
     this.heldUnitIds.clear();
     this.attackTargets.clear();
     this.activeTelegraphs.forEach((telegraph) => this.removeTelegraph(telegraph));
-    this.showBattleMessage(waveReward
-      ? `+${waveReward.gold} GOLD  +${waveReward.materialCount} MATERIAL  +${waveReward.xp} XP`
-      : 'WAVE CLEARED', '#bef264');
+    this.clearBattleMessage();
+    this.waveRewardText?.destroy();
+    this.waveRewardText = this.add.text(this.scale.width / 2, this.scale.height * 0.39,
+      waveReward ? this.formatWaveReward(waveReward) : 'WAVE CLEARED', {
+        fontFamily: 'Georgia', fontSize: '40px', fontStyle: 'bold', color: '#bef264',
+        stroke: '#080e19', strokeThickness: 6, align: 'center', wordWrap: { width: this.scale.width - 760 }
+      }).setOrigin(0.5).setDepth(5000).setName('wave-reward-text');
+    this.tweens.add({ targets: this.waveRewardText, y: this.waveRewardText.y - 36, duration: 900, ease: 'Cubic.Out' });
     this.combatLog?.add('wave', `Wave ${this.currentWaveIndex + 1} cleared`, { wave: this.currentWaveIndex + 1 });
     this.combatLog?.persist();
 
@@ -2017,6 +2067,15 @@ export default class BattleScene extends Phaser.Scene {
       });
     });
 
+  }
+
+  // Keep each actual drop readable as reward pools grow.
+  formatWaveReward(reward) {
+    const materials = reward.materials ?? { [reward.materialId]: reward.materialCount };
+    return [`+${reward.gold} GOLD  +${reward.xp} XP`,
+      ...Object.entries(materials).filter(([, count]) => count > 0)
+        .map(([id, count]) => `+${count} ${getMaterialDefinition(id)?.name ?? id}`),
+      ...(reward.items ?? []).map(item => `+${item.count ?? 1} ${item.name ?? item.itemId ?? item.id}`)].join('\n');
   }
 
   // Return living adventurers to their original positions before the next wave.
@@ -2053,10 +2112,14 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     if (!allHome) this.waveReturnTimedOut = true;
-    this.waveReturnReadyAt ??= time + 2000;
+    this.waveReturnReadyAt ??= time + 3000;
     if (time < this.waveReturnReadyAt) return;
+    this.waveRewardText?.destroy();
+    this.waveRewardText = null;
     this.waveRetreating = false;
-    if (isOrdinaryDelve() && (GameState.run.entry === 'farm'
+    if (isOrdinaryDelve() && GameState.run.entry === 'farm' && !this.farmStopRequested && living.length > 0) {
+      this.startWave(Math.max(0, this.bossWaveIndex - 1));
+    } else if (isOrdinaryDelve() && (GameState.run.entry === 'farm'
       || this.currentWaveIndex + 1 === this.bossWaveIndex)) {
       this.showDelveCamp();
     } else if (this.currentWaveIndex + 1 >= this.waves.length) this.finishVictory();
@@ -2068,6 +2131,8 @@ export default class BattleScene extends Phaser.Scene {
     this.waveTransitioning = true;
     this.waveRetreating = false;
     GameState.run.entry = 'camp';
+    this.farmStopRequested = false;
+    this.refreshFarmControls();
     GameState.currentRoom = this.bossWaveIndex;
     this.clearBattleMessage();
     const delve = GameState.currentDelve;
@@ -2083,6 +2148,9 @@ export default class BattleScene extends Phaser.Scene {
     blocker.on('pointerdown', (pointer, x, y, event) => event?.stopPropagation?.());
     overlay.push(blocker);
     overlay.push(addStonePanel(this, width / 2, 506, 1700, 568, 12000));
+    const headingWindow = addStonePanel(this, width / 2, 312, 1558, 156, 12001);
+    headingWindow.name = 'delve-camp-heading-window';
+    overlay.push(headingWindow);
     overlay.push(addStoneOrnaments(this, width / 2, 274, 1630, this.stoneTheme, 12002));
     overlay.push(stoneText(this, width / 2, 282, 'DELVE CAMP', 62, 12002));
     overlay.push(stoneText(this, width / 2, 346, 'Rewards and checkpoint saved.', 32, 12002,
@@ -2109,7 +2177,7 @@ export default class BattleScene extends Phaser.Scene {
       this.scene.start('TownScene', { townId });
     }, 0x1f2937);
     choice(1, `FARM WAVE ${this.bossWaveIndex}`,
-      `${farmGold} Gold + ${values.materialCount} material\nHalf XP: ${farmXp} per adventurer`, () => {
+      `${farmGold} Gold + ${values.materialCount} material\nHalf XP: ${farmXp} per adventurer\nRepeats until cancelled`, () => {
         GameState.run.entry = 'farm';
         this.startWave(farmIndex);
       }, 0x50432e);
@@ -2179,6 +2247,7 @@ export default class BattleScene extends Phaser.Scene {
   // changes.
   updateHud() {
 
+    this.refreshPartySelection();
     this.updateLeaderLoadoutBar();
     this.updatePotionHud();
     this.partyHud?.forEach(({ unit, hpText, manaText, threatText, hpFill, hpGlow, manaBack, manaFill, hudBarWidth }) => {
@@ -2322,6 +2391,7 @@ export default class BattleScene extends Phaser.Scene {
   // This function presents the encounter outcome and blocks further
   // battlefield taps.
   showResultOverlay(title, subtitle, buttonLabel, callback) {
+    this.refreshFarmControls();
 
     const { width, height } = this.scale;
     const centerY = height * 0.5;

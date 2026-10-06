@@ -18,8 +18,11 @@ export default class BattlefieldGeometry {
     this.nearScale = config.nearScale ?? 1;
     this.farScale = config.farScale ?? 0.72;
     this.minEllipseHeight = config.minEllipseHeight ?? 14;
-    this.columns = config.columns ?? 8;
-    this.rows = config.rows ?? 6;
+    this.boundary = config.boundary ?? [
+      { x: this.bottomLeftX, y: this.bottomY }, { x: this.bottomRightX, y: this.bottomY },
+      { x: this.topRightX, y: this.topY }, { x: this.topLeftX, y: this.topY }
+    ];
+    this.logicalBoundary = this.boundary.map(p => this.screenToArenaUnchecked(p.x, p.y));
   }
 
   // This function measures arena depth so perspective stays consistent.
@@ -96,75 +99,32 @@ export default class BattlefieldGeometry {
     };
   }
 
-  // This function finds the arena bounds of a tactical destination tile.
-  getCellBounds(column, row) {
-
-    const cellWidth = this.logicalWidth / this.columns;
-    const cellHeight = this.logicalHeight / this.rows;
-    return {
-      left: column * cellWidth,
-      right: (column + 1) * cellWidth,
-      bottom: row * cellHeight,
-      top: (row + 1) * cellHeight
-    };
-  }
-
-  // This function uses the tile center as the anchor for movement orders.
-  getCellCenter(column, row) {
-
-    const b = this.getCellBounds(column, row);
-    return { x: (b.left + b.right) / 2, y: (b.bottom + b.top) / 2 };
-  }
-
-  // This function matches each touch target to its visible floor tile.
-  getCellPolygon(column, row) {
-
-    const b = this.getCellBounds(column, row);
-    return [
-      this.arenaToScreen(b.left, b.bottom),
-      this.arenaToScreen(b.right, b.bottom),
-      this.arenaToScreen(b.right, b.top),
-      this.arenaToScreen(b.left, b.top)
-    ].map((p) => new Phaser.Geom.Point(p.x, p.y));
-  }
-
-  // This function locates the tile containing a unit or destination.
-  arenaPointToCell(arenaX, arenaY) {
-
-    return {
-      column: Phaser.Math.Clamp(Math.floor(arenaX / (this.logicalWidth / this.columns)), 0, this.columns - 1),
-      row: Phaser.Math.Clamp(Math.floor(arenaY / (this.logicalHeight / this.rows)), 0, this.rows - 1)
-    };
-  }
-
-  // This function draws the arena grid that players use to issue orders.
-  drawPerspectiveFloor(showGridLines = true) {
-
-    const graphics = this.scene.add.graphics();
-    if (!showGridLines) return graphics;
-    const floor = [
-      new Phaser.Geom.Point(this.bottomLeftX, this.bottomY),
-      new Phaser.Geom.Point(this.bottomRightX, this.bottomY),
-      new Phaser.Geom.Point(this.topRightX, this.topY),
-      new Phaser.Geom.Point(this.topLeftX, this.topY)
-    ];
-    graphics.lineStyle(5, 0xd4a514, 0.95);
-    graphics.strokePoints(floor, true);
-    graphics.lineStyle(2, 0x8b6f1c, 0.72);
-
-    // Draw horizontal grid lines using the floor span at each arena depth.
-    for (let row = 1; row < this.rows; row += 1) {
-      const span = this.getSpanAt((this.logicalHeight / this.rows) * row);
-      graphics.beginPath(); graphics.moveTo(span.leftX, span.y); graphics.lineTo(span.rightX, span.y); graphics.strokePath();
-    }
-
-    // Connect matching near and far positions to draw the perspective column
-    // lines.
-    for (let col = 1; col < this.columns; col += 1) {
-      const x = (this.logicalWidth / this.columns) * col;
-      const near = this.arenaToScreen(x, 0); const far = this.arenaToScreen(x, this.logicalHeight);
-      graphics.beginPath(); graphics.moveTo(near.x, near.y); graphics.lineTo(far.x, far.y); graphics.strokePath();
-    }
+  // Draw only the walkable perimeter, above foreground scenery for development review.
+  drawArenaBorder(visible = true) {
+    const graphics = this.scene.add.graphics().setDepth(4400);
+    if (!visible) return graphics;
+    graphics.lineStyle(4, 0xfacc15, 0.95);
+    graphics.strokePoints(this.boundary, true);
     return graphics;
+  }
+
+  // Unclipped inversion lets terrain reject feet outside the authored perimeter.
+  screenToArenaUnchecked(screenX, screenY) {
+    const y = (screenY - this.bottomY) / (this.topY - this.bottomY) * this.logicalHeight;
+    const span = this.getSpanAt(y);
+    return { x: (screenX - span.leftX) / span.width * this.logicalWidth, y };
+  }
+
+  containsArenaPoint(x, y, padding = 0) {
+    const polygon = this.logicalBoundary;
+    let inside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+      const a = polygon[i], b = polygon[j];
+      if ((a.y > y) !== (b.y > y) && x < (b.x - a.x) * (y - a.y) / (b.y - a.y) + a.x) inside = !inside;
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const t = Math.max(0, Math.min(1, ((x - a.x) * dx + (y - a.y) * dy) / (dx * dx + dy * dy)));
+      if (padding > 0 && Math.hypot(x - a.x - t * dx, y - a.y - t * dy) < padding) return false;
+    }
+    return inside;
   }
 }

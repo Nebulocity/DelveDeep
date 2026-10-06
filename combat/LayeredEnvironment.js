@@ -2,26 +2,36 @@ import { createPixelEnvironmentEffects } from './PixelEnvironmentEffects.js';
 import { createForestEnvironmentEffects } from './ForestEnvironmentEffects.js';
 import { createVoidEnvironmentEffects } from './VoidEnvironmentEffects.js';
 import { createDenEnvironmentEffects } from './DenEnvironmentEffects.js';
-import slimeCave from '../data/levels/SlimeCave.js';
 
-// All artwork, ambient effects and the tactical grid share one camera-space transform.
+// All artwork, ambient effects and the walkable arena share one camera-space transform.
 export function getEnvironmentTransform(environment, width, height) {
   const scale = Math.min(width / environment.width, height / environment.height);
   return { scale, x: (width - environment.width * scale) / 2,
     y: (height - environment.height * scale) / 2 + (environment.offsetY ?? 0) * scale };
 }
 
-export function getEnvironmentFloor(environment, width, height) {
+// Project each authored floor boundary through the same transform as its artwork.
+export function getDelveArena(environment, width, height) {
   const t = getEnvironmentTransform(environment, width, height);
-  const f = environment.floor;
-  return { topLeftX: t.x + f.topLeftX * t.scale, topRightX: t.x + f.topRightX * t.scale,
-    bottomLeftX: t.x + f.bottomLeftX * t.scale, bottomRightX: t.x + f.bottomRightX * t.scale,
-    topY: t.y + f.topY * t.scale, bottomY: t.y + f.bottomY * t.scale };
-}
+  const authored = environment.walkable.map(([x, y]) => ({ x: t.x + x * t.scale, y: t.y + y * t.scale }));
+  const bottomLimit = height * 0.775 - 8;
+  const boundary = [];
 
-// Every delve uses the Slime Cave grid, regardless of its background art.
-export function getDelveGridFloor(width, height) {
-  return getEnvironmentFloor(slimeCave.visuals.environment, width, height);
+  // Clip the floor to the usable battlefield above the party cards.
+  for (let index = 0; index < authored.length; index += 1) {
+    const a = authored[index], b = authored[(index + 1) % authored.length];
+    if (a.y <= bottomLimit) boundary.push(a);
+    if ((a.y <= bottomLimit) !== (b.y <= bottomLimit)) {
+      const ratio = (bottomLimit - a.y) / (b.y - a.y);
+      boundary.push({ x: a.x + (b.x - a.x) * ratio, y: bottomLimit });
+    }
+  }
+  const left = Math.min(...boundary.map(p => p.x));
+  const right = Math.max(...boundary.map(p => p.x));
+  const top = Math.min(...boundary.map(p => p.y));
+  const bottom = Math.max(...boundary.map(p => p.y));
+  return { topLeftX: left, bottomLeftX: left, topRightX: right, bottomRightX: right,
+    topY: top, bottomY: bottom, boundary };
 }
 
 export function preloadEnvironment(scene, environment) {

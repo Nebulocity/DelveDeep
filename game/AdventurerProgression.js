@@ -4,6 +4,19 @@ export function xpRequired(level) {
   return 100 + Math.max(0, level - 1) * 50;
 }
 
+// Development grants preserve current XP and use the normal level rewards.
+export function grantAdventurerLevels(adventurer, amount = 1) {
+  const gained = Number.isFinite(amount) ? Math.max(0, Math.floor(amount)) : 0;
+  for (let index = 0; index < gained; index += 1) {
+    adventurer.skillPoints = Math.max(0, adventurer.skillPoints ?? adventurer.level) + 1;
+    adventurer.level += 1;
+    adventurer.maxHp += 6;
+    adventurer.attackPower += 2;
+    if (Number.isFinite(adventurer.healPower)) adventurer.healPower += 2;
+  }
+  return { levelsGained: gained };
+}
+
 // This function adds earned experience to an adventurer and processes every
 // level gained from it. Each level raises maximum health and attack power,
 // plus healing power when that stat is present; leftover experience remains
@@ -17,13 +30,7 @@ export function grantAdventurerXp(adventurer, amount) {
   // subtracting each level cost in turn.
   while (adventurer.xp >= xpRequired(adventurer.level)) {
     adventurer.xp -= xpRequired(adventurer.level);
-    adventurer.level += 1;
-    adventurer.skillPoints = Math.max(0, adventurer.skillPoints ?? adventurer.level - 1) + 1;
-    adventurer.maxHp += 6;
-    adventurer.attackPower += 2;
-    if (Number.isFinite(adventurer.healPower)) {
-      adventurer.healPower += 2;
-    }
+    grantAdventurerLevels(adventurer, 1);
     result.levelsGained += 1;
   }
 

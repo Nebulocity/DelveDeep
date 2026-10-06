@@ -1,13 +1,22 @@
 import HapticsService from '../services/HapticsService.js';
 import { addWoodenPanel, addWoodenNotice } from './WoodenPanel.js';
-import { addStonePanel, addStoneButton, stoneText } from './CarvedStone.js';
+import { addStonePanel, addStoneButton, addStoneOrnaments, stoneText, STONE } from './CarvedStone.js';
+import { preparationNotice } from './DelvePreparation.js';
 import { bindButtonPress } from './ButtonPress.js';
+import { addRegionPanel, addRegionNotice, regionMessageBounds } from './RegionMapTheme.js';
+import { isGuildHall } from './GuildHallTheme.js';
+import { showGuildDetails } from './GuildHallDialogs.js';
 
 export const DETAILS_HINT = 'Long-press or hold-click a selection for details.';
 
 export function addDetailsHint(scene, y, text = DETAILS_HINT, options = {}) {
-  return addWoodenNotice(scene, options.x ?? scene.scale.width / 2, y, text,
-    { width: 1100, fontSize: 28, ...options }).text;
+  if (isDelvePreparation(scene)) return preparationNotice(scene, options.x ?? scene.scale.width / 2, y, text, options).text;
+  return (scene.scene?.key === 'TitleScene' ? addRegionNotice : addWoodenNotice)(scene, options.x ?? scene.scale.width / 2, y, text,
+    { width: 1100, fontSize: 28, ...(scene.scene?.key === 'TitleScene' ? { depth: 1000 } : {}), ...options }).text;
+}
+
+function isDelvePreparation(scene) {
+  return ['DelveSelectScene', 'PartySelectScene', 'DungeonScene'].includes(scene.scene?.key);
 }
 
 function isHallMenu(scene) {
@@ -39,10 +48,14 @@ export function delveDetails(delve) {
 // Modal details block underlying controls. Combat clocks and decisions pause
 // together so reading never costs the party health or consumes a queued cast.
 export function showSelectionDetails(scene, details) {
+  if (isGuildHall(scene)) return showGuildDetails(scene, details);
   scene.selectionDetailsClose?.();
   const { width, height } = scene.scale;
   const hall = isHallMenu(scene);
   const town = isTownMenu(scene);
+  const regionMap = scene.scene?.key === 'TitleScene';
+  const messageBounds = regionMessageBounds(scene, regionMap ? details.messageScope : 'ui');
+  const centerX = messageBounds.centerX;
   const warm = true;
   const shopTheme = details.shopTheme;
   const shop = Boolean(shopTheme);
@@ -65,15 +78,17 @@ export function showSelectionDetails(scene, details) {
   scene.selectionDetailsClose = close;
   scene.events.once('shutdown', close);
   const depth = 10000;
-  const stone = scene.scene?.key === 'BattleScene';
-  const panelWidth = Math.min(details.panelWidth ?? 1100, width - 120);
+  const stone = scene.scene?.key === 'BattleScene' || isDelvePreparation(scene);
+  const panelWidth = Math.min(details.panelWidth ?? 1100, messageBounds.width - 120);
   const hasImage = Boolean(details.image && scene.textures.exists(details.image));
   const bodyMargin = 65;
   const imageColumn = hasImage ? 300 : shop ? 220 : 0;
-  const body = scene.add.text(width / 2 - panelWidth / 2 + bodyMargin + imageColumn, 0, details.description, {
-    fontFamily: 'Arial', fontSize: '32px', color: shop ? shopTheme.text : warm ? '#f1dfca' : '#e2e8f0',
-    wordWrap: { width: panelWidth - bodyMargin * 2 - imageColumn }
-  }).setDepth(depth + 2);
+  const bodyWidth = panelWidth - bodyMargin * 2 - imageColumn;
+  const bodyCenter = centerX + imageColumn / 2;
+  const body = scene.add.text(bodyCenter, 0, details.description, {
+    fontFamily: 'Arial', fontSize: '32px', color: stone ? STONE.text : shop ? shopTheme.text : warm ? '#f1dfca' : '#e2e8f0',
+    wordWrap: { width: bodyWidth }, fixedWidth: bodyWidth, align: 'center'
+  }).setOrigin(0.5, 0).setDepth(depth + 2);
   const panelHeight = Math.min(height - 140, Math.max(hasImage ? 540 : 340, body.height + 210));
   const top = (height - panelHeight) / 2;
   body.setY(top + 94);
@@ -81,19 +96,20 @@ export function showSelectionDetails(scene, details) {
   if (body.height > panelHeight - 190) body.setScale((panelHeight - 190) / body.height);
   const shade = scene.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7)
     .setDepth(depth).setInteractive();
-  const panel = (stone ? addStonePanel : addWoodenPanel)(scene, width / 2, height / 2, panelWidth + 36, panelHeight + 36, depth + 1);
+  const panel = (stone ? addStonePanel : regionMap ? addRegionPanel : addWoodenPanel)(scene, centerX, height / 2, panelWidth + 36, panelHeight + 36, depth + 1);
+  if (stone && scene.stoneTheme) objects.push(addStoneOrnaments(scene, centerX, top + 42, panelWidth, scene.stoneTheme, depth + 2));
   const conceptHeight = Math.min(368, panelHeight - 180);
   const shopSign = shop && scene.textures.exists(shopTheme.plaque)
-    ? scene.add.image(width / 2 - panelWidth / 2 + 120, top + Math.min(190, panelHeight / 2), shopTheme.plaque)
+    ? scene.add.image(centerX - panelWidth / 2 + 120, top + Math.min(190, panelHeight / 2), shopTheme.plaque)
       .setDisplaySize(shopTheme.square ? 145 : 180, shopTheme.square ? 145 : 120).setDepth(depth + 2)
     : null;
   const conceptImage = hasImage
-    ? scene.add.image(width / 2 - panelWidth / 2 + 155, height / 2, details.image)
+    ? scene.add.image(centerX - panelWidth / 2 + 155, height / 2, details.image)
       .setDepth(depth + 2)
     : null;
   if (conceptImage) conceptImage.setScale(Math.min(270 / conceptImage.width, conceptHeight / conceptImage.height));
   const panelHit = town
-    ? scene.add.rectangle(width / 2, height / 2, panelWidth, panelHeight, 0x000000, 0)
+    ? scene.add.rectangle(centerX, height / 2, panelWidth, panelHeight, 0x000000, 0)
       .setDepth(depth + 1).setInteractive()
     : panel.setInteractive();
   panelHit.on('pointerdown', (pointer, x, y, event) => event.stopPropagation());
@@ -104,9 +120,9 @@ export function showSelectionDetails(scene, details) {
   };
   shade.on('pointerdown', dismiss);
   const buttonY = top + panelHeight - 52;
-  const button = (stone ? addStoneButton : addWoodenPanel)(scene, width / 2, buttonY, 300, 72, depth + 3).setInteractive({ useHandCursor: true });
+  const button = (stone ? addStoneButton : regionMap ? addRegionPanel : addWoodenPanel)(scene, centerX, buttonY, 300, 72, depth + 3).setInteractive({ useHandCursor: true });
   if (stone) {
-    const label = stoneText(scene, width / 2, buttonY, 'CLOSE', 32, depth + 4);
+    const label = stoneText(scene, centerX, buttonY, 'CLOSE', 32, depth + 4);
     objects.push(label);
     bindButtonPress(scene, button, [label], () => { HapticsService.tap(); close(); });
   } else button.on('pointerdown', dismiss);
@@ -115,12 +131,13 @@ export function showSelectionDetails(scene, details) {
   if (town) objects.push(panelHit);
   if (shopSign) objects.push(shopSign);
   objects.push(
-    scene.add.text(width / 2, top + 44, details.title, {
-      fontFamily: town ? 'Georgia' : 'Arial', fontSize: '36px', fontStyle: 'bold',
+    scene.add.text(centerX, top + 44, details.title, {
+      fontFamily: town || stone ? 'Georgia' : 'Arial', fontSize: '36px', fontStyle: 'bold',
+      wordWrap: { width: panelWidth - 170 }, align: 'center',
       color: warm || shop ? (shop ? shopTheme.text : '#fff1d2') : '#bef264', stroke: town || shop ? '#24170f' : undefined,
       strokeThickness: town || shop ? 3 : 0
     }).setOrigin(0.5).setDepth(depth + 2),
-    scene.add.text(width / 2, button.y, stone ? '' : 'CLOSE', {
+    scene.add.text(centerX, button.y, stone ? '' : 'CLOSE', {
       fontFamily: town || shop ? 'Georgia' : 'Arial', fontSize: '32px', color: warm || shop ? (shop ? shopTheme.text : '#fff1d2') : '#ffffff',
       stroke: town || shop ? '#24170f' : undefined, strokeThickness: town || shop ? 2 : 0
     }).setOrigin(0.5).setDepth(depth + 4));

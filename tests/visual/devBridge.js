@@ -11,6 +11,7 @@ const SCENES = new Set([
 export function installVisualQaBridge(game) {
   window.__DELVE_DEEP_VISUAL_QA__ = {
     game,
+    get state() { return GameState; },
     scenes: [...SCENES],
     activate(sceneName, options = {}) {
       if (!SCENES.has(sceneName)) throw new Error(`Unsupported visual QA scene: ${sceneName}`);

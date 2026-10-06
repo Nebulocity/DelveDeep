@@ -1,4 +1,5 @@
 import GameState from './GameState.js';
+import { restoreEverdeep } from './EverdeepState.js';
 import { CRAFTING_MATERIALS, EQUIPMENT_ITEMS } from '../data/items.js';
 import { grantEquipment, grantMaterial } from './Equipment.js';
 import { getEquippedAdventurer } from './Equipment.js';
@@ -49,8 +50,8 @@ export function everdeepUnlocked(state = GameState) {
     || (state.records[finalDelve]?.clears ?? 0) > 0;
 }
 
-function partyPower(hero) {
-  const effective = getEquippedAdventurer(hero);
+function partyPower(hero, state) {
+  const effective = getEquippedAdventurer(hero, state);
   return effective.maxHp * (1 + (effective.armor ?? 0)) * 0.22
     + effective.attackPower * 2.2 + (effective.healPower ?? 0) * 1.3
     + (effective.maxMana ?? 0) * 0.08 + (effective.level ?? 1) * 8;
@@ -58,7 +59,7 @@ function partyPower(hero) {
 
 export function startEverdeepRun(characterIds, now = Date.now(), state = GameState) {
   if (!everdeepUnlocked(state)) return { ok: false, message: 'Defeat the boss of The Sunken Watch first.' };
-  if (state.everdeep.activeRun) return { ok: false, message: 'Claim or dismiss your previous Everdeep expedition first.' };
+  const runs = everdeepRuns(state);
   if (state.gold < EVERDEEP_WRIT_COST) return { ok: false, message: `A Writ costs ${EVERDEEP_WRIT_COST} Gold.` };
   if (!Array.isArray(characterIds) || characterIds.length !== 5 || new Set(characterIds).size !== 5) {
     return { ok: false, message: 'Choose five different adventurers.' };
@@ -72,10 +73,10 @@ export function startEverdeepRun(characterIds, now = Date.now(), state = GameSta
   const seed = `${now}-${hashSeed(characterIds.join('|')).toString(36)}-${Math.random().toString(36).slice(2)}`;
   state.gold -= EVERDEEP_WRIT_COST;
   state.everdeep.totals.runsStarted += 1;
-  state.everdeep.activeRun = {
+  const run = {
     id: seed,
     regionId: EVERDEEP_REGION_ID,
-    party: party.map((hero) => ({ id: hero.id, level: hero.level, power: Math.round(partyPower(hero) * 100) / 100 })),
+    party: party.map((hero) => ({ id: hero.id, level: hero.level, power: Math.round(partyPower(hero, state) * 100) / 100 })),
     startedAtMs: now,
     endsAtMs: now + EVERDEEP_DURATION_MS,
     stoppedAtMs: null,
@@ -90,8 +91,9 @@ export function startEverdeepRun(characterIds, now = Date.now(), state = GameSta
     earnedChestCount: 0,
     claimedChestCount: 0
   };
+  runs.push(run);
   saveProfile();
-  return { ok: true, run: state.everdeep.activeRun };
+  return { ok: true, run };
 }
 
 function waveChance(run, wave) {
@@ -104,8 +106,38 @@ function waveChance(run, wave) {
   return clamp(0.72 + (partyPowerTotal * levelFactor - requiredPower) / 240, 0.45, 0.98);
 }
 
+export function everdeepRuns(state = GameState) {
+  if (state.everdeep?.schemaVersion !== 2) state.everdeep = restoreEverdeep(state.everdeep);
+  return state.everdeep.runs;
+}
+
 export function settleEverdeep(now = Date.now(), state = GameState) {
-  const run = state.everdeep.activeRun;
+  const runs = everdeepRuns(state);
+  let changed = false;
+  for (const run of runs) {
+    const wave = run.resolvedWave;
+    const stopped = run.stoppedAtMs;
+    settleRun(run, now);
+    changed ||= wave !== run.resolvedWave || stopped !== run.stoppedAtMs;
+  }
+  if (changed) saveProfile();
+  return runs;
+}
+
+export function everdeepTimers(run, now = Date.now()) {
+  const stopped = Boolean(run.stoppedAtMs);
+  return {
+    nextWaveMs: stopped ? 0 : Math.max(0, run.startedAtMs + (run.resolvedWave + 1) * run.waveIntervalMs - now),
+    remainingMs: stopped ? 0 : Math.max(0, run.endsAtMs - now)
+  };
+}
+
+function findRun(state, runId) {
+  const runs = everdeepRuns(state);
+  return runId ? runs.find(run => run.id === runId) : runs[0];
+}
+
+function settleRun(run, now) {
   if (!run || run.stoppedAtMs) return run;
   const targetWave = clamp(Math.floor((Math.min(now, run.endsAtMs) - run.startedAtMs) / run.waveIntervalMs), 0, EVERDEEP_MAX_WAVES);
   while (run.resolvedWave < targetWave) {
@@ -124,12 +156,12 @@ export function settleEverdeep(now = Date.now(), state = GameState) {
     run.stoppedAtMs = run.endsAtMs;
     run.stopReason = 'expired';
   }
-  saveProfile();
   return run;
 }
 
-export function recallEverdeep(now = Date.now(), state = GameState) {
-  const run = settleEverdeep(now, state);
+export function recallEverdeep(now = Date.now(), state = GameState, runId) {
+  settleEverdeep(now, state);
+  const run = findRun(state, runId);
   if (!run || run.stoppedAtMs) return { ok: false, message: 'This expedition has already stopped.' };
   run.stoppedAtMs = now;
   run.stopReason = 'recalled';
@@ -137,8 +169,8 @@ export function recallEverdeep(now = Date.now(), state = GameState) {
   return { ok: true, run };
 }
 
-export function everdeepChestPreview(index, state = GameState) {
-  const run = state.everdeep.activeRun;
+export function everdeepChestPreview(index, state = GameState, runId) {
+  const run = findRun(state, runId);
   if (!run || !Number.isSafeInteger(index) || index < 0 || index >= run.earnedChestCount) return null;
   const seed = `${run.seed}:${index + 1}:${run.rewardTableVersion}`;
   const materialIds = everdeepRegion.materials;
@@ -150,11 +182,11 @@ export function everdeepChestPreview(index, state = GameState) {
     equipmentId: gear.id, itemLevel: Math.min(medianLevel, everdeepRegion.rewardLevelCap), rarity: gear.rarity };
 }
 
-export function claimEverdeepChest(state = GameState) {
-  const run = state.everdeep.activeRun;
+export function claimEverdeepChest(state = GameState, runId) {
+  const run = findRun(state, runId);
   if (!run || run.claimedChestCount >= run.earnedChestCount) return { ok: false, message: 'No unclaimed chest is ready.' };
   const index = run.claimedChestCount;
-  const reward = everdeepChestPreview(index, state);
+  const reward = everdeepChestPreview(index, state, run.id);
   state.gold += reward.gold;
   grantMaterial(reward.materialId, reward.materialCount, state);
   grantEquipment(reward.equipmentId, state);
@@ -164,12 +196,12 @@ export function claimEverdeepChest(state = GameState) {
   return { ok: true, reward };
 }
 
-export function finishEverdeepRun(state = GameState) {
-  const run = state.everdeep.activeRun;
+export function finishEverdeepRun(state = GameState, runId) {
+  const run = findRun(state, runId);
   if (!run || !run.stoppedAtMs || run.claimedChestCount < run.earnedChestCount) {
     return { ok: false, message: 'Claim every earned chest before dismissing this expedition.' };
   }
-  state.everdeep.activeRun = null;
+  state.everdeep.runs = everdeepRuns(state).filter(entry => entry.id !== run.id);
   saveProfile();
   return { ok: true };
 }

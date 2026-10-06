@@ -1,4 +1,5 @@
 import GameState from './GameState.js';
+import { ENCHANTMENT_BY_ID } from '../data/enchantments.js';
 import { getEquipmentDefinition, getMaterialDefinition, getPotionDefinition } from '../data/items.js';
 
 export const EQUIPMENT_SLOTS = ['weapon', 'armor', 'accessory', 'potion'];
@@ -162,8 +163,8 @@ export function restoreEquipment(savedInventory, savedRoster, state = GameState)
   state.inventory.equipment = savedInventory?.equipmentSchemaVersion === EQUIPMENT_SCHEMA_VERSION
     ? (Array.isArray(savedInventory.equipment) ? savedInventory.equipment : []).filter((item) => {
       if (!item || typeof item.id !== 'string' || !item.id || ids.has(item.id)
-        || typeof item.name !== 'string' || !EQUIPMENT_SLOTS.includes(item.slot)
-        || (item.slot === 'potion'
+        || typeof item.name !== 'string' || ![...EQUIPMENT_SLOTS, 'scroll'].includes(item.slot)
+        || (item.slot === 'scroll' ? !ENCHANTMENT_BY_ID[item.enchantmentId] : item.slot === 'potion'
           ? !Number.isInteger(item.charges) || item.charges < 1 || item.charges > 3
           : typeof item.className !== 'string' && !Array.isArray(item.usableBy))) return false;
       ids.add(item.id);
@@ -172,6 +173,7 @@ export function restoreEquipment(savedInventory, savedRoster, state = GameState)
       id: item.id, name: item.slot === 'potion' ? getPotionDefinition(item.itemId)?.name ?? item.name : item.name, slot: item.slot,
       itemId: typeof item.itemId === 'string' ? item.itemId : undefined,
       rarity: typeof item.rarity === 'string' ? item.rarity : undefined,
+      enchantmentId: ENCHANTMENT_BY_ID[item.enchantmentId] ? item.enchantmentId : undefined,
       className: item.className,
       usableBy: Array.isArray(item.usableBy) ? item.usableBy.filter((name) => typeof name === 'string') : undefined,
       charges: item.slot === 'potion' ? item.charges : undefined,

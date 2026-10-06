@@ -1,12 +1,17 @@
 import HapticsService from '../services/HapticsService.js';
 import { addWoodenPanel } from './WoodenPanel.js';
+import { addRegionPanel } from './RegionMapTheme.js';
+import { isGuildHall } from './GuildHallTheme.js';
+import { showGuildConfirmation } from './GuildHallDialogs.js';
 
 // Nothing is committed until a fresh press and release on CONFIRM. Reusing
 // the modal lock also prevents held selections behind the dialog from firing.
 export function showConfirmation(scene, { title, description, confirmLabel = 'CONFIRM', onConfirm, onCancel }) {
+  if (isGuildHall(scene)) return showGuildConfirmation(scene, { title, description, confirmLabel, onConfirm, onCancel });
   scene.selectionDetailsClose?.();
   const { width, height } = scene.scale;
   const hall = true;
+  const regionMap = scene.scene?.key === 'TitleScene';
   const objects = [];
   const depth = 11000;
   const panelWidth = Math.min(1200, width - 120);
@@ -39,7 +44,7 @@ export function showConfirmation(scene, { title, description, confirmLabel = 'CO
   body.setY(top + 110);
   const stop = (pointer, x, y, event) => event?.stopPropagation?.();
   for (const [index, [w, h, color, alpha]] of [[width, height, 0x000000, 0.75], [panelWidth, panelHeight, hall ? 0x21130d : 0x111827, 1]].entries()) {
-    const box = add((index === 1 ? addWoodenPanel(scene, width / 2, height / 2, w, h, depth + index)
+    const box = add((index === 1 ? (regionMap ? addRegionPanel : addWoodenPanel)(scene, width / 2, height / 2, w, h, depth + index)
       : scene.add.rectangle(width / 2, height / 2, w, h, color, alpha).setDepth(depth + index)).setInteractive());
     box.on('pointerdown', stop);
     box.on('pointerup', stop);
@@ -51,7 +56,8 @@ export function showConfirmation(scene, { title, description, confirmLabel = 'CO
 
   const button = (x, label, color, accept) => {
     const y = top + panelHeight - 72;
-    const box = add(addWoodenPanel(scene, x, y, (panelWidth - 156) / 2, 96, depth + 2).setInteractive({ useHandCursor: true }));
+    const box = add((regionMap ? addRegionPanel : addWoodenPanel)(scene, x, y, (panelWidth - 156) / 2, 96, depth + 2,
+      regionMap && accept ? 'danger' : 'normal').setInteractive({ useHandCursor: true }));
     add(scene.add.text(x, y, label, { fontFamily: 'Arial', fontSize: '34px', fontStyle: 'bold', color: '#ffffff' })
       .setOrigin(0.5).setDepth(depth + 3));
     let press = null;

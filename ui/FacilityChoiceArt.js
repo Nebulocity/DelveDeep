@@ -105,8 +105,9 @@ export function addFacilityChoiceCard(scene, facilityName, entry, x, y, width, a
     });
   });
 
-  const emblemX = left + 78;
-  const emblem = scene.add.graphics().setPosition(emblemX, y);
+  const compact = width < 500;
+  const emblemX = compact ? x : left + 78;
+  const emblem = scene.add.graphics().setPosition(emblemX, compact ? y - 32 : y);
   emblem.fillStyle(theme.shadow, 0.96);
   emblem.fillCircle(0, 0, 53);
   emblem.lineStyle(4, theme.edge, 0.95);
@@ -114,15 +115,65 @@ export function addFacilityChoiceCard(scene, facilityName, entry, x, y, width, a
   emblem.lineStyle(1, theme.glow, 0.55);
   emblem.strokeCircle(0, 0, 44);
   drawChoiceIcon(emblem, entry.icon, theme.glow);
+  if (compact) emblem.setScale(0.55);
 
-  scene.add.text(x, y - 24, entry.label, {
-    fontFamily: 'Georgia', fontSize: entry.label.length > 10 ? '38px' : '42px',
+  scene.add.text(x, compact ? y + 14 : y - 24, entry.label, {
+    fontFamily: 'Georgia', fontSize: compact ? '34px' : entry.label.length > 10 ? '38px' : '42px',
     fontStyle: 'bold', color: '#fff1d2',
     stroke: theme.shadow === 0x100d1a ? '#100d1a' : '#170f0a', strokeThickness: 3
   }).setOrigin(0.5);
-  scene.add.text(x, y + 34, entry.subtitle, {
-    fontFamily: 'Arial', fontSize: '29px', color: '#e8d6bc', align: 'center',
-    wordWrap: { width: width - 185 }
+  scene.add.text(x, compact ? y + 53 : y + 34, entry.subtitle, {
+    fontFamily: 'Arial', fontSize: compact ? '28px' : '29px', color: '#e8d6bc', align: 'center',
+    wordWrap: { width: compact ? width - 30 : width - 185 }
   }).setOrigin(0.5);
   return scene.add.rectangle(x, y, width, 150, 0x000000, 0).setInteractive({ useHandCursor: true });
+}
+
+export function addCategoryIcon(scene, icon, x, y, color) {
+  const art = scene.add.graphics().setPosition(x, y).setScale(0.55);
+  drawChoiceIcon(art, icon, color);
+  return art;
+}
+export function addFacilityPlate(scene, facilityName, x, y, width, height) {
+  const theme = THEMES[facilityName] ?? THEMES.Hall;
+  const art = scene.add.graphics().setPosition(x, y);
+  const left = -width / 2;
+  const top = -height / 2;
+  const radius = facilityName === 'Blacksmith' ? 5 : 14;
+  art.fillStyle(theme.shadow, 0.95);
+  art.fillRoundedRect(left + 4, top + 6, width, height, radius);
+  art.fillStyle(theme.face, 0.98);
+  art.fillRoundedRect(left, top, width, height, radius);
+  art.lineStyle(3, theme.edge, 0.95);
+  art.strokeRoundedRect(left, top, width, height, radius);
+  art.lineStyle(1, theme.glow, 0.4);
+  art.strokeRoundedRect(left + 7, top + 7, width - 14, height - 14, Math.max(2, radius - 4));
+  for (let i = 0; i < 5; i++) {
+    art.lineStyle(1, i % 2 ? theme.glow : theme.shadow, i % 2 ? 0.08 : 0.35);
+    art.lineBetween(left + 18, top + 15 + i * (height - 30) / 4, -left - 18, top + 15 + i * (height - 30) / 4);
+  }
+  for (const side of [-1, 1]) {
+    const edgeX = side * (width / 2 - 17);
+    if (facilityName === 'Blacksmith') {
+      art.fillStyle(theme.shadow, 0.85);
+      art.fillRect(edgeX - 5, top + 10, 10, height - 20);
+      for (const rivetY of [top + 16, -top - 16]) {
+        art.fillStyle(theme.edge, 0.9);
+        art.fillCircle(edgeX, rivetY, 4);
+        art.fillStyle(theme.glow, 0.5);
+        art.fillCircle(edgeX - 1, rivetY - 1, 1.5);
+      }
+    } else if (facilityName === 'Alchemist') {
+      art.lineStyle(2, theme.glow, 0.6);
+      art.strokeCircle(edgeX, -10, 4);
+      art.strokeCircle(edgeX, 12, 2);
+      art.lineStyle(2, theme.edge, 0.7);
+      art.lineBetween(edgeX, -2, edgeX, 5);
+    } else {
+      art.lineStyle(2, theme.glow, 0.7);
+      strokeShape(art, [edgeX, -12, edgeX + 5, 0, edgeX, 12, edgeX - 5, 0]);
+      art.lineBetween(edgeX - 8, 0, edgeX + 8, 0);
+    }
+  }
+  return { art, theme };
 }

@@ -12,6 +12,16 @@ export default {
   visuals: {
     environment: {
       width: 1536, height: 1024, offsetY: -36, pixelArt: true,
+
+      // Camera-space outline of open ground, excluding scenery and foreground obstacles.
+      walkable: [
+        [469, 392], [640, 366], [830, 384], [1000, 408],
+        [1125, 447], [1281, 469], [1400, 520], [1380, 612],
+        [1320, 721], [1186, 796], [1067, 848], [930, 853],
+        [784, 887], [624, 852], [502, 822], [391, 769],
+        [291, 726], [208, 634], [165, 546], [257, 478],
+        [369, 433]
+      ],
       layers: [
         { key: 'verdant-tear-pixel-art',
           url: new URL('../../assets/environments/verdant-tear-pixel/knoll.png', import.meta.url).href,

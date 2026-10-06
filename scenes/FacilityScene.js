@@ -2,160 +2,134 @@ import Phaser from 'phaser';
 import { FACILITIES, renderFacilityMenu } from '../ui/FacilityMenu.js';
 import GameState from '../game/GameState.js';
 import { saveProfile } from '../game/GameStorage.js';
-import { buyPotionPack, sellPotionPack, sellMaterial } from '../game/Equipment.js';
-import { POTION_ITEMS, getPotionDefinition } from '../data/items.js';
+import { buyPotionPack, equipmentStatsText } from '../game/Equipment.js';
+import { POTION_ITEMS, CRAFTING_RECIPES } from '../data/items.js';
+import { ENCHANTMENTS, ENCHANTMENT_BY_ID } from '../data/enchantments.js';
 import { bindSelectionDetails } from '../ui/SelectionDetails.js';
+import { addCategoryIcon } from '../ui/FacilityChoiceArt.js';
+import { addFacilityDetailsHint } from '../ui/FacilityChrome.js';
 import HapticsService from '../services/HapticsService.js';
-import { CRAFTING_RECIPES, CRAFTING_MATERIALS } from '../data/items.js';
 import { canCraft, craftItem, recipeIngredientText } from '../game/Crafting.js';
-import { addWoodenNotice } from '../ui/WoodenPanel.js';
+import { GEAR_STOCK, saleRows, sellOwnedItem, buyGear, inscribeEnchantment, applyEnchantment, disenchantItem } from '../game/ShopServices.js';
 
-const ALCHEMIST_THEME = { plaque: 'town-sign-alchemist', panel: 0x182b22, face: 0x315b3e, edge: 0x9fbd78, button: 0x315b3e, text: '#eff9d7' };
+const THEMES = {
+  Blacksmith: { panel: 0x1b2023, face: 0x353535, edge: 0xd58b55, text: '#fff0d8', plaque: 'town-sign-blacksmith' },
+  Alchemist: { panel: 0x14271f, face: 0x294b36, edge: 0x9fbd78, text: '#eff9d7', plaque: 'town-sign-alchemist' },
+  Enchanter: { panel: 0x201a31, face: 0x403152, edge: 0xb69ada, text: '#f3eaff', plaque: 'town-sign-enchanter' }
+};
+const CATEGORIES = {
+  all: ['All items', 'satchel'], weapon: ['Weapons', 'sword'], armor: ['Armor', 'shield'],
+  accessory: ['Accessories', 'rune'], potion: ['Potions', 'flask'], material: ['Materials', 'ingot'], scroll: ['Scrolls', 'scroll']
+};
 
 export default class FacilityScene extends Phaser.Scene {
-  constructor(key = 'FacilityScene') {
-    super(key);
-  }
+  constructor(key = 'FacilityScene') { super(key); }
 
   init(data) {
     this.facility = FACILITIES[data?.title] ?? FACILITIES.Alchemist;
     this.returnScene = data?.returnScene ?? 'TownScene';
     this.selection = null;
+    this.category = 'all';
     this.page = 0;
     this.message = '';
+    this.selectedScroll = null;
   }
 
-  create() {
-    this.render();
-  }
+  create() { this.render(); }
 
   render() {
     renderFacilityMenu(this, this.facility, this.selection,
-      (selection) => { this.selection = selection; this.page = 0; this.message = ''; this.render(); },
+      selection => { this.selection = selection; this.category = 'all'; this.page = 0; this.message = ''; this.selectedScroll = null; this.render(); },
       () => this.scene.start(this.returnScene),
       () => { this.selection = null; this.render(); },
-      (choice) => this.renderFacilityDetail(choice));
+      choice => this.renderFacilityDetail(choice));
+  }
+
+  transact(action) {
+    HapticsService.tap();
+    const result = action();
+    this.message = result.message;
+    if (result.ok) { saveProfile(); HapticsService.confirm(); }
+    this.render();
+  }
+
+  rowsFor(choice) {
+    const state = GameState;
+    if (choice.id === 'sell') return saleRows().map(row => ({ ...row, action: `SELL ${row.value}g`, run: () => sellOwnedItem(row.id) }));
+    if (choice.id === 'craft' || choice.id === 'brew') return CRAFTING_RECIPES.filter(recipe => recipe.category === (choice.id === 'brew' ? 'alchemy' : 'equipment')).map(recipe => ({
+      id: recipe.id, category: choice.id === 'brew' ? 'potion' : GEAR_STOCK.find(item => item.id === recipe.output.itemId)?.slot,
+      name: recipe.name, description: `${choice.id === 'brew' ? '3 potions | ' : ''}${recipeIngredientText(recipe)}`,
+      enabled: canCraft(recipe.id).ok, action: choice.id === 'brew' ? 'BREW' : 'CRAFT', run: () => craftItem(recipe.id)
+    }));
+    if (choice.id === 'buy' && this.facility.name !== 'Enchanter') return (this.facility.name === 'Blacksmith' ? GEAR_STOCK : POTION_ITEMS).map(item => ({
+      id: item.id, category: item.slot, name: item.name, description: `${item.description} ${item.uses ? '| 3 uses' : equipmentStatsText(item.stats)}`,
+      enabled: state.gold >= item.price, action: `BUY ${item.price}g`, run: () => item.slot === 'potion' ? buyPotionPack(item.id) : buyGear(item.id)
+    }));
+    if (choice.id === 'buy' || choice.id === 'inscribe') return ENCHANTMENTS.map(definition => ({
+      id: definition.id, category: 'scroll', name: `${definition.name} Scroll`,
+      description: `${definition.description} ${choice.id === 'inscribe' ? recipeIngredientText(definition) : 'Consume at Enchant to improve gear.'}`,
+      enabled: choice.id === 'buy' ? state.gold >= definition.price : Object.entries(definition.ingredients).every(([id, count]) => (state.inventory.materials[id] ?? 0) >= count),
+      action: choice.id === 'buy' ? `BUY ${definition.price}g` : 'INSCRIBE', run: () => inscribeEnchantment(definition.id, state, choice.id === 'buy')
+    }));
+    if (choice.id === 'disenchant') return state.inventory.equipment.filter(item => item.slot !== 'scroll' && ENCHANTMENT_BY_ID[item.enchantmentId]).map(item => ({
+      id: item.id, category: item.slot, name: item.name, description: `${ENCHANTMENT_BY_ID[item.enchantmentId].name} | Keep gear; recover 2 random recipe materials.`, enabled: true, action: 'DISENCHANT', run: () => disenchantItem(item.id)
+    }));
+    if (choice.id === 'enchant') {
+      const scroll = state.inventory.equipment.find(item => item.id === this.selectedScroll && item.slot === 'scroll');
+      if (!scroll) return state.inventory.equipment.filter(item => item.slot === 'scroll').map(item => ({
+        id: item.id, category: 'scroll', name: item.name, description: ENCHANTMENT_BY_ID[item.enchantmentId].description, enabled: true, action: 'SELECT',
+        run: () => { this.selectedScroll = item.id; this.category = 'all'; this.page = 0; return { ok: false, message: 'Choose gear to enchant. The selected scroll will be consumed.' }; }
+      }));
+      const definition = ENCHANTMENT_BY_ID[scroll.enchantmentId];
+      return state.inventory.equipment.filter(item => !item.enchantmentId && definition.slots.includes(item.slot)).map(item => ({
+        id: item.id, category: item.slot, name: item.name, description: `${definition.description} Uses ${scroll.name}.`, enabled: true, action: 'ENCHANT',
+        run: () => { const result = applyEnchantment(scroll.id, item.id); if (result.ok) this.selectedScroll = null; return result; }
+      }));
+    }
+    return [];
   }
 
   renderFacilityDetail(choice) {
-    if (this.facility === FACILITIES.Alchemist && (choice.id === 'buy' || choice.id === 'sell')) return this.renderAlchemistDetail(choice);
-    if (this.facility === FACILITIES.Blacksmith && (choice.id === 'craft' || choice.id === 'sell')) return this.renderCraftingDetail(choice);
-    if (this.facility === FACILITIES.Alchemist && choice.id === 'brew') return this.renderCraftingDetail(choice);
-    return false;
-  }
-
-  renderCraftingDetail(choice) {
-    const crafting = choice.id === 'craft' || choice.id === 'brew';
-    const recipes = crafting ? CRAFTING_RECIPES.filter((recipe) => this.facility === FACILITIES.Blacksmith
-      ? recipe.category === 'equipment' : recipe.category === 'alchemy') : [];
-    const materials = Object.values(CRAFTING_MATERIALS).filter((material) => (GameState.inventory.materials?.[material.id] ?? 0) > 0);
-    const rows = crafting ? recipes : materials;
-    const pageSize = 3;
-    const pages = Math.max(1, Math.ceil(rows.length / pageSize));
+    const theme = THEMES[this.facility.name];
+    const allRows = this.rowsFor(choice);
+    const categories = ['all', ...Object.keys(CATEGORIES).filter(key => key !== 'all' && allRows.some(row => row.category === key))];
+    if (!categories.includes(this.category)) this.category = 'all';
+    const rows = allRows.filter(row => this.category === 'all' || row.category === this.category);
+    const pages = Math.max(1, Math.ceil(rows.length / 3));
     this.page = Math.max(0, Math.min(this.page, pages - 1));
-    const theme = this.facility === FACILITIES.Blacksmith
-      ? { panel: 0x292321, edge: 0xd58b55, face: 0x593728, text: '#fff0d8' }
-      : ALCHEMIST_THEME;
-    this.add.rectangle(1200, 550, 1700, 520, theme.panel, 0.96).setStrokeStyle(4, theme.edge);
-    this.add.text(1200, 338, crafting ? 'AVAILABLE RECIPES' : 'MATERIALS', {
-      fontFamily: 'Georgia', fontSize: '46px', fontStyle: 'bold', color: theme.text, stroke: '#102018', strokeThickness: 3
-    }).setOrigin(0.5);
-    if (!rows.length) addWoodenNotice(this, 1200, 555, crafting ? 'No recipes are available.' : 'You have no materials to sell.', { width: 1300, fontSize: 36, depth: 0 });
-    rows.slice(this.page * pageSize, this.page * pageSize + pageSize).forEach((row, index) => {
-      const y = 435 + index * 123;
-      const recipe = crafting ? row : null;
-      const stock = !crafting ? GameState.inventory.materials[row.id] : null;
-      const readiness = recipe && canCraft(recipe.id);
-      const summary = recipe ? `${recipe.category === 'alchemy' ? `3 ${getPotionDefinition(recipe.output.itemId).name}s • ` : ''}${recipeIngredientText(recipe)}` : row.description;
-      const action = recipe ? `Craft • ${summary}` : `${row.name} x${stock} • Sell for ${stock * 5} Gold`;
-      const card = this.add.rectangle(1200, y, 1580, 106, 0x294034, 0.97).setStrokeStyle(3, theme.edge).setInteractive({ useHandCursor: true });
-      this.add.text(470, y - 17, recipe ? recipe.name : row.name, { fontFamily: 'Arial', fontSize: '34px', fontStyle: 'bold', color: '#fff1d2' }).setOrigin(0, 0.5);
-      this.add.text(470, y + 23, recipe ? summary : `Owned: ${stock}. ${row.description}`, { fontFamily: 'Arial', fontSize: '30px', color: '#d8e8c5', wordWrap: { width: 1050 } }).setOrigin(0, 0.5);
-      bindSelectionDetails(this, card, { title: recipe ? recipe.name : row.name, description: `${recipe?.description ?? row.description} ${action}`, shopTheme: theme });
-      const enabled = recipe ? readiness.ok : true;
-      const label = recipe ? (enabled ? 'CRAFT' : 'NEED MATERIALS') : `SELL ${stock}`;
-      const button = this.add.rectangle(1830, y, 265, 86, enabled ? theme.face : 0x3f4a40).setStrokeStyle(3, theme.edge).setAlpha(enabled ? 1 : 0.55);
-      this.add.text(1830, y, label, { fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: enabled ? theme.text : '#b0a69b' }).setOrigin(0.5);
-      if (enabled) bindSelectionDetails(this, button, { title: recipe?.name ?? row.name, description: action, shopTheme: theme }, () => {
-        HapticsService.tap();
-        const result = recipe ? craftItem(recipe.id) : sellMaterial(row.id, stock);
-        this.message = result.message;
-        if (result.ok) { saveProfile(); HapticsService.confirm(); }
-        this.render();
-      });
+    this.add.rectangle(1200, 555, 2080, 490, theme.panel, 0.97).setStrokeStyle(4, theme.edge);
+    const heading = this.add.text(395, 342, choice.id === 'sell' ? 'YOUR INVENTORY' : choice.label, { fontFamily: 'Georgia', fontSize: '42px', fontStyle: 'bold', color: theme.text }).setOrigin(0.5);
+    if (heading.width > 380) heading.setScale(380 / heading.width);
+    addFacilityDetailsHint(this, this.facility.name, 342, { x: 1400 });
+    this.add.rectangle(395, 575, 390, 384, theme.face, 0.45).setStrokeStyle(2, theme.edge, 0.45);
+    categories.forEach((category, index) => {
+      const y = 405 + index * 52;
+      const [label, icon] = CATEGORIES[category];
+      const active = category === this.category;
+      const button = this.add.rectangle(395, y, 360, 48, theme.face, active ? 1 : 0.25).setStrokeStyle(active ? 3 : 1, theme.edge, active ? 1 : 0.25);
+      addCategoryIcon(this, icon, 251, y, theme.edge);
+      this.add.text(288, y, label, { fontFamily: 'Arial', fontSize: '30px', color: theme.text }).setOrigin(0, 0.5);
+      bindSelectionDetails(this, button, { title: label, description: `Browse ${label.toLowerCase()}.`, shopTheme: theme }, () => { HapticsService.tap(); this.category = category; this.page = 0; this.render(); });
     });
-    const pageButton = (x, label, page, enabled) => {
-      const button = this.add.rectangle(x, 759, 195, 62, 0x6b4527, enabled ? 1 : 0.45).setStrokeStyle(2, theme.edge);
-      this.add.text(x, 759, label, { fontFamily: 'Arial', fontSize: '28px', color: theme.text }).setOrigin(0.5);
-      if (enabled) bindSelectionDetails(this, button, { title: label, description: 'Browse recipes and materials.' }, () => {
-        HapticsService.tap(); this.page = page; this.render();
-      });
-    };
-    pageButton(600, '< PREV', this.page - 1, this.page > 0);
-    if (this.message) addWoodenNotice(this, 1200, 759, this.message, { width: 850, fontSize: 28, depth: 0 });
-    else this.add.text(1200, 759, `${this.page + 1} / ${pages}`, { fontFamily: 'Arial', fontSize: '28px', color: '#fde68a' }).setOrigin(0.5);
-    pageButton(1800, 'NEXT >', this.page + 1, this.page < pages - 1);
-    return { x: 1200, y: 550, width: 1700, height: 520 };
-  }
-
-  renderAlchemistDetail(choice) {
-    if (choice.id !== 'buy' && choice.id !== 'sell') return false;
-    const rows = choice.id === 'buy' ? POTION_ITEMS
-      : GameState.inventory.equipment.filter((item) => item.slot === 'potion' && getPotionDefinition(item.itemId));
-    const pages = Math.max(1, Math.ceil(rows.length / 2));
-    this.page = Math.max(0, Math.min(this.page, pages - 1));
-    this.add.rectangle(1200, 550, 1700, 520, 0x182b22, 0.95).setStrokeStyle(4, 0x9fbd78);
-    this.add.text(1200, 338, choice.id === 'buy' ? 'POTION PACKS' : 'YOUR POTION PACKS', {
-      fontFamily: 'Georgia', fontSize: '46px', fontStyle: 'bold', color: '#eff9d7', stroke: '#102018', strokeThickness: 3
-    }).setOrigin(0.5);
-    if (!rows.length) addWoodenNotice(this, 1200, 555, 'No potion packs to sell.', { width: 1300, fontSize: 36, depth: 0 });
-    rows.slice(this.page * 2, this.page * 2 + 2).forEach((item, index) => {
-      const definition = choice.id === 'buy' ? item : getPotionDefinition(item.itemId);
-      const y = 467 + index * 169;
-      const value = choice.id === 'buy' ? definition.price
-        : Math.floor(definition.price * 0.5 * item.charges / definition.uses);
-      const description = `${definition.description} ${choice.id === 'buy' ? definition.uses : item.charges}/${definition.uses} uses. ${choice.id === 'buy' ? 'Buy' : 'Sell'} for ${value} Gold.`;
-      const row = this.add.rectangle(1200, y, 1570, 144, 0x294034, 0.97).setStrokeStyle(3, 0x708d5d).setInteractive({ useHandCursor: true });
-      const labelBottom = y + 9;
-      const nameText = this.add.text(490, labelBottom, definition.name, {
-        fontFamily: 'Arial', fontSize: '37px', fontStyle: 'bold', color: '#fff1d2'
-      }).setOrigin(0, 1);
-      const countX = 490 + Math.min(nameText.width, definition.name.length * 22) + 18;
-      this.add.rectangle(countX, labelBottom, 64, 42, 0x315b3e)
-        .setStrokeStyle(2, 0xb7d494).setOrigin(0, 1);
-      this.add.text(countX + 32, labelBottom - 21,
-        `x${choice.id === 'buy' ? definition.uses : item.charges}`, {
-          fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: '#dcfce7'
-        }).setOrigin(0.5);
-      this.add.text(490, y + 18, choice.id === 'buy' ? definition.description : `${item.charges}/${definition.uses} uses remaining`, {
-        fontFamily: 'Arial', fontSize: '30px', color: '#d8e8c5', wordWrap: { width: 1060 }
-      });
-      bindSelectionDetails(this, row, { title: definition.name, description, shopTheme: ALCHEMIST_THEME });
-      const affordable = choice.id !== 'buy' || GameState.gold >= value;
-      const button = this.add.rectangle(1810, y, 255, 86, affordable ? 0x315b3e : 0x3f4a40)
-        .setStrokeStyle(4, affordable ? 0xb7d494 : 0x74806f);
-      this.add.text(1810, y, `${choice.id === 'buy' ? 'Buy' : 'Sell'}: ${value}g`, {
-        fontFamily: 'Georgia', fontSize: '29px', fontStyle: 'bold', color: affordable ? '#eff9d7' : '#b0a69b'
-      }).setOrigin(0.5);
-      if (affordable) bindSelectionDetails(this, button, { title: definition.name, description, shopTheme: ALCHEMIST_THEME }, () => {
-        HapticsService.tap();
-        const result = choice.id === 'buy' ? buyPotionPack(definition.id) : sellPotionPack(item.id);
-        this.message = result.message;
-        if (result.ok) { saveProfile(); HapticsService.confirm(); }
-        this.render();
-      });
+    if (!rows.length) this.add.text(1400, 520, choice.id === 'sell' ? 'No owned items in this category.' : choice.id === 'disenchant' ? 'No gear with known enchantments.' : choice.id === 'enchant' ? this.selectedScroll ? 'No compatible gear without an enchantment.\nChoose Enchant again to select another scroll.' : 'Buy or inscribe a scroll to begin.' : 'Nothing available.', { fontFamily: 'Arial', fontSize: '34px', color: theme.text, align: 'center', wordWrap: { width: 1450 } }).setOrigin(0.5);
+    rows.slice(this.page * 3, this.page * 3 + 3).forEach((row, index) => {
+      const y = 430 + index * 118;
+      const card = this.add.rectangle(1400, y, 1520, 112, theme.face, 0.64).setStrokeStyle(2, theme.edge, 0.7);
+      addCategoryIcon(this, CATEGORIES[row.category]?.[1] ?? 'satchel', 686, y, theme.edge);
+      this.add.text(728, y - 25, row.name, { fontFamily: 'Arial', fontSize: '34px', fontStyle: 'bold', color: theme.text }).setOrigin(0, 0.5);
+      this.add.text(728, y + 0, row.description, { fontFamily: 'Arial', fontSize: '26px', color: '#ddd5c7', wordWrap: { width: 1080 } });
+      bindSelectionDetails(this, card, { title: row.name, description: row.description, shopTheme: theme });
+      const button = this.add.rectangle(1990, y, 285, 86, theme.face).setStrokeStyle(3, theme.edge).setAlpha(row.enabled ? 1 : 0.45);
+      this.add.text(1990, y, row.action, { fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: theme.text }).setOrigin(0.5).setAlpha(row.enabled ? 1 : 0.55);
+      if (row.enabled) bindSelectionDetails(this, button, { title: row.name, description: row.description, shopTheme: theme }, () => this.transact(row.run));
     });
-    const pageButton = (x, label, page, enabled) => {
-      const button = this.add.rectangle(x, 759, 195, 62, 0x6b4527, enabled ? 1 : 0.45).setStrokeStyle(2, 0xd9a662);
-      this.add.text(x, 759, label, { fontFamily: 'Arial', fontSize: '28px', color: '#fff1d2' }).setOrigin(0.5);
-      if (enabled) bindSelectionDetails(this, button, { title: label, description: 'Browse potion packs.' }, () => {
-        HapticsService.tap(); this.page = page; this.render();
-      });
-    };
-    pageButton(600, '< PREV', this.page - 1, this.page > 0);
-    if (this.message) addWoodenNotice(this, 1200, 759, this.message, { width: 850, fontSize: 28, depth: 0 });
-    else this.add.text(1200, 759, `${this.page + 1} / ${pages}`, { fontFamily: 'Arial', fontSize: '29px', color: '#fde68a' }).setOrigin(0.5);
-    pageButton(1800, 'NEXT >', this.page + 1, this.page < pages - 1);
-    return { x: 1200, y: 550, width: 1700, height: 520 };
+    this.add.text(1400, 759, this.message || `${this.page + 1} / ${pages}`, { fontFamily: 'Arial', fontSize: '27px', color: theme.text, align: 'center', wordWrap: { width: 1000 } }).setOrigin(0.5);
+    for (const [x, label, delta] of [[760, '< PREV', -1], [2040, 'NEXT >', 1]]) {
+      const enabled = this.page + delta >= 0 && this.page + delta < pages;
+      const button = this.add.rectangle(x, 765, 195, 62, theme.face).setStrokeStyle(2, theme.edge).setAlpha(enabled ? 1 : 0.4);
+      this.add.text(x, 765, label, { fontFamily: 'Arial', fontSize: '28px', color: theme.text }).setOrigin(0.5);
+      if (enabled) bindSelectionDetails(this, button, { title: label, description: 'Browse more items.', shopTheme: theme }, () => { HapticsService.tap(); this.page += delta; this.render(); });
+    }
+    return { x: 1200, y: 555, width: 2080, height: 490 };
   }
 }

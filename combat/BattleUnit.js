@@ -18,7 +18,7 @@ export default class BattleUnit {
     this.name = config.name;
     this.className = config.className ?? '';
     this.shortName = config.shortName;
-    this.gridAbilities = config.gridAbilities === true;
+    this.classAbilities = config.classAbilities === true;
     this.role = config.role ?? '';
     this.color = config.color;
     this.isBoss = config.boss === true;
@@ -33,13 +33,14 @@ export default class BattleUnit {
     this.attackPower = config.attackPower;
     this.critChance = config.critChance ?? 0.1;
     this.critMultiplier = config.critMultiplier ?? 1.75;
-    this.attackRange = config.attackRange;
+    this.attackRange = config.attackRange > 180
+      ? Math.hypot(this.battlefield.logicalWidth, this.battlefield.logicalHeight) : config.attackRange;
     this.attackCooldown = config.attackCooldown;
     this.attackWindup = config.attackWindup ?? 250;
     this.healPower = config.healPower ?? 0;
     this.healRange = config.healRange ?? 0;
     this.basicHealPower = config.basicHealPower ?? 0;
-    this.basicHealRange = config.basicHealRange ?? 0;
+    this.basicHealRange = config.basicHealRange > 2 ? 1000 : config.basicHealRange ?? 0;
     this.healCooldown = config.healCooldown ?? 0;
     this.healWindup = config.healWindup ?? 400;
     this.threatMultiplier = config.threatMultiplier ?? 1;

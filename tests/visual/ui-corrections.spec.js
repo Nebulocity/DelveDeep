@@ -59,21 +59,21 @@ test(`requested map, shop and wooden dialog corrections at ${viewport.width}`, a
   await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.activate('FacilityScene', { facility: 'Enchanter' }));
   await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('FacilityScene').sys.isActive());
   await capture('enchanter');
-  expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('FacilityScene').facility.choices.map(choice => choice.id))).toEqual(['buy', 'sell']);
+  expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('FacilityScene').facility.choices.map(choice => choice.id))).toEqual(['buy', 'sell', 'inscribe', 'enchant', 'disenchant']);
   for (const choice of ['buy', 'sell']) {
     await page.evaluate(id => {
       const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('FacilityScene');
       scene.selection = id; scene.render();
     }, choice);
     await capture(`enchanter-${choice}`);
-    expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('FacilityScene').children.list.some(object => object.text?.includes('enchanted items')))).toBe(true);
+    expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('FacilityScene').children.list.some(object => object.text?.includes('Minor Might Scroll') || object.text?.includes('No owned items')))).toBe(true);
   }
   await page.evaluate(() => {
     const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('FacilityScene');
     scene.init({ title: 'Alchemist' }); scene.selection = 'brew'; scene.render();
   });
   await capture('potion-recipes');
-  expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('FacilityScene').children.list.some(object => object.text?.includes('3 Health Potions')))).toBe(true);
+  expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('FacilityScene').children.list.some(object => object.text?.includes('3 potions')))).toBe(true);
   expect(errors).toEqual([]);
 });
 }

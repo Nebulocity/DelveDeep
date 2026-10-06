@@ -116,7 +116,7 @@ export default class UnitSprite {
       && this.motion.state === 'idle' && unit.battlefield && scene.scale?.width) {
       const position = unit.battlefield.arenaToScreen(unit.arenaX, unit.arenaY);
       const centerX = scene.scale.width / 2;
-      const centerWidth = position.widthAtDepth / unit.battlefield.columns;
+      const centerWidth = position.widthAtDepth * 0.1;
       this.motion.direction = position.x < centerX - centerWidth ? 'north-east'
         : position.x > centerX + centerWidth ? 'north-west' : 'north';
     }

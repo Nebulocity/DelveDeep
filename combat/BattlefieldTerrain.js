@@ -22,6 +22,7 @@ export default class BattlefieldTerrain {
   }
 
   isBlocked(x, y, padding = 0) {
+    if (!this.battlefield.containsArenaPoint(x, y, padding)) return true;
     if (x < padding || y < padding
       || x > this.battlefield.logicalWidth - padding
       || y > this.battlefield.logicalHeight - padding) return true;
@@ -48,9 +49,8 @@ export default class BattlefieldTerrain {
   getUnitFootPoint(unit, arenaX = unit.arenaX, arenaY = unit.arenaY) {
     const center = this.battlefield.arenaToScreen(arenaX, arenaY);
     const scale = this.battlefield.getUnitScale(arenaY);
-    const footScreenY = center.y + (unit.bodyRadius ?? 0) * scale;
-    const foot = this.battlefield.screenToArena(center.x, footScreenY);
-    return foot ?? { x: arenaX, y: arenaY };
+    const footScreenY = center.y + (unit.spriteVisual?.definition.footY ?? unit.bodyRadius ?? 0) * scale;
+    return this.battlefield.screenToArenaUnchecked(center.x, footScreenY);
   }
 
   // Check terrain against the unit's feet instead of its visual body.

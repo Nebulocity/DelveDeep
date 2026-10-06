@@ -1,65 +1,78 @@
-import InventoryScene from '../ui/InventoryScene.js';
+import Phaser from 'phaser';
 import { ownedEquipment, equipmentOwner, equipmentStatsText } from '../game/Equipment.js';
-import { bindSelectionDetails } from '../ui/SelectionDetails.js';
+import { HALL, hallText, hallPanel, hallButton, hallDetails, hallIcon, addHallFrame } from '../ui/HallUI.js';
 import GameState from '../game/GameState.js';
-import { CRAFTING_MATERIALS, CRAFTING_RECIPES, EQUIPMENT_ITEMS, POTION_ITEMS, getPotionDefinition } from '../data/items.js';
+import { ENCHANTMENTS } from '../data/enchantments.js';
+import { CRAFTING_MATERIALS, CRAFTING_RECIPES, getPotionDefinition } from '../data/items.js';
 import { canCraft, recipeIngredientText } from '../game/Crafting.js';
+import { guildSurface } from '../ui/GuildHallTheme.js';
 
 const CATEGORIES = [
-  { id: 'armor', label: 'Armor' },
-  { id: 'accessories', label: 'Accessories' },
-  { id: 'items', label: 'Items' },
-  { id: 'materials', label: 'Materials' },
-  { id: 'potions', label: 'Potions' },
-  { id: 'recipes', label: 'Recipes' },
-  { id: 'weapons', label: 'Weapons' }
+  { id: 'equipment', label: 'Equipment', icon: 'sword' },
+  { id: 'items', label: 'Supplies', icon: 'scroll' },
+  { id: 'potions', label: 'Potion packs', icon: 'flask' },
+  { id: 'materials', label: 'Materials', icon: 'ingot' },
+  { id: 'recipes', label: 'Recipes', icon: 'satchel' }
 ];
 
-export default class ItemsScene extends InventoryScene {
+export default class ItemsScene extends Phaser.Scene {
   constructor() { super('ItemsScene'); }
 
   create() {
-    this.category = 'armor';
-    this.page = 0;
-    this.message = '';
+    this.category ??= 'equipment';
+    this.page ??= 0;
     this.render();
   }
 
   render() {
-    this.frame('ITEMS', 'AdventurersHallScene', "Adventurer's Hall");
-    this.add.rectangle(315, 565, 550, 690, 0x21130d, 0.91).setStrokeStyle(3, 0x9b6b3b);
-    this.add.rectangle(1510, 565, 1710, 690, 0x21130d, 0.91).setStrokeStyle(3, 0x9b6b3b);
-    this.text(315, 265, 'CATEGORIES', 32, '#ffe0a7').setOrigin(0.5);
-    CATEGORIES.forEach(({ id, label }, index) => this.button(315, 315 + index * 84, 490, label, () => {
-      this.category = id;
-      this.page = 0;
-      this.render();
-    }, { selected: id === this.category }));
-    const slot = this.category === 'armor' ? 'armor' : this.category === 'weapons' ? 'weapon'
-      : this.category === 'accessories' ? 'accessory' : this.category === 'potions' ? 'potion' : null;
-    const rows = slot ? ownedEquipment().filter((item) => item.slot === slot)
-      : this.category === 'materials' ? Object.entries(GameState.inventory.materials ?? {})
-        .filter(([id, count]) => CRAFTING_MATERIALS[id] && count > 0)
-        .map(([id, count]) => ({ ...CRAFTING_MATERIALS[id], count }))
-        : this.category === 'items' ? [...EQUIPMENT_ITEMS, ...POTION_ITEMS].map((definition) => ({ ...definition,
-          count: ownedEquipment().filter((item) => item.itemId === definition.id).length,
-          owned: ownedEquipment().filter((item) => item.itemId === definition.id)
-        }))
-          : this.category === 'recipes' ? CRAFTING_RECIPES.map((recipe) => ({ ...recipe, count: canCraft(recipe.id).ok ? 'Ready' : 'Gather materials' })) : [];
-    const start = this.pager(rows.length, 5, 'page', 1510, 948);
-    if (!rows.length) this.text(1510, 550, `No ${this.category} are available yet.`, 38, '#c7a982', 1500).setOrigin(0.5);
-    rows.slice(start, start + 5).forEach((item, index) => {
-      const y = 345 + index * 124;
-      const card = this.add.rectangle(1510, y, 1650, 128, 0x302018, 0.95).setStrokeStyle(3, 0x9b6b3b);
-      const stats = this.category === 'materials' ? item.description
-        : this.category === 'recipes' ? `${recipeIngredientText(item)}  •  ${item.count}`
-        : this.category === 'items' ? `${item.description}  •  ${item.count} owned`
-          : slot === 'potion' ? `${item.charges}/3 uses  •  ${getPotionDefinition(item.itemId)?.description ?? 'Effect unknown'}`
-            : equipmentStatsText(item.stats) || 'No bonuses';
-      bindSelectionDetails(this, card, { title: item.name, description: this.category === 'recipes' ? `${item.description}\nIngredients: ${stats}` : this.category === 'items' ? `${stats}\nRarity: ${item.rarity}. ${item.slot ?? 'Material'}.` : stats });
-      this.text(715, y - 31, item.name, 38, '#fff1d2', 1000);
-      this.text(2300, y - 31, this.category === 'materials' || this.category === 'items' || this.category === 'recipes' ? `${this.category === 'recipes' ? '' : 'x'}${item.count}` : equipmentOwner(item.id)?.name ?? 'Unequipped', 32, '#ffe0a7').setOrigin(1, 0.5);
-      this.text(715, y + 28, stats, 31, '#e8c89f', 1580);
+    this.selectionDetailsClose?.();
+    this.children.removeAll(true);
+    addHallFrame(this, 'Items');
+    hallPanel(this, 272, 638, 440, 736);
+    hallPanel(this, 1431, 638, 1834, 736);
+    hallText(this, 76, 321, 'Categories', 36, { fontStyle: 'bold' });
+    CATEGORIES.forEach(({ id, label, icon }, index) => {
+      const y = 426 + index * 126;
+      hallButton(this, 272, y, 388, 112, label, () => {
+        this.category = id; this.page = 0; this.render();
+      }, { selected: id === this.category, name: `hall-category-${id}`, size: 32, textStyle: { padding: { left: 40 } } });
+      hallIcon(this, icon, 116, y);
     });
+    const rows = this.rows();
+    const pages = Math.max(1, Math.ceil(rows.length / 4));
+    this.page = Math.max(0, Math.min(this.page, pages - 1));
+    hallText(this, 550, 321, CATEGORIES.find((category) => category.id === this.category).label, 40, { fontFamily: 'Georgia' });
+    hallText(this, 2310, 321, `${rows.length} ${this.category === 'recipes' ? 'recipes' : 'owned entries'}`, 29, { color: HALL.muted }).setOrigin(1, 0.5);
+    if (!rows.length) hallText(this, 1425, 608, 'Nothing owned in this category yet.', 40, { color: HALL.muted }).setOrigin(0.5);
+    rows.slice(this.page * 4, this.page * 4 + 4).forEach((item, index) => {
+      const y = 429 + index * 138;
+      const stats = this.category === 'materials' ? item.description
+        : this.category === 'recipes' ? recipeIngredientText(item)
+          : item.slot === 'scroll' ? ENCHANTMENTS.find((entry) => entry.id === item.enchantmentId)?.description ?? 'Enchantment scroll'
+            : item.slot === 'potion' ? `${item.charges}/3 uses · ${getPotionDefinition(item.itemId)?.description ?? ''}`
+              : equipmentStatsText(item.stats) || 'No bonuses';
+      guildSurface(this, 1431, y, 1760, 126, 'row');
+      const card = this.add.rectangle(1431, y, 1760, 126, 0, 0).setName(`hall-item-${item.id}`);
+      hallDetails(this, card, { title: item.name, description: `${stats}${equipmentOwner(item.id) ? `\n\nEquipped by ${equipmentOwner(item.id).name}` : ''}` });
+      hallIcon(this, this.category === 'materials' ? 'ingot' : this.category === 'recipes' ? 'scroll' : item.slot === 'weapon' ? 'sword' : item.slot === 'potion' ? 'flask' : item.slot === 'scroll' ? 'scroll' : 'shield', 606, y);
+      hallText(this, 660, y - 29, item.name, 35, { fontStyle: 'bold', wordWrap: { width: 1170 } });
+      hallText(this, 2265, y - 29, this.category === 'materials' ? `×${item.count}` : this.category === 'recipes' ? canCraft(item.id).ok ? 'Ready' : 'Gather materials' : equipmentOwner(item.id)?.name ?? 'Unequipped', 29, {
+        color: '#ffe0a7'
+      }).setOrigin(1, 0.5);
+      hallText(this, 660, y + 30, stats, 30, { color: HALL.muted, wordWrap: { width: 1590 } });
+    });
+    hallButton(this, 1100, 950, 270, 112, '< Prev', () => { this.page--; this.render(); }, { enabled: this.page > 0 });
+    hallText(this, 1431, 950, `${this.page + 1} / ${pages}`, 32).setOrigin(0.5);
+    hallButton(this, 1760, 950, 270, 112, 'Next >', () => { this.page++; this.render(); }, { enabled: this.page < pages - 1 });
+  }
+
+  rows() {
+    const owned = ownedEquipment();
+    if (this.category === 'equipment') return owned.filter((item) => ['weapon', 'armor', 'accessory'].includes(item.slot));
+    if (this.category === 'items') return owned.filter((item) => item.slot === 'scroll');
+    if (this.category === 'potions') return owned.filter((item) => item.slot === 'potion');
+    if (this.category === 'materials') return Object.entries(GameState.inventory.materials ?? {})
+      .filter(([id, count]) => CRAFTING_MATERIALS[id] && count > 0).map(([id, count]) => ({ ...CRAFTING_MATERIALS[id], count }));
+    return CRAFTING_RECIPES;
   }
 }

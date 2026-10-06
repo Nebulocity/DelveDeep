@@ -1,9 +1,10 @@
 import GameState from '../game/GameState.js';
 import HapticsService from '../services/HapticsService.js';
-import { bindSelectionDetails, addDetailsHint } from './SelectionDetails.js';
+import { bindSelectionDetails } from './SelectionDetails.js';
 import { UI_SAFE_TOP } from './Layout.js';
-import { addReturnButton } from './ReturnButton.js';
-import { addFacilityChoiceCard } from './FacilityChoiceArt.js';
+import { addFacilityReturnButton, addFacilityDetailsHint } from './FacilityChrome.js';
+import { addFacilityChoiceCard, addFacilityPlate } from './FacilityChoiceArt.js';
+import { bindButtonPress } from './ButtonPress.js';
 import { addWoodenPanel } from './WoodenPanel.js';
 
 export const FACILITIES = {
@@ -11,22 +12,26 @@ export const FACILITIES = {
     name: 'Alchemist', title: 'ALCHEMIST', background: 'alchemist', subtitle: 'Potions, mixtures, and remedies.',
     choices: [
       { id: 'buy', label: 'BUY', icon: 'flask', subtitle: 'Browse potions', description: 'Buy three-use potion packs for your adventurers.', message: 'Choose a potion pack.' },
-      { id: 'sell', label: 'SELL', icon: 'flask-sale', subtitle: 'Trade potions', description: 'Sell unequipped potion packs for Gold based on remaining uses.', message: 'Choose a potion pack to sell.' },
+      { id: 'sell', label: 'SELL', icon: 'flask-sale', subtitle: 'Sell any item', description: 'Sell owned gear, potion packs, materials, and enchantment scrolls. Unequip gear first.', message: 'Choose an owned item to sell.' },
       { id: 'brew', label: 'BREW', icon: 'cauldron', subtitle: 'Mix remedies', description: 'Brew Health and Mana Potion packs from gathered ingredients.', message: 'Choose a potion recipe.' }
     ]
   },
   Blacksmith: {
     name: 'Blacksmith', title: 'BLACKSMITH', background: 'blacksmith', subtitle: 'Equipment and the forge.',
     choices: [
-      { id: 'sell', label: 'SELL', icon: 'ingot', subtitle: 'Trade materials', description: 'Sell gathered materials for Gold.', message: 'Choose materials to sell.' },
+      { id: 'buy', label: 'BUY', icon: 'sword', subtitle: 'Browse gear', description: 'Buy stocked weapons and armor.', message: 'Choose gear.' },
+      { id: 'sell', label: 'SELL', icon: 'satchel', subtitle: 'Sell any item', description: 'Sell owned gear, potions, materials, and scrolls. Unequip gear first.', message: 'Choose an owned item to sell.' },
       { id: 'craft', label: 'CRAFT', icon: 'anvil', subtitle: 'Visit the forge', description: 'Craft the baseline weapons and armor from gathered materials.', message: 'Choose an equipment recipe.' }
     ]
   },
   Enchanter: {
     name: 'Enchanter', title: 'ENCHANTER', background: 'enchanter', subtitle: 'Arcane improvements and magical wares.',
     choices: [
-      { id: 'buy', label: 'BUY', icon: 'scroll', subtitle: 'Browse magical wares', description: 'Browse enchanted items for sale.', message: 'No enchanted items are stocked yet.' },
-      { id: 'sell', label: 'SELL', icon: 'scroll-sale', subtitle: 'Trade magical wares', description: 'Sell enchanted items.', message: 'You have no enchanted items to sell.' }
+      { id: 'buy', label: 'BUY', icon: 'scroll', subtitle: 'Minor scrolls', description: 'Buy minor enchantment scrolls.' },
+      { id: 'sell', label: 'SELL', icon: 'satchel', subtitle: 'Sell any item', description: 'Sell gear, potions, materials, and scrolls. Unequip gear first.' },
+      { id: 'inscribe', label: 'INSCRIBE', icon: 'scroll', subtitle: 'Craft scrolls', description: 'Inscribe minor enchantments from materials.' },
+      { id: 'enchant', label: 'ENCHANT', icon: 'rune', subtitle: 'Improve gear', description: 'Consume a scroll to apply one minor enchantment to compatible gear.' },
+      { id: 'disenchant', label: 'DISENCHANT', icon: 'rune', subtitle: 'Recover materials', description: 'Remove a known enchantment, keep the gear, and recover a random half of its recipe materials.' }
     ]
   }
 };
@@ -49,7 +54,7 @@ export function renderFacilityMenu(scene, facility, selected, onSelect, onReturn
   scene.add.rectangle(width / 2, 0, width, UI_SAFE_TOP + 152, 0x180d09, 0.84).setOrigin(0.5, 0);
   scene.add.rectangle(width / 2, height, width, 320, 0x180d09, 0.78).setOrigin(0.5, 1);
 
-  addReturnButton(scene, 'Town', onReturn,
+  addFacilityReturnButton(scene, facility.name, onReturn,
     { y: UI_SAFE_TOP + 32 });
   scene.add.text(width / 2, UI_SAFE_TOP + 24, facility.title, {
     fontFamily: 'Arial', fontSize: '70px', fontStyle: 'bold', color: '#fff1d2',
@@ -79,12 +84,13 @@ export function renderFacilityMenu(scene, facility, selected, onSelect, onReturn
   if (choice) {
     const x = panelBounds.x + panelBounds.width / 2 - 46;
     const y = panelBounds.y - panelBounds.height / 2 + 46;
-    const close = scene.add.rectangle(x, y, 76, 76, 0x6b4527)
-      .setStrokeStyle(3, 0xd9a662).setInteractive({ useHandCursor: true });
-    scene.add.text(x, y, 'X', {
+    const { art } = addFacilityPlate(scene, facility.name, x, y, 76, 76);
+    const close = scene.add.rectangle(x, y, 76, 76, 0, 0).setName('facility-close').setInteractive({ useHandCursor: true });
+    close.pressVisuals = [art];
+    const label = scene.add.text(x, y, 'X', {
       fontFamily: 'Arial', fontSize: '42px', fontStyle: 'bold', color: '#fff1d2'
     }).setOrigin(0.5);
-    close.on('pointerdown', () => { HapticsService.tap(); onClose(); });
+    bindButtonPress(scene, close, [label], () => { HapticsService.tap(); onClose(); });
   }
 
   const cardWidth = Math.min(600, (width - 280) / facility.choices.length);
@@ -100,5 +106,5 @@ export function renderFacilityMenu(scene, facility, selected, onSelect, onReturn
       onSelect(entry.id);
     });
   });
-  addDetailsHint(scene, height - 260);
+  if (!choice) addFacilityDetailsHint(scene, facility.name, height - 42);
 }

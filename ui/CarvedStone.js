@@ -1,8 +1,10 @@
+import stonePanelUrl from '../assets/ui/carved-stone/panel.png?inline';
+
 export const STONE = { text: '#f3ead5', muted: '#bdc9d4', gold: 0xe8b75c, edge: 0x62778f };
 
 export function preloadCarvedStone(scene) {
   if (!scene.textures.exists('carved-stone-panel')) {
-    scene.load.image('carved-stone-panel', new URL('../assets/ui/carved-stone/panel.png', import.meta.url).href);
+    scene.load.image('carved-stone-panel', stonePanelUrl);
   }
   if (!scene.textures.exists('carved-stone-camp-icons')) {
     scene.load.image('carved-stone-camp-icons', new URL('../assets/ui/carved-stone/camp-icons.png', import.meta.url).href);
@@ -34,10 +36,31 @@ export function stoneText(scene, x, y, text, size = 34, depth = 4602, options = 
 }
 
 export function addStonePanel(scene, x, y, width, height, depth = 4600) {
-  const texture = scene.textures.get('carved-stone-panel');
-  if (!texture.has('panel')) texture.add('panel', 0, 0, 66, 1774, 754);
-  const panel = scene.add.nineslice(x, y, 'carved-stone-panel', 'panel',
-    width * 8, height * 8, 160, 160, 160, 160).setScale(0.125).setDepth(depth);
+  const pixelWidth = Math.max(40, Math.round(width));
+  const pixelHeight = Math.max(40, Math.round(height));
+  const key = `carved-stone-surface-${pixelWidth}-${pixelHeight}`;
+  if (!scene.textures.exists(key)) {
+    const surface = scene.textures.createCanvas(key, pixelWidth, pixelHeight);
+    const context = surface.getContext();
+    const source = scene.textures.get('carved-stone-panel').getSourceImage();
+    const sourceX = [0, 160, 1614];
+    const sourceY = [66, 226, 660];
+    const sourceWidths = [160, 1454, 160];
+    const sourceHeights = [160, 434, 160];
+    const targetX = [0, 20, pixelWidth - 20];
+    const targetY = [0, 20, pixelHeight - 20];
+    const targetWidths = [20, pixelWidth - 40, 20];
+    const targetHeights = [20, pixelHeight - 40, 20];
+    context.imageSmoothingEnabled = false;
+    for (let row = 0; row < 3; row++) {
+      for (let column = 0; column < 3; column++) {
+        context.drawImage(source, sourceX[column], sourceY[row], sourceWidths[column], sourceHeights[row],
+          targetX[column], targetY[row], targetWidths[column], targetHeights[row]);
+      }
+    }
+    surface.refresh();
+  }
+  const panel = scene.add.image(x, y, key).setDisplaySize(width, height).setDepth(depth);
   panel.name = 'carved-stone-panel';
   return panel;
 }

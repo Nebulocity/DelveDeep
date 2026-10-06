@@ -1,30 +1,24 @@
 import { CLASS_DEFINITIONS } from '../data/classes.js';
 
-// Grid spell geometry is independent of screen perspective. Diagonal neighbors
-// count as one square; units continue to move freely inside their cells.
-export function cellOf(scene, unit) {
-  return scene.battlefield.arenaPointToCell(unit.arenaX ?? unit.x, unit.arenaY ?? unit.y);
+import { arenaDistance, ADJACENT_DISTANCE, NEAR_DISTANCE } from '../config/combatRanges.js';
+
+export function abilityDistance(scene, a, b) {
+  return arenaDistance(a, b) / ADJACENT_DISTANCE;
 }
-export function squareDistance(scene, a, b) {
-  const x = cellOf(scene, a), y = cellOf(scene, b);
-  return Math.max(Math.abs(x.column - y.column), Math.abs(x.row - y.row));
-}
+
 export function zoneContains(scene, point, anchor, zone) {
-  const p = cellOf(scene, point), a = cellOf(scene, anchor);
-  const left = Math.max(0, Math.min(scene.battlefield.columns - zone[0], a.column - Math.floor((zone[0] - 1) / 2)));
-  const bottom = Math.max(0, Math.min(scene.battlefield.rows - zone[1], a.row - Math.floor((zone[1] - 1) / 2)));
-  return p.column >= left && p.column < left + zone[0] && p.row >= bottom && p.row < bottom + zone[1];
+  return arenaDistance(point, anchor) <= Math.min(NEAR_DISTANCE, zone * ADJACENT_DISTANCE);
 }
+
 export function beamContains(scene, caster, target, point, range) {
-  const g = scene.battlefield;
-  const x = (target.arenaX - caster.arenaX) / (g.logicalWidth / g.columns);
-  const y = (target.arenaY - caster.arenaY) / (g.logicalHeight / g.rows);
-  const length = Math.hypot(x, y);
+  const dx = target.arenaX - caster.arenaX, dy = target.arenaY - caster.arenaY;
+  const length = Math.hypot(dx, dy);
   if (!length) return false;
-  const px = (point.arenaX - caster.arenaX) / (g.logicalWidth / g.columns);
-  const py = (point.arenaY - caster.arenaY) / (g.logicalHeight / g.rows);
-  const along = (px * x + py * y) / length;
-  return along > 0 && along <= range && Math.abs(px * y - py * x) / length <= 0.5;
+  const px = (point.arenaX ?? point.x) - caster.arenaX;
+  const py = (point.arenaY ?? point.y) - caster.arenaY;
+  const along = (px * dx + py * dy) / length;
+  return along > 0 && along <= range * ADJACENT_DISTANCE
+    && Math.abs(px * dy - py * dx) / length <= ADJACENT_DISTANCE / 2;
 }
 
 export default class ClassAbilitySystem {
@@ -34,7 +28,7 @@ export default class ClassAbilitySystem {
   }
   allies() { return this.scene.partyUnits.filter(u => u.alive); }
   enemies(unit) { return this.scene.getLivingEnemies().filter(e => unit.role === 'Tank' || this.scene.isEnemyEngaged(e)); }
-  distance(a, b) { return squareDistance(this.scene, a, b); }
+  distance(a, b) { return abilityDistance(this.scene, a, b); }
   canSacrifice(unit) {
     const scene = this.scene, wave = scene.waves?.[scene.currentWaveIndex];
     const others = scene.partyUnits.filter(ally => ally !== unit);
@@ -104,47 +98,42 @@ export default class ClassAbilitySystem {
     }
     this.traps = this.traps.filter(trap => {
       if (trap.wave !== this.scene.currentWaveIndex) return false;
-      const target = this.scene.getLivingEnemies().find(e => this.distance(e, trap.point) === 0);
+      const target = this.scene.getLivingEnemies().find(e => this.distance(e, trap.point) <= 0.6);
       if (!target) return true;
       this.resolve(trap.owner, target, { ...trap.ability, effect: 'damage' }, time);
       return false;
     });
   }
+  surroundingPoints(center, radius) {
+    return Array.from({ length: 16 }, (_, index) => {
+      const angle = index * Math.PI / 8;
+      return { x: (center.arenaX ?? center.x) + Math.cos(angle) * radius,
+        y: (center.arenaY ?? center.y) + Math.sin(angle) * radius };
+    });
+  }
   adjacentPoint(unit, target, behind = false) {
-    const scene = this.scene, cell = cellOf(scene, target);
     const facing = this.allies().find(a => a.id === target.currentTargetId);
-    const points = [];
-    for (let c = cell.column - 1; c <= cell.column + 1; c++) for (let r = cell.row - 1; r <= cell.row + 1; r++) {
-      if (c < 0 || r < 0 || c >= scene.battlefield.columns || r >= scene.battlefield.rows || (c === cell.column && r === cell.row)) continue;
-      const point = scene.battlefield.getCellCenter(c, r);
-      if (this.canTeleport(unit, point)) points.push(point);
-    }
-    // Rear cells are opposite the monster's current target; otherwise use the nearest free cell.
+    const points = this.surroundingPoints(target, 70).filter(p => this.canTeleport(unit, p));
     const score = p => behind && facing
-      ? (p.x-target.arenaX)*(facing.arenaX-target.arenaX)+(p.y-target.arenaY)*(facing.arenaY-target.arenaY)
-      : Math.hypot(p.x-unit.arenaX,p.y-unit.arenaY);
-    return points.sort((a,b) => score(a)-score(b))[0];
+      ? (p.x - target.arenaX) * (facing.arenaX - target.arenaX) + (p.y - target.arenaY) * (facing.arenaY - target.arenaY)
+      : arenaDistance(p, unit);
+    return points.sort((a, b) => score(a) - score(b))[0];
   }
   trapPoint(unit, enemies) {
-    const cell = cellOf(this.scene, unit), points = [];
-    for (let c=cell.column-1;c<=cell.column+1;c++) for(let r=cell.row-1;r<=cell.row+1;r++) {
-      if(c<0||r<0||c>=this.scene.battlefield.columns||r>=this.scene.battlefield.rows||(c===cell.column&&r===cell.row)) continue;
-      const p=this.scene.battlefield.getCellCenter(c,r);
-      if(this.canTeleport(unit,p)) points.push(p);
-    }
-    const score=p=>Math.min(...enemies.map(e=>Math.hypot(e.arenaX-p.x,e.arenaY-p.y)));
-    const p=points.sort((a,b)=>score(a)-score(b))[0];
-    return p ? {arenaX:p.x,arenaY:p.y,alive:true} : null;
+    const points = this.surroundingPoints(unit, ADJACENT_DISTANCE).filter(p => this.canTeleport(unit, p));
+    const score = p => Math.min(...enemies.map(e => arenaDistance(e, p)));
+    const point = points.sort((a, b) => score(a) - score(b))[0];
+    return point ? { arenaX: point.x, arenaY: point.y, alive: true } : null;
   }
   canTeleport(unit, point) {
     const scene = this.scene, g = scene.battlefield;
     if (point.x < 0 || point.y < 0 || point.x > g.logicalWidth || point.y > g.logicalHeight) return false;
-    if ([...this.allies(), ...scene.getLivingEnemies()].some(other => other !== unit && this.distance(other, point) === 0)) return false;
+    if ([...scene.partyUnits.filter(other => other.container?.active !== false), ...scene.getLivingEnemies()].some(other => other !== unit && arenaDistance(other, point) < 52)) return false;
     const safe = scene.terrain?.nearestSafeUnitPoint(unit, point.x, point.y, 12) ?? point;
     return Math.hypot(safe.x - point.x, safe.y - point.y) < 1;
   }
   move(unit, point, time) {
-    if (!unit.gridAbilities || !unit.canStartAction(time) || !unit.canCast(time) || !this.canTeleport(unit, point)) return false;
+    if (!unit.classAbilities || !unit.canStartAction(time) || !unit.canCast(time) || !this.canTeleport(unit, point)) return false;
     const entry = Object.entries(unit.abilities).find(([, a]) => a.effect === 'teleport');
     if (entry && this.distance(unit, point) > entry[1].moveThreshold && unit.abilityReady(entry[0], time)) {
       unit.markAbilityUsed(entry[0], time);
@@ -156,12 +145,12 @@ export default class ClassAbilitySystem {
     return true;
   }
   escapePoint(unit, range, minRange = 0) {
-    const scene = this.scene, enemies = scene.getLivingEnemies(), points = [];
-    for (let c = 0; c < scene.battlefield.columns; c++) for (let r = 0; r < scene.battlefield.rows; r++) {
-      const p = scene.battlefield.getCellCenter(c, r);
-      if (this.distance(unit, p) <= range && this.distance(unit, p) > minRange && this.canTeleport(unit, p)) points.push(p);
+    const enemies = this.scene.getLivingEnemies();
+    const points = [];
+    for (let radius = Math.max(1, minRange + 0.5); radius <= range; radius += 0.5) {
+      points.push(...this.surroundingPoints(unit, radius * ADJACENT_DISTANCE).filter(p => this.canTeleport(unit, p)));
     }
-    const safety = p => Math.min(...enemies.map(e => this.distance(e, p)));
+    const safety = p => Math.min(...enemies.map(e => arenaDistance(e, p)));
     return points.sort((a, b) => safety(b) - safety(a))[0];
   }
   update(unit, time, delta) {
@@ -171,8 +160,8 @@ export default class ClassAbilitySystem {
     // Ability order follows the class data; healing takes priority for injured allies.
     const enemies = this.enemies(unit), allies = this.allies();
     const injured = allies.filter(a => a.hp < a.maxHp).sort((a,b) => a.hp/a.maxHp - b.hp/b.maxHp);
-    const healingNeeded = unit.role === 'Healer' && allies.some(a => a.hp / a.maxHp < 0.8);
     const healingPriority = unit.role === 'Healer' ? scene.getHealerPriorityTarget?.(unit) : null;
+    const healingNeeded = unit.role === 'Healer' && (Boolean(healingPriority) || allies.some(a => a.hp / a.maxHp < 0.8));
     if (healingPriority) {
       const index = injured.indexOf(healingPriority);
       if (index >= 0) injured.unshift(...injured.splice(index, 1));
@@ -215,7 +204,7 @@ export default class ClassAbilitySystem {
       if (a.effect === 'heal') {
         if (ordered && a.target !== 'self') continue;
         target = a.target === 'self' ? (unit.hp < unit.maxHp ? unit : null)
-          : injured.find(t => this.distance(unit,t) <= a.range);
+          : (healingPriority ? [healingPriority] : injured).find(t => this.distance(unit,t) <= a.range);
         if (a.zone) target = this.bestZone(unit, a, injured);
         if (!target) continue;
       } else if (a.effect === 'protect') {
@@ -255,7 +244,7 @@ export default class ClassAbilitySystem {
       return;
     }
     const basicHealTarget = unit.role === 'Healer' && !ordered
-      ? injured.find(target => this.distance(unit, target) <= unit.basicHealRange) : null;
+      ? (healingPriority ? [healingPriority] : injured).find(target => this.distance(unit, target) <= unit.basicHealRange) : null;
     if (basicHealTarget && unit.canHeal(time)) {
       scene.beginBasicHeal(unit, basicHealTarget, time);
       return;
@@ -266,30 +255,26 @@ export default class ClassAbilitySystem {
     if (scene.isPositionLocked(unit)) return;
     const healTarget = unit.role === 'Healer' && !ordered ? injured[0] : null;
     if (healTarget) {
-      if (this.distance(unit,healTarget)>3) unit.moveToward(healTarget.arenaX,healTarget.arenaY,delta,100);
+      if (this.distance(unit,healTarget)>unit.basicHealRange) unit.moveToward(healTarget.arenaX,healTarget.arenaY,delta,100);
       else if (preferred) scene.movement.maintainRange(unit,preferred,delta,true);
     } else if (preferred) scene.movement.moveToCombatPosition(unit,preferred,time,delta);
   }
   bestLine(unit, ability, candidates) {
-    const scene=this.scene, g=scene.battlefield;
-    let best=null, score=0;
-    for(let c=0;c<g.columns;c++) for(let r=0;r<g.rows;r++) {
-      const p=g.getCellCenter(c,r), point={arenaX:p.x,arenaY:p.y,alive:true};
-      const length=Math.hypot((p.x-unit.arenaX)/(g.logicalWidth/g.columns),(p.y-unit.arenaY)/(g.logicalHeight/g.rows));
-      if(!length || length>ability.range) continue;
-      const count=candidates.filter(t=>beamContains(scene,unit,point,t,length+0.001)).length;
-      if(count>score) { best=point; score=count; }
+    let best = null, score = 0;
+    for (const target of candidates) {
+      const length = this.distance(unit, target);
+      if (!length || length > ability.range) continue;
+      const count = candidates.filter(t => beamContains(this.scene, unit, target, t, length + 0.001)).length;
+      if (count > score) { best = { arenaX: target.arenaX, arenaY: target.arenaY, alive: true }; score = count; }
     }
     return best;
   }
-  bestZone(unit, a, candidates) {
-    const scene=this.scene;
-    let best=null, score=0;
-    for(let c=0;c<scene.battlefield.columns;c++) for(let r=0;r<scene.battlefield.rows;r++) {
-      const point=scene.battlefield.getCellCenter(c,r);
-      if(this.distance(unit,point)>a.range) continue;
-      const count=candidates.filter(t=>zoneContains(scene,t,point,a.zone)).length;
-      if(count>score) { score=count; best={arenaX:point.x,arenaY:point.y,alive:true}; }
+  bestZone(unit, ability, candidates) {
+    let best = null, score = 0;
+    for (const target of candidates) {
+      if (this.distance(unit, target) > ability.range) continue;
+      const count = candidates.filter(t => zoneContains(this.scene, t, target, ability.zone)).length;
+      if (count > score) { best = { arenaX: target.arenaX, arenaY: target.arenaY, alive: true }; score = count; }
     }
     return best;
   }
@@ -373,7 +358,7 @@ export default class ClassAbilitySystem {
   resolve(unit,target,a,time,skipChargeMove=false) {
     const scene=this.scene,s=unit.status,allies=this.allies();
 
-    // Movement effects resolve before damage so range and terrain use the landing cell.
+    // Movement effects resolve before damage so range and terrain use the landing point.
     if(a.requiresStealth && !unit.stealthed) return;
     if((a.charge && !skipChargeMove) || a.behind) {
       if(scene.isPositionLocked(unit) || s.rootedUntil > time) return;
@@ -497,10 +482,7 @@ export default class ClassAbilitySystem {
     else if(a.radius) targets=targets.filter(t=>this.distance(unit,t)<=a.radius);
     else if(a.splash) targets=targets.filter(t=>this.distance(target,t)<=a.splash);
     else if(a.beam) {
-      const g=scene.battlefield;
-      const length=a.endpoint ? Math.min(a.range,Math.hypot(
-        (target.arenaX-unit.arenaX)/(g.logicalWidth/g.columns),
-        (target.arenaY-unit.arenaY)/(g.logicalHeight/g.rows)))+0.001 : a.range;
+      const length = a.endpoint ? Math.min(a.range, this.distance(unit, target)) + 0.001 : a.range;
       targets=[...targets,...(a.friendlyFire?allies.filter(t=>t!==unit):[])]
         .filter(t=>beamContains(scene,unit,target,t,length));
     }

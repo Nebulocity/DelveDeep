@@ -38,7 +38,7 @@ export default class RewardScene extends Phaser.Scene {
     this.add.text(leftX, panelY - 35, `Total Gold: ${GameState.gold}`, { fontFamily: 'Arial', fontSize: '32px', color: '#a8a29e' }).setOrigin(0.5);
     this.add.text(leftX, panelY + 20, `Time: ${formatDuration(summary?.elapsedMs)}`, { fontFamily: 'Arial', fontSize: '36px', color: '#ffffff' }).setOrigin(0.5);
     if (summary?.isNewBest) this.add.text(leftX, panelY + 64, 'NEW BEST TIME', { fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#bef264' }).setOrigin(0.5);
-    const tacticsReward = summary?.leaderResult?.tacticsPointsEarned > 0 ? `+${summary.leaderResult.tacticsPointsEarned} Tactics Points` : `Tactics Rank ${GameState.leader?.level ?? 1}`;
+    const tacticsReward = summary?.leaderResult?.tacticsPointsEarned > 0 ? `+${summary.leaderResult.tacticsPointsEarned} Tactics Points` : `Renown Level ${GameState.leader?.level ?? 1}`;
     this.add.text(leftX, panelY + 115, tacticsReward, { fontFamily: 'Arial', fontSize: '32px', color: '#c4b5fd' }).setOrigin(0.5);
 
     // Build the right panel from the adventurer advancement entries in the

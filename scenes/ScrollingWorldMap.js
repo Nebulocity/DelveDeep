@@ -1,3 +1,5 @@
+import { addRegionPanel } from '../ui/RegionMapTheme.js';
+import { REGION_RAIL_WIDTH, MAP_HEADER_HEIGHT, MAP_FOOTER_HEIGHT, createRegionLocationRail, updateRegionLocationRail, syncRegionMapCameras } from '../ui/RegionMapUI.js';
 import GameState from '../game/GameState.js';
 import delves from '../data/delves.js';
 import { saveProfile } from '../game/GameStorage.js';
@@ -29,8 +31,7 @@ function drawWorld(scene) {
     .setDisplaySize(WORLD_COLUMNS * TILE, WORLD_ROWS * TILE).setDepth(0);
   if (!cleared(branchLock.requiresClear)) {
     const point = mapPoint(branchLock.position);
-    scene.add.rectangle(point.x, point.y, 160, 100, 0x25201c, 0.95)
-      .setStrokeStyle(5, 0xc7a76b).setDepth(90);
+    addRegionPanel(scene, point.x, point.y, 180, 100, 90, 'normal', false);
     scene.add.text(point.x, point.y, 'LOCKED', { fontFamily: 'Arial', fontSize: '32px',
       fontStyle: 'bold', color: '#ffe2a2' }).setOrigin(0.5).setDepth(91);
   }
@@ -38,13 +39,14 @@ function drawWorld(scene) {
   const open = cleared(regionExit.requiresClear);
   const sign = scene.add.text(exit.x, exit.y, open ? 'HIGHMERE →' : 'PORTAL LOCK', {
     fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: open ? '#c9f2d3' : '#d7b3eb',
-    backgroundColor: '#18231dee', padding: { x: 16, y: 14 }
+    padding: { x: 16, y: 14 }
   }).setOrigin(1, 0.5).setDepth(170).setInteractive({ useHandCursor: true });
-  bindSelectionDetails(scene, sign, { title: 'ROAD TO HIGHMERE CRAGS', description: open
+  addRegionPanel(scene, exit.x - sign.width / 2, exit.y, sign.width + 14, sign.height + 8, 169, 'normal', false);
+  bindSelectionDetails(scene, sign, { title: 'ROAD TO HIGHMERE CRAGS', messageScope: 'map', description: open
     ? 'The Murmuring Abyss is defeated and the road is open. Travel to Highmere Crags will be available in a future update.'
     : 'Defeat The Murmuring Abyss to open the road to Highmere Crags.' }, () => {
     HapticsService.tap();
-    scene.showToast(open ? 'Road opened. Highmere Crags is coming next.' : 'Defeat The Murmuring Abyss to open this road.');
+    scene.showToast(open ? 'Road opened. Highmere Crags is coming next.' : 'Defeat The Murmuring Abyss to open this road.', 'map');
   }, undefined, { allowSceneInput: true });
 }
 
@@ -91,37 +93,64 @@ function renderPois(scene) {
     scene.add.circle(label.x, label.y + 58, 22, unlocked ? color : 0x415047, 0.95)
       .setStrokeStyle(4, unlocked ? 0xf4eac9 : 0x738278).setDepth(160);
     const nameplate = scene.add.text(label.x, label.y, `${unlocked ? '' : 'LOCKED · '}${poi.name}`, {
-      fontFamily: 'Georgia', fontSize: '36px', fontStyle: 'bold', color: unlocked ? '#fff1d1' : '#bcc4bb',
-      stroke: '#142019', strokeThickness: 5, backgroundColor: '#16241bee', padding: { x: 18, y: 12 }
+      fontFamily: 'Georgia', fontSize: '42px', fontStyle: 'bold', color: unlocked ? '#fff1d1' : '#bcc4bb',
+      stroke: '#142019', strokeThickness: 5, padding: { x: 18, y: 12 }
     }).setOrigin(0.5).setDepth(170).setInteractive({ useHandCursor: true });
+    addRegionPanel(scene, label.x, label.y, nameplate.width + 14, nameplate.height + 8, 169, 'normal', false);
     if (cleared(poi.id) && (poi.type === 'delve' || poi.type === 'void')) {
       scene.add.text(label.x, label.y + 58, '✓', { fontFamily: 'Arial', fontSize: '34px', color: '#a8efb4', stroke: '#142019', strokeThickness: 5 })
         .setOrigin(0.5).setDepth(180);
     }
     const hit = scene.add.circle(point.x, point.y - 100, 145, 0xffffff, 0.001).setDepth(900);
-    const details = () => poi.type === 'delve' || poi.type === 'void'
-      ? delveDetails(POI_DELVES[poi.id] ?? DELVES[poi.id])
-      : poi.type === 'everdeep' ? { title: poi.name, description: everdeepUnlocked()
-        ? 'Send five adventurers on a timed expedition. A Writ costs 120 Gold; chests are earned every ten successful waves.'
-        : 'Defeat the boss of The Sunken Watch to unlock the Everdeep branch.' }
-      : { title: poi.name, description: 'Visit town to prepare your party.', image: poi.conceptArt };
+    const details = () => locationDetails(poi);
     bindSelectionDetails(scene, hit, details, () => selectPoi(scene, poi), undefined, { allowSceneInput: true });
     bindSelectionDetails(scene, nameplate, details, () => selectPoi(scene, poi), undefined, { allowSceneInput: true });
   }
+}
+
+function locationDetails(poi) {
+  const details = poi.type === 'delve' || poi.type === 'void'
+    ? delveDetails(POI_DELVES[poi.id] ?? DELVES[poi.id])
+    : poi.type === 'everdeep' ? { title: poi.name, description: everdeepUnlocked()
+      ? 'Send adventurers on timed expeditions. Visit the Everdeep to prepare an expedition and review its rewards.'
+      : 'Defeat the boss of The Sunken Watch to unlock the Everdeep branch.' }
+    : { title: poi.name, description: 'Visit town to prepare your party.', image: poi.conceptArt };
+  return { ...details, messageScope: 'map' };
+}
+
+export function findParty(scene) {
+  const camera = scene.cameras.main;
+  scene.partyPan?.stop();
+  camera.stopFollow();
+  const startX = camera.scrollX;
+  const startY = camera.scrollY;
+  scene.partyPan = scene.tweens.addCounter({ from: 0, to: 1, duration: 750, ease: 'Sine.easeInOut',
+    onUpdate: tween => {
+      const target = camera.getScroll(scene.party.x, scene.party.y - scene.partyCameraOffset);
+      const t = tween.getValue();
+      camera.setScroll(startX + (target.x - startX) * t, startY + (target.y - startY) * t);
+    },
+    onComplete: () => {
+      const x = camera.scrollX, y = camera.scrollY;
+      camera.startFollow(scene.party, false, 0.09, 0.09, 0, scene.partyCameraOffset);
+      camera.setScroll(x, y);
+      scene.partyPan = null;
+    }
+  });
 }
 
 export function selectPoi(scene, poi) {
   HapticsService.tap();
   if (!available(poi)) {
     const required = pois.find((entry) => entry.id === poi.requiresClear);
-    scene.showToast(`Defeat the boss of ${required?.name ?? 'the preceding Delve'} to unlock this location.`);
+    scene.showToast(`Defeat the boss of ${required?.name ?? 'the preceding Delve'} to unlock this location.`, 'map');
     return;
   }
   const path = scene.activeEdge
     ? routeFromEdge(scene.activeEdge.id, scene.edgeT, poi.node, cleared)
     : routeBetween(scene.partyNode, poi.node, cleared);
   if (!path) {
-    scene.showToast('Clear the preceding Delve bosses to open the road.');
+    scene.showToast('Clear the preceding Delve bosses to open the road.', 'map');
     return;
   }
   if (poi.template && !GameState.world.discoveredLocations.includes(poi.id)) {
@@ -130,7 +159,7 @@ export function selectPoi(scene, poi) {
   }
   scene.travelRoute = path.slice(1);
   scene.destination = poi;
-  scene.cameras.main.startFollow(scene.party, false, 0.09, 0.09);
+  findParty(scene);
   if (scene.activeEdge) {
     scene.edgeTarget = path[0];
     scene.party.play(`world-party-walk-${scene.partyFacing}`, true);
@@ -183,11 +212,16 @@ export function createScrollingWorldMap(scene) {
   drawWorld(scene);
   createParty(scene);
   renderPois(scene);
-  scene.cameras.main.setBounds(0, 0, WORLD_COLUMNS * TILE, WORLD_ROWS * TILE);
-  scene.cameras.main.startFollow(scene.party, false, 0.09, 0.09);
-  scene.cameras.main.setFollowOffset(0, height * 0.22);
-  scene.cameras.main.centerOn(scene.party.x, scene.party.y - height * 0.22);
-  scene.add.rectangle(width / 2, 58, width, 116, 0x070b10, 0.9).setScrollFactor(0).setDepth(1000);
+  const camera = scene.cameras.main;
+  camera.setViewport(REGION_RAIL_WIDTH, MAP_HEADER_HEIGHT, width - REGION_RAIL_WIDTH,
+    height - MAP_HEADER_HEIGHT - MAP_FOOTER_HEIGHT).setZoom(0.70);
+  camera.setBounds(0, 0, WORLD_COLUMNS * TILE, WORLD_ROWS * TILE);
+  scene.partyCameraOffset = camera.height * 0.18 / camera.zoom;
+  scene.partyPan = null;
+  camera.startFollow(scene.party, false, 0.09, 0.09, 0, scene.partyCameraOffset);
+  scene.mapUiCamera = scene.cameras.add(0, 0, width, height, false, 'region-map-ui');
+  createRegionLocationRail(scene, pois, available, cleared, locationDetails, poi => selectPoi(scene, poi));
+  addRegionPanel(scene, width / 2, 58, width, MAP_HEADER_HEIGHT, 1000);
   scene.add.text(58, 18, 'DELVE DEEP', { fontFamily: 'Arial', fontSize: '54px', fontStyle: 'bold', color: '#f8fafc' })
     .setScrollFactor(0).setDepth(1001);
   scene.regionText = scene.add.text(58, 69, 'WORLD MAP', { fontFamily: 'Arial', fontSize: '30px', fontStyle: 'bold', color: '#94a3b8' })
@@ -195,8 +229,7 @@ export function createScrollingWorldMap(scene) {
   scene.currencyText = scene.add.text(width - 58, 26, `Gold: ${GameState.gold}`, {
     fontFamily: 'Arial', fontSize: '31px', fontStyle: 'bold', color: '#fbbf24'
   }).setOrigin(1, 0).setScrollFactor(0).setDepth(1001);
-  const recenter = scene.add.rectangle(width - 185, height - 65, 300, 100, 0x142a23, 0.96)
-    .setStrokeStyle(3, 0x9cc5ad).setScrollFactor(0).setDepth(1000)
+  const recenter = addRegionPanel(scene, width - 185, height - 65, 300, 100, 1000)
     .setInteractive({ useHandCursor: true });
   scene.add.text(width - 185, height - 65, 'FIND PARTY', {
     fontFamily: 'Arial', fontSize: '38px', fontStyle: 'bold', color: '#f1f8ec'
@@ -204,7 +237,7 @@ export function createScrollingWorldMap(scene) {
   recenter.on('pointerdown', (pointer, x, y, event) => {
     event?.stopPropagation?.();
     HapticsService.tap();
-    scene.cameras.main.startFollow(scene.party, false, 0.09, 0.09);
+    findParty(scene);
   });
   let drag = null;
   const startDrag = (pointer, objects) => {
@@ -218,11 +251,12 @@ export function createScrollingWorldMap(scene) {
     const dx = pointer.x - drag.x;
     const dy = pointer.y - drag.y;
     if (!dx && !dy) return;
-    scene.cameras.main.stopFollow();
-    scene.cameras.main.setScroll(
-      Math.max(0, Math.min(WORLD_COLUMNS * TILE - width, scene.cameras.main.scrollX - dx)),
-      Math.max(0, Math.min(WORLD_ROWS * TILE - height, scene.cameras.main.scrollY - dy))
-    );
+    scene.partyPan?.stop();
+    scene.partyPan = null;
+    const camera = scene.cameras.main;
+    camera.stopFollow();
+    camera.setScroll(camera.clampX(camera.scrollX - dx / camera.zoom),
+      camera.clampY(camera.scrollY - dy / camera.zoom));
     drag.x = pointer.x;
     drag.y = pointer.y;
   };
@@ -237,25 +271,23 @@ export function createScrollingWorldMap(scene) {
     scene.input.off('pointerup', endDrag);
     scene.input.off('gameout', endDrag);
   });
-  scene.add.rectangle(width / 2, height, width, 146, 0x070b10, 0.84)
-    .setOrigin(0.5, 1).setScrollFactor(0).setDepth(999);
-  addDetailsHint(scene, height - 65, 'Drag map. Tap to travel. Hold for details.', { x: width / 2 + 150, fontSize: 30, fixed: true, width: 1060 });
-  const help = scene.add.rectangle(190, height - 65, 300, 100, 0x142a23, 0.96)
-    .setStrokeStyle(3, 0x9cc5ad).setScrollFactor(0).setDepth(1000).setInteractive({ useHandCursor: true });
-  scene.add.text(190, height - 65, 'HOW TO PLAY', { fontFamily: 'Arial', fontSize: '38px', fontStyle: 'bold', color: '#f1f8ec' })
+  addRegionPanel(scene, (width + REGION_RAIL_WIDTH) / 2, height - MAP_FOOTER_HEIGHT / 2, width - REGION_RAIL_WIDTH, MAP_FOOTER_HEIGHT, 999);
+  addDetailsHint(scene, height - 65, 'Drag map to explore. Hold for details.', { x: 1430, fontSize: 28, fixed: true, width: 570 });
+  const help = addRegionPanel(scene, 640, height - 65, 300, 100, 1000).setInteractive({ useHandCursor: true });
+  scene.add.text(640, height - 65, 'HOW TO PLAY', { fontFamily: 'Arial', fontSize: '38px', fontStyle: 'bold', color: '#f1f8ec' })
     .setOrigin(0.5).setScrollFactor(0).setDepth(1001);
   help.on('pointerdown', () => {
     HapticsService.tap();
     showSelectionDetails(scene, { title: 'WELCOME TO DELVE DEEP', panelWidth: 1700, description:
-      'Visit Pineshire to prepare, then tap The Slime Cave. Choose five adventurers: up to one Tank, two Healers, and four DPS.\n\nYour party fights automatically. Select adventurers to give orders and use Raid Leader tactics during combat.\n\nCleared waves bank rewards. At camp you can farm, return to town, or challenge the boss. Defeat each Delve boss to open the next road. The Sunken Watch opens the Y-branch to the Everdeep and Murmuring Abyss.\n\nDefeat the portal to open the exit toward Highmere. This first-region build ends there. Progress saves on this device. The Enchanter has no stock yet.' });
+      'Visit Pineshire to prepare, then tap The Slime Cave. Choose five adventurers: up to one Tank, two Healers, and four DPS.\n\nYour party fights automatically. Select adventurers to give orders and use Raid Leader tactics during combat.\n\nCleared waves bank rewards. At camp you can farm, return to town, or challenge the boss. Defeat each Delve boss to open the next road. The Sunken Watch opens the Y-branch to the Everdeep and Murmuring Abyss.\n\nDefeat the portal to open the exit toward Highmere. This first-region build ends there. Progress saves on this device.' });
   });
-  const reset = scene.add.rectangle(520, height - 65, 300, 100, 0x342a23, 0.96)
-    .setStrokeStyle(3, 0xc9b28b).setScrollFactor(0).setDepth(1000).setInteractive({ useHandCursor: true });
-  scene.add.text(520, height - 65, 'DEV TOOLS', { fontFamily: 'Arial', fontSize: '38px', fontStyle: 'bold', color: '#fff1d2' })
+  const reset = addRegionPanel(scene, 970, height - 65, 300, 100, 1000).setInteractive({ useHandCursor: true });
+  scene.add.text(970, height - 65, 'DEV TOOLS', { fontFamily: 'Arial', fontSize: '38px', fontStyle: 'bold', color: '#fff1d2' })
     .setOrigin(0.5).setScrollFactor(0).setDepth(1001);
   reset.on('pointerdown', () => { HapticsService.tap();
     scene.showDevelopmentTools();
   });
+  syncRegionMapCameras(scene);
   scene.time.addEvent({ delay: 2000, loop: true, callback: () => persistTravel(scene) });
   scene.events.once('shutdown', () => persistTravel(scene));
 }
@@ -268,6 +300,8 @@ function persistTravel(scene) {
 }
 
 export function updateScrollingWorldMap(scene, delta) {
+  syncRegionMapCameras(scene);
+  updateRegionLocationRail(scene, cleared);
   const region = regions[0];
   scene.regionText?.setText(`WORLD MAP  ·  ${region.name}`);
   if (scene.selectionDetailsClose) return;

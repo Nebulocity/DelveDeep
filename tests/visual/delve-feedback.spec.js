@@ -1,0 +1,67 @@
+import { test, expect } from '@playwright/test';
+
+test('Delve selection highlights both surfaces and ally taps command the group', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/?visualQa=1');
+  await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__?.game.scene.getScene('TitleScene').sys.isActive());
+  await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.activate('BattleScene'));
+  await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene').enemies?.some(enemy => enemy.alive && !enemy.landing));
+  await page.locator('#loading-screen').waitFor({ state: 'hidden' });
+  await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene').togglePause());
+  const clickCard = async index => {
+    const point = await page.evaluate(i => {
+      const game = window.__DELVE_DEEP_VISUAL_QA__.game, scene = game.scene.getScene('BattleScene');
+      const zone = scene.partyHud[i].statusHitZone, canvas = game.canvas.getBoundingClientRect();
+      return { x: canvas.x + zone.x * canvas.width / game.scale.width, y: canvas.y + (zone.y - 30) * canvas.height / game.scale.height };
+    }, index);
+    await page.mouse.click(point.x, point.y);
+  };
+  await clickCard(0);
+  expect(await page.evaluate(() => {
+    const s = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene'), c = s.partyHud[0];
+    return { selected: s.selectedUnitIds.size, portrait: c.portraitHighlight.visible, card: c.cardHighlight.visible, battlefield: c.unit.hitZone.strokeAlpha };
+  })).toEqual({ selected: 1, portrait: true, card: true, battlefield: 1 });
+  await clickCard(1);
+  expect(await page.evaluate(() => {
+    const s = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
+    return s.selectedUnitIds.has(s.partyHud[0].unit.id) && s.manualTargets.has(s.partyHud[0].unit.id);
+  })).toBe(true);
+  await page.evaluate(() => {
+    const s = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
+    s.selectRole('All');
+    s.partyHud[0].unit.hp = Math.floor(s.partyHud[0].unit.maxHp / 2);
+  });
+  await clickCard(0);
+  expect(await page.evaluate(() => {
+    const s = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
+    return { selected: s.selectedUnitIds.size, highlights: s.partyHud.filter(c => c.portraitHighlight.visible).length,
+      healers: s.partyUnits.filter(u => u.role === 'Healer').every(u => s.healerPriorityTargets.get(u.id) === s.partyHud[0].unit.id) };
+  })).toEqual({ selected: 5, highlights: 5, healers: true });
+  await page.screenshot({ path: 'output/qa/delve-feedback/group-selection.png' });
+  await page.evaluate(() => {
+    const s = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
+    s.showBattleMessage(s.formatWaveReward({ gold: 30, xp: 17, materials: { cloth: 2, iron: 1, herb: 1 } }), '#bef264', true);
+  });
+  expect(await page.evaluate(() => {
+    const s = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
+    return s.battleMessageText.text.includes('+2 Woven Cloth') && s.battleMessagePlaque.getBounds().height >= s.battleMessageText.height + 29;
+  })).toBe(true);
+  await page.screenshot({ path: 'output/qa/delve-feedback/named-rewards.png' });
+  const inspectPoint = await page.evaluate(() => {
+    const game = window.__DELVE_DEEP_VISUAL_QA__.game, scene = game.scene.getScene('BattleScene');
+    const zone = scene.partyHud[0].statusHitZone, canvas = game.canvas.getBoundingClientRect();
+    return { x: canvas.x + zone.x * canvas.width / game.scale.width, y: canvas.y + (zone.y - 30) * canvas.height / game.scale.height };
+  });
+  await page.mouse.move(inspectPoint.x, inspectPoint.y);
+  await page.mouse.down();
+  await page.waitForFunction(() => Boolean(window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene').selectionDetailsClose));
+  await page.mouse.up();
+  expect(await page.evaluate(() => {
+    const s = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
+    const body = s.children.list.find(o => o.type === 'Text' && o.depth === 10002 && o.text.includes('HP:'));
+    return { align: body.style.align, origin: body.originX, paused: s.combatPaused, selected: s.selectedUnitIds.size };
+  })).toEqual({ align: 'center', origin: 0.5, paused: true, selected: 5 });
+  await page.screenshot({ path: 'output/qa/delve-feedback/centered-details.png' });
+  expect(errors).toEqual([]);
+});

@@ -1,226 +1,262 @@
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
-import { addReturnButton } from '../ui/ReturnButton.js';
-import { UI_SAFE_TOP } from '../ui/Layout.js';
 import HapticsService from '../services/HapticsService.js';
 import { CRAFTING_MATERIALS, EQUIPMENT_BY_ID } from '../data/items.js';
+import { addStoneButton, addStonePanel, addStoneOrnaments, preloadCarvedStone } from '../ui/CarvedStone.js';
+import { bindButtonPress } from '../ui/ButtonPress.js';
 import {
-  EVERDEEP_INTERVAL_MS, EVERDEEP_WRIT_COST, claimEverdeepChest, everdeepChestPreview,
+  EVERDEEP_WRIT_COST, claimEverdeepChest, everdeepChestPreview, everdeepRuns, everdeepTimers,
   everdeepUnlocked, finishEverdeepRun, recallEverdeep, settleEverdeep, startEverdeepRun
 } from '../game/Everdeep.js';
 
-const MAX_PARTY_SIZE = 5;
-const groupRole = (role) => role === 'Tank' ? 'Tank' : role === 'Healer' ? 'Healer' : 'DPS';
+const groupRole = role => role === 'Tank' ? 'Tank' : role === 'Healer' ? 'Healer' : 'DPS';
+const theme = { accent: 0xc9ab73, crystal: 0xb077ee, motif: 'runes' };
 
 export default class EverdeepScene extends Phaser.Scene {
   constructor() {
     super('EverdeepScene');
-    this.selectedIds = new Set();
+  }
+
+  preload() {
+    preloadCarvedStone(this);
   }
 
   create() {
-    this.cameras.main.setBackgroundColor('#10100f');
+    this.selectedIds = new Set();
+    this.runPage = 0;
+    this.rosterPage = 0;
+    this.selectedRunId = everdeepRuns()[0]?.id ?? null;
+    this.lastNow = Date.now();
+    this.cameras.main.setBackgroundColor('#100e19');
     const { width, height } = this.scale;
-    this.drawBackdrop(width, height);
-    addReturnButton(this, 'World Map', () => this.scene.start('TitleScene'), { y: UI_SAFE_TOP + 32 });
-    this.add.text(width / 2, UI_SAFE_TOP + 24, 'THE EVERDEEP', {
-      fontFamily: 'Georgia', fontSize: '70px', fontStyle: 'bold', color: '#e9d5ff', stroke: '#24142f', strokeThickness: 6
-    }).setOrigin(0.5);
-    this.add.text(width / 2, UI_SAFE_TOP + 91, 'PINESHIRE REACH  •  THE FIRST DESCENT', {
-      fontFamily: 'Arial', fontSize: '30px', fontStyle: 'bold', color: '#c4b5fd'
-    }).setOrigin(0.5);
-    this.add.rectangle(width / 2, UI_SAFE_TOP + 125, width * 0.45, 3, 0xa855f7, 0.65);
+    if (this.textures.exists('everdeep-concept')) {
+      this.add.image(width / 2, height / 2, 'everdeep-concept').setDisplaySize(width, height).setAlpha(0.48);
+    }
+    this.add.rectangle(width / 2, height / 2, width, height, 0x090a14, 0.58);
     this.content = this.add.container(0, 0);
-    this.refreshTimer = this.time.addEvent({ delay: 1000, loop: true, callback: () => this.refreshRun() });
     this.render();
   }
 
-  drawBackdrop(width, height) {
-    if (this.textures.exists('everdeep-concept')) {
-      this.add.image(width * 0.5, height * 0.55, 'everdeep-concept').setDisplaySize(width, height).setAlpha(0.28).setDepth(-20);
+  update() {
+    if (Date.now() - this.lastNow >= 1000) this.refreshRun();
+  }
+
+  text(x, y, value, size = 34, color = '#f2eadd', wrap = 0) {
+    const label = this.add.text(x, y, value, {
+      fontFamily: 'Arial', fontSize: `${size}px`, color, align: 'center',
+      wordWrap: wrap ? { width: wrap, useAdvancedWrap: true } : undefined
+    }).setOrigin(0.5);
+    this.content.add(label);
+    return label;
+  }
+
+  panel(x, y, width, height) {
+    const panel = addStonePanel(this, x, y, width, height, 0).setTint(0xc9b9e8);
+    this.content.add(panel);
+    return panel;
+  }
+
+  button(x, y, width, label, callback, options = {}) {
+    const face = addStoneButton(this, x, y, width, options.height ?? 86, 0)
+      .setStrokeStyle(3, options.selected ? 0xf0c77f : 0x9777bc);
+    const tint = options.selected ? 0xe5c8ff : options.color === 0x4a3827 ? 0xffd58e
+      : [0x442735, 0x552d39].includes(options.color) ? 0xffaaa0 : 0xc9b9e8;
+    face.pressVisuals[0].setTint(tint);
+    this.content.add([...face.pressVisuals, face]);
+    const text = this.text(x, y, label, options.size ?? 34, '#f5ecdf', width - 32);
+    if (options.disabled) {
+      face.disableInteractive().setAlpha(0.5);
+      face.pressVisuals.forEach(visual => visual.setAlpha(0.5));
+      text.setAlpha(0.55);
+    } else {
+      bindButtonPress(this, face, [text], () => { HapticsService.tap(); callback(); });
     }
-    this.add.rectangle(width / 2, height / 2, width, height, 0x08070d, 0.58).setDepth(-19);
-    const glow = this.add.ellipse(width * 0.5, height * 0.68, width * 0.48, height * 0.62, 0x6d28d9, 0.12).setDepth(-18);
-    this.tweens.add({ targets: glow, alpha: 0.2, duration: 2400, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
-    this.add.rectangle(width / 2, height * 0.5, width * 0.88, height * 0.72, 0x120e19, 0.72)
-      .setStrokeStyle(3, 0x6b4a83, 0.8).setDepth(-17);
+    return face;
   }
 
   render() {
     this.content.removeAll(true);
+    this.timerLabels = [];
+    this.recallPending = null;
     const { width, height } = this.scale;
-    settleEverdeep();
-    const run = GameState.everdeep.activeRun;
-    if (run) return this.renderRun(run, width, height);
+    const runs = settleEverdeep(this.lastNow);
+    if (this.selectedRunId && !runs.some(run => run.id === this.selectedRunId)) this.selectedRunId = runs[0]?.id ?? null;
+    this.panel(width / 2, 56, width, 112);
+    this.text(width / 2, 49, 'THE EVERDEEP', 54, '#ead9ff');
+    this.text(width / 2, 96, 'PINESHIRE REACH  /  EXPEDITION SANCTUM', 26, '#ccb9dc');
+    this.button(290, 56, 460, 'Return to World Map', () => this.scene.start('TitleScene'));
+    this.text(width - 245, 55, `${GameState.gold} GOLD`, 38, '#f2cb80');
+    const leftX = width * 0.18, leftW = width * 0.30;
+    this.detailX = width * 0.65;
+    this.detailW = width * 0.62;
+    this.panel(leftX, 574, leftW, 858);
+    this.panel(this.detailX, 574, this.detailW, 858);
+    this.content.add(addStoneOrnaments(this, this.detailX, 189, this.detailW - 30, theme, 0));
+    this.text(leftX, 197, 'YOUR EXPEDITIONS', 38, '#e7d3fa');
+    this.text(leftX, 249, `${runs.filter(run => !run.stoppedAtMs).length} descending  /  ${runs.length} total`, 30, '#c8bacf');
+    const pageCount = Math.max(1, Math.ceil(runs.length / 4));
+    this.runPage = Math.min(this.runPage, pageCount - 1);
+    runs.slice(this.runPage * 4, this.runPage * 4 + 4).forEach((run, index) => {
+      const y = 356 + index * 142;
+      const number = runs.indexOf(run) + 1;
+      this.button(leftX, y, leftW - 64, '', () => { this.selectedRunId = run.id; this.render(); },
+        { height: 122, selected: run.id === this.selectedRunId, color: run.id === this.selectedRunId ? 0x443052 : 0x1d1d2d });
+      this.text(leftX, y - 33, `DESCENT ${number}  /  ${run.stoppedAtMs ? run.stopReason.toUpperCase() : 'ACTIVE'}`, 30, '#ecd9ff');
+      this.text(leftX, y + 4, `Wave ${run.resolvedWave}/60  /  ${run.earnedChestCount - run.claimedChestCount} chests ready`, 29, '#ddc391');
+      const timer = this.text(leftX, y + 40, '', 28, '#c5bdce');
+      this.timerLabels.push({ run, label: timer, compact: true });
+    });
+    if (!runs.length) this.text(leftX, 494, 'The depths await.\nChoose five adventurers\nand begin a descent.', 36, '#bdb0c8', leftW - 90);
+    if (pageCount > 1) {
+      this.button(leftX - 190, 876, 160, 'Previous', () => { this.runPage--; this.render(); }, { size: 28, height: 70, disabled: this.runPage === 0 });
+      this.text(leftX, 876, `${this.runPage + 1}/${pageCount}`, 28);
+      this.button(leftX + 190, 876, 160, 'Next', () => { this.runPage++; this.render(); }, { size: 28, height: 70, disabled: this.runPage + 1 >= pageCount });
+    }
+    this.button(leftX, 955, leftW - 64, '+ New Expedition', () => { this.selectedRunId = null; this.render(); }, { disabled: !everdeepUnlocked() });
     if (!everdeepUnlocked()) {
-      this.addText(width / 2, height * 0.53, 'Defeat the boss of The Sunken Watch to unlock this expedition.', 38, '#cbd5e1', width * 0.7);
-      return;
+      this.text(this.detailX, 530, 'Defeat the boss of The Sunken Watch\nto open The Everdeep.', 42, '#d4c5e1', this.detailW - 100);
+    } else {
+      const run = runs.find(entry => entry.id === this.selectedRunId);
+      if (run) this.renderRun(run); else this.renderPartySelection();
     }
-    this.renderPartySelection(width, height);
+    this.text(width / 2, height - 34, 'Party strength is frozen at departure. Adventurers remain available for all your adventures.', 29, '#d4c5dc', width - 100);
+    this.updateTimers();
   }
 
-  addText(x, y, value, size, color = '#f8fafc', wrapWidth = 0) {
-    const text = this.add.text(x, y, value, {
-      fontFamily: 'Arial', fontSize: `${size}px`, color, align: 'center',
-      wordWrap: wrapWidth ? { width: wrapWidth, useAdvancedWrap: true } : undefined
-    }).setOrigin(0.5);
-    this.content.add(text);
-    return text;
-  }
-
-  addButton(x, y, label, callback, options = {}) {
-    const button = this.add.rectangle(x, y, options.width ?? 480, options.height ?? 84,
-      options.color ?? 0x176c62).setStrokeStyle(3, options.stroke ?? 0x5eead4).setInteractive({ useHandCursor: true });
-    const text = this.add.text(x, y, label, { fontFamily: 'Arial', fontSize: `${options.fontSize ?? 31}px`,
-      fontStyle: 'bold', color: '#f0fdfa', align: 'center', wordWrap: { width: (options.width ?? 480) - 24 } }).setOrigin(0.5);
-    this.content.add([button, text]);
-    button.on('pointerdown', callback);
-    if (options.disabled) {
-      button.disableInteractive().setAlpha(0.62);
-      text.setAlpha(0.72);
-    }
-    return button;
-  }
-
-  renderPartySelection(width, height) {
-    this.addText(width / 2, height * 0.205, `A writ costs ${EVERDEEP_WRIT_COST} Gold  •  1 wave / 2 minutes  •  2-hour maximum`, 28, '#ddd6fe', width * 0.8);
-    const purse = this.add.rectangle(width - 210, UI_SAFE_TOP + 35, 270, 62, 0x2c2114).setStrokeStyle(3, 0xd4a15e);
-    const purseText = this.add.text(width - 210, UI_SAFE_TOP + 35, `${GameState.gold} GOLD`, { fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: '#fbbf24' }).setOrigin(0.5);
-    this.content.add([purse, purseText]);
-    this.addText(width / 2, height * 0.29, 'CHOOSE YOUR DESCENT PARTY', 29, '#f5d0fe');
-    const colWidth = Math.min(420, width * 0.19);
-    const gap = Math.min(28, width * 0.012);
-    const cols = Math.min(5, Math.max(1, Math.ceil(Math.sqrt(GameState.roster.length))));
-    const rows = Math.ceil(GameState.roster.length / cols);
-    const start = width / 2 - ((cols * colWidth + (cols - 1) * gap) / 2) + colWidth / 2;
-    const cardHeight = Math.min(104, height * 0.10);
-    const rowGap = 12;
-    const totalCardsHeight = rows * cardHeight + (rows - 1) * rowGap;
-    const firstY = height * 0.5 - totalCardsHeight / 2 + cardHeight / 2;
+  renderPartySelection() {
+    const x = this.detailX, w = this.detailW;
+    this.text(x, 201, 'PREPARE A NEW DESCENT', 42, '#edd9ff');
+    this.text(x, 267, '120 Gold per writ  /  2 hours  /  One wave every 2 minutes', 32, '#dfc692');
+    this.text(x, 328, `${this.selectedIds.size}/5 selected  /  Max 1 Tank, 2 Healers, 4 DPS`, 32, '#d8c9e5');
     const roster = GameState.roster;
-    roster.forEach((hero, index) => {
-      const column = index % cols;
-      const row = Math.floor(index / cols);
-      const x = start + column * (colWidth + gap);
-      const y = firstY + row * (cardHeight + rowGap);
-      const selected = this.selectedIds.has(hero.id);
-      const card = this.add.rectangle(x, y, colWidth, cardHeight, selected ? 0x40245a : 0x201b29)
-        .setStrokeStyle(selected ? 5 : 3, selected ? 0xe879f9 : 0x715b82).setInteractive({ useHandCursor: true });
-      const accent = this.add.rectangle(x - colWidth / 2 + 9, y, 8, cardHeight - 18, selected ? 0xf0abfc : 0x8b5cf6);
-      const text = this.add.text(x, y, `${hero.name}\n${hero.shortName ?? hero.className}\nLv ${hero.level}  •  ${groupRole(hero.role)}`, {
-        fontFamily: 'Arial', fontSize: '23px', fontStyle: selected ? 'bold' : 'normal', color: '#f5f3ff', align: 'center', wordWrap: { width: colWidth - 28 }
-      }).setOrigin(0.5);
-      this.content.add([card, accent, text]);
-      card.on('pointerdown', () => {
-        HapticsService.tap();
+    const pages = Math.max(1, Math.ceil(roster.length / 6));
+    this.rosterPage = Math.min(this.rosterPage, pages - 1);
+    roster.slice(this.rosterPage * 6, this.rosterPage * 6 + 6).forEach((hero, index) => {
+      const cx = x + (index % 2 ? 1 : -1) * w * 0.235;
+      const y = 433 + Math.floor(index / 2) * 143;
+      this.button(cx, y, w * 0.435, `${this.selectedIds.has(hero.id) ? '✓  ' : ''}${hero.name}\n${hero.shortName ?? hero.className}  /  Lv ${hero.level}  /  ${groupRole(hero.role)}`, () => {
         if (this.selectedIds.has(hero.id)) this.selectedIds.delete(hero.id);
-        else if (this.selectedIds.size < MAX_PARTY_SIZE && this.roleAllowed(hero)) this.selectedIds.add(hero.id);
+        else if (this.selectedIds.size < 5 && this.roleAllowed(hero)) this.selectedIds.add(hero.id);
+        else this.toast('Choose up to five adventurers within the role limits.');
         this.render();
-      });
+      }, { height: 122, size: 32, selected: this.selectedIds.has(hero.id) });
     });
-    const selectionY = firstY + totalCardsHeight / 2 + 48;
-    this.addText(width / 2, selectionY, `${this.selectedIds.size} / 5 SELECTED  •  1 TANK  •  2 HEALERS  •  4 DPS MAX`, 25, '#d8b4fe');
-    const canStart = this.selectedIds.size === MAX_PARTY_SIZE && GameState.gold >= EVERDEEP_WRIT_COST;
-    this.addButton(width / 2, height * 0.88, `PURCHASE WRIT & BEGIN DESCENT  •  ${EVERDEEP_WRIT_COST} GOLD`, () => this.startRun(), {
-      width: 860, height: 90, color: canStart ? 0x632d78 : 0x3d3546, stroke: canStart ? 0xe879f9 : 0x74677e, disabled: !canStart
-    });
-    this.addText(width / 2, height * 0.955, 'Their expedition strength is saved at departure. They remain ready for your other adventures.', 21, '#b6a9c2');
+    if (pages > 1) {
+      this.button(x - 270, 832, 290, 'Previous Adventurers', () => { this.rosterPage--; this.render(); }, { size: 28, height: 72, disabled: this.rosterPage === 0 });
+      this.text(x, 832, `${this.rosterPage + 1}/${pages}`, 30);
+      this.button(x + 270, 832, 290, 'More Adventurers', () => { this.rosterPage++; this.render(); }, { size: 28, height: 72, disabled: this.rosterPage + 1 >= pages });
+    }
+    this.button(x, 944, w - 130, `Purchase Writ & Begin  /  ${EVERDEEP_WRIT_COST} Gold`, () => {
+      const result = startEverdeepRun([...this.selectedIds]);
+      if (!result.ok) return this.toast(result.message);
+      HapticsService.confirm();
+      this.selectedRunId = result.run.id;
+      this.runPage = Math.floor((everdeepRuns().length - 1) / 4);
+      this.render();
+    }, { color: 0x513267, disabled: this.selectedIds.size !== 5 || GameState.gold < EVERDEEP_WRIT_COST });
   }
 
   roleAllowed(hero) {
-    const group = groupRole(hero.role);
-    const count = [...this.selectedIds].map((id) => GameState.roster.find((entry) => entry.id === id))
-      .filter((entry) => entry && groupRole(entry.role) === group).length;
-    return count < ({ Tank: 1, Healer: 2, DPS: 4 })[group];
+    const role = groupRole(hero.role);
+    const count = GameState.roster.filter(entry => this.selectedIds.has(entry.id) && groupRole(entry.role) === role).length;
+    return count < { Tank: 1, Healer: 2, DPS: 4 }[role];
   }
 
-  startRun() {
-    HapticsService.confirm();
-    const result = startEverdeepRun([...this.selectedIds]);
-    if (!result.ok) return this.toast(result.message);
-    this.render();
-  }
-
-  renderRun(run, width, height) {
+  renderRun(run) {
+    const x = this.detailX, w = this.detailW;
     const stopped = Boolean(run.stoppedAtMs);
-    const elapsed = Math.max(0, (run.stoppedAtMs ?? Date.now()) - run.startedAtMs);
-    const nextWaveMs = stopped ? 0 : Math.max(0, run.startedAtMs + (run.resolvedWave + 1) * EVERDEEP_INTERVAL_MS - Date.now());
-    const remaining = stopped ? 0 : Math.max(0, run.endsAtMs - Date.now());
-    this.addText(width / 2, height * 0.20, stopped ? `DESCENT ${run.stopReason.toUpperCase()}` : 'DESCENT IN PROGRESS', 35, stopped ? '#fcd34d' : '#d8b4fe');
-    this.addText(width / 2, height * 0.29, `WAVE ${run.resolvedWave} / 60     •     NEXT WAVE ${this.duration(nextWaveMs)}     •     TIME LEFT ${this.duration(remaining)}`, 29, '#f5f3ff');
-    this.addText(width / 2, height * 0.36, `TREASURE  ${run.claimedChestCount} CLAIMED  /  ${run.earnedChestCount} EARNED`, 28, '#fbbf24');
-    this.addPartyRoster(run, width, height);
-    if (!stopped) {
-      this.addButton(width / 2, height * 0.55, 'RECALL EXPEDITION', () => {
-        HapticsService.tap();
-        recallEverdeep();
-        this.render();
-      }, { color: 0x672a45, stroke: 0xfb7185 });
-    } else {
-      const chestY = height * 0.54;
-      const chestCount = Math.max(0, run.earnedChestCount - run.claimedChestCount);
-      const rowGap = Math.min(68, 260 / Math.max(chestCount, 1));
-      for (let index = run.claimedChestCount; index < run.earnedChestCount; index += 1) {
-        const reward = everdeepChestPreview(index);
-        const material = reward && (CRAFTING_MATERIALS[reward.materialId]?.name ?? 'Materials');
-        const gear = reward && (EQUIPMENT_BY_ID[reward.equipmentId]?.name ?? 'Equipment');
-        const rowY = chestY + (index - run.claimedChestCount) * rowGap;
-        const row = this.add.rectangle(width / 2, rowY, width * 0.75, 58, 0x28202f).setStrokeStyle(2, 0xa78bfa);
-        this.content.add(row);
-        this.addText(width * 0.39, rowY,
-          `CHEST ${index + 1}  •  ${reward.gold} GOLD  •  ${reward.materialCount} ${material}  •  ${gear}`, 22, '#fde68a');
-        this.addButton(width * 0.78, rowY, 'CLAIM', () => {
-          HapticsService.confirm();
-          const result = claimEverdeepChest();
-          if (!result.ok) this.toast(result.message);
-          this.render();
-        }, { width: 170, height: 52, fontSize: 22 });
-      }
-      const dismissY = height * 0.89;
-      const canDismiss = run.claimedChestCount === run.earnedChestCount;
-      this.addButton(width / 2, dismissY, canDismiss ? 'DISMISS EXPEDITION' : 'CLAIM THE READY CHEST FIRST', () => {
-        if (!canDismiss) return;
-        const result = finishEverdeepRun();
-        if (result.ok) this.render(); else this.toast(result.message);
-      }, { width: 560, color: canDismiss ? 0x4c2670 : 0x372f3d, stroke: canDismiss ? 0xd8b4fe : 0x74677e });
+    this.text(x, 201, `DESCENT ${everdeepRuns().indexOf(run) + 1}  /  ${stopped ? run.stopReason.toUpperCase() : 'IN PROGRESS'}`, 42, '#edd9ff');
+    this.text(x - w * 0.32, 279, 'WAVES CLEARED', 28, '#baabc9');
+    this.text(x - w * 0.32, 323, `${run.failedWave ? run.resolvedWave - 1 : run.resolvedWave} / 60`, 43, '#f3e6d2');
+    this.text(x, 279, 'NEXT WAVE', 28, '#baabc9');
+    this.text(x + w * 0.32, 279, 'TIME LEFT', 28, '#baabc9');
+    this.timerLabels.push({ run, label: this.text(x, 323, '', 43, '#ead9ff'), field: 'nextWaveMs' });
+    this.timerLabels.push({ run, label: this.text(x + w * 0.32, 323, '', 43, '#ead9ff'), field: 'remainingMs' });
+    this.text(x, 398, 'DEPARTURE PARTY', 28, '#baabc9');
+    run.party.forEach((member, index) => {
+      const hero = GameState.roster.find(entry => entry.id === member.id);
+      const cx = x + (index - 2) * w * 0.181;
+      this.panel(cx, 467, w * 0.174, 100);
+      this.text(cx, 449, hero?.name ?? 'Adventurer', 30, '#eee0f7', w * 0.16);
+      this.text(cx, 487, `Level ${member.level}`, 28, '#c5b5d2');
+    });
+    this.text(x, 552, 'TREASURE MILESTONES  /  EVERY 10 CLEARED WAVES', 29, '#d6bd89');
+    for (let index = 0; index < 6; index++) {
+      const cx = x + (index - 2.5) * w * 0.148;
+      this.addRect(cx, 618, w * 0.135, 72, index < run.earnedChestCount ? 0x514024 : 0x212031);
+      this.text(cx, 618, index < run.claimedChestCount ? 'Claimed' : index < run.earnedChestCount ? 'Ready' : `Wave ${(index + 1) * 10}`, 28, index < run.earnedChestCount ? '#f2cc7e' : '#b6a6c5');
     }
-    if (run.stopReason === 'defeated') this.addText(width / 2, height * 0.70, `The expedition fell at wave ${run.failedWave}. Previously earned chests are safe.`, 26, '#fecaca');
-    if (run.stopReason === 'recalled') this.addText(width / 2, height * 0.70, `Recalled after ${this.duration(elapsed)}. Unused time and the Writ are forfeited.`, 26, '#cbd5e1');
+    const ready = run.earnedChestCount - run.claimedChestCount;
+    if (ready) {
+      const reward = everdeepChestPreview(run.claimedChestCount, GameState, run.id);
+      this.text(x, 713, `${ready} CHEST${ready === 1 ? '' : 'S'} READY  /  NEXT CHEST`, 30, '#f2cd87');
+      this.text(x, 767, `${reward.gold} Gold  +  ${reward.materialCount} ${CRAFTING_MATERIALS[reward.materialId]?.name ?? 'Materials'}\n${EQUIPMENT_BY_ID[reward.equipmentId]?.name ?? 'Equipment'}`, 34, '#eee4d4', w - 130);
+      this.button(x, 846, 610, 'Claim Next Chest', () => {
+        const result = claimEverdeepChest(GameState, run.id);
+        if (result.ok) { HapticsService.confirm(); this.render(); } else this.toast(result.message);
+      }, { color: 0x4a3827 });
+    } else {
+      const message = run.stopReason === 'defeated' ? `Fell at wave ${run.failedWave}. Earned treasure is safe.`
+        : run.stopReason === 'recalled' ? 'Party recalled. Writ and unused time are spent.'
+          : stopped ? 'The descent is complete. All earned treasure has been claimed.' : 'The party explores while you are away. Earned chests can be claimed here.';
+      this.text(x, 758, message, 35, '#cbbdd5', w - 170);
+    }
+    this.button(x, 944, 800, stopped ? 'Dismiss Expedition' : 'Recall Expedition', () => {
+      if (stopped) {
+        const result = finishEverdeepRun(GameState, run.id);
+        if (result.ok) this.render(); else this.toast(result.message);
+      } else {
+        this.recallPending = run.id;
+        this.renderRecall(run);
+      }
+    }, { disabled: stopped && ready > 0, color: stopped ? 0x30213f : 0x442735 });
   }
 
-  addPartyRoster(run, width, height) {
-    const cardWidth = Math.min(310, width * 0.16);
-    const gap = 16;
-    const startX = width / 2 - (5 * cardWidth + 4 * gap) / 2 + cardWidth / 2;
-    run.party.forEach((member, index) => {
-      const hero = GameState.roster.find((entry) => entry.id === member.id);
-      const x = startX + index * (cardWidth + gap);
-      const y = height * 0.45;
-      const card = this.add.rectangle(x, y, cardWidth, 82, 0x201b29).setStrokeStyle(2, 0x715b82);
-      const label = this.add.text(x, y, `${hero?.name ?? 'Former Adventurer'}  •  Lv ${member.level}`, {
-        fontFamily: 'Arial', fontSize: '22px', color: '#e9d5ff', align: 'center', wordWrap: { width: cardWidth - 16 }
-      }).setOrigin(0.5);
-      this.content.add([card, label]);
+  addRect(x, y, w, h, color) {
+    const rectangle = this.add.rectangle(x, y, w, h, color).setStrokeStyle(2, 0x76617f);
+    this.content.add(rectangle);
+  }
+
+  renderRecall(run) {
+    const veil = this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x090710, 0.9)
+      .setInteractive();
+    this.content.add(veil);
+    this.panel(this.detailX, 650, this.detailW - 70, 420);
+    this.text(this.detailX, 551, 'Recall this expedition?', 44, '#ead9ff');
+    this.text(this.detailX, 638, 'Earned chests are safe. The writ and remaining time are spent.', 36, '#e2c4c4', this.detailW - 200);
+    this.button(this.detailX - 290, 768, 480, 'Keep Descending', () => this.render());
+    this.button(this.detailX + 290, 768, 480, 'Confirm Recall', () => {
+      recallEverdeep(this.lastNow, GameState, run.id);
+      this.render();
+    }, { color: 0x552d39 });
+  }
+
+  duration(ms) {
+    const seconds = Math.max(0, Math.ceil(ms / 1000));
+    return [Math.floor(seconds / 3600), Math.floor(seconds % 3600 / 60), seconds % 60]
+      .map(value => String(value).padStart(2, '0')).join(':');
+  }
+
+  updateTimers() {
+    this.timerLabels.forEach(({ run, label, field, compact }) => {
+      const timers = everdeepTimers(run, this.lastNow);
+      label.setText(compact ? run.stoppedAtMs ? 'Descent ended' : `Next wave ${this.duration(timers.nextWaveMs)}` : this.duration(timers[field]));
     });
   }
 
-  duration(milliseconds) {
-    const totalSeconds = Math.max(0, Math.ceil(milliseconds / 1000));
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-  }
-
   refreshRun() {
-    const previous = GameState.everdeep.activeRun;
-    const previousWave = previous?.resolvedWave;
-    const wasStopped = previous?.stoppedAtMs;
-    const run = settleEverdeep();
-    if (run && (run.resolvedWave !== previousWave || (!wasStopped && run.stoppedAtMs))) this.render();
+    this.lastNow = Math.max(this.lastNow, Date.now());
+    const before = everdeepRuns().map(run => `${run.id}:${run.resolvedWave}:${run.stoppedAtMs}`).join('|');
+    const after = settleEverdeep(this.lastNow).map(run => `${run.id}:${run.resolvedWave}:${run.stoppedAtMs}`).join('|');
+    if (before !== after && !this.recallPending) this.render();
+    else this.updateTimers();
   }
 
   toast(message) {
-    this.addText(this.scale.width / 2, this.scale.height * 0.15, message, 27, '#fecaca', this.scale.width * 0.7);
+    this.feedback?.destroy();
+    this.feedback = this.add.text(this.scale.width / 2, 132, message, {
+      fontFamily: 'Arial', fontSize: '30px', color: '#ffd2d2', backgroundColor: '#241728',
+      padding: { x: 18, y: 8 }, align: 'center', wordWrap: { width: this.scale.width - 150 }
+    }).setOrigin(0.5).setDepth(10);
   }
 }

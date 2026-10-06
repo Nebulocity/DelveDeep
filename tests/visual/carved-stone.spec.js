@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('Carved Stone keeps live controls and the shared floor across delves', async ({ page }) => {
+test('Carved Stone keeps live controls and authored arena floors across delves', async ({ page }) => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/?visualQa=1');
@@ -18,16 +18,16 @@ test('Carved Stone keeps live controls and the shared floor across delves', asyn
       const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
       scene.togglePause();
       return { cards: scene.partyHud.length, columns: scene.battlefield.columns, rows: scene.battlefield.rows,
-        floor: scene.battlefield.getCellPolygon(0, 0), stats: scene.partyHud.map(card => card.hpText.text),
+        floor: scene.battlefield.boundary, stats: scene.partyHud.map(card => card.hpText.text),
         roles: scene.roleButtons.length, orders: scene.commandButtons.length, motif: scene.stoneTheme.motif };
     });
     expect(state.cards).toBe(5);
-    expect(state.columns).toBe(10);
-    expect(state.rows).toBe(6);
+    expect(state.columns).toBeUndefined();
+    expect(state.rows).toBeUndefined();
     expect(state.roles).toBe(5);
     expect(state.orders).toBe(6);
     expect(state.stats.every(text => text.length > 0)).toBe(true);
-    if (floor) expect(state.floor).toEqual(floor);
+    if (floor) expect(state.floor).not.toEqual(floor);
     floor = state.floor;
     expect(state.motif).toBe(delve === 'slime-cave' ? 'slime' : delve === 'thornbriar-hollow' ? 'roots' : 'water');
     await page.screenshot({ path: `output/qa/carved-stone/${delve}-battle.png` });

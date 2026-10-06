@@ -9,13 +9,24 @@ export default {
   possibleDrops: ['Gold', 'Materials', 'Adventurer XP'],
   prerequisites: [],
   map: { x: 0.307, y: 0.475, radius: 0.055 },
-  // The grid stays on the open floor; image details do not block combat movement.
+  // The walkable boundary follows open ground between scenery and foreground rocks.
   terrain: [],
   visuals: {
     environment: {
       width: 1672, height: 941, offsetY: -105, pixelArt: true,
-      floor: { topLeftX: 310, topRightX: 1362, topY: 570,
-        bottomLeftX: 265, bottomRightX: 1407, bottomY: 825 },
+
+      // Camera-space outline of open ground, excluding scenery and foreground obstacles.
+      walkable: [
+        [460, 562], [570, 552], [714, 559], [839, 551],
+        [1017, 559], [1232, 565], [1382, 602], [1388, 664],
+        [1340, 714], [1304, 771], [1215, 785], [1150, 833],
+        [1044, 840], [960, 766], [913, 753], [880, 786],
+        [831, 823], [797, 802], [750, 860], [704, 875],
+        [651, 811], [625, 760], [580, 753], [520, 782],
+        [480, 768], [433, 780], [398, 761], [368, 780],
+        [341, 763], [301, 719], [267, 677], [269, 606],
+        [339, 578]
+      ],
       layers: [
         { key: 'slime-cave-pixel-art',
           url: new URL('../../assets/environments/slime-cave-pixel/cave.png', import.meta.url).href,

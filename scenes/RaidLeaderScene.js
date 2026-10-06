@@ -1,123 +1,71 @@
-import { bindSelectionDetails, showSelectionDetails } from '../ui/SelectionDetails.js';
-import { showConfirmation } from '../ui/ConfirmationDialog.js';
 import Phaser from 'phaser';
-import { addWoodenNotice } from '../ui/WoodenPanel.js';
+import { showSelectionDetails } from '../ui/SelectionDetails.js';
+import { showConfirmation } from '../ui/ConfirmationDialog.js';
 import GameState from '../game/GameState.js';
 import HapticsService from '../services/HapticsService.js';
-import {
-  leaderAbilities,
-  hasLeaderAbility,
-  purchaseLeaderAbility,
-  toggleLeaderLoadoutAbility
-} from '../game/LeaderProgression.js';
-import { UI_SAFE_TOP } from '../ui/Layout.js';
-import { addHallBackground } from '../ui/HallBackground.js';
-import { addReturnButton } from '../ui/ReturnButton.js';
+import { leaderAbilities, hasLeaderAbility, purchaseLeaderAbility, toggleLeaderLoadoutAbility } from '../game/LeaderProgression.js';
+import { HALL, hallText, hallPanel, hallButton, hallIcon, addHallFrame } from '../ui/HallUI.js';
+
+const CATEGORIES = [['Assault', 'sword'], ['Protect', 'shield'], ['Restore', 'healer'], ['Prepare', 'satchel']];
 
 export default class RaidLeaderScene extends Phaser.Scene {
+  constructor() { super('RaidLeaderScene'); }
 
-  // This function registers RaidLeaderScene so the game can navigate to this
-  // screen.
-  constructor() {
-
-    super('RaidLeaderScene');
+  create() {
+    GameState.leader.battleLoadout ??= ['focusFire'];
+    this.message = '';
+    this.render();
   }
 
-  // This function presents leader advancement and ability choices for the
-  // next battle.
-  create() {
-
-    const { width } = this.scale;
+  render() {
+    this.selectionDetailsClose?.();
+    this.children.removeAll(true);
+    addHallFrame(this, 'Tactics', this.message);
     const leader = GameState.leader;
-    leader.battleLoadout = Array.isArray(leader.battleLoadout) ? leader.battleLoadout : ['focusFire'];
-    this.cameras.main.setBackgroundColor('#11100f');
-    addHallBackground(this, 0.62);
-
-    addReturnButton(this, "Adventurer's Hall", () => this.scene.start('AdventurersHallScene'), { y: UI_SAFE_TOP + 32 });
-
-    this.add.text(width/2, UI_SAFE_TOP + 14, 'BATTLE TACTICS', { fontFamily:'Arial', fontSize:'72px', fontStyle:'bold', color:'#f5f5f4' }).setOrigin(0.5);
-    this.add.text(width/2, UI_SAFE_TOP + 66, `Tactics Rank ${leader.level}  •  ${leader.tacticsPoints} Tactics Points available`, { fontFamily:'Arial', fontSize:'34px', color:'#d6d3d1' }).setOrigin(0.5);
-    this.loadoutText = this.add.text(width/2, UI_SAFE_TOP + 108, '', { fontFamily:'Arial', fontSize:'33px', fontStyle:'bold', color:'#fbbf24' }).setOrigin(0.5);
-    this.refreshLoadoutText();
-
-    addWoodenNotice(this, width / 2, UI_SAFE_TOP + 154, 'Tap to unlock / equip. Hold for details.', { width: 1300, fontSize: 32, depth: 0 });
-
-    const categories = [
-      ['Assault', 'Increase party offense'],
-      ['Protect', 'Increase party defense'],
-      ['Restore', 'Recover health and mana'],
-      ['Prepare', 'Provide items and gear']
-    ];
-    const columnWidth = (width - 180) / 4;
-    categories.forEach(([category, description], index) => {
-      const x = 90 + columnWidth * (index + 0.5);
-      this.add.text(x, UI_SAFE_TOP + 235, category.toUpperCase(), {
-        fontFamily: 'Arial', fontSize: '38px', fontStyle: 'bold', color: '#fff1d2'
-      }).setOrigin(0.5);
-      this.add.text(x, UI_SAFE_TOP + 277, description, {
-        fontFamily: 'Arial', fontSize: '26px', color: '#e8c89f'
-      }).setOrigin(0.5);
-      leaderAbilities.filter((ability) => ability.category === category).forEach((ability, row) => {
-        this.createAbilityCard(ability, x, UI_SAFE_TOP + 412 + row * 248, columnWidth - 24, 220);
+    hallPanel(this, 1200, 638, 2296, 736);
+    hallText(this, 90, 321, 'Raid Leader tactics', 42, { fontFamily: 'Georgia' });
+    hallText(this, 2310, 321, `Renown Level ${leader.level} · ${leader.tacticsPoints} TP available`, 34, { color: '#ffe0a7' }).setOrigin(1, 0.5);
+    hallText(this, 90, 380, `Equipped ${leader.battleLoadout.length}/5 · Hold a tactic for its effect.`, 30, { color: HALL.muted });
+    CATEGORIES.forEach(([category, icon], index) => {
+      const x = 340 + index * 573;
+      hallIcon(this, icon, x - 177, 447);
+      hallText(this, x - 125, 447, category, 36, { fontStyle: 'bold' });
+      const entries = leaderAbilities.filter((ability) => ability.category === category);
+      if (!entries.length) hallText(this, x, 620, 'No tactics\navailable yet.', 32, { color: HALL.muted, align: 'center' }).setOrigin(0.5);
+      entries.forEach((ability, row) => {
+        const y = 589 + row * 233;
+        const unlocked = hasLeaderAbility(leader, ability.id), equipped = leader.battleLoadout.includes(ability.id);
+        hallButton(this, x, y, 513, 212, '', () => this.choose(ability), {
+          selected: equipped, details: { title: ability.name, description: ability.description }, name: `hall-tactic-${ability.id}`
+        });
+        hallText(this, x - 224, y - 62, ability.name, 35, { fontStyle: 'bold', wordWrap: { width: 448 } });
+        hallText(this, x - 224, y + 4, ability.cooldown ? `${ability.cooldown / 1000}s cooldown` : 'Once per encounter', 29, { color: HALL.muted });
+        hallText(this, x - 224, y + 64, equipped ? 'Equipped' : unlocked ? 'Tap to equip' : `Unlock · ${ability.cost} TP`, 32, { color: equipped ? HALL.green : '#ffe0a7' });
       });
     });
   }
 
-  // This function shows the current equipped leadership abilities and
-  // remaining slots.
-  refreshLoadoutText() {
-
-    const loadout = GameState.leader.battleLoadout ?? [];
-    // Equipped cards show their names below; keep this summary on one line.
-    this.loadoutText.setText(`EQUIPPED ${loadout.length}/5 - Choose up to five tactics for combat`);
-  }
-
-  // This function displays a leadership ability, its description, and its
-  // purchase or equipment status. Tapping a locked ability attempts a
-  // purchase; tapping an unlocked ability adds or removes it from the battle
-  // loadout.
-  createAbilityCard(ability,x,y,cardWidth,cardHeight) {
-
-    const leader=GameState.leader;
-
-    // Use ownership and equipment state to choose the card colors and status
-    // label.
-    const unlocked=hasLeaderAbility(leader,ability.id);
-    const equipped=(leader.battleLoadout??[]).includes(ability.id);
-    const card=this.add.rectangle(x,y,cardWidth,cardHeight,equipped?0x4a3420:unlocked?0x38291d:0x281a14)
-      .setStrokeStyle(4,equipped?0xffd58e:unlocked?0xb9874d:0x795637).setInteractive({useHandCursor:true});
-    this.add.text(x-cardWidth*0.43,y-cardHeight/2+18,ability.name,{fontFamily:'Arial',fontSize:'31px',fontStyle:'bold',color:equipped?'#ffe0a7':'#fff1d2',wordWrap:{width:cardWidth*0.86}});
-    this.add.text(x-cardWidth*0.43,y-cardHeight/2+70,ability.description,{fontFamily:'Arial',fontSize:'26px',color:'#e8c89f',wordWrap:{width:cardWidth*0.86}});
-    const status=this.add.text(x+cardWidth*0.43,y+cardHeight/2-24,equipped?'EQUIPPED':unlocked?'UNLOCKED':`${ability.cost} TP`,{fontFamily:'Arial',fontSize:'29px',fontStyle:'bold',color:equipped?'#ffe0a7':unlocked?'#e8c89f':'#fbbf24'}).setOrigin(1,0.5);
-
-    // Attempt a purchase for locked abilities; otherwise toggle the loadout
-    // and report insufficient Tactics Points or a full loadout.
-    card.on('pointerdown',()=>{
-
-      if (!hasLeaderAbility(leader,ability.id)) {
-        HapticsService.tap();
-        if (leader.tacticsPoints < ability.cost) {
-          showSelectionDetails(this, {
-            title: 'Not enough TP',
-            description: `You do not have enough TP to unlock ${ability.name}.\n\nRequired: ${ability.cost} TP\nAvailable: ${leader.tacticsPoints} TP`
-          });
-          return;
-        }
-        showConfirmation(this, {
-          title: 'Confirm tactic unlock',
-          description: `Unlock ${ability.name} for ${ability.cost} TP?\n\n${ability.description}\n\nAvailable: ${leader.tacticsPoints} TP`,
-          onConfirm: () => {
-            if (purchaseLeaderAbility(leader,ability.id)) { HapticsService.confirm(); this.scene.restart(); }
-            else { status.setText('NEED MORE TP'); this.time.delayedCall(800,()=>status.setText(`${ability.cost} TP`)); }
-          }
-        });
+  choose(ability) {
+    const leader = GameState.leader;
+    if (!hasLeaderAbility(leader, ability.id)) {
+      if (leader.tacticsPoints < ability.cost) {
+        showSelectionDetails(this, { title: 'Not enough TP', description: `${ability.name} costs ${ability.cost} TP.\nYou have ${leader.tacticsPoints} TP.` });
         return;
       }
-      if (!toggleLeaderLoadoutAbility(leader,ability.id)) {
-        HapticsService.tap(); status.setText('LOADOUT FULL'); this.time.delayedCall(900,()=>this.scene.restart()); return;
-      }
-      HapticsService.confirm(); this.scene.restart();
-    });
-    bindSelectionDetails(this, card, { title: ability.name, description: ability.description });
+      showConfirmation(this, {
+        title: `Unlock ${ability.name}`, description: `${ability.description}\n\nSpend ${ability.cost} TP? Available: ${leader.tacticsPoints} TP.`,
+        onConfirm: () => {
+          if (purchaseLeaderAbility(leader, ability.id)) { this.message = `${ability.name} unlocked. Tap to equip.`; HapticsService.confirm(); }
+          else this.message = 'This tactic could not be unlocked.';
+          this.render();
+        }
+      });
+      return;
+    }
+    if (toggleLeaderLoadoutAbility(leader, ability.id)) {
+      this.message = `${ability.name} ${leader.battleLoadout.includes(ability.id) ? 'equipped' : 'unequipped'}.`;
+      HapticsService.confirm();
+    } else this.message = 'All five tactic slots are full. Unequip a tactic first.';
+    this.render();
   }
 }

@@ -4,9 +4,10 @@ import HapticsService from '../services/HapticsService.js';
 import { formatDuration } from '../game/ExpeditionProgression.js';
 import { saveProfile, clearSavedProfile } from '../game/GameStorage.js';
 import { clearLeaderProgression, grantLeaderLevels } from '../game/LeaderProgression.js';
+import { grantAdventurerLevels } from '../game/AdventurerProgression.js';
 import { hideLoadingScreenAfterRender } from '../ui/LoadingScreen.js';
 import { createScrollingWorldMap, updateScrollingWorldMap } from './ScrollingWorldMap.js';
-import { addWoodenPanel, addWoodenNotice } from '../ui/WoodenPanel.js';
+import { addRegionPanel, addRegionNotice, setRegionPanelState, regionMessageBounds } from '../ui/RegionMapTheme.js';
 import { showConfirmation } from '../ui/ConfirmationDialog.js';
 
 export default class TitleScene extends Phaser.Scene {
@@ -32,12 +33,11 @@ export default class TitleScene extends Phaser.Scene {
     const enabled = GameState.development.unlockAll && GameState.development.replayCleared;
     const x = 190;
     const y = height - 52;
-    const button = this.add.rectangle(x, y, 300, 64, enabled ? 0x00f2fa : 0x08192e, 0.94)
-      .setStrokeStyle(3, 0x00f2fa)
+    const button = addRegionPanel(this, x, y, 300, 64, 1000, enabled ? 'selected' : 'normal')
       .setInteractive({ useHandCursor: true })
       .setDepth(1000);
     this.add.text(x, y, enabled ? 'DEV MODE: ON' : 'DEV TOOLS', {
-      fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: enabled ? '#08192e' : '#ffffff'
+      fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: '#fff1d2'
     }).setOrigin(0.5).setDepth(1001);
     button.on('pointerdown', () => {
 
@@ -60,13 +60,13 @@ export default class TitleScene extends Phaser.Scene {
     const panelHeight = Math.min(850, height * 0.84);
     const panelTop = (height - panelHeight) / 2;
     const panelLeft = (width - panelWidth) / 2;
-    const rowY = (index) => panelTop + 180 + index * 105;
+    const rowY = (index) => panelTop + 180 + index * 90;
     const labelX = panelLeft + 100;
     const firstX = panelLeft + 720;
     const secondX = panelLeft + 995;
     const buttonWidth = 220;
     const objects = [shade];
-    const panel = addWoodenPanel(this, width / 2, height / 2, panelWidth, panelHeight, depth + 1);
+    const panel = addRegionPanel(this, width / 2, height / 2, panelWidth, panelHeight, depth + 1);
     objects.push(panel);
     objects.push(this.add.text(width / 2, panelTop + 72, 'DEV TOOLS', {
       fontFamily: 'Arial', fontSize: '48px', fontStyle: 'bold', color: '#f8fafc'
@@ -78,10 +78,10 @@ export default class TitleScene extends Phaser.Scene {
       }).setOrigin(0, 0.5).setDepth(depth + 2));
     };
     const addButton = (x, y, label, color, stroke, action, textColor = '#ffffff') => {
-      const button = this.add.rectangle(x, y, buttonWidth, 74, color)
-        .setStrokeStyle(3, stroke).setInteractive({ useHandCursor: true }).setDepth(depth + 2);
+      const button = addRegionPanel(this, x, y, buttonWidth, 74, depth + 2, label === 'RESET' ? 'danger' : label === 'ON' ? 'selected' : 'normal')
+        .setInteractive({ useHandCursor: true });
       const caption = this.add.text(x, y, label, {
-        fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: textColor
+        fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#fff1d2'
       }).setOrigin(0.5).setDepth(depth + 3);
       button.on('pointerdown', action);
       objects.push(button, caption);
@@ -109,18 +109,28 @@ export default class TitleScene extends Phaser.Scene {
       this.scene.restart();
     }, enabled ? '#08192e' : '#ffffff');
 
-    addLabel(1, 'Level up');
+    addLabel(1, 'Renown Level');
     for (const [amount, x] of [[1, firstX], [5, secondX]]) {
       addButton(x, rowY(1), `+${amount}`, 0x0e9c4b, 0x86efac, () => {
         HapticsService.confirm();
         const result = grantLeaderLevels(GameState.leader, amount);
-        this.showToast(`Player level ${GameState.leader.level}  (+${result.tacticsPointsEarned} TP)`);
+        this.showToast(`Renown Level ${GameState.leader.level}  (+${result.tacticsPointsEarned} TP)`);
       });
     }
 
-    addLabel(2, 'Gold');
+    addLabel(2, 'Character Level');
+    for (const [amount, x] of [[1, firstX], [5, secondX]]) {
+      addButton(x, rowY(2), `+${amount}`, 0x0e9c4b, 0x86efac, () => {
+        HapticsService.confirm();
+        GameState.roster.forEach(hero => grantAdventurerLevels(hero, amount));
+        saveProfile();
+        this.showToast(`All characters gained ${amount} level${amount === 1 ? '' : 's'}.`);
+      });
+    }
+
+    addLabel(3, 'Gold');
     for (const [amount, x] of [[100, firstX], [500, secondX]]) {
-      addButton(x, rowY(2), `+${amount}`, 0xb38c0c, 0xfde047, () => {
+      addButton(x, rowY(3), `+${amount}`, 0xb38c0c, 0xfde047, () => {
         HapticsService.confirm();
         GameState.gold += amount;
         saveProfile();
@@ -129,20 +139,20 @@ export default class TitleScene extends Phaser.Scene {
       });
     }
 
-    addLabel(3, 'Grid lines');
-    const gridVisible = GameState.development.showGridLines !== false;
-    const gridToggle = addButton(firstX, rowY(3), gridVisible ? 'ON' : 'OFF',
-      gridVisible ? 0xebed53 : 0x4e4f19, 0xebed53, () => {
+    addLabel(4, 'Arena Border');
+    const borderVisible = GameState.development.showArenaBorder !== false;
+    const borderToggle = addButton(firstX, rowY(4), borderVisible ? 'ON' : 'OFF',
+      borderVisible ? 0xebed53 : 0x4e4f19, 0xebed53, () => {
         HapticsService.confirm();
-        GameState.development.showGridLines = !GameState.development.showGridLines;
+        GameState.development.showArenaBorder = !GameState.development.showArenaBorder;
         saveProfile();
-        gridToggle.caption.setText(GameState.development.showGridLines ? 'ON' : 'OFF');
-        gridToggle.button.setFillStyle(GameState.development.showGridLines ? 0xebed53 : 0x4e4f19);
-        gridToggle.caption.setColor(GameState.development.showGridLines ? '#1f2937' : '#ffffff');
-      }, gridVisible ? '#1f2937' : '#ffffff');
+        borderToggle.caption.setText(GameState.development.showArenaBorder ? 'ON' : 'OFF');
+        setRegionPanelState(this, borderToggle.button, GameState.development.showArenaBorder ? 'selected' : 'normal');
+        borderToggle.caption.setColor('#fff1d2');
+      }, borderVisible ? '#1f2937' : '#ffffff');
 
-    addLabel(4, 'Reset progress');
-    addButton(firstX, rowY(4), 'RESET', 0x7f1d1d, 0xf87171, () => {
+    addLabel(5, 'Reset progress');
+    addButton(firstX, rowY(5), 'RESET', 0x7f1d1d, 0xf87171, () => {
       HapticsService.tap();
       destroy();
       this.showResetConfirmation();
@@ -173,16 +183,18 @@ export default class TitleScene extends Phaser.Scene {
 
   // This function gives brief feedback about an unavailable choice or
   // completed action.
-  showToast(message) {
+  showToast(message, scope = 'ui') {
 
     const { width, height } = this.scale;
+    const bounds = regionMessageBounds(this, scope);
     this.activeToast?.tween?.stop();
     this.activeToast?.panel?.destroy();
     this.activeToast?.text?.destroy();
-    const { panel, text } = addWoodenNotice(this, width / 2, height * 0.17, message, { width: 1400, depth: 5200, fixed: true });
+    const { panel, text } = addRegionNotice(this, bounds.centerX, height * 0.17, message,
+      { width: Math.min(1400, bounds.width - 80), depth: 5200, fixed: true });
     const toast = { panel, text, tween: null };
     this.activeToast = toast;
-    toast.tween = this.tweens.add({ targets: [panel, text], alpha: 0, delay: 1200, duration: 450, onComplete: () => {
+    toast.tween = this.tweens.add({ targets: [panel.regionMapArt, text], alpha: 0, delay: 1200, duration: 450, onComplete: () => {
       panel.destroy();
       text.destroy();
       if (this.activeToast === toast) this.activeToast = null;
@@ -194,18 +206,18 @@ export default class TitleScene extends Phaser.Scene {
   showClearedReview(delve) {
 
     const { width, height } = this.scale;
+    const { centerX, width: mapWidth } = regionMessageBounds(this, 'map');
     const record = GameState.records[delve.id] ?? {};
     const loot = (record.lastRewards ?? []).map((reward) => reward.type === 'gold' ? `${reward.amount} Gold` : reward.label ?? reward.type).join(', ') || 'No recorded loot';
-    const overlay = this.add.rectangle(width / 2, height / 2, width * 0.64, height * 0.48, 0x0b0f16, 0.97)
-      .setStrokeStyle(5, 0x86efac).setDepth(3000);
-    this.add.text(width / 2, height * 0.34, `${delve.name} - CLEARED`, { fontFamily: 'Arial', fontSize: '52px', fontStyle: 'bold', color: '#bef264' })
+    const overlay = addRegionPanel(this, centerX, height / 2, mapWidth * 0.8, height * 0.48, 3000);
+    this.add.text(centerX, height * 0.34, `${delve.name} - CLEARED`, { fontFamily: 'Arial', fontSize: '52px', fontStyle: 'bold', color: '#bef264' })
       .setOrigin(0.5).setDepth(3001);
-    this.add.text(width / 2, height * 0.43, `Waves: ${record.waves ?? delve.rooms}   Best: ${formatDuration(record.bestTimeMs)}`, { fontFamily: 'Arial', fontSize: '32px', color: '#e2e8f0' })
+    this.add.text(centerX, height * 0.43, `Waves: ${record.waves ?? delve.rooms}   Best: ${formatDuration(record.bestTimeMs)}`, { fontFamily: 'Arial', fontSize: '32px', color: '#e2e8f0' })
       .setOrigin(0.5).setDepth(3001);
-    this.add.text(width / 2, height * 0.51, `Last haul: ${loot}`, { fontFamily: 'Arial', fontSize: '32px', color: '#fbbf24', wordWrap: { width: width * 0.52 }, align: 'center' })
+    this.add.text(centerX, height * 0.51, `Last haul: ${loot}`, { fontFamily: 'Arial', fontSize: '32px', color: '#fbbf24', wordWrap: { width: mapWidth * 0.68 }, align: 'center' })
       .setOrigin(0.5).setDepth(3001);
-    const close = this.add.rectangle(width / 2, height * 0.64, 360, 78, 0x334155).setInteractive({ useHandCursor: true }).setDepth(3001);
-    this.add.text(width / 2, height * 0.64, 'CLOSE', { fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5).setDepth(3002);
+    const close = addRegionPanel(this, centerX, height * 0.64, 360, 78, 3001).setInteractive({ useHandCursor: true });
+    this.add.text(centerX, height * 0.64, 'CLOSE', { fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5).setDepth(3002);
     close.on('pointerdown', () => this.scene.restart());
   }
 }

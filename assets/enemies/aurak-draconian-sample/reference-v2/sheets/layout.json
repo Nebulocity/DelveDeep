@@ -1,0 +1,23 @@
+{
+  "frameWidth": 256,
+  "frameHeight": 256,
+  "directions": [
+    "south-east",
+    "south-west",
+    "north-east",
+    "north-west"
+  ],
+  "states": {
+    "facing": {
+      "columns": 1,
+      "counts": {
+        "south-east": 1,
+        "south-west": 1,
+        "north-east": 1,
+        "north-west": 1
+      },
+      "frameMs": 1000,
+      "loop": false
+    }
+  }
+}

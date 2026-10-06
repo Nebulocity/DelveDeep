@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('Delve selection highlights both surfaces and ally taps command the group', async ({ page }) => {
+test('Delve selection highlights cards only and ally taps command the group', async ({ page }) => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/?visualQa=1');
@@ -20,12 +20,12 @@ test('Delve selection highlights both surfaces and ally taps command the group',
   await clickCard(0);
   expect(await page.evaluate(() => {
     const s = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene'), c = s.partyHud[0];
-    return { selected: s.selectedUnitIds.size, portrait: c.portraitHighlight.visible, card: c.cardHighlight.visible, battlefield: c.unit.hitZone.strokeAlpha };
-  })).toEqual({ selected: 1, portrait: true, card: true, battlefield: 1 });
+    return { selected: s.selectedUnitIds.size, portrait: Boolean(c.portraitHighlight), card: c.cardHighlight.visible, battlefield: c.unit.hitZone.isStroked };
+  })).toEqual({ selected: 1, portrait: false, card: true, battlefield: false });
   await clickCard(1);
   expect(await page.evaluate(() => {
     const s = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
-    return s.selectedUnitIds.has(s.partyHud[0].unit.id) && s.manualTargets.has(s.partyHud[0].unit.id);
+    return s.selectedUnitIds.size === 0 && s.manualTargets.has(s.partyHud[0].unit.id);
   })).toBe(true);
   await page.evaluate(() => {
     const s = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
@@ -35,9 +35,9 @@ test('Delve selection highlights both surfaces and ally taps command the group',
   await clickCard(0);
   expect(await page.evaluate(() => {
     const s = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
-    return { selected: s.selectedUnitIds.size, highlights: s.partyHud.filter(c => c.portraitHighlight.visible).length,
+    return { selected: s.selectedUnitIds.size, highlights: s.partyHud.filter(c => c.cardHighlight.visible).length,
       healers: s.partyUnits.filter(u => u.role === 'Healer').every(u => s.healerPriorityTargets.get(u.id) === s.partyHud[0].unit.id) };
-  })).toEqual({ selected: 5, highlights: 5, healers: true });
+  })).toEqual({ selected: 0, highlights: 0, healers: true });
   await page.screenshot({ path: 'output/qa/delve-feedback/group-selection.png' });
   await page.evaluate(() => {
     const s = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
@@ -61,7 +61,7 @@ test('Delve selection highlights both surfaces and ally taps command the group',
     const s = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
     const body = s.children.list.find(o => o.type === 'Text' && o.depth === 10002 && o.text.includes('HP:'));
     return { align: body.style.align, origin: body.originX, paused: s.combatPaused, selected: s.selectedUnitIds.size };
-  })).toEqual({ align: 'center', origin: 0.5, paused: true, selected: 5 });
+  })).toEqual({ align: 'center', origin: 0.5, paused: true, selected: 0 });
   await page.screenshot({ path: 'output/qa/delve-feedback/centered-details.png' });
   expect(errors).toEqual([]);
 });

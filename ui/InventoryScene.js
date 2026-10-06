@@ -63,7 +63,7 @@ export default class InventoryScene extends Phaser.Scene {
   pager(total, count, field, x, y, width = 620) {
     const pages = Math.max(1, Math.ceil(total / count));
     this[field] = Math.max(0, Math.min(this[field] ?? 0, pages - 1));
-    this.button(x - width / 2 + 100, y, 190, '< PREV', () => { this[field]--; this.render(); }, { enabled: this[field] > 0 });
+    this.button(x - width / 2 + 100, y, 190, 'PREV', () => { this[field]--; this.render(); }, { enabled: this[field] > 0 });
     this.text(x, y, `${this[field] + 1} / ${pages}`, 32).setOrigin(0.5);
     this.button(x + width / 2 - 100, y, 190, 'NEXT >', () => { this[field]++; this.render(); }, { enabled: this[field] < pages - 1 });
     return this[field] * count;

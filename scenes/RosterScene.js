@@ -1,9 +1,12 @@
+import { CLASS_DESCRIPTIONS } from '../data/classDescriptions.js';
+import { STAT_DESCRIPTIONS } from '../data/statDescriptions.js';
+import { showSelectionDetails } from '../ui/SelectionDetails.js';
 import Phaser from 'phaser';
-import { rangeLabel, ADJACENT_DISTANCE } from '../config/combatRanges.js';
+import { abilityPower } from '../game/CharacterStats.js';
 import GameState from '../game/GameState.js';
 import { saveProfile } from '../game/GameStorage.js';
 import { equippedItem, getEquippedAdventurer, ownedEquipment, equipmentOwner, equipItem, unequipItem, equipmentStatsText, canEquipItem } from '../game/Equipment.js';
-import { abilityGoldCost, abilityLevelRequired, sortedAbilityEntries, MAX_ABILITY_RANK, MAX_EQUIPPED_ABILITIES, purchaseAdventurerAbility, toggleAdventurerAbility } from '../game/AdventurerAbilities.js';
+import { abilityGoldCost, abilityLevelRequired, sortedAbilityEntries, MAX_ABILITY_RANK, MAX_EQUIPPED_ABILITIES, purchaseAdventurerAbility, toggleAdventurerAbility, rankedAbility } from '../game/AdventurerAbilities.js';
 import { happinessLabel, xpRequired } from '../game/AdventurerProgression.js';
 import { characterDetails } from '../ui/SelectionDetails.js';
 import { showConfirmation } from '../ui/ConfirmationDialog.js';
@@ -13,8 +16,7 @@ import { getPotionDefinition } from '../data/items.js';
 import { guildSurface, guildCrest, guildRule } from '../ui/GuildHallTheme.js';
 
 const format = (value) => Number.isFinite(value) ? `${Math.round(value * 100) / 100}` : 'None';
-const percent = (value) => `${Math.round((value ?? 0) * 100)}%`;
-const withUnit = (value, unit) => Number.isFinite(value) ? `${format(value)}${unit}` : 'None';
+const percent = (value) => `${format((value ?? 0) * 100)}%`;
 const slotIcons = { weapon: 'sword', armor: 'shield', accessory: 'rune', potion: 'flask' };
 
 export default class RosterScene extends Phaser.Scene {
@@ -97,7 +99,9 @@ export default class RosterScene extends Phaser.Scene {
   renderSummary(hero) {
     const effective = getEquippedAdventurer(hero);
     hallText(this, 794, 326, hero.name, 48, { fontFamily: 'Georgia' }).setOrigin(0.5);
-    hallText(this, 794, 381, hero.shortName ?? hero.className, 32, { color: HALL.muted }).setOrigin(0.5);
+    hallButton(this, 794, 382, 488, 66, `${hero.shortName ?? hero.className} ⓘ`, () => {
+      showSelectionDetails(this, { title: hero.className, description: CLASS_DESCRIPTIONS[hero.className] });
+    }, { name: 'hall-class-info', size: 30, details: { title: hero.className, description: CLASS_DESCRIPTIONS[hero.className] } });
     guildRule(this, 794, 462, 420);
     const archetype = HALL_ARCHETYPES.find((entry) => entry.role === hero.role);
     hallIcon(this, archetype?.icon ?? 'shield', 685, 428, archetype?.color, 0.7);
@@ -107,10 +111,12 @@ export default class RosterScene extends Phaser.Scene {
     hallText(this, 1040, 709, `${hero.xp ?? 0} / ${xpRequired(hero.level)} XP`, 26, { color: HALL.muted }).setOrigin(1, 0.5);
     this.add.rectangle(547, 742, 493, 10, 0x170f0a).setOrigin(0, 0.5);
     this.add.rectangle(547, 742, 493 * Math.min(1, (hero.xp ?? 0) / xpRequired(hero.level)), 10, HALL.gold).setOrigin(0, 0.5);
-    [['Health', format(effective.maxHp)], ['Attack', format(effective.attackPower)], ['Armor', percent(effective.armor)], ['Skill points', `${hero.skillPoints ?? 0}`]].forEach(([label, value], index) => {
+    [['Health', format(effective.maxHp)], ['Attack', format(effective.attackPower)], ['Armor', format(effective.armor)], ['Skill points', `${hero.skillPoints ?? 0}`]].forEach(([label, value], index) => {
       const x = 547 + index % 2 * 256, y = 787 + Math.floor(index / 2) * 44;
       hallText(this, x, y, label, 29, { color: HALL.muted });
       hallText(this, x + 226, y, value, 31).setOrigin(1, 0.5);
+      const hit = this.add.rectangle(x + 116, y, 244, 44, 0, 0).setName(`hall-summary-stat-${label}`);
+      hallDetails(this, hit, { title: label, description: STAT_DESCRIPTIONS[label === 'Attack' ? 'Attack Power' : label] }, () => {});
     });
     hallText(this, 794, 873, `${happinessLabel(hero.happiness ?? 70)} · ${hero.happiness ?? 70}% happiness`, 29, { color: HALL.green }).setOrigin(0.5);
     hallButton(this, 794, 950, 488, 112, 'View all stats', () => this.openStats(hero), { name: 'hall-all-stats' });
@@ -144,7 +150,7 @@ export default class RosterScene extends Phaser.Scene {
       const key = loadout[index], ability = hero.abilities[key];
       const x = 1268 + index * 293;
       hallButton(this, x, 537, 272, 142, '', () => this.commit(toggleAdventurerAbility(hero.id, key)), {
-        enabled: Boolean(key), details: ability ? this.abilityDetails(ability) : undefined, name: `hall-ability-slot-${index}`
+        enabled: Boolean(key), details: ability ? this.abilityDetails(hero, key, ability) : undefined, name: `hall-ability-slot-${index}`
       });
       hallText(this, x, 493, `SLOT ${index + 1}`, 24, { color: HALL.muted }).setOrigin(0.5);
       hallText(this, x, 552, ability?.name ?? 'Empty', 30, { align: 'center', wordWrap: { width: 248 } }).setOrigin(0.5);
@@ -160,13 +166,15 @@ export default class RosterScene extends Phaser.Scene {
       guildSurface(this, 1710, y, 1156, 182, 'row', canTrain);
       const row = this.add.rectangle(1710, y, 1156, 182, 0, 0);
       row.setName(`hall-skill-${key}`);
-      hallDetails(this, row, this.abilityDetails(ability), () => {});
+      hallDetails(this, row, this.abilityDetails(hero, key, ability), () => {});
       hallText(this, 1152, y - 51, ability.name, 33, { fontStyle: 'bold', wordWrap: { width: 688 } });
-      hallText(this, 1152, y + 5, rank ? `Rank ${rank}/10 · ${loadout.includes(key) ? 'Equipped' : 'Learned'}` : 'Not learned', 28, {
+      const rankStatus = rank ? `Rank ${rank}/10 · ${loadout.includes(key) ? 'Equipped' : 'Learned'}` : 'Not learned';
+      const requirement = next <= MAX_ABILITY_RANK && hero.level < level ? ` · Requires level ${level}` : '';
+      hallText(this, 1152, y + 5, `${rankStatus}${requirement}`, 28, {
         color: rank ? HALL.green : HALL.muted
       });
-      const status = next > MAX_ABILITY_RANK ? 'Maximum rank' : hero.level < level ? `Next rank at character level ${level}` : `${next} SP + ${cost} Gold · ${rank ? 'Improve' : 'Learn'}`;
-      hallText(this, 1152, y + 55, status, 28, { color: canTrain ? '#ffe0a7' : HALL.muted });
+      const status = next > MAX_ABILITY_RANK ? 'Maximum rank' : `Next rank costs ${next} SP and ${cost} Gold to train`;
+      hallText(this, 1152, y + 55, status, 28, { wordWrap: { width: 688 }, color: canTrain ? '#ffe0a7' : HALL.muted });
       if (rank) hallButton(this, 1941, y, 178, 112, loadout.includes(key) ? 'Unequip' : 'Equip', () => this.commit(toggleAdventurerAbility(hero.id, key)), {
         selected: loadout.includes(key), name: `hall-equip-skill-${key}`, size: 29
       });
@@ -182,24 +190,50 @@ export default class RosterScene extends Phaser.Scene {
       this.children.list.slice(start), entries.length * 198, this.skillOffset, (value) => { this.skillOffset = value; });
   }
 
-  abilityDetails(ability) {
-    return { title: ability.name, description: `${ability.category} · ${ability.targetLabel ?? ability.target ?? 'Class ability'}\n\n${ability.description ?? ability.name}\n\nRange: ${rangeLabel(ability.range)}${ability.cooldown ? ` · Cooldown: ${ability.cooldown / 1000}s` : ''}` };
+  abilityDetails(hero, key, base) {
+    const ability = rankedAbility(base, Math.max(1, hero.abilityRanks?.[key] ?? 0));
+    const stats = getEquippedAdventurer(hero);
+    const amounts = [];
+    const damage = ['damage', 'trap'].includes(ability.effect) && !ability.poison;
+    const healing = ability.effect === 'heal' || ability.effect === 'refuge';
+    if (damage || healing) {
+      let low = ability.power, high = ability.highPower ?? ability.lowHealthPower ?? low;
+      if (ability.missingHealthBonus) high = low * 2;
+      if (ability.rearBonus) high = Math.max(high, low * (1 + ability.rearBonus));
+      if (ability.lowHealthBoost) high = Math.max(high, low * (1 + ability.lowHealthBoost));
+      const minimum = Math.round(abilityPower(stats, ability, low, healing));
+      const maximum = Math.round(abilityPower(stats, ability, high, healing));
+      amounts.push(`${healing ? 'Healing' : 'Damage'}: ${Math.min(minimum, maximum)}-${Math.max(minimum, maximum)}`);
+      if (ability.healRatio) amounts.push(`Healing: ${Math.round(abilityPower(stats, ability, low, true) * ability.healRatio)}-${Math.round(abilityPower(stats, ability, high, true) * ability.healRatio)} per enemy hit`);
+    }
+    if (ability.poison) {
+      const power = Math.round(abilityPower(stats, ability, ability.poison.power));
+      amounts.push(`Damage: ${power}-${power} per poison tick`);
+    }
+    return { title: ability.name, description: [ability.targetLabel ?? ability.target ?? 'Self only', ...amounts].join('\n\n') };
   }
 
   openStats(hero) {
     const stats = getEquippedAdventurer(hero);
-    const entries = [['Health', format(stats.maxHp)], ['Mana', format(stats.maxMana)], ['Mana regen', withUnit(stats.manaRegen, '/s')],
-      ['Attack', format(stats.attackPower)], ['Attack range', rangeLabel(stats.attackRange / ADJACENT_DISTANCE)], ['Attack cooldown', withUnit(stats.attackCooldown, ' ms')],
-      ['Attack windup', withUnit(stats.attackWindup, ' ms')], ['Move speed', format(stats.moveSpeed)], ['Armor', percent(stats.armor)], ['Crit chance', percent(stats.critChance)],
-      ['Crit damage', withUnit(stats.critMultiplier, 'x')], ['Threat', withUnit(stats.threatMultiplier, 'x')], ['Healing', format(stats.healPower)], ['Heal range', Number.isFinite(stats.healRange) ? rangeLabel(stats.healRange / ADJACENT_DISTANCE) : 'None'],
-      ['Heal cooldown', withUnit(stats.healCooldown, ' ms')], ['Heal windup', withUnit(stats.healWindup, ' ms')], ['Basic heal', format(stats.basicHealPower)],
-      ['Basic heal range', format(stats.basicHealRange)], ['Happiness', `${hero.happiness ?? 70}%`], ['Delves cleared', `${hero.delvesCompleted ?? 0}`]];
+    const entries = [['Level', format(hero.level)], ['Health', format(stats.maxHp)], ['Mana', format(stats.maxMana)],
+      ['Armor', format(stats.armor)], ['Dodge', percent(stats.dodge)], ['Block', percent(stats.block)], ['Speed', format(stats.speed ?? 100)],
+      ['Strength', Number.isFinite(stats.strength) ? format(Math.round(stats.strength)) : 'Not set'],
+      ['Agility', Number.isFinite(stats.agility) ? format(Math.round(stats.agility)) : 'Not set'],
+      ['Constitution', Number.isFinite(stats.constitution) ? format(Math.round(stats.constitution)) : 'Not set'],
+      ['Intellect', Number.isFinite(stats.intellect) ? format(Math.round(stats.intellect)) : 'Not set'],
+      ['Wisdom', Number.isFinite(stats.wisdom) ? format(Math.round(stats.wisdom)) : 'Not set'],
+      ['Hit Chance', percent(stats.hitChance)], ['Crit Chance', percent(stats.critChance)], ['Crit Multiplier', `${format(stats.critMultiplier)}x`],
+      ['Attack Power', format(stats.attackPower)], ['Spell Damage', format(stats.spellDamage)], ['Spell Healing', format(stats.spellHealing)],
+      ['Happiness', `${hero.happiness ?? 70}%`], ['Delves Cleared', `${hero.delvesCompleted ?? 0}`]];
     const modal = this.modal(`${hero.name} · Character stats`);
     entries.forEach(([label, value], index) => {
       const x = 581 + Math.floor(index / 10) * 634, y = 296 + index % 10 * 52;
       hallText(this, x, y, label, 30, { color: HALL.muted });
       hallText(this, x + 545, y, value, 30).setOrigin(1, 0.5);
+      const hit = this.add.rectangle(x + 273, y, 575, 52, 0, 0).setName(`hall-stat-${label}`);
+      hallDetails(this, hit, { title: label, description: STAT_DESCRIPTIONS[label], preserveEquipment: true }, () => {});
     });
+    hallText(this, 1200, 855, 'Hold a stat to learn what it does.', 28, { color: HALL.muted }).setOrigin(0.5);
     hallButton(this, 1200, 930, 320, 112, 'Done', modal.close, { modal: true });
     modal.finish();
   }
@@ -248,10 +282,10 @@ export default class RosterScene extends Phaser.Scene {
         modal.close();
         const effective = getEquippedAdventurer(hero);
         const keys = new Set([...Object.keys(current?.stats ?? {}), ...Object.keys(item.stats ?? {})]);
-        const labels = { maxHp: 'Health', attackPower: 'Attack', healPower: 'Healing', armor: 'Armor' };
+        const labels = { maxHp: 'Health', attackPower: 'Attack Power', spellDamage: 'Spell Damage', spellHealing: 'Spell Healing', healPower: 'Spell Healing', armor: 'Armor' };
         const comparison = [...keys].map((key) => {
           const before = effective[key] ?? 0, after = before - (current?.stats?.[key] ?? 0) + (item.stats?.[key] ?? 0);
-          return `${labels[key] ?? key}: ${key === 'armor' ? percent(before) : format(before)} → ${key === 'armor' ? percent(after) : format(after)}`;
+          return `${labels[key] ?? key}: ${format(before)} → ${format(after)}`;
         }).join('\n');
         showConfirmation(this, {
           title: `Equip ${item.name}?`, confirmLabel: 'EQUIP',
@@ -261,7 +295,7 @@ export default class RosterScene extends Phaser.Scene {
         });
       }, { modal: true, name: `hall-compare-${item.id}` });
     });
-    hallButton(this, 710, 930, 230, 112, '< Prev', () => this.openEquipment(hero, slot, page - 1), { enabled: page > 0, modal: true });
+    hallButton(this, 710, 930, 230, 112, 'Prev', () => this.openEquipment(hero, slot, page - 1), { enabled: page > 0, modal: true });
     hallText(this, 1010, 930, `${page + 1}/${pages}`, 32).setOrigin(0.5);
     hallButton(this, 1310, 930, 230, 112, 'Next >', () => this.openEquipment(hero, slot, page + 1), { enabled: page < pages - 1, modal: true });
     hallButton(this, 1680, 930, 270, 112, 'Done', modal.close, { modal: true });

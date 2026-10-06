@@ -124,7 +124,7 @@ export default class FacilityScene extends Phaser.Scene {
       if (row.enabled) bindSelectionDetails(this, button, { title: row.name, description: row.description, shopTheme: theme }, () => this.transact(row.run));
     });
     this.add.text(1400, 759, this.message || `${this.page + 1} / ${pages}`, { fontFamily: 'Arial', fontSize: '27px', color: theme.text, align: 'center', wordWrap: { width: 1000 } }).setOrigin(0.5);
-    for (const [x, label, delta] of [[760, '< PREV', -1], [2040, 'NEXT >', 1]]) {
+    for (const [x, label, delta] of [[760, 'PREV', -1], [2040, 'NEXT >', 1]]) {
       const enabled = this.page + delta >= 0 && this.page + delta < pages;
       const button = this.add.rectangle(x, 765, 195, 62, theme.face).setStrokeStyle(2, theme.edge).setAlpha(enabled ? 1 : 0.4);
       this.add.text(x, 765, label, { fontFamily: 'Arial', fontSize: '28px', color: theme.text }).setOrigin(0.5);

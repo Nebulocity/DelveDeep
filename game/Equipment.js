@@ -1,4 +1,6 @@
+import { ATTRIBUTE_STATS, CHANCE_STATS } from '../config/characterProgression.js';
 import GameState from './GameState.js';
+import { characterStats, rebuildCharacterStats } from './CharacterStats.js';
 import { ENCHANTMENT_BY_ID } from '../data/enchantments.js';
 import { getEquipmentDefinition, getMaterialDefinition, getPotionDefinition } from '../data/items.js';
 
@@ -121,21 +123,29 @@ export function consumePotionCharge(heroId, state = GameState) {
 }
 
 export function getEquippedAdventurer(hero, state = GameState) {
-  const result = { ...hero };
+  const bonuses = {};
   for (const slot of EQUIPMENT_SLOTS) {
     if (slot === 'potion') continue;
     const item = equippedItem(hero, slot, state);
     for (const [stat, bonus] of Object.entries(item?.stats ?? {})) {
-      if (Number.isFinite(bonus)) result[stat] = (result[stat] ?? 0) + bonus;
+      if (Number.isFinite(bonus)) bonuses[stat] = (bonuses[stat] ?? 0) + bonus;
     }
+  }
+  const derived = hero.statProgressionVersion === 2;
+  const result = derived ? rebuildCharacterStats(hero, bonuses) : characterStats(hero);
+  for (const [stat, bonus] of Object.entries(bonuses)) {
+    if (derived && [...ATTRIBUTE_STATS, ...CHANCE_STATS].includes(stat)) continue;
+    result[stat] = (result[stat] ?? 0) + bonus;
+    if (stat === 'healPower') result.spellHealing += bonus;
+    if (stat === 'spellHealing' && derived) result.healPower += bonus;
   }
   return result;
 }
 
 export function equipmentStatsText(stats = {}) {
-  const labels = { maxHp: 'HP', attackPower: 'Attack', healPower: 'Healing', armor: 'Armor' };
+  const labels = { maxHp: 'HP', attackPower: 'Attack Power', spellDamage: 'Spell Damage', spellHealing: 'Spell Healing', healPower: 'Spell Healing', armor: 'Armor' };
   return Object.entries(stats).filter(([, value]) => Number.isFinite(value)).map(([key, value]) =>
-    key === 'armor' ? `+${Math.round(value * 100)}% Armor` : `+${value} ${labels[key] ?? key}`
+    `+${Math.round(value * 100) / 100} ${labels[key] ?? key}`
   ).join('  / ');
 }
 
@@ -179,6 +189,16 @@ export function restoreEquipment(savedInventory, savedRoster, state = GameState)
       charges: item.slot === 'potion' ? item.charges : undefined,
       stats: Object.fromEntries(Object.entries(item.stats ?? {}).filter(([, value]) => Number.isFinite(value)))
     })) : [];
+
+  // Move the old focus's base bonus to Spell Damage while retaining enchantments.
+  for (const item of state.inventory.equipment) {
+    if (item.stats.armor > 0 && item.stats.armor < 1) item.stats.armor = 400 * item.stats.armor / (1 - item.stats.armor);
+    if (item.itemId !== 'apprentice-focus' || Number.isFinite(item.stats.spellDamage)) continue;
+    const bonus = Math.min(2, Math.max(0, item.stats.attackPower ?? 0));
+    item.stats.spellDamage = bonus;
+    item.stats.attackPower = (item.stats.attackPower ?? 0) - bonus;
+    if (item.stats.attackPower === 0) delete item.stats.attackPower;
+  }
   state.inventory.equipmentSchemaVersion = EQUIPMENT_SCHEMA_VERSION;
   state.inventory.nextEquipmentId = Number.isSafeInteger(savedInventory?.nextEquipmentId) && savedInventory.nextEquipmentId > 0
     ? savedInventory.nextEquipmentId : 1;

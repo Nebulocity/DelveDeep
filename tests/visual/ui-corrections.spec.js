@@ -50,8 +50,8 @@ test(`requested map, shop and wooden dialog corrections at ${viewport.width}`, a
     const button = scene.children.list.find(object => object.input?.enabled && object.x === caption.x && object.y === caption.y);
     button.emit('pointerdown');
   });
-  await capture('wooden-help');
-  expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('TitleScene').children.list.filter(object => object.name === 'wooden-panel').length)).toBeGreaterThan(0);
+  await capture('tutorial-help');
+  expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('TitleScene').children.list.some(object => object.name === 'tutorial-video'))).toBe(true);
   await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.activate('DelveSelectScene'));
   await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('DelveSelectScene').sys.isActive());
   await capture('slime-preview');

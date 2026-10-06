@@ -67,6 +67,11 @@ export async function reviewHall(page, output, width) {
   await capture('gear-details');
   await click('RosterScene', 'CLOSE', true);
   await click('RosterScene', 'hall-hero-caramon-gladiator', false, true);
+  ensure(await page.evaluate(() => {
+    const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene');
+    const text = scene.children.list.filter(object => object.depth >= 11000).map(object => object.text);
+    return text.includes('Known Skills') && text.includes('Roar (Rank 1)') && !text.includes('Throw Net');
+  }), 'Registry must show only known skills with their ranks');
   await capture('registry');
   await click('RosterScene', 'CLOSE', true);
   await page.evaluate(() => {
@@ -91,7 +96,7 @@ export async function reviewHall(page, output, width) {
   await capture('picker');
   await click('RosterScene', 'Next >');
   ensure(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene').children.list.some((object) => object.name === 'hall-compare-gear-909')), 'Equipment pagination must reach the final copy');
-  await click('RosterScene', '< Prev');
+  await click('RosterScene', 'Prev');
   await click('RosterScene', 'hall-compare-gear-901');
   ensure(!(await snapshot()).gear.weapon, 'Comparison must not equip before confirmation');
   await capture('comparison');
@@ -104,7 +109,13 @@ export async function reviewHall(page, output, width) {
   ensure(!await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene').children.list.some((object) => object.name === 'hall-compare-gear-904')), 'Mana pack must be excluded for a non-mana hero');
   await click('RosterScene', 'hall-compare-gear-905'); await click('RosterScene', 'EQUIP', true);
   ensure((await snapshot()).gear.potion === 'gear-905', 'Potion pack did not equip');
-  await click('RosterScene', 'hall-all-stats'); await capture('stats'); await click('RosterScene', 'Done');
+  await click('RosterScene', 'hall-all-stats');
+  ensure(await page.evaluate(() => {
+    const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene');
+    const labels = scene.children.list.filter(object => object.depth >= 2000 && object.x === 581 || object.depth >= 2000 && object.x === 1215).map(object => object.text);
+    return JSON.stringify(labels) === JSON.stringify(['Level', 'Health', 'Mana', 'Armor', 'Dodge', 'Block', 'Speed', 'Strength', 'Agility', 'Constitution', 'Intellect', 'Wisdom', 'Hit Chance', 'Crit Chance', 'Crit Multiplier', 'Attack Power', 'Spell Damage', 'Spell Healing', 'Happiness', 'Delves Cleared']);
+  }), 'Character stats must contain exactly the requested stats');
+  await capture('stats'); await click('RosterScene', 'Done');
   const rect = await page.locator('canvas').boundingBox();
   await page.mouse.move(rect.x + 272 * rect.width / 2400, rect.y + 780 * rect.height / 1080);
   await page.mouse.down(); await page.mouse.move(rect.x + 272 * rect.width / 2400, rect.y + 480 * rect.height / 1080, { steps: 8 }); await page.mouse.up();
@@ -136,7 +147,20 @@ export async function reviewHall(page, output, width) {
   ensure(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene').children.list.find((object) => object.name === 'hall-ability-slot-0').y) === fixedSlotY, 'Skill scrolling moved the fixed battle slots');
   const saved = await snapshot();
   await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene').skillList.set(0));
+  ensure(await page.evaluate(() => {
+    const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene');
+    return scene.skillList.container.list.some(object => /^Next rank costs \d+ SP and \d+ Gold to train$/.test(object.text));
+  }), 'Training cost must use the requested sentence');
   await capture('skills');
+  await revealSkill('cleave');
+  await click('RosterScene', 'hall-skill-cleave', false, true);
+  ensure(await page.evaluate(() => {
+    const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene');
+    const text = scene.children.list.filter(object => object.depth >= 11000).map(object => object.text).join(' ');
+    return /Damage: \d+-\d+/.test(text) && !text.includes('Cooldown:') && !text.includes('Range:');
+  }), 'Skill details must show numeric potency without internal range/cooldown text');
+  await capture('skill-potency');
+  await click('RosterScene', 'CLOSE', true);
   await click('RosterScene', 'hall-nav-items'); await waitScene('ItemsScene');
   await click('ItemsScene', 'hall-category-materials');
   ensure(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('ItemsScene').children.list.filter((object) => object.name?.startsWith('hall-item-')).length) === 1, 'Inventory must hide zero-count materials');

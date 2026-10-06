@@ -1,3 +1,4 @@
+import { delveMaterialIds } from './DelveDrops.js';
 import GameState from './GameState.js';
 import { grantMaterial } from './Equipment.js';
 import { grantAdventurerXp } from './AdventurerProgression.js';
@@ -12,7 +13,6 @@ export const WAVE_REWARDS = {
   Impossible: { gold: 72, goldStep: 8, xp: 38, materialCount: 3 }
 };
 
-const MATERIAL_IDS = ['iron', 'wood', 'leather', 'cloth', 'herb', 'essence'];
 
 export function isOrdinaryDelve(delve = GameState.currentDelve) {
   return delve?.type === 'delve';
@@ -35,7 +35,8 @@ export function awardOrdinaryWave(delve, waveIndex, bossIndex, farming = false) 
   const values = WAVE_REWARDS[delve.difficulty] ?? WAVE_REWARDS.Easy;
   const gold = values.gold + values.goldStep * waveIndex;
   const xp = farming ? Math.max(1, Math.floor(values.xp / 2)) : values.xp;
-  const materialId = MATERIAL_IDS[(delve.id.length + waveIndex) % MATERIAL_IDS.length];
+  const materials = delveMaterialIds(delve);
+  const materialId = materials[(delve.id.length + waveIndex) % materials.length];
   GameState.gold += gold;
   grantMaterial(materialId, values.materialCount);
   const partyIds = new Set(GameState.activeParty.map((hero) => hero.id));

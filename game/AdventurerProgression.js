@@ -1,3 +1,5 @@
+import { rebuildCharacterStats } from './CharacterStats.js';
+
 // This function increases the experience needed for each adventurer level.
 export function xpRequired(level) {
 
@@ -10,9 +12,12 @@ export function grantAdventurerLevels(adventurer, amount = 1) {
   for (let index = 0; index < gained; index += 1) {
     adventurer.skillPoints = Math.max(0, adventurer.skillPoints ?? adventurer.level) + 1;
     adventurer.level += 1;
-    adventurer.maxHp += 6;
-    adventurer.attackPower += 2;
-    if (Number.isFinite(adventurer.healPower)) adventurer.healPower += 2;
+    if (adventurer.statProgressionVersion === 2) Object.assign(adventurer, rebuildCharacterStats(adventurer));
+    else {
+      adventurer.maxHp += 6;
+      adventurer.attackPower += 2;
+      if (Number.isFinite(adventurer.healPower)) adventurer.healPower += 2;
+    }
   }
   return { levelsGained: gained };
 }

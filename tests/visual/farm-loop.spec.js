@@ -63,7 +63,24 @@ test('Farm repeats and queues cancellation until the current wave is cleared', a
   expect(repeat.index).toBe(repeat.farmIndex);
   expect(repeat.gold).toBe(initialGold + 24);
   expect(repeat.visible).toBe(true);
+  const clickModal = async (label) => {
+    const point = await page.evaluate(label => {
+      const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
+      const text = scene.children.list.find(object => object.depth >= 11000 && object.text === label);
+      return { x: text.x, y: text.y };
+    }, label);
+    await clickButton(point.x, point.y);
+  };
   await clickButton(155, 750);
+  expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene').farmStopRequested)).toBe(false);
+  await page.screenshot({ path: 'output/qa/farm-loop/cancel-confirmation-phone.png' });
+  await clickModal('CANCEL');
+  expect(await page.evaluate(() => {
+    const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
+    return !scene.farmStopRequested && !scene.selectionDetailsClose && scene.combatPaused && scene.time.paused;
+  })).toBe(true);
+  await clickButton(155, 750);
+  await clickModal('STOP FARMING');
   const pending = await page.evaluate(() => {
     const qa = window.__DELVE_DEEP_VISUAL_QA__;
     const scene = qa.game.scene.getScene('BattleScene');
@@ -81,5 +98,13 @@ test('Farm repeats and queues cancellation until the current wave is cleared', a
   expect(stopped.visible).toBe(false);
   await clickButton(1200, 583);
   expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene').farmStopRequested)).toBe(false);
+  await clickButton(2245, 796);
+  expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene').battleOver)).toBe(false);
+  await page.screenshot({ path: 'output/qa/farm-loop/retreat-confirmation-phone.png' });
+  await clickModal('CANCEL');
+  expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene').battleOver)).toBe(false);
+  await clickButton(2245, 796);
+  await clickModal('RETREAT');
+  await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('EncounterSummaryScene').sys.isActive());
   expect(errors).toEqual([]);
 });

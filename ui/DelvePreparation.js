@@ -25,7 +25,7 @@ export function preparationFrame(scene, delve, title, backLabel, backAction) {
   addStoneOrnaments(scene, width / 2, 62, width * 0.52, scene.stoneTheme, 2);
   stoneText(scene, width / 2, 36, title, 28, 3, { color: STONE.muted });
   stoneText(scene, width / 2, 84, delve?.name ?? 'The Delve', 49, 3);
-  preparationButton(scene, 240, 64, 430, 94, `< ${backLabel}`, backAction, { size: 32 });
+  preparationButton(scene, 240, 64, 430, 94, backLabel, backAction, { size: 32 });
 }
 
 export function preparationNotice(scene, x, y, message, options = {}) {

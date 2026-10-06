@@ -1,3 +1,4 @@
+import { delveDropNames } from '../game/DelveDrops.js';
 import HapticsService from '../services/HapticsService.js';
 import { addWoodenPanel, addWoodenNotice } from './WoodenPanel.js';
 import { addStonePanel, addStoneButton, addStoneOrnaments, stoneText, STONE } from './CarvedStone.js';
@@ -29,6 +30,26 @@ function isTownMenu(scene) {
 }
 
 export function characterDetails(unit) {
+  if (unit.isEnemy) {
+    const number = value => Number((value ?? 0).toFixed(2));
+    const percent = value => `${number((value ?? 0) * 100)}%`;
+    return {
+      title: unit.name,
+      panelWidth: 1500,
+      align: 'left',
+      description: [
+        `Level: ${unit.level} | Health: ${number(unit.hp)}/${number(unit.maxHp)} | Mana: ${number(unit.mana)}/${number(unit.maxMana)}`,
+        `Armor: ${number(unit.armor)} | Dodge: ${percent(unit.dodge)} | Block: ${percent(unit.block)} | Speed: ${number(unit.speed)}`,
+        `Strength: ${number(unit.strength)} | Agility: ${number(unit.agility)} | Constitution: ${number(unit.constitution)}`,
+        `Intellect: ${number(unit.intellect)} | Wisdom: ${number(unit.wisdom)}`,
+        `Hit Chance: +${percent(unit.hitChance)} | Crit Chance: ${percent(unit.critChance)} | Crit Multiplier: ${number(unit.critMultiplier)}x`,
+        `Attack Power: ${number(unit.attackPower)} | Spell Damage: ${number(unit.spellDamage)} | Spell Healing: ${number(unit.spellHealing)}`,
+        `Happiness: ${number(unit.happiness)}% | Delves Cleared: ${unit.delvesCompleted ?? 0}`,
+        unit.description,
+        Object.values(unit.abilities ?? {}).map(ability => ability.name).filter(Boolean).join(', ')
+      ].filter(Boolean).join('\n\n')
+    };
+  }
   return {
     title: unit.name,
     description: [
@@ -42,7 +63,7 @@ export function characterDetails(unit) {
 }
 
 export function delveDetails(delve) {
-  return { title: delve.name, description: `${delve.subtitle}\n\n${delve.difficulty} | Recommended level ${delve.recommendedLevel} | ${delve.rooms} waves\n\nRewards: ${(delve.possibleDrops ?? []).join(', ')}`, image: delve.visuals?.environment?.layers[0]?.key };
+  return { title: delve.name, description: `${delve.subtitle}\n\n${delve.difficulty} | Recommended level ${delve.recommendedLevel} | ${delve.rooms} waves\n\nPossible Drops:\n${delveDropNames(delve).map(name => `• ${name}`).join('\n')}`, image: delve.visuals?.environment?.layers[0]?.key, align: 'left', titleAboveBody: true, panelWidth: 1600 };
 }
 
 // Modal details block underlying controls. Combat clocks and decisions pause
@@ -79,7 +100,7 @@ export function showSelectionDetails(scene, details) {
   scene.events.once('shutdown', close);
   const depth = 10000;
   const stone = scene.scene?.key === 'BattleScene' || isDelvePreparation(scene);
-  const panelWidth = Math.min(details.panelWidth ?? 1100, messageBounds.width - 120);
+  const panelWidth = Math.min(details.panelWidth ?? (details.gear ? 1760 : 1100), messageBounds.width - 120);
   const hasImage = Boolean(details.image && scene.textures.exists(details.image));
   const bodyMargin = 65;
   const imageColumn = hasImage ? 300 : shop ? 220 : 0;
@@ -87,13 +108,14 @@ export function showSelectionDetails(scene, details) {
   const bodyCenter = centerX + imageColumn / 2;
   const body = scene.add.text(bodyCenter, 0, details.description, {
     fontFamily: 'Arial', fontSize: '32px', color: stone ? STONE.text : shop ? shopTheme.text : warm ? '#f1dfca' : '#e2e8f0',
-    wordWrap: { width: bodyWidth }, fixedWidth: bodyWidth, align: 'center'
+    wordWrap: { width: bodyWidth }, fixedWidth: bodyWidth, align: details.align ?? 'center'
   }).setOrigin(0.5, 0).setDepth(depth + 2);
-  const panelHeight = Math.min(height - 140, Math.max(hasImage ? 540 : 340, body.height + 210));
+  const panelHeight = Math.min(height - 140, Math.max(hasImage ? 540 : 340, body.height + (details.gear ? 480 : 210)));
   const top = (height - panelHeight) / 2;
   body.setY(top + 94);
   // Keep long descriptions contained while retaining the normal large type.
-  if (body.height > panelHeight - 190) body.setScale((panelHeight - 190) / body.height);
+  const bodyHeight = panelHeight - (details.gear ? 450 : 190);
+  if (body.height > bodyHeight) body.setScale(bodyHeight / body.height);
   const shade = scene.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7)
     .setDepth(depth).setInteractive();
   const panel = (stone ? addStonePanel : regionMap ? addRegionPanel : addWoodenPanel)(scene, centerX, height / 2, panelWidth + 36, panelHeight + 36, depth + 1);
@@ -119,6 +141,17 @@ export function showSelectionDetails(scene, details) {
     close();
   };
   shade.on('pointerdown', dismiss);
+  if (details.gear) {
+    const cardWidth = (panelWidth - 130 - 48) / 4;
+    details.gear.forEach((item, index) => {
+      const x = centerX - panelWidth / 2 + 65 + cardWidth / 2 + index * (cardWidth + 16);
+      const y = top + panelHeight - 235;
+      objects.push(addStonePanel(scene, x, y, cardWidth, 220, depth + 2));
+      objects.push(stoneText(scene, x, y - 72, item.slot.toUpperCase(), 26, depth + 3, { color: STONE.muted }));
+      objects.push(stoneText(scene, x, y - 12, item.name, 30, depth + 3, { wordWrap: { width: cardWidth - 40 } }));
+      objects.push(stoneText(scene, x, y + 65, item.summary, 26, depth + 3, { fontFamily: 'Arial', wordWrap: { width: cardWidth - 40 } }));
+    });
+  }
   const buttonY = top + panelHeight - 52;
   const button = (stone ? addStoneButton : regionMap ? addRegionPanel : addWoodenPanel)(scene, centerX, buttonY, 300, 72, depth + 3).setInteractive({ useHandCursor: true });
   if (stone) {
@@ -131,9 +164,9 @@ export function showSelectionDetails(scene, details) {
   if (town) objects.push(panelHit);
   if (shopSign) objects.push(shopSign);
   objects.push(
-    scene.add.text(centerX, top + 44, details.title, {
+    scene.add.text(details.titleAboveBody ? bodyCenter : centerX, top + 44, details.title, {
       fontFamily: town || stone ? 'Georgia' : 'Arial', fontSize: '36px', fontStyle: 'bold',
-      wordWrap: { width: panelWidth - 170 }, align: 'center',
+      wordWrap: { width: details.titleAboveBody ? bodyWidth : panelWidth - 170 }, align: 'center',
       color: warm || shop ? (shop ? shopTheme.text : '#fff1d2') : '#bef264', stroke: town || shop ? '#24170f' : undefined,
       strokeThickness: town || shop ? 3 : 0
     }).setOrigin(0.5).setDepth(depth + 2),

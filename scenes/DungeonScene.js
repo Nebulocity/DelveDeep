@@ -1,7 +1,7 @@
-import { bindSelectionDetails, characterDetails } from '../ui/SelectionDetails.js';
+import { bindSelectionDetails } from '../ui/SelectionDetails.js';
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
-import { getEquippedAdventurer } from '../game/Equipment.js';
+import { equippedItem, equipmentStatsText, getEquippedAdventurer } from '../game/Equipment.js';
 import HapticsService from '../services/HapticsService.js';
 import { beginExpedition } from '../game/ExpeditionProgression.js';
 import { leaderAbilities } from '../game/LeaderProgression.js';
@@ -62,7 +62,7 @@ export default class DungeonScene extends Phaser.Scene {
 
       const y = 370 + index * 112;
       const card = addStoneButton(this, width * 0.28, y, 920, 104, 3);
-      bindSelectionDetails(this, card, () => characterDetails(getEquippedAdventurer(GameState.roster.find((hero) => hero.id === adventurer.id) ?? adventurer)));
+      bindSelectionDetails(this, card, () => this.adventurerDetails(GameState.roster.find((hero) => hero.id === adventurer.id) ?? adventurer));
       const frame = CHARACTER_SPRITES[adventurer.id]?.clips.idle.south.frames[0];
       const x = width * 0.28 - 390;
       if (frame && this.textures.exists(frame.key)) {
@@ -100,6 +100,21 @@ export default class DungeonScene extends Phaser.Scene {
         this.scene.start('BattleScene');
       }));
     }, { primary: true, size: 46 });
+  }
+
+  adventurerDetails(hero) {
+    const stats = getEquippedAdventurer(hero);
+    const skills = (hero.abilityLoadout ?? []).filter(key => hero.abilities?.[key] && (hero.abilityRanks?.[key] ?? 0) > 0)
+      .map(key => `${hero.abilities[key].name} (Rank ${hero.abilityRanks[key]})`);
+    return {
+      title: hero.name, align: 'left',
+      description: `${hero.className} | ${hero.role} | Level ${hero.level}\n\nHealth: ${Math.round(stats.maxHp)} | Mana: ${Math.round(stats.maxMana ?? 0)} | Armor: ${Math.round(stats.armor ?? 0)}\nAttack Power: ${Math.round(stats.attackPower)} | Spell Damage: ${Math.round(stats.spellDamage ?? 0)} | Spell Healing: ${Math.round(stats.spellHealing ?? 0)}\nSpeed: ${Math.round(stats.speed ?? 100)} | Dodge: ${Math.round((stats.dodge ?? 0) * 100)}% | Crit: ${Math.round((stats.critChance ?? 0) * 100)}%\n\nEquipped Skills\n${skills.length ? skills.join(' • ') : 'No skills equipped.'}`,
+      gear: ['weapon', 'armor', 'accessory', 'potion'].map(slot => {
+        const item = equippedItem(hero, slot);
+        return { slot, name: item?.name ?? 'Empty slot', summary: item ? slot === 'potion'
+          ? `${item.charges}/3 potions` : equipmentStatsText(item.stats) : 'Unequipped' };
+      })
+    };
   }
 
   // Touch-generated pointerover events must not bypass the long press.

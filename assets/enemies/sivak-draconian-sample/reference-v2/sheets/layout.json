@@ -1,0 +1,22 @@
+{
+  "frameWidth": 256,
+  "frameHeight": 256,
+  "directions": [
+    "south",
+    "south-east",
+    "east",
+    "north-east",
+    "north",
+    "north-west",
+    "west",
+    "south-west"
+  ],
+  "states": {},
+  "facings": {
+    "file": "facings.png",
+    "columns": 8,
+    "rows": 1,
+    "frameCount": 8,
+    "source": "PixelLab 8-direction reference rotation export"
+  }
+}

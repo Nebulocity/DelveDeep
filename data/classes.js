@@ -1,3 +1,4 @@
+import { progressionResources } from '../config/characterProgression.js';
 import { addAbilityProgression } from './abilityProgression.js';
 
 // Powers and unspecified durations are provisional balance values; see docs/CLASS_ABILITIES.md.
@@ -114,5 +115,5 @@ addAbilityProgression(CLASS_DEFINITIONS);
 export function createAdventurer(id, name, className, overrides = {}) {
   const definition = CLASS_DEFINITIONS[className];
   if (!definition) throw new Error(`Unknown class: ${className}`);
-  return { id, name, className, level: 1, ...definition, abilities: { ...definition.abilities }, ...overrides };
+  return { id, name, className, level: 1, ...definition, abilities: { ...definition.abilities }, ...overrides, ...progressionResources(className), healPower: progressionResources(className).spellHealing, statProgressionVersion: 2 };
 }

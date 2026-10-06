@@ -6,7 +6,8 @@ export default {
   mapLabel: 'The Slime Cave',
   subtitle: 'A damp, abandoned cave consumed by living slime.',
   difficulty: 'Easy', recommendedLevel: 1, depth: 1, type: 'delve',
-  possibleDrops: ['Gold', 'Materials', 'Adventurer XP'],
+  materialDrops: ['leather', 'herb', 'essence'],
+  possibleDrops: ['Gold / Adventurer XP', 'Cured Leather', 'Wild Herbs', 'Arcane Essence'],
   prerequisites: [],
   map: { x: 0.307, y: 0.475, radius: 0.055 },
   // The walkable boundary follows open ground between scenery and foreground rocks.

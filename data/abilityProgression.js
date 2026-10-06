@@ -274,9 +274,13 @@ export function addAbilityProgression(classDefinitions) {
       ability.starter = starters.includes(key);
       ability.origin = 'Existing';
       ability.description ??= EXISTING_ABILITY_DESCRIPTIONS[className]?.[key] ?? ability.name;
-      ability.targetLabel = ability.zone || ability.radius || ability.targets === Infinity ? 'Area'
-        : ability.effect === 'heal' || ability.effect === 'vow' ? 'Single ally or self'
-          : ['damage', 'mark', 'taunt', 'trap'].includes(ability.effect) ? 'Single enemy' : 'Self only';
+      ability.targetLabel = ability.effect === 'heal' ? ability.zone ? 'Allies near the target' : 'Single ally or self'
+        : ability.beam ? 'Enemies in a line'
+          : ability.zone || ability.splash ? 'Enemies near the target'
+            : ability.radius ? 'Enemies near the caster'
+              : ability.targets ? `Up to ${ability.targets} enemies`
+                : ability.effect === 'vow' ? 'Single ally or self'
+                  : ['damage', 'mark', 'taunt', 'trap'].includes(ability.effect) ? 'Single enemy' : 'Self only';
       if (Number.isFinite(ability.power) && ability.power > 0) {
         ability.power = Math.min(32, Math.max(4, Math.round(ability.power * (ability.effect === 'heal' ? 0.7 : 0.65))));
       }
@@ -320,7 +324,8 @@ export function addAbilityProgression(classDefinitions) {
         windup: 300,
         damageType: className.includes('Umbral') ? 'necrotic'
           : className.includes('Crimson') ? 'force'
-            : className.includes('Luminous') || className === 'Dawnwarden' ? 'radiant' : 'physical'
+            : className.includes('Luminous') || className === 'Dawnwarden' || className.includes('Everbright') ? 'radiant'
+              : className.includes('Verdant') ? 'nature' : className.includes('Sanguine') ? 'blood/necrotic' : 'physical'
       };
       Object.assign(ability, specialEffects[entry.name] ?? {});
       if (entry.target.includes('near the target')) ability.zone = 2;

@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { armorReduction } from '../config/characterProgression.js';
+import { characterStats } from '../game/CharacterStats.js';
 import UnitSprite from './UnitSprite.js';
 import { monsterDeathPose } from './SpritePresentation.js';
 
@@ -31,25 +33,42 @@ export default class BattleUnit {
     this.basicHealManaCost = Math.max(0, config.basicHealManaCost ?? 0);
     this.moveSpeed = config.moveSpeed * 1.5;
     this.attackPower = config.attackPower;
+    this.basicAttackDamageType = config.basicAttackDamageType ?? 'physical';
+    this.statProgressionVersion = config.statProgressionVersion;
+    this.minimumAccuracy = config.minimumAccuracy ?? 0;
+    this.speed = config.speed ?? 100;
+    for (const stat of ['level', 'strength', 'agility', 'constitution', 'intellect', 'wisdom', 'happiness', 'delvesCompleted']) {
+      this[stat] = config[stat] ?? 0;
+    }
+    const actionRate = Math.max(1, this.speed) / 100;
+    const stats = characterStats(config);
+    this.spellDamage = stats.spellDamage;
+    this.spellHealing = stats.spellHealing;
+    this.hitChance = stats.hitChance;
+    this.dodge = stats.dodge;
+    this.block = stats.block;
     this.critChance = config.critChance ?? 0.1;
     this.critMultiplier = config.critMultiplier ?? 1.75;
     this.attackRange = config.attackRange > 180
       ? Math.hypot(this.battlefield.logicalWidth, this.battlefield.logicalHeight) : config.attackRange;
-    this.attackCooldown = config.attackCooldown;
-    this.attackWindup = config.attackWindup ?? 250;
+    this.attackCooldown = config.attackCooldown / actionRate;
+    this.attackWindup = (config.attackWindup ?? 250) / actionRate;
     this.healPower = config.healPower ?? 0;
     this.healRange = config.healRange ?? 0;
     this.basicHealPower = config.basicHealPower ?? 0;
     this.basicHealRange = config.basicHealRange > 2 ? 1000 : config.basicHealRange ?? 0;
-    this.healCooldown = config.healCooldown ?? 0;
-    this.healWindup = config.healWindup ?? 400;
+    this.healCooldown = (config.healCooldown ?? 0) / actionRate;
+    this.healWindup = (config.healWindup ?? 400) / actionRate;
     this.threatMultiplier = config.threatMultiplier ?? 1;
     this.armor = config.armor ?? 0;
     this.damageTakenMultiplier = config.damageTakenMultiplier ?? 1;
     this.description = config.description ?? '';
     this.startsStealthed = config.startsStealthed === true;
     this.stealthed = this.startsStealthed;
-    this.abilities = config.abilities ?? {};
+    this.abilities = Object.fromEntries(Object.entries(config.abilities ?? {}).map(([key, ability]) => [key, {
+      ...ability, cooldown: ability.cooldown / actionRate, windup: (ability.windup ?? 300) / actionRate,
+      telegraph: ability.telegraph === undefined ? undefined : ability.telegraph / actionRate
+    }]));
 
     // Start timed effects inactive. Their expiration timestamps are checked
     // against the battle clock.
@@ -439,11 +458,13 @@ export default class BattleUnit {
     if (now >= (this.status.temporaryHpUntil ?? Infinity)) this.status.temporaryHp = 0;
     let adjusted = Math.max(0, amount);
 
-    if (!this.isEnemy) {
+    if (this.statProgressionVersion === 2 ? options.physical !== false : !this.isEnemy) {
       const armor = now < (this.status.armorUntil ?? 0)
-        ? Math.min(0.9, this.armor * this.status.armorMultiplier)
+        ? this.armor * this.status.armorMultiplier
         : this.armor;
-      adjusted *= Math.max(0, 1 - armor);
+      const reduction = this.statProgressionVersion === 2
+        ? Math.min(1, armorReduction(armor) * (options.armorBlocked ? 2 : 1)) : Math.min(0.9, armor);
+      adjusted *= 1 - reduction;
     }
     adjusted *= this.damageTakenMultiplier;
 

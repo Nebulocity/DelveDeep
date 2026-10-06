@@ -1,3 +1,4 @@
+import { delveDropNames } from '../game/DelveDrops.js';
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
 import HapticsService from '../services/HapticsService.js';
@@ -35,14 +36,13 @@ export default class DelveSelectScene extends Phaser.Scene {
       const art = this.add.image(left, panelY - 22, preview).setDepth(1);
       art.setScale(Math.min((width * 0.49 - 60) / art.width, (panelHeight - 110) / art.height));
     }
-    stoneText(this, left, panelY + panelHeight / 2 - 40, 'YOUR NEXT EXPEDITION', 27, 2, { color: STONE.muted });
     const imageHit = this.add.rectangle(left, panelY, width * 0.49, panelHeight, 0, 0).setDepth(3);
     bindSelectionDetails(this, imageHit, () => delveDetails(delve));
 
     const detailsPanel = addStonePanel(this, right, panelY, width * 0.43, panelHeight, 0);
     bindSelectionDetails(this, detailsPanel, () => delveDetails(delve));
     addStoneOrnaments(this, right, panelY - panelHeight / 2 + 48, width * 0.41, this.stoneTheme, 2);
-    stoneText(this, right, panelY - 205, 'EXPEDITION BRIEF', 32, 3);
+    stoneText(this, right, panelY - 205, 'DELVE INFO', 32, 3);
     const difficultyX = right - width * 0.105;
     const dropsX = right + width * 0.10;
     stoneText(this, difficultyX, panelY - 120, 'DIFFICULTY', 28, 3, { color: STONE.muted });
@@ -50,9 +50,9 @@ export default class DelveSelectScene extends Phaser.Scene {
     stoneText(this, difficultyX, panelY + 8, `Recommended Level ${delve.recommendedLevel}`, 30, 3, { fontFamily: 'Arial' });
     stoneText(this, difficultyX, panelY + 58, `${delve.rooms} waves expected`, 30, 3, { fontFamily: 'Arial' });
     stoneText(this, dropsX, panelY - 120, 'POSSIBLE DROPS', 28, 3, { color: STONE.muted });
-    stoneText(this, dropsX, panelY - 20, (delve.possibleDrops ?? ['Gold', 'Adventurer XP']).join('\n'), 32, 3, {
-      fontFamily: 'Arial', color: '#e8b75c', lineSpacing: 18, align: 'center'
-    });
+    stoneText(this, dropsX - width * 0.082, panelY - 75, delveDropNames(delve).map(name => `• ${name}`).join('\n'), 30, 3, {
+      fontFamily: 'Arial', color: '#e8b75c', lineSpacing: 12, align: 'left', wordWrap: { width: width * 0.185 }
+    }).setOrigin(0, 0);
     if (checkpoint) {
       stoneText(this, right, panelY + 175, checkpoint.campUnlocked ? 'Camp unlocked' : `Next: Wave ${checkpoint.nextWave + 1}`, 34, 3, {
         color: `#${this.stoneTheme.accent.toString(16).padStart(6, '0')}`
@@ -60,7 +60,7 @@ export default class DelveSelectScene extends Phaser.Scene {
     }
     addDetailsHint(this, height * 0.80);
     preparationButton(this, width / 2, height * 0.91, 740, 110,
-      checkpoint?.campUnlocked ? 'PARTY SELECT · ENTER CAMP' : 'PARTY SELECT', () => {
+      'PARTY SELECT', () => {
         HapticsService.confirm();
         GameState.run.entry = checkpoint?.campUnlocked ? 'camp' : 'progress';
         this.scene.start('PartySelectScene');

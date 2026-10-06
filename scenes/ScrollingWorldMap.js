@@ -1,3 +1,4 @@
+import { showTutorialSlideshow } from '../ui/TutorialSlideshow.js';
 import { addRegionPanel } from '../ui/RegionMapTheme.js';
 import { REGION_RAIL_WIDTH, MAP_HEADER_HEIGHT, MAP_FOOTER_HEIGHT, createRegionLocationRail, updateRegionLocationRail, syncRegionMapCameras } from '../ui/RegionMapUI.js';
 import GameState from '../game/GameState.js';
@@ -278,8 +279,7 @@ export function createScrollingWorldMap(scene) {
     .setOrigin(0.5).setScrollFactor(0).setDepth(1001);
   help.on('pointerdown', () => {
     HapticsService.tap();
-    showSelectionDetails(scene, { title: 'WELCOME TO DELVE DEEP', panelWidth: 1700, description:
-      'Visit Pineshire to prepare, then tap The Slime Cave. Choose five adventurers: up to one Tank, two Healers, and four DPS.\n\nYour party fights automatically. Select adventurers to give orders and use Raid Leader tactics during combat.\n\nCleared waves bank rewards. At camp you can farm, return to town, or challenge the boss. Defeat each Delve boss to open the next road. The Sunken Watch opens the Y-branch to the Everdeep and Murmuring Abyss.\n\nDefeat the portal to open the exit toward Highmere. This first-region build ends there. Progress saves on this device.' });
+    showTutorialSlideshow(scene);
   });
   const reset = addRegionPanel(scene, 970, height - 65, 300, 100, 1000).setInteractive({ useHandCursor: true });
   scene.add.text(970, height - 65, 'DEV TOOLS', { fontFamily: 'Arial', fontSize: '38px', fontStyle: 'bold', color: '#fff1d2' })

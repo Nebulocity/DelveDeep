@@ -1,4 +1,4 @@
-import { CLASS_DEFINITIONS } from '../data/classes.js';
+import { abilityPower, linkedHealing } from '../game/CharacterStats.js';
 
 import { arenaDistance, ADJACENT_DISTANCE, NEAR_DISTANCE } from '../config/combatRanges.js';
 
@@ -390,7 +390,7 @@ export default class ClassAbilitySystem {
     if(a.effect==='stabilize') { s.damageReduction= a.reduction; s.damageReductionUntil=time+a.duration; s.nextSpellBoost=a.spellBoost; }
     if(a.effect==='aegis') s.solarAegis=true;
     if(a.effect==='armor') { s.armorMultiplier=a.armorMultiplier; s.armorUntil=time+a.duration; }
-    if(a.effect==='refuge') { s.nextHitReduction=0.5; s.refugeUntil=time+a.duration; s.refugeNext=time+a.interval; s.refugePower=a.power; s.refugeInterval=a.interval; }
+    if(a.effect==='refuge') { s.nextHitReduction=0.5; s.refugeUntil=time+a.duration; s.refugeNext=time+a.interval; s.refugePower=abilityPower(unit, a, a.power, true); s.refugeInterval=a.interval; }
     if(a.effect==='ascendance') {
       s.healingBoost=a.healingBoost; s.healingBoostUntil=time+a.duration;
       s.teleportUntil=time+a.duration; s.teleportRange=a.teleportRange;
@@ -438,7 +438,7 @@ export default class ClassAbilitySystem {
       else if (a.powerUnit.includes('critical')) { s.abilityCritBonus = bonus; s.abilityCritUntil = time + a.duration; }
       else if (a.powerUnit.includes('movement')) { s.moveSpeedBonus = bonus; s.moveSpeedBonusUntil = time + a.duration; }
       else if (a.powerUnit.includes('threat reduction')) { s.threatReduction = bonus; s.threatReductionUntil = time + a.duration; }
-      else if (a.powerUnit.includes('poison')) s.nextPoisonPower = a.power;
+      else if (a.powerUnit.includes('poison')) s.nextPoisonPower = abilityPower(unit, a);
       else if (a.powerUnit.includes('next-hit')) s.nextAttackBoost = bonus;
       else if (a.powerUnit.includes('spell bonus')) s.nextSpellBoost = Math.max(s.nextSpellBoost ?? 0, bonus);
       else if (a.powerUnit.includes('attack bonus')) { s.damageBoost = bonus; s.damageBoostUntil = time + a.duration; }
@@ -457,7 +457,7 @@ export default class ClassAbilitySystem {
     if(a.effect==='heal') {
       const targets=a.zone?allies.filter(t=>zoneContains(scene,t,target,a.zone)):[target];
       let power=a.lowHealthPower && unit.hp/unit.maxHp<0.5?a.lowHealthPower:a.power;
-      power += Math.max(0, (unit.healPower ?? 0) - (CLASS_DEFINITIONS[unit.className]?.healPower ?? 0));
+      power = abilityPower(unit, a, power, true);
       if (a.lowHealthBoost && unit.hp / unit.maxHp < 0.5) power = Math.round(power * (1 + a.lowHealthBoost));
       power = Math.round(power * (1 + (s.nextHealBoost ?? 0)));
       s.nextHealBoost = 0;
@@ -470,7 +470,7 @@ export default class ClassAbilitySystem {
         const before=t.hp;
         scene.resolveHeal(unit,t,power,a.name);
         if(a.temporaryHp && t.hp>before) t.status.temporaryHp=(t.status.temporaryHp??0)+a.temporaryHp;
-        if(a.retaliation) t.status.bramble={caster:unit,power:a.retaliation};
+        if(a.retaliation) t.status.bramble={caster:unit,power:abilityPower(unit, { ...a, damageType: 'nature' }, a.retaliation)};
       }
       if(a.selfDamage && target !== unit) scene.resolveDamage(unit,unit,a.selfDamage,'spell',0,a.name,false);
     }
@@ -492,7 +492,7 @@ export default class ClassAbilitySystem {
     if(a.judgement && !allies.some(t=>t.id===target.currentTargetId&&t.role==='Tank')) power=a.highPower;
     if(a.missingHealthBonus) power*=1+(1-unit.hp/unit.maxHp);
     if(a.rearBonus && target.currentTargetId !== unit.id) power*=1+a.rearBonus;
-    if (!a.poison) power += Math.max(0, unit.attackPower - (CLASS_DEFINITIONS[unit.className]?.attackPower ?? unit.attackPower));
+    if (!a.poison) power = abilityPower(unit, a, power);
     power*=1+(s.nextSpellBoost??0); s.nextSpellBoost=0;
     if (unit.stealthed) unit.setStealthed(false);
     let total=0;
@@ -507,7 +507,7 @@ export default class ClassAbilitySystem {
       }
       if(a.blind&&t.alive) { t.status.blindUntil=time+a.blind; t.status.blindChance=a.blindChance; }
       if(a.poison&&t.alive) {
-        t.status.poison={caster:unit,power:a.poison.power,interval:a.poison.interval,next:time+a.poison.interval,until:time+a.poison.duration};
+        t.status.poison={caster:unit,power:abilityPower(unit, a, a.poison.power),interval:a.poison.interval,next:time+a.poison.interval,until:time+a.poison.duration};
         t.status.attackSlowUntil=time+a.poison.duration; t.status.attackSlow=a.attackSlow;
       }
       if(a.root&&t.alive) t.status.rootedUntil=time+a.root;
@@ -520,11 +520,11 @@ export default class ClassAbilitySystem {
       let recipients=allies;
       if(a.healScope==='lowest') recipients=[...allies].sort((x,y)=>x.hp/x.maxHp-y.hp/y.maxHp).slice(0,1);
       if(a.healScope==='near') recipients=allies.filter(t=>this.distance(t,target)<=1);
-      for(const t of recipients) scene.resolveHeal(unit,t,total*a.healRatio,a.name,false);
+      for(const t of recipients) scene.resolveHeal(unit,t,linkedHealing(unit, a, total),a.name,false);
     }
     if(s.nextLinkedHealRatio&&total>0) {
       const recipient=[...allies].sort((x,y)=>x.hp/x.maxHp-y.hp/y.maxHp)[0];
-      if(recipient) scene.resolveHeal(unit,recipient,Math.round(total*s.nextLinkedHealRatio),a.name,false);
+      if(recipient) scene.resolveHeal(unit,recipient,Math.round(linkedHealing(unit, a, total, s.nextLinkedHealRatio)),a.name,false);
       s.nextLinkedHealRatio=0;
     }
   }

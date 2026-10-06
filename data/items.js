@@ -13,10 +13,10 @@ const clerics = ['Cleric of the Everbright', 'Cleric of the Verdant Covenant', '
 export const EQUIPMENT_ITEMS = [
   { id: 'field-blade', name: 'Field Blade', slot: 'weapon', rarity: 'common', usableBy: frontliners, stats: { attackPower: 2 }, description: 'A plain but reliable blade for close combat.' },
   { id: 'trail-bow', name: 'Trail Bow', slot: 'weapon', rarity: 'common', usableBy: ['Ranger'], stats: { attackPower: 2 }, description: 'A light bow suited to long roads and narrow caves.' },
-  { id: 'apprentice-focus', name: 'Apprentice Focus', slot: 'weapon', rarity: 'common', usableBy: mages, stats: { attackPower: 2 }, description: 'A simple focus that steadies spellcasting.' },
+  { id: 'apprentice-focus', name: 'Apprentice Focus', slot: 'weapon', rarity: 'common', usableBy: mages, stats: { spellDamage: 2 }, description: 'A simple focus that steadies spellcasting.' },
   { id: 'pilgrim-staff', name: 'Pilgrim Staff', slot: 'weapon', rarity: 'common', usableBy: clerics, stats: { healPower: 2 }, description: 'A travel staff carved for patient hands.' },
   { id: 'padded-vest', name: 'Padded Vest', slot: 'armor', rarity: 'common', usableBy: [...frontliners, 'Ranger', ...mages, ...clerics], stats: { maxHp: 12 }, description: 'Quilted protection that fits any adventurer.' },
-  { id: 'iron-guard', name: 'Iron Guard', slot: 'armor', rarity: 'common', usableBy: ['Gladiator', 'Oathwarden', 'Dawnwarden'], stats: { maxHp: 16, armor: 0.01 }, description: 'Basic iron protection for a front-line defender.' }
+  { id: 'iron-guard', name: 'Iron Guard', slot: 'armor', rarity: 'common', usableBy: ['Gladiator', 'Oathwarden', 'Dawnwarden'], stats: { maxHp: 16, armor: 4 }, description: 'Basic iron protection for a front-line defender.' }
 ];
 
 export const EQUIPMENT_BY_ID = Object.fromEntries(EQUIPMENT_ITEMS.map((item) => [item.id, item]));

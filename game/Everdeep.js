@@ -1,3 +1,4 @@
+import { armorReduction } from '../config/characterProgression.js';
 import GameState from './GameState.js';
 import { restoreEverdeep } from './EverdeepState.js';
 import { CRAFTING_MATERIALS, EQUIPMENT_ITEMS } from '../data/items.js';
@@ -52,8 +53,8 @@ export function everdeepUnlocked(state = GameState) {
 
 function partyPower(hero, state) {
   const effective = getEquippedAdventurer(hero, state);
-  return effective.maxHp * (1 + (effective.armor ?? 0)) * 0.22
-    + effective.attackPower * 2.2 + (effective.healPower ?? 0) * 1.3
+  return effective.maxHp * (1 + (effective.statProgressionVersion === 2 ? armorReduction(effective.armor) : effective.armor ?? 0)) * 0.22
+    + Math.max(effective.attackPower, effective.spellDamage ?? 0) * 2.2 + (effective.spellHealing ?? effective.healPower ?? 0) * 1.3
     + (effective.maxMana ?? 0) * 0.08 + (effective.level ?? 1) * 8;
 }
 

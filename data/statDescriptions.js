@@ -1,0 +1,23 @@
+export const STAT_DESCRIPTIONS = {
+  Level: 'Character level determines stat growth and skill training requirements. Adventurer XP advances the next level.',
+  Health: 'The damage an adventurer can take before falling. Healing and Health Potions restore lost Health up to this maximum.',
+  Mana: 'The resource used by mana-based skills. Mana regeneration and Mana Potions restore it up to this maximum.',
+  Armor: 'Reduces incoming physical damage. Reduction is Armor divided by Armor + 400. Armor does not reduce spell damage.',
+  'Dodge': 'The chance to avoid incoming damage. Each gained Agility adds 0.08%. The soft cap is 20% and hard cap 30%.',
+  'Block': 'The chance to double Armor mitigation against physical hits. At 100 Armor, normal mitigation is 20% and blocked mitigation is 40% total. Each gained Strength adds 0.05% Block; the soft cap is 25% and hard cap 35%.',
+  Speed: 'Controls action frequency, including attack cooldowns and windups. 100 is the baseline. This is separate from movement speed.',
+  'Strength': 'Each gained point adds 8 Attack Power and 0.05% Block Chance.',
+  'Agility': 'Each gained point adds 6 Attack Power for Scoundrels and Rangers, 0.08% Dodge, 0.05% shared Crit Chance, and 0.05% Hit Chance bonus.',
+  Constitution: 'Each point gained above starting Constitution adds 10 Health and 10 Armor, in addition to natural level growth.',
+  'Intellect': 'Each gained point adds 8 Spell Damage and 0.05% shared Crit Chance. Mana users also gain 5 Mana per point.',
+  'Wisdom': 'Each gained point adds 8 Spell Healing and 0.05% shared Crit Chance. Mana users also gain 5 Mana per point.',
+  'Hit Chance': 'The bonus above 90% base accuracy. Each gained Agility adds 0.05%. Total accuracy can exceed 100% to meet enemy minimum accuracy requirements. Healing skips accuracy. The bonus has a 15% soft cap and 20% hard cap.',
+  'Crit Chance': 'The shared critical chance for attacks, spells and healing. Each gained Agility, Intellect and Wisdom adds 0.05%. The soft cap is 25% and hard cap 40%.',
+  'Crit Multiplier': 'The multiplier applied by a critical strike. For example, 1.3x means 130% of normal damage or healing before mitigation.',
+  'Attack Power': 'Determines basic attack damage and physical skill potency. Physical skill power is a percentage of this stat.',
+  'Spell Damage': 'Determines damaging spell potency. Spell power is a percentage of this stat, before critical hits and mitigation.',
+  'Spell Healing': 'Determines healing skill potency. Healing power is a percentage of this stat; damage-linked heals also use actual damage dealt.',
+  Happiness: 'Affects Gold prices for skill training. Happier adventurers pay less.',
+  'Delves Cleared': 'The number of completed Delves credited to this adventurer.',
+  'Skill points': 'Spent with Gold to learn or train skills. Higher ranks cost more skill points.'
+};

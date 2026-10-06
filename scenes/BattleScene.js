@@ -1,3 +1,5 @@
+import { abilityPower, hitAccuracy } from '../game/CharacterStats.js';
+import { showConfirmation } from '../ui/ConfirmationDialog.js';
 import { bindButtonPress } from '../ui/ButtonPress.js';
 import { preloadCarvedStone, addStonePanel, addStoneButton, addStoneOrnaments, stoneText, stoneIcon, campStoneIcon, delveStoneTheme, STONE } from '../ui/CarvedStone.js';
 import { preloadSlimeSprites } from '../data/slimeSprites.js';
@@ -136,7 +138,7 @@ export default class BattleScene extends Phaser.Scene {
     this.createTacticsMenus(width, height);
     this.createLeaderLoadoutBar(width);
     this.createHud(width, height);
-    this.createTerrainEditorButton(width);
+
     this.bossWaveIndex = Math.max(0, this.waves.findIndex((wave) => wave.boss));
     this.createFarmControls();
     const checkpoint = getDelveCheckpoint(GameState.currentDelve, this.bossWaveIndex);
@@ -284,8 +286,6 @@ export default class BattleScene extends Phaser.Scene {
       const statusHitZone = this.add.rectangle(center, hudTop + cardHeight / 2, sectionWidth - 14, cardHeight - 10, 0, 0.001).setDepth(4504);
       bindSelectionDetails(this, statusHitZone, () => characterDetails(unit), () => this.toggleUnitSelection(unit));
       addStonePanel(this, left + 78, hudTop + 89, 132, 150, 4502);
-      const portraitHighlight = this.add.rectangle(left + 78, hudTop + 89, 132, 150, 0, 0)
-        .setStrokeStyle(5, STONE.gold).setDepth(4503.5).setVisible(false);
       const cardHighlight = this.add.rectangle(center, hudTop + cardHeight / 2, sectionWidth - 14, cardHeight - 10, 0, 0)
         .setStrokeStyle(4, STONE.gold).setDepth(4503.5).setVisible(false);
       const frame = unit.spriteVisual?.definition?.clips.idle?.south?.frames[0];
@@ -317,7 +317,7 @@ export default class BattleScene extends Phaser.Scene {
       const potionLabel = stoneText(this, left + 78, hudTop + 187, 'POTION', 25, 4506, { align: 'center' });
       bindSelectionDetails(this, potionButton, () => this.potionDetails(unit), () => this.usePotion(unit));
       bindButtonPress(this, potionButton, [potionLabel]);
-      this.partyHud.push({ panel, portraitHighlight, cardHighlight, statusHitZone, potionButton, potionLabel, unit, nameText,
+      this.partyHud.push({ panel, cardHighlight, statusHitZone, potionButton, potionLabel, unit, nameText,
         hpText, manaText, threatText, hpFill, hpGlow, manaBack, manaFill, hudBarWidth });
     });
     this.updateHud();
@@ -364,7 +364,7 @@ export default class BattleScene extends Phaser.Scene {
     const fleeButton = addStoneButton(this, width - 155, 796, 280, 78, 4600, 0x3f1d1d);
     const fleeText = stoneText(this, width - 135, 796, 'RETREAT', 30, 4602, { color: '#ffd5be' });
     const fleeIcon = stoneIcon(this, width - 254, 796, 'RETREAT', 36);
-    bindButtonPress(this, fleeButton, [fleeText, fleeIcon], () => this.fleeBattle());
+    bindButtonPress(this, fleeButton, [fleeText, fleeIcon], () => this.confirmRetreat());
     const descriptions = {
       MOVE: 'Choose a destination for selected allies. They move there and hold.',
       HOLD: 'Selected allies stay at their positions while acting within range.',
@@ -390,7 +390,7 @@ export default class BattleScene extends Phaser.Scene {
   createFarmControls() {
     this.farmCancelButton = addStoneButton(this, 155, 750, 280, 96, 4600, 0x50432e);
     this.farmCancelText = stoneText(this, 155, 750, '', 28, 4602, { align: 'center' });
-    bindButtonPress(this, this.farmCancelButton, [this.farmCancelText], () => this.requestFarmStop());
+    bindButtonPress(this, this.farmCancelButton, [this.farmCancelText], () => this.confirmFarmStop());
     this.refreshFarmControls();
   }
 
@@ -400,6 +400,28 @@ export default class BattleScene extends Phaser.Scene {
     this.refreshFarmControls();
     HapticsService.tap();
     return true;
+  }
+
+  confirmFarmStop() {
+    if (!isOrdinaryDelve() || GameState.run.entry !== 'farm' || this.battleOver || this.farmStopRequested) return;
+    showConfirmation(this, {
+      title: 'Cancel Farm?',
+      description: 'Finish the current combat, collect its rewards, and return to camp?',
+      confirmLabel: 'STOP FARMING',
+      onConfirm: () => this.requestFarmStop()
+    });
+  }
+
+  confirmRetreat() {
+    if (this.battleOver) return;
+    showConfirmation(this, {
+      title: 'Retreat?',
+      description: isOrdinaryDelve()
+        ? 'Leave this combat? Cleared wave rewards stay banked. Retreat costs 1 Tactics Point.'
+        : 'Leave this combat? This encounter resets and its rewards are lost. Retreat costs 1 Tactics Point.',
+      confirmLabel: 'RETREAT',
+      onConfirm: () => this.fleeBattle()
+    });
   }
 
   refreshFarmControls() {
@@ -513,6 +535,7 @@ export default class BattleScene extends Phaser.Scene {
         this.heldUnitIds.add(unit.id);
       }
     });
+    this.selectedUnitIds.clear();
     this.commandMode = null;
     this.setTargetingInputState(false);
     this.refreshTacticsMenus();
@@ -696,18 +719,15 @@ export default class BattleScene extends Phaser.Scene {
     this.refreshPartySelection();
   }
 
-  // Refresh battlefield and card selection together, including fallen allies.
+  // Refresh card selection, including fallen allies.
   refreshPartySelection() {
     this.partyUnits?.forEach((u) => u.body.setStrokeStyle(
       this.selectedUnitIds.has(u.id) ? 7 : 4,
       this.selectedUnitIds.has(u.id) ? 0x60a5fa : 0x1c1917,
       this.selectedUnitIds.has(u.id) || !u.spriteVisual ? 1 : 0
     ));
-    this.partyUnits?.forEach((unit) => unit.hitZone.setStrokeStyle(5, STONE.gold,
-      unit.alive && this.selectedUnitIds.has(unit.id) ? 1 : 0));
-    this.partyHud?.forEach(({ unit, portraitHighlight, cardHighlight }) => {
+    this.partyHud?.forEach(({ unit, cardHighlight }) => {
       const selected = unit.alive && this.selectedUnitIds.has(unit.id);
-      portraitHighlight.setVisible(selected);
       cardHighlight.setVisible(selected);
     });
   }
@@ -811,6 +831,8 @@ export default class BattleScene extends Phaser.Scene {
 
     if (['MOVE', 'SPREAD', 'STACK'].includes(this.commandMode)) {
       this.handleArenaTap({ x: enemy.arenaX, y: enemy.arenaY });
+      this.selectedUnitIds.clear();
+      this.refreshTacticsMenus();
       return;
     }
 
@@ -843,6 +865,7 @@ export default class BattleScene extends Phaser.Scene {
       }
     }
 
+    this.selectedUnitIds.clear();
     this.commandMode = null;
     this.setTargetingInputState(false);
     this.refreshTacticsMenus();
@@ -1021,7 +1044,7 @@ export default class BattleScene extends Phaser.Scene {
     const wave = this.waves[index];
     this.waveTransitioning = true;
     this.updateEncounterStatus();
-    this.showWaveAnnouncement(wave.boss ? wave.name : `WAVE ${index + 1}`, Boolean(wave.boss));
+    this.showWaveAnnouncement(`WAVE ${index + 1}`, Boolean(wave.boss));
     let secondsRemaining = 3;
     this.updateWaveCountdown(secondsRemaining);
 
@@ -1040,7 +1063,7 @@ export default class BattleScene extends Phaser.Scene {
     this.time.delayedCall(1000, countDown);
   }
 
-  // Keep the wave name and countdown readable over bright or detailed arenas.
+  // Keep the wave number and countdown readable over bright or detailed arenas.
   showWaveAnnouncement(title, isBoss = false) {
 
     const { width, height } = this.scale;
@@ -1080,7 +1103,7 @@ export default class BattleScene extends Phaser.Scene {
   spawnWave(index) {
 
     const wave = this.waves[index];
-    this.combatLog?.add('wave', `Wave ${index + 1} started: ${wave.name}`, { wave: index + 1 });
+    this.combatLog?.add('wave', `Wave ${index + 1} started`, { wave: index + 1 });
 
     const landings = chooseWaveLandings(wave, this.battlefield, this.terrain, this.partyUnits);
     this.pendingWaveSpawns = [];
@@ -1334,6 +1357,7 @@ export default class BattleScene extends Phaser.Scene {
 
     this.getLivingEnemies().forEach((enemy) => {
 
+      enemy.regenMana(deltaSeconds);
       if (time < (enemy.status.stunnedUntil ?? 0)) return;
       const target = this.getHighestThreatTarget(enemy);
       if (!target) {
@@ -1355,15 +1379,24 @@ export default class BattleScene extends Phaser.Scene {
 
       const secondary = enemy.abilities?.secondary;
       if (secondary && !enemy.isBusy(time) && enemy.abilityReady('secondary', time)) {
-        this.setEnemyTarget(enemy, target, 'highest threat');
-        this.beginEnemyAbility(enemy, target, 'secondary', time);
-        return;
+        if (secondary.effect === 'heal') {
+          const injured = this.getLivingEnemies().filter(unit => unit.hp < unit.maxHp)
+            .sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0];
+          if (injured) {
+            this.beginEnemyAbility(enemy, injured, 'secondary', time);
+            return;
+          }
+        } else {
+          this.setEnemyTarget(enemy, target, 'highest threat');
+          this.beginEnemyAbility(enemy, target, 'secondary', time);
+          return;
+        }
       }
 
       this.movement.moveToCombatPosition(enemy, target, time, deltaSeconds);
 
       if (this.isWithinAttackReach(enemy, target, 8) && enemy.canAttack(time)) {
-        this.beginBasicAttack(enemy, target, time, 'enemy');
+        this.beginBasicAttack(enemy, target, time, enemy.basicAttackDamageType === 'spell' ? 'spell' : 'enemy');
       }
     });
   }
@@ -1403,7 +1436,8 @@ export default class BattleScene extends Phaser.Scene {
         return;
       }
       if (this.isWithinAttackReach(attacker, target, 28)) {
-        this.resolveDamage(attacker, target, attacker.attackPower, attackType, attacker.threatMultiplier, 'Attack');
+        const power = attacker.isEnemy && attacker.basicAttackDamageType === 'spell' ? attacker.spellDamage : attacker.attackPower;
+        this.resolveDamage(attacker, target, power, attackType, attacker.threatMultiplier, 'Attack');
       }
       attacker.finishAction();
     });
@@ -1422,7 +1456,7 @@ export default class BattleScene extends Phaser.Scene {
     this.time.delayedCall(healer.healWindup, () => {
       if (!this.isActionCurrent(healer, action, target)) return;
       if (target.hp < target.maxHp && this.classAbilitySystem.distance(healer, target) <= healer.basicHealRange) {
-        this.resolveHeal(healer, target, healer.basicHealPower, 'Mend');
+        this.resolveHeal(healer, target, abilityPower(healer, {}, healer.basicHealPower, true), 'Mend');
       }
       healer.finishAction();
     });
@@ -1447,7 +1481,12 @@ export default class BattleScene extends Phaser.Scene {
 
       if (!this.isActionCurrent(attacker, action, target)) return;
       this.createProjectile(attacker, target, 0xa855f7);
-      this.resolveDamage(attacker, target, ability.power, 'enemy', 1, ability.name);
+      if (ability.effect === 'heal') {
+        this.resolveHeal(attacker, target, abilityPower(attacker, ability, ability.power, true), ability.name);
+      } else {
+        this.resolveDamage(attacker, target, abilityPower(attacker, ability),
+          ability.damageType === 'physical' ? 'enemy' : 'spell', 1, ability.name);
+      }
       attacker.finishAction();
     });
   }
@@ -1513,7 +1552,8 @@ export default class BattleScene extends Phaser.Scene {
       this.partyUnits.filter((unit) => unit.alive).forEach((unit) => {
 
         if (unit.distanceToPoint(center.arenaX, center.arenaY) <= ability.radius) {
-          this.resolveDamage(attacker, unit, ability.power, 'enemy', 1, ability.name, false);
+          this.resolveDamage(attacker, unit, abilityPower(attacker, ability),
+            ability.damageType === 'physical' ? 'enemy' : 'spell', 1, ability.name, false);
         }
       });
 
@@ -1565,7 +1605,7 @@ export default class BattleScene extends Phaser.Scene {
   rollCritical(attacker, allowCrit = true) {
 
     const bonus = this.time.now < (attacker.status.abilityCritUntil ?? 0) ? attacker.status.abilityCritBonus ?? 0 : 0;
-    return allowCrit && Math.random() < Math.min(0.95, (attacker.critChance ?? 0) + bonus);
+    return allowCrit && Math.random() < Math.min(attacker.statProgressionVersion === 2 ? 0.4 : 0.95, (attacker.critChance ?? 0) + bonus);
   }
 
   // This function resolves an attack from its base damage through critical
@@ -1581,7 +1621,9 @@ export default class BattleScene extends Phaser.Scene {
 
     // Resolve blindness before damage modifiers; a miss stops the rest of the
     // hit processing.
-    if (attackType !== 'reflection' && now < (attacker.status.blindUntil ?? 0) && Math.random() < (attacker.status.blindChance ?? 0)) {
+    const accuracy = hitAccuracy(attacker);
+    if (attackType !== 'reflection' && (accuracy < (target.minimumAccuracy ?? 0) || accuracy < 1 && Math.random() >= accuracy
+      || now < (attacker.status.blindUntil ?? 0) && Math.random() < (attacker.status.blindChance ?? 0))) {
       this.createFloatingText(target.x, target.y - 82, 'MISS', '#cbd5e1', false, 'miss');
       this.combatLog?.add('miss', `${attacker.name}'s ${abilityName} missed ${target.name}`, {
         wave: this.currentWaveIndex + 1,
@@ -1629,13 +1671,24 @@ export default class BattleScene extends Phaser.Scene {
       this.createFloatingText(target.x, target.y - 82, 'IMMUNE', '#fde68a');
       return 0;
     }
-    if (attacker.isEnemy && now < (target.status.abilityDodgeUntil ?? 0)
+    const temporaryDodge = attacker.isEnemy && now < (target.status.abilityDodgeUntil ?? 0)
+      && (!target.status.abilityDodgeRangedOnly || attackType === 'ranged' || attackType === 'spell' || attacker.attackRange > 180)
+      ? target.status.abilityDodgeChance ?? 0 : 0;
+    if (attackType !== 'reflection' && attacker !== target && target.statProgressionVersion === 2
+      && Math.random() < Math.min(0.3, (target.dodge ?? 0) + temporaryDodge)) {
+      this.createFloatingText(target.x, target.y - 82, 'DODGE', '#cbd5e1', false, 'miss');
+      return 0;
+    }
+    if (target.statProgressionVersion !== 2 && attacker.isEnemy && now < (target.status.abilityDodgeUntil ?? 0)
       && (!target.status.abilityDodgeRangedOnly || attackType === 'ranged' || attackType === 'spell' || attacker.attackRange > 180)
       && Math.random() < (target.status.abilityDodgeChance ?? 0)) return 0;
     if (attacker.isEnemy && this.classAbilitySystem?.tryParry(target, attacker, amount, now)) return 0;
+    const physical = ['melee', 'ranged', 'enemy', 'reflection'].includes(attackType);
+    const armorBlocked = physical && attackType !== 'reflection' && attacker !== target
+      && target.statProgressionVersion === 2 && Math.random() < (target.block ?? 0);
     const hpBefore = target.hp;
-    target.takeDamage(amount, { time: now, ranged, attacker,
-      blocked: (!target.isEnemy && now < this.braceUntil)
+    target.takeDamage(amount, { time: now, ranged, attacker, physical, armorBlocked,
+      blocked: armorBlocked || (!target.isEnemy && now < this.braceUntil)
         || now < (target.status.shieldUntil ?? 0)
         || now < (target.status.damageReductionUntil ?? 0) });
     const actualDamage = hpBefore - target.hp;
@@ -2138,7 +2191,6 @@ export default class BattleScene extends Phaser.Scene {
     const delve = GameState.currentDelve;
     const values = WAVE_REWARDS[delve.difficulty] ?? WAVE_REWARDS.Easy;
     const farmIndex = Math.max(0, this.bossWaveIndex - 1);
-    const farmGold = values.gold + values.goldStep * farmIndex;
     const farmXp = Math.max(1, Math.floor(values.xp / 2));
     const { width, height } = this.scale;
     this.encounterStatusText.setText('CAMP CHECKPOINT');
@@ -2177,7 +2229,7 @@ export default class BattleScene extends Phaser.Scene {
       this.scene.start('TownScene', { townId });
     }, 0x1f2937);
     choice(1, `FARM WAVE ${this.bossWaveIndex}`,
-      `${farmGold} Gold + ${values.materialCount} material\nHalf XP: ${farmXp} per adventurer\nRepeats until cancelled`, () => {
+      `Gold + Materials\nHalf XP: ${farmXp} per adventurer\nRepeats until cancelled`, () => {
         GameState.run.entry = 'farm';
         this.startWave(farmIndex);
       }, 0x50432e);

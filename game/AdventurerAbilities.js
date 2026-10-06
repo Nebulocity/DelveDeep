@@ -104,22 +104,27 @@ export function battleAbilities(hero) {
   for (const [key, base] of abilityEntries(hero)) {
     const rank = hero.abilityRanks?.[key] ?? 0;
     if (!equipped.has(key) || rank < 1) continue;
-    const powerScale = 1 + (rank - 1) * 0.12;
-    const durationScale = 1 + (rank - 1) * 0.05;
-    const ability = { ...base, rank };
-    for (const field of ['power', 'highPower', 'retaliation']) {
-      if (Number.isFinite(base[field])) ability[field] = Math.round(base[field] * powerScale);
-    }
-    if (Number.isFinite(base.duration)) ability.duration = Math.min(base.slow ? 4000 : 20000, Math.round(base.duration * durationScale));
-    for (const field of ['stun', 'root', 'blind']) {
-      if (Number.isFinite(base[field])) ability[field] = Math.min(4000, Math.round(base[field] * durationScale));
-    }
-    for (const field of ['reduction', 'chance', 'damageTakenBoost', 'spellBoost', 'healingBoost', 'damageBoost', 'healBonus', 'threatBonus']) {
-      if (Number.isFinite(base[field])) ability[field] = Math.min(0.75, base[field] * powerScale);
-    }
-    if (Number.isFinite(base.threatMultiplier)) ability.threatMultiplier = 1 + (base.threatMultiplier - 1) * powerScale;
-    if (base.poison) ability.poison = { ...base.poison, power: Math.round(base.poison.power * powerScale) };
+    const ability = rankedAbility(base, rank);
     result[key] = ability;
   }
   return result;
+}
+
+export function rankedAbility(base, rank = 1) {
+  const powerScale = 1 + (rank - 1) * 0.12;
+  const durationScale = 1 + (rank - 1) * 0.05;
+  const ability = { ...base, rank };
+  for (const field of ['power', 'highPower', 'retaliation']) {
+    if (Number.isFinite(base[field])) ability[field] = Math.round(base[field] * powerScale);
+  }
+  if (Number.isFinite(base.duration)) ability.duration = Math.min(base.slow ? 4000 : 20000, Math.round(base.duration * durationScale));
+  for (const field of ['stun', 'root', 'blind']) {
+    if (Number.isFinite(base[field])) ability[field] = Math.min(4000, Math.round(base[field] * durationScale));
+  }
+  for (const field of ['reduction', 'chance', 'damageTakenBoost', 'spellBoost', 'healingBoost', 'damageBoost', 'healBonus', 'threatBonus']) {
+    if (Number.isFinite(base[field])) ability[field] = Math.min(0.75, base[field] * powerScale);
+  }
+  if (Number.isFinite(base.threatMultiplier)) ability.threatMultiplier = 1 + (base.threatMultiplier - 1) * powerScale;
+  if (base.poison) ability.poison = { ...base.poison, power: Math.round(base.poison.power * powerScale) };
+  return ability;
 }

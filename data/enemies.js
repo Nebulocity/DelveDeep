@@ -1,3 +1,6 @@
+import { monsterStats, monsterAbilities } from '../game/MonsterStats.js';
+import { SLIME_BALANCE } from '../config/slimeBalance.js';
+
 const enemies = {
   caveBat: {
     id: 'cave-bat',
@@ -233,14 +236,12 @@ enemies.riftSentinel = {
 
 export const forgottenCavernWaves = [
   {
-    name: 'Cavern Vermin',
     enemies: [
       { type: 'caveBat', arenaX: 390, arenaY: 790 },
       { type: 'caveBat', arenaX: 650, arenaY: 825 }
     ]
   },
   {
-    name: 'Things That Skitter',
     enemies: [
       { type: 'stoneCrawler', arenaX: 360, arenaY: 760 },
       { type: 'caveSlime', arenaX: 535, arenaY: 830 },
@@ -248,7 +249,6 @@ export const forgottenCavernWaves = [
     ]
   },
   {
-    name: 'The Elder Puddle',
     boss: true,
     enemies: [
       { type: 'elderSlime', arenaX: 520, arenaY: 810 }
@@ -258,7 +258,6 @@ export const forgottenCavernWaves = [
 
 export const voidPortalWaves = [
   {
-    name: 'Whispers at the Threshold',
     enemies: [
       { type: 'voidStalker', arenaX: 360, arenaY: 770 },
       { type: 'voidStalker', arenaX: 650, arenaY: 800 },
@@ -266,7 +265,6 @@ export const voidPortalWaves = [
     ]
   },
   {
-    name: 'Wardens of the Rift',
     enemies: [
       { type: 'voidWarden', arenaX: 500, arenaY: 790 },
       { type: 'voidStalker', arenaX: 310, arenaY: 750 },
@@ -274,7 +272,6 @@ export const voidPortalWaves = [
     ]
   },
   {
-    name: 'The Maw Beyond',
     boss: true,
     enemies: [
       { type: 'abyssalMaw', arenaX: 520, arenaY: 810 },
@@ -283,5 +280,16 @@ export const voidPortalWaves = [
     ]
   }
 ];
+
+
+// Apply slime tuning after inherited archetypes have kept their original stats and skills.
+for (const [type, profile] of Object.entries(SLIME_BALANCE)) {
+  enemies[type] = { ...enemies[type], ...profile };
+}
+
+for (const [type, definition] of Object.entries(enemies)) {
+  const stats = monsterStats(definition);
+  enemies[type] = { ...stats, abilities: monsterAbilities(stats) };
+}
 
 export default enemies;

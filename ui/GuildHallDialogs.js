@@ -22,9 +22,9 @@ function button(scene, x, y, width, label, callback, depth) {
   return hit;
 }
 
-function start(scene, title, width, height, label) {
+function start(scene, title, width, height, label, preserveEquipment = false) {
   scene.selectionDetailsClose?.();
-  scene.equipmentModalClose?.();
+  if (!preserveEquipment) scene.equipmentModalClose?.();
   const objects = [], depth = 11000;
   const { width: screenWidth, height: screenHeight } = scene.scale;
   const x = screenWidth / 2, y = screenHeight / 2, top = y - height / 2;
@@ -57,7 +57,7 @@ export function showGuildDetails(scene, details) {
   const width = Math.min(hero ? 1560 : 1380, scene.scale.width - 120);
   const body = !hero ? text(scene, 0, 0, details.description, 34, { align: 'center', wordWrap: { width: width - 180 }, lineSpacing: 12 }) : null;
   const height = hero ? Math.min(970, scene.scale.height - 90) : Math.min(scene.scale.height - 90, Math.max(540, body.height + 430));
-  const modal = start(scene, details.title, width, height, hero ? 'GUILD REGISTRY' : 'GUILD HANDBOOK');
+  const modal = start(scene, details.title, width, height, hero ? 'GUILD REGISTRY' : 'GUILD HANDBOOK', details.preserveEquipment);
   const { x, top, depth } = modal;
   guildSurface(scene, x, top + (height + 10) / 2, width - 82, height - 350, 'paper').setDepth(depth + 3);
   if (hero) {
@@ -73,11 +73,11 @@ export function showGuildDetails(scene, details) {
     const stats = paragraphs.filter((line) => line.startsWith('HP:') || line.startsWith('Mana:')).join('     ');
     text(scene, columnX, top + 309, stats, 31, { align: 'center', wordWrap: { width: 970 } }).setDepth(depth + 5);
     guildRule(scene, columnX, top + 365, 880).setDepth(depth + 5);
-    text(scene, columnX, top + 409, 'Class skill book', 35, { fontFamily: 'Georgia' }).setDepth(depth + 5);
-    Object.values(hero.abilities ?? {}).forEach((ability, index) => {
-      const tx = left + 610 + index % 2 * 440, ty = top + 465 + Math.floor(index / 2) * 51;
+    text(scene, columnX, top + 409, 'Known Skills', 35, { fontFamily: 'Georgia' }).setDepth(depth + 5);
+    Object.entries(hero.abilities ?? {}).filter(([key]) => (hero.abilityRanks?.[key] ?? 0) > 0).forEach(([key, ability], index) => {
+      const tx = left + 610 + index % 2 * 470, ty = top + 465 + Math.floor(index / 2) * 57;
       scene.add.circle(tx - 17, ty, 3, 0x9b7643).setDepth(depth + 5);
-      text(scene, tx, ty, ability.name, 30, { wordWrap: { width: 400 } }).setOrigin(0, 0.5).setDepth(depth + 5);
+      text(scene, tx, ty, `${ability.name} (Rank ${hero.abilityRanks[key]})`, 30, { wordWrap: { width: 445 } }).setOrigin(0, 0.5).setDepth(depth + 5);
     });
     text(scene, left + 235, top + 618, hero.shortName ?? hero.className, 29, { align: 'center', wordWrap: { width: 290 }, fontFamily: 'Georgia' }).setDepth(depth + 5);
   } else {

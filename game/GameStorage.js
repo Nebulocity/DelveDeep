@@ -1,6 +1,8 @@
+import { rebuildCharacterStats } from './CharacterStats.js';
 import GameState from './GameState.js';
 import { restoreEverdeep } from './EverdeepState.js';
 import { restoreEquipment } from './Equipment.js';
+import { grantStartingEquipment } from './StartingEquipment.js';
 import { restoreAdventurerAbilities } from './AdventurerAbilities.js';
 import { CRAFTING_MATERIALS } from '../data/items.js';
 import { PROFILE_STORAGE_KEY } from './BuildSave.js';
@@ -71,7 +73,7 @@ export function loadProfile(baseRoster) {
     const prior = savedRoster.get(base.id) ?? {};
     const level = Math.max(1, prior.level ?? base.level ?? 1);
     const levelBonus = Math.max(0, level - 1);
-    return restoreAdventurerAbilities({
+    return restoreAdventurerAbilities(rebuildCharacterStats({
       ...base,
       level,
       xp: Math.max(0, prior.xp ?? 0),
@@ -80,10 +82,11 @@ export function loadProfile(baseRoster) {
       maxHp: base.maxHp + levelBonus * 6,
       attackPower: base.attackPower + levelBonus * 2,
       healPower: Number.isFinite(base.healPower) ? base.healPower + levelBonus * 2 : base.healPower
-    }, prior, Boolean(savedRoster.has(base.id) && !prior.abilityRanks));
+    }), prior, Boolean(savedRoster.has(base.id) && !prior.abilityRanks));
   });
 
   restoreEquipment(saved?.inventory, savedRoster);
+  grantStartingEquipment(savedRoster);
 
   // Discard saved party IDs that no longer exist in the current roster.
   GameState.lastPartyIds = GameState.lastPartyIds.filter((id) => GameState.roster.some((adventurer) => adventurer.id === id));
@@ -109,6 +112,7 @@ export function saveProfile() {
     roster: GameState.roster.map((adventurer) => ({
       id: adventurer.id,
       equipment: adventurer.equipment ?? { weapon: null, armor: null, accessory: null, potion: null },
+      startingEquipmentGranted: adventurer.startingEquipmentGranted === true,
       abilityRanks: adventurer.abilityRanks ?? {},
       abilityLoadout: adventurer.abilityLoadout ?? [],
       skillPoints: adventurer.skillPoints ?? adventurer.level,

@@ -70,7 +70,7 @@ export function addHallFrame(scene, active, message = '') {
   guildCrest(scene, width / 2 + 370, 75, 78);
   hallText(scene, width / 2, 28, 'PINESHIRE', 24, { color: '#e6bd70', letterSpacing: 6 }).setOrigin(0.5);
   hallText(scene, width / 2, 78, 'Adventurer’s Hall', 54, { fontFamily: 'Georgia' }).setOrigin(0.5);
-  hallButton(scene, 200, 63, 290, 112, '< TOWN', () => scene.scene.start('TownScene'));
+  hallButton(scene, 200, 63, 290, 112, 'TOWN', () => scene.scene.start('TownScene'));
   hallText(scene, width - 60, 67, `${GameState.gold} GOLD`, 38, { color: '#e6bd70' }).setOrigin(1, 0.5);
   guildSurface(scene, width / 2, 186, width, 120, 'beam');
   [['Adventurers', 'RosterScene'], ['Items', 'ItemsScene'], ['Tactics', 'RaidLeaderScene']].forEach(([label, destination], index) => {

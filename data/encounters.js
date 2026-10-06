@@ -44,34 +44,34 @@ function standardizeWaveEnemies(enemies, targetCount) {
 
 const finalWaves = {
   Easy: [
-    { name: 'The Slime Sovereign', boss: true, enemies: [
+    { boss: true, enemies: [
       { type: 'slimeSovereign', arenaX: 700, arenaY: 790 }
     ] }
   ],
   Difficult: [
-    { name: 'The Inner Guard', enemies: [
+    { enemies: [
       { type: 'denGuard', arenaX: 480, arenaY: 770 },
       { type: 'denGuard', arenaX: 900, arenaY: 770 },
       { type: 'caveSlime', arenaX: 700, arenaY: 830 }
     ] },
-    { name: 'The Den Colossus', boss: true, enemies: [
+    { boss: true, enemies: [
       { type: 'denColossus', arenaX: 700, arenaY: 820 },
       { type: 'denGuard', arenaX: 420, arenaY: 730 },
       { type: 'denGuard', arenaX: 980, arenaY: 730 }
     ] }
   ],
   Unknown: [
-    { name: 'Beyond the Rift', enemies: [
+    { enemies: [
       { type: 'riftSentinel', arenaX: 450, arenaY: 760 },
       { type: 'riftSentinel', arenaX: 950, arenaY: 760 },
       { type: 'voidStalker', arenaX: 700, arenaY: 830 }
     ] },
-    { name: 'The Sovereign Guard', enemies: [
+    { enemies: [
       { type: 'voidWarden', arenaX: 700, arenaY: 810 },
       { type: 'riftSentinel', arenaX: 420, arenaY: 740 },
       { type: 'riftSentinel', arenaX: 980, arenaY: 740 }
     ] },
-    { name: 'The Abyssal Sovereign', boss: true, enemies: [
+    { boss: true, enemies: [
       { type: 'abyssalSovereign', arenaX: 700, arenaY: 830 },
       { type: 'riftSentinel', arenaX: 350, arenaY: 760 },
       { type: 'riftSentinel', arenaX: 1050, arenaY: 760 },
@@ -81,49 +81,49 @@ const finalWaves = {
 };
 
 const slimeCaveWaves = [
-  { name: 'Cave Slimes', caveSlimes: 2, d2: 1 },
-  { name: 'The Slime Swarm', caveSlimes: 2, d2: 2 },
-  { name: 'The Elder Puddle', caveSlimes: 2, d2: 2, elderSlimes: 1 },
-  { name: 'The Elder Slimes', caveSlimes: 2, elderSlimes: 2 },
-  { name: 'The Slime Horde', caveSlimes: 4, elderSlimes: 3 },
-  { name: 'The Slime Sovereign', caveSlimes: 2, elderSlimes: 2, sovereigns: 1, boss: true }
+  { caveSlimes: 2, d2: 1 },
+  { caveSlimes: 2, d2: 2 },
+  { caveSlimes: 2, d2: 2, elderSlimes: 1 },
+  { caveSlimes: 2, elderSlimes: 2 },
+  { caveSlimes: 4, elderSlimes: 3 },
+  { caveSlimes: 2, elderSlimes: 2, sovereigns: 1, boss: true }
 ];
 
 const thornbriarWaves = [
-  { name: 'Roadside Ambush', ruffians: { base: 4, dice: [2] } },
-  { name: 'The Lashers', ruffians: { base: 2, dice: [2, 2] }, lashers: { dice: [2, 2] } },
-  { name: 'Briar Hex', ruffians: { base: 2, dice: [2] }, lashers: { dice: [3] }, hedgeMages: 1 },
-  { name: 'Thornbriar Patrol', ruffians: { base: 3, dice: [3] }, lashers: { base: 1, dice: [3] }, hedgeMages: 2 },
-  { name: "Rongar's Guard", ruffians: { base: 5, dice: [3] }, lashers: { base: 2, dice: [3] }, hedgeMages: 3 },
-  { name: 'Rongar the Crusher', ruffians: { base: 4 }, lashers: { base: 3 }, hedgeMages: 2, rongar: 1, boss: true }
+  { ruffians: { base: 4, dice: [2] } },
+  { ruffians: { base: 2, dice: [2, 2] }, lashers: { dice: [2, 2] } },
+  { ruffians: { base: 2, dice: [2] }, lashers: { dice: [3] }, hedgeMages: 1 },
+  { ruffians: { base: 3, dice: [3] }, lashers: { base: 1, dice: [3] }, hedgeMages: 2 },
+  { ruffians: { base: 5, dice: [3] }, lashers: { base: 2, dice: [3] }, hedgeMages: 3 },
+  { ruffians: { base: 4 }, lashers: { base: 3 }, hedgeMages: 2, rongar: 1, boss: true }
 ];
 
 const dolmarkWaves = [
-  { name: 'Den Wardens', wardens: { base: 4, dice: [2] } },
-  { name: 'The Warden Pack', wardens: { base: 4, dice: [2, 2] } },
-  { name: 'The First Protector', wardens: { base: 2, dice: [2, 2] }, protectors: 1 },
-  { name: 'The Den Guard', wardens: { base: 4 }, protectors: 2 },
-  { name: 'The Forest Guard', wardens: { base: 4 }, protectors: 4 },
-  { name: 'Silvanark the Forest Lord', wardens: { base: 3 }, protectors: 2, silvanark: 1, boss: true }
+  { wardens: { base: 4, dice: [2] } },
+  { wardens: { base: 4, dice: [2, 2] } },
+  { wardens: { base: 2, dice: [2, 2] }, protectors: 1 },
+  { wardens: { base: 4 }, protectors: 2 },
+  { wardens: { base: 4 }, protectors: 4 },
+  { wardens: { base: 3 }, protectors: 2, silvanark: 1, boss: true }
 ];
 
 const verdantTearWaves = [
-  { name: 'Grass at the Threshold', enemies: [
+  { enemies: [
     { type: 'voidStalker', arenaX: 440, arenaY: 770 },
     { type: 'voidStalker', arenaX: 940, arenaY: 770 },
     { type: 'riftSentinel', arenaX: 700, arenaY: 820 }
   ] },
-  { name: 'The Tear Widens', enemies: [
+  { enemies: [
     { type: 'voidWarden', arenaX: 700, arenaY: 800 },
     { type: 'voidStalker', arenaX: 420, arenaY: 750 },
     { type: 'voidStalker', arenaX: 980, arenaY: 750 }
   ] },
-  { name: 'A Shadow Takes Shape', enemies: [
+  { enemies: [
     { type: 'abyssalMaw', arenaX: 700, arenaY: 810 },
     { type: 'riftSentinel', arenaX: 400, arenaY: 750 },
     { type: 'riftSentinel', arenaX: 1000, arenaY: 750 }
   ] },
-  { name: 'The Unfinished Sovereign', boss: true, enemies: [
+  { boss: true, enemies: [
     { type: 'abyssalSovereign', arenaX: 700, arenaY: 830 },
     { type: 'riftSentinel', arenaX: 430, arenaY: 760 },
     { type: 'riftSentinel', arenaX: 970, arenaY: 760 }
@@ -132,7 +132,7 @@ const verdantTearWaves = [
 
 
 function buildSlimeCaveWaves(random) {
-  return slimeCaveWaves.map(({ name, caveSlimes, d2 = 0, elderSlimes = 0, sovereigns = 0, boss = false }) => {
+  return slimeCaveWaves.map(({ caveSlimes, d2 = 0, elderSlimes = 0, sovereigns = 0, boss = false }) => {
     const slimeCount = rollCount({ base: caveSlimes, dice: Array(d2).fill(2) }, random);
     const types = [
       ...Array(sovereigns).fill('slimeSovereign'),
@@ -140,7 +140,7 @@ function buildSlimeCaveWaves(random) {
       ...Array(slimeCount).fill('caveSlime')
     ];
     return {
-      name, boss,
+      boss,
       enemies: types.map((type, index) => ({
         type, arenaX: 350 + (index % 4) * 235, arenaY: 760 + Math.floor(index / 4) * 75
       }))
@@ -149,7 +149,7 @@ function buildSlimeCaveWaves(random) {
 }
 
 function buildThornbriarWaves(random) {
-  return thornbriarWaves.map(({ name, ruffians, lashers, hedgeMages = 0, rongar = 0, boss = false }) => {
+  return thornbriarWaves.map(({ ruffians, lashers, hedgeMages = 0, rongar = 0, boss = false }) => {
     const ruffianCount = rollCount(ruffians, random);
     const lasherCount = rollCount(lashers, random);
     const types = [
@@ -159,7 +159,7 @@ function buildThornbriarWaves(random) {
       ...Array(ruffianCount).fill('ruffian')
     ];
     return {
-      name, boss,
+      boss,
       enemies: types.map((type, index) => ({
         type, arenaX: 350 + (index % 4) * 235, arenaY: 760 + Math.floor(index / 4) * 75
       }))
@@ -168,14 +168,14 @@ function buildThornbriarWaves(random) {
 }
 
 function buildDolmarkWaves(random) {
-  return dolmarkWaves.map(({ name, wardens, protectors = 0, silvanark = 0, boss = false }) => {
+  return dolmarkWaves.map(({ wardens, protectors = 0, silvanark = 0, boss = false }) => {
     const types = [
       ...Array(silvanark).fill('silvanarkTheForestLord'),
       ...Array(protectors).fill('denProtector'),
       ...Array(rollCount(wardens, random)).fill('denWarden')
     ];
     return {
-      name, boss,
+      boss,
       enemies: types.map((type, index) => ({
         type, arenaX: 350 + (index % 4) * 235, arenaY: 760 + Math.floor(index / 4) * 75
       }))
@@ -217,7 +217,7 @@ export function createEncounterWaves(delve = {}, arenaWidth = 1400, random = Mat
   // difficulty's advertised boss group still closes the encounter.
   if ((delve.depth ?? 1) % 5 === 0) {
     waves.splice(waves.length - 1, 0, {
-      name: 'Void-Key Guardian', boss: true, milestoneBoss: true,
+      boss: true, milestoneBoss: true,
       enemies: [
         { type: 'elderSlime', arenaX: 700, arenaY: 790 },
         { type: 'stoneCrawler', arenaX: 450, arenaY: 760 },

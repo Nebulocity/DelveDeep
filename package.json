@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "test:visual": "playwright test -c tests/visual/playwright.config.js",
     "test:visual:headed": "playwright test -c tests/visual/playwright.config.js --headed",
-    "deploy": "npm run build && npx cap sync android && npx cap open android && npx cap sync ios && cd android"
+    "deploy": "npm run build && npx cap sync android && npx cap open android"
   },
   "dependencies": {
     "@capacitor/core": "^8.0.0",

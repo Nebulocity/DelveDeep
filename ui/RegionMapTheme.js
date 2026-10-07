@@ -1,3 +1,4 @@
+import { UI_FONT_SIZES, UI_FONT_FAMILIES } from '../config/uiTypography.js';
 const PALETTES = {
   normal: ['#354c40', '#172c25', '#0d1d19', '#967c4e'],
   selected: ['#52634b', '#2b4431', '#142b23', '#dbc58a'],
@@ -6,8 +7,12 @@ const PALETTES = {
 
 export function regionMessageBounds(scene, scope = 'ui') {
   const camera = scope === 'map' && scene.mapUiCamera ? scene.cameras.main : null;
-  return camera ? { centerX: camera.x + camera.width / 2, width: camera.width }
-    : { centerX: scene.scale.width / 2, width: scene.scale.width };
+  if (camera) {
+    const left = Math.max(0, camera.x);
+    const right = Math.min(scene.scale.width, camera.x + camera.width);
+    return { centerX: left + (right - left) / 2, width: right - left };
+  }
+  return { centerX: scene.scale.width / 2, width: scene.scale.width };
 }
 
 function surfaceTexture(scene, width, height, state) {
@@ -79,9 +84,9 @@ export function setRegionPanelState(scene, panel, state = 'normal', alpha = 1) {
   panel.regionMapArt.setAlpha(alpha);
 }
 
-export function addRegionNotice(scene, x, y, message, { width = 1100, fontSize = 32, depth = 5200 } = {}) {
+export function addRegionNotice(scene, x, y, message, { width = 1100, fontSize = UI_FONT_SIZES.body32, depth = 5200 } = {}) {
   const text = scene.add.text(x, y, message, {
-    fontFamily: 'Georgia', fontSize: `${fontSize}px`, color: '#f4ead2', align: 'center',
+    fontFamily: UI_FONT_FAMILIES.serif, fontSize: `${fontSize}px`, color: '#f4ead2', align: 'center',
     wordWrap: { width: width - 90 }, stroke: '#102019', strokeThickness: 2
   }).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 1);
   const panel = addRegionPanel(scene, x, y, Math.min(width, text.width + 90), Math.max(76, text.height + 44), depth);

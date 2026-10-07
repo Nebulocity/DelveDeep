@@ -3,16 +3,16 @@ import { bindButtonPress } from './ButtonPress.js';
 import HapticsService from '../services/HapticsService.js';
 import GameState from '../game/GameState.js';
 import { CHARACTER_SPRITES } from '../data/characterSprites.js';
-import { UI_FONT_SIZES } from '../config/uiTypography.js';
+import { UI_FONT_SIZES, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 
 function text(scene, x, y, value, size, options = {}) {
-  return scene.add.text(x, y, value, { fontFamily: 'Arial', fontSize: `${size}px`, color: GUILD.ink, ...options }).setOrigin(0.5);
+  return scene.add.text(x, y, value, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: `${size}px`, color: GUILD.ink, ...options }).setOrigin(0.5);
 }
 
 function button(scene, x, y, width, label, callback, depth) {
   const face = guildSurface(scene, x, y, width, 112, 'button').setDepth(depth);
   const hit = scene.add.rectangle(x, y, width, 112, 0, 0).setDepth(depth + 1).setInteractive({ useHandCursor: true });
-  const caption = text(scene, x, y, label, 34, { color: GUILD.paper, fontFamily: 'Georgia' }).setDepth(depth + 2);
+  const caption = text(scene, x, y, label, UI_FONT_SIZES.body34, { color: GUILD.paper, fontFamily: UI_FONT_FAMILIES.serif }).setDepth(depth + 2);
   hit.pressVisuals = [face];
   bindButtonPress(scene, hit, [caption], () => { HapticsService.tap(); callback(); });
   const move = (pointer) => {
@@ -48,8 +48,8 @@ function start(scene, title, width, height, label, preserveEquipment = false) {
   guildSurface(scene, x, top + 89, width - 54, 126, 'beam').setDepth(depth + 3);
   guildCrest(scene, x - width / 2 + 96, top + 87, 70).setDepth(depth + 4);
   guildCrest(scene, x + width / 2 - 96, top + 87, 70).setDepth(depth + 4);
-  text(scene, x, top + 48, label, 24, { color: '#cfaa70', letterSpacing: 4 }).setDepth(depth + 4);
-  text(scene, x, top + 100, title, 46, { color: GUILD.paper, fontFamily: 'Georgia', wordWrap: { width: width - 320 } }).setDepth(depth + 4);
+  text(scene, x, top + 48, label, UI_FONT_SIZES.compact24, { color: '#cfaa70', letterSpacing: 4 }).setDepth(depth + 4);
+  text(scene, x, top + 100, title, UI_FONT_SIZES.heading46, { color: GUILD.paper, fontFamily: UI_FONT_FAMILIES.serif, wordWrap: { width: width - 320 } }).setDepth(depth + 4);
   return { x, top, width, height, depth, close, finish: (...extra) => objects.push(...scene.children.list.slice(first), ...extra.filter(Boolean)), panel };
 }
 
@@ -67,20 +67,20 @@ export function showGuildDetails(scene, details) {
     guildSurface(scene, left + 235, top + 405, 290, 350, 'panel').setDepth(depth + 4);
     if (frame && scene.textures.exists(frame.key)) scene.add.image(left + 235, top + 407, frame.key, frame.frame).setDisplaySize(256, 256).setDepth(depth + 5);
     const columnX = left + 970;
-    text(scene, columnX, top + 237, `${hero.className} · ${hero.role} · Level ${hero.level}`, 31, {
-      wordWrap: { width: 970 }, align: 'center', fontStyle: 'bold'
+    text(scene, columnX, top + 237, `${hero.className} · ${hero.role} · Level ${hero.level}`, UI_FONT_SIZES.body31, {
+      wordWrap: { width: 970 }, align: 'center', fontStyle: UI_FONT_WEIGHTS.bold
     }).setDepth(depth + 5);
     const paragraphs = details.description.split('\n\n');
     const stats = paragraphs.filter((line) => line.startsWith('HP:') || line.startsWith('Mana:')).join('     ');
-    text(scene, columnX, top + 309, stats, 31, { align: 'center', wordWrap: { width: 970 } }).setDepth(depth + 5);
+    text(scene, columnX, top + 309, stats, UI_FONT_SIZES.body31, { align: 'center', wordWrap: { width: 970 } }).setDepth(depth + 5);
     guildRule(scene, columnX, top + 365, 880).setDepth(depth + 5);
-    text(scene, columnX, top + 409, 'Known Skills', 35, { fontFamily: 'Georgia' }).setDepth(depth + 5);
+    text(scene, columnX, top + 409, 'Known Skills', UI_FONT_SIZES.body35, { fontFamily: UI_FONT_FAMILIES.serif }).setDepth(depth + 5);
     Object.entries(hero.abilities ?? {}).filter(([key]) => (hero.abilityRanks?.[key] ?? 0) > 0).forEach(([key, ability], index) => {
       const tx = left + 610 + index % 2 * 470, ty = top + 465 + Math.floor(index / 2) * 57;
       scene.add.circle(tx - 17, ty, 3, 0x9b7643).setDepth(depth + 5);
-      text(scene, tx, ty, `${ability.name} (Rank ${hero.abilityRanks[key]})`, 30, { wordWrap: { width: 445 } }).setOrigin(0, 0.5).setDepth(depth + 5);
+      text(scene, tx, ty, `${ability.name} (Rank ${hero.abilityRanks[key]})`, UI_FONT_SIZES.body30, { wordWrap: { width: 445 } }).setOrigin(0, 0.5).setDepth(depth + 5);
     });
-    text(scene, left + 235, top + 618, hero.shortName ?? hero.className, 29, { align: 'center', wordWrap: { width: 290 }, fontFamily: 'Georgia' }).setDepth(depth + 5);
+    text(scene, left + 235, top + 618, hero.shortName ?? hero.className, UI_FONT_SIZES.support29, { align: 'center', wordWrap: { width: 290 }, fontFamily: UI_FONT_FAMILIES.serif }).setDepth(depth + 5);
   } else {
     body.setPosition(x, top + (height + 10) / 2).setDepth(depth + 5);
     if (body.height > height - 402) body.setFontSize(UI_FONT_SIZES.detailBodyCompact);
@@ -92,7 +92,7 @@ export function showGuildDetails(scene, details) {
 
 export function showGuildConfirmation(scene, { title, description, confirmLabel = 'CONFIRM', onConfirm, onCancel }) {
   const width = Math.min(1440, scene.scale.width - 120);
-  const body = text(scene, 0, 0, description, 36, { align: 'center', wordWrap: { width: width - 190 }, lineSpacing: 9 });
+  const body = text(scene, 0, 0, description, UI_FONT_SIZES.body36, { align: 'center', wordWrap: { width: width - 190 }, lineSpacing: 9 });
   const height = Math.min(scene.scale.height - 90, Math.max(640, body.height + 430));
   const modal = start(scene, title, width, height, 'GUILD LEDGER');
   const { x, top, depth } = modal;

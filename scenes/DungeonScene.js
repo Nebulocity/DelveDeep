@@ -1,3 +1,4 @@
+import { fontPx, UI_FONT_SIZES, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import { bindSelectionDetails } from '../ui/SelectionDetails.js';
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
@@ -51,10 +52,10 @@ export default class DungeonScene extends Phaser.Scene {
       this.hideTacticDescription();
     });
     preparationFrame(this, GameState.currentDelve, 'BATTLE OVERVIEW', 'PARTY SELECT', () => this.scene.start('PartySelectScene'));
-    preparationButton(this, width - 240, 64, 430, 94, 'WORLD MAP >', () => this.scene.start('TitleScene'), { size: 32 });
+    preparationButton(this, width - 240, 64, 430, 94, 'WORLD MAP >', () => this.scene.start('TitleScene'), { size: UI_FONT_SIZES.body32 });
     addStonePanel(this, width * 0.28, 541, 1020, 726, 0);
     addStonePanel(this, width * 0.72, 541, 1020, 726, 0);
-    stoneText(this, width * 0.28, 218, 'PARTY', 38, 3);
+    stoneText(this, width * 0.28, 218, 'PARTY', UI_FONT_SIZES.heading38, 3);
     preparationNotice(this, width * 0.28, 275, 'Hold for character details.', { width: 900, depth: 3 });
 
     // List the chosen adventurers with their class, role, and current level.
@@ -67,23 +68,23 @@ export default class DungeonScene extends Phaser.Scene {
       const x = width * 0.28 - 390;
       if (frame && this.textures.exists(frame.key)) {
         this.add.image(x, y, frame.key, frame.frame).setDisplaySize(100, 100).setFlipX(frame.flipX === true).setDepth(4);
-      } else stoneText(this, x, y, adventurer.name.slice(0, 1), 48, 4);
-      stoneText(this, x + 80, y - 22, adventurer.name, 36, 4).setOrigin(0, 0.5);
-      stoneText(this, x + 80, y + 24, `${adventurer.shortName ?? adventurer.className} · ${adventurer.role} · Lv ${adventurer.level}`, 27, 4,
-        { fontFamily: 'Arial', color: STONE.muted }).setOrigin(0, 0.5);
+      } else stoneText(this, x, y, adventurer.name.slice(0, 1), UI_FONT_SIZES.heading48, 4);
+      stoneText(this, x + 80, y - 22, adventurer.name, UI_FONT_SIZES.overviewName, 4).setOrigin(0, 0.5);
+      stoneText(this, x + 80, y + 24, `${adventurer.shortName ?? adventurer.className} · ${adventurer.role} · Lv ${adventurer.level}`, UI_FONT_SIZES.overviewDetails, 4,
+        { fontFamily: UI_FONT_FAMILIES.sans, color: STONE.muted }).setOrigin(0, 0.5);
     });
 
     // Resolve the equipped leadership IDs into names for the tactics review.
     const equipped = GameState.leader?.battleLoadout ?? [];
-    stoneText(this, width * 0.72, 218, `BATTLE TACTICS ${equipped.length}/5`, 38, 3);
+    stoneText(this, width * 0.72, 218, `BATTLE TACTICS ${equipped.length}/5`, UI_FONT_SIZES.heading38, 3);
     preparationNotice(this, width * 0.72, 275, 'Hold or hover for tactic details.', { width: 900, depth: 3 });
-    if (!equipped.length) stoneText(this, width * 0.72, 480, 'No battle tactics equipped.', 32, 4, { color: STONE.muted });
+    if (!equipped.length) stoneText(this, width * 0.72, 480, 'No battle tactics equipped.', UI_FONT_SIZES.body32, 4, { color: STONE.muted });
     equipped.forEach((id, index) => {
 
       const ability = leaderAbilities.find((entry) => entry.id === id);
       const y = 370 + index * 112;
       const card = addStoneButton(this, width * 0.72, y, 920, 104, 3);
-      stoneText(this, width * 0.72, y, ability?.name ?? id, 34, 4);
+      stoneText(this, width * 0.72, y, ability?.name ?? id, UI_FONT_SIZES.overviewTactic, 4);
       if (ability) this.bindTacticDescription(card, ability);
     });
 
@@ -99,7 +100,7 @@ export default class DungeonScene extends Phaser.Scene {
         beginExpedition();
         this.scene.start('BattleScene');
       }));
-    }, { primary: true, size: 46 });
+    }, { primary: true, size: UI_FONT_SIZES.heading46 });
   }
 
   adventurerDetails(hero) {
@@ -172,15 +173,15 @@ export default class DungeonScene extends Phaser.Scene {
     }
     objects.push(panel);
     objects.push(this.add.text(x, y - panelHeight / 2 + 42, ability.name, {
-      fontFamily: 'Georgia', fontSize: '36px', fontStyle: 'bold', color: STONE.text
+      fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx('body36'), fontStyle: UI_FONT_WEIGHTS.bold, color: STONE.text
     }).setOrigin(0.5).setDepth(102));
     objects.push(this.add.text(x, y - panelHeight / 2 + 85, ability.description, {
-      fontFamily: 'Arial', fontSize: '32px', color: STONE.text, align: 'center', wordWrap: { width: panelWidth - 64 }
+      fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body32'), color: STONE.text, align: 'center', wordWrap: { width: panelWidth - 64 }
     }).setOrigin(0.5, 0).setDepth(102));
     if (modal) {
       const close = addStoneButton(this, x, y + panelHeight / 2 - 52, 260, 72, 102)
         .setInteractive({ useHandCursor: true });
-      const label = stoneText(this, x, close.y, 'CLOSE', 32, 103);
+      const label = stoneText(this, x, close.y, 'CLOSE', UI_FONT_SIZES.body32, 103);
       bindButtonPress(this, close, [label], () => { HapticsService.tap(); this.hideTacticDescription(); });
       objects.push(close, label);
     }

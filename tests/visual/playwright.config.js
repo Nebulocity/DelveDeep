@@ -6,6 +6,7 @@ export default defineConfig({
   testDir: '.',
   testMatch: '*.spec.js',
   timeout: 90000,
+  workers: 2,
   use: {
     ...devices['Desktop Chrome'],
     viewport: { width: 1920, height: 1080 },

@@ -1,3 +1,4 @@
+import { UI_FONT_SIZES, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import { addHallBackground } from './HallBackground.js';
 import { bindSelectionDetails } from './SelectionDetails.js';
 import { bindButtonPress } from './ButtonPress.js';
@@ -15,9 +16,9 @@ export const HALL_ARCHETYPES = [
   { role: 'Ranged DPS', label: 'Ranged DPS', icon: 'bow', color: 0xc3b3e3 }
 ];
 
-export function hallText(scene, x, y, value, size = 34, options = {}) {
+export function hallText(scene, x, y, value, size = UI_FONT_SIZES.body34, options = {}) {
   return scene.add.text(x, y, value, {
-    fontFamily: 'Arial', fontSize: `${size}px`, color: HALL.text, ...options
+    fontFamily: UI_FONT_FAMILIES.sans, fontSize: `${size}px`, color: HALL.text, ...options
   }).setOrigin(0, 0.5);
 }
 
@@ -42,8 +43,8 @@ export function hallButton(scene, x, y, width, height, label, onTap, options = {
   const face = guildSurface(scene, x, y, width, height, 'button', selected).setDepth(depth).setAlpha(enabled ? 1 : 0.55);
   const box = scene.add.rectangle(x, y, width, height, 0, 0).setDepth(depth + 0.1);
   box.pressVisuals = [face];
-  const caption = hallText(scene, x, y, label, options.size ?? 32, {
-    fontFamily: 'Georgia', align: 'center', wordWrap: { width: width - 24 }, ...(options.textStyle ?? {})
+  const caption = hallText(scene, x, y, label, options.size ?? UI_FONT_SIZES.body32, {
+    fontFamily: UI_FONT_FAMILIES.serif, align: 'center', wordWrap: { width: width - 24 }, ...(options.textStyle ?? {})
   }).setOrigin(0.5).setDepth(depth + 0.2).setAlpha(enabled ? 1 : 0.55);
   box.setName(options.name ?? label);
   if (enabled) {
@@ -68,21 +69,18 @@ export function addHallFrame(scene, active, message = '') {
   guildSurface(scene, width / 2, 63, width, 126, 'beam');
   guildCrest(scene, width / 2 - 370, 75, 78);
   guildCrest(scene, width / 2 + 370, 75, 78);
-  hallText(scene, width / 2, 28, 'PINESHIRE', 24, { color: '#e6bd70', letterSpacing: 6 }).setOrigin(0.5);
-  hallText(scene, width / 2, 78, 'Adventurer’s Hall', 54, { fontFamily: 'Georgia' }).setOrigin(0.5);
-  hallButton(scene, 200, 63, 290, 112, 'TOWN', () => scene.scene.start('TownScene'));
-  hallText(scene, width - 60, 67, `${GameState.gold} GOLD`, 38, { color: '#e6bd70' }).setOrigin(1, 0.5);
+  hallText(scene, width / 2, 28, 'PINESHIRE', UI_FONT_SIZES.compact24, { color: '#e6bd70', letterSpacing: 6 }).setOrigin(0.5);
+  hallText(scene, width / 2, 78, 'Adventurer’s Hall', UI_FONT_SIZES.display54, { fontFamily: UI_FONT_FAMILIES.serif }).setOrigin(0.5);
+  hallButton(scene, 200, 63, 290, 112, 'TOWN', () => scene.scene.start('TownScene'), { size: UI_FONT_SIZES.hallNavigation });
+  hallText(scene, width - 60, 67, `${GameState.gold} GOLD`, UI_FONT_SIZES.heading38, { color: '#e6bd70' }).setOrigin(1, 0.5);
   guildSurface(scene, width / 2, 186, width, 120, 'beam');
   [['Adventurers', 'RosterScene'], ['Items', 'ItemsScene'], ['Tactics', 'RaidLeaderScene']].forEach(([label, destination], index) => {
     hallButton(scene, 250 + index * 405, 186, 380, 112, label, () => {
       if (destination !== scene.scene.key) scene.scene.start(destination);
-    }, { selected: label === active, size: 36, name: `hall-nav-${label.toLowerCase()}` });
+    }, { selected: label === active, size: UI_FONT_SIZES.hallNavigation, name: `hall-nav-${label.toLowerCase()}` });
   });
-  hallText(scene, width - 60, 186, 'Prepare for the road ahead', 32, {
-    fontFamily: 'Georgia', fontStyle: 'italic', color: HALL.muted
-  }).setOrigin(1, 0.5);
   guildSurface(scene, width / 2, height - 31, width, 62, 'beam');
-  hallText(scene, 58, height - 31, message || 'Drag lists to scroll. Hold an adventurer, item or skill for details.', 28, {
+  hallText(scene, 58, height - 31, message || 'Drag lists to scroll. Hold an adventurer, item or skill for details.', UI_FONT_SIZES.hallHint, {
     color: message ? '#ffe0a7' : HALL.muted, wordWrap: { width: width - 116 }
   });
 }

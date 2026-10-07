@@ -11,7 +11,10 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
     await mkdir('outputs/shops', { recursive: true });
     for (const facility of ['Blacksmith', 'Alchemist', 'Enchanter']) {
       await page.evaluate(facility => window.__DELVE_DEEP_VISUAL_QA__.activate('FacilityScene', { facility }), facility);
-      await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('FacilityScene').sys.isActive());
+      await page.waitForFunction(facility => {
+        const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('FacilityScene');
+        return scene.sys.isActive() && scene.facility.name === facility;
+      }, facility);
       const choices = await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('FacilityScene').facility.choices.map(choice => choice.id));
       expect(choices).toContain('buy'); expect(choices).toContain('sell');
       if (facility === 'Enchanter') expect(choices).toEqual(['buy', 'sell', 'inscribe', 'enchant', 'disenchant']);

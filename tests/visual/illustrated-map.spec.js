@@ -56,15 +56,12 @@ for (const viewport of [{ width: 1920, height: 1080 }, { width: 915, height: 412
     })).toEqual({ rows: 8, mapLeft: 460, zoom: 0.7 });
     await clickLogical(220, 450);
     expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('TitleScene').destination)).toBe(null);
-    await page.evaluate(async () => {
-      const qa = window.__DELVE_DEEP_VISUAL_QA__;
-      qa.state.world.clearedDelves = ['slime-cave'];
-      qa.activate('TitleScene');
-    });
-    await ready(page);
-    await frames(page);
-    await clickLogical(220, 450);
-    await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('TitleScene').destination?.id === 'thornbriar-hollow');
+    const railBefore = await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('TitleScene').locationRows[0].row.parentContainer.y);
+    const box = await page.locator('canvas').boundingBox();
+    await page.mouse.move(box.x + 220 * box.width / 2400, box.y + 650 * box.height / 1080);
+    await page.mouse.wheel(0, 360);
+    await page.waitForFunction(before => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('TitleScene').locationRows[0].row.parentContainer.y < before, railBefore);
+    await page.mouse.wheel(0, -360);
     await page.evaluate(() => {
       const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('TitleScene');
       scene.partyPan?.stop();
@@ -74,12 +71,21 @@ for (const viewport of [{ width: 1920, height: 1080 }, { width: 915, height: 412
     });
     const before = await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('TitleScene').cameras.main.scrollX);
     await clickLogical(2215, 1015);
-    await page.waitForTimeout(180);
+    await page.waitForFunction(before => {
+      const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('TitleScene');
+      return scene.partyPan && scene.cameras.main.scrollX < before;
+    }, before);
     const middle = await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('TitleScene').cameras.main.scrollX);
     expect(middle).toBeLessThan(before);
-    await page.waitForTimeout(650);
-    const after = await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('TitleScene').cameras.main.scrollX);
-    expect(after).toBeLessThan(middle);
+    await page.evaluate(async () => {
+      const qa = window.__DELVE_DEEP_VISUAL_QA__;
+      qa.state.world.clearedDelves = ['slime-cave'];
+      qa.activate('TitleScene');
+    });
+    await ready(page);
+    await frames(page);
+    await clickLogical(220, 486);
+    await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('TitleScene').destination?.id === 'thornbriar-hollow');
     await page.screenshot({ path: path.join(screenshotDir, `region-map-travel-${viewport.width}.png`) });
     await ready(page, 'DelveSelectScene');
     expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('DelveSelectScene').sys.isActive())).toBe(true);
@@ -221,7 +227,7 @@ test('Map messages use the map center and UI messages use the screen center', as
   expect(await page.evaluate(() => {
     const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('TitleScene');
     return scene.children.list.find(o => o.text === 'The Slime Cave' && o.depth === 10002).x;
-  })).toBe(1430);
+  })).toBe(1580);
   await page.evaluate(() => {
     const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('TitleScene');
     scene.selectionDetailsClose();

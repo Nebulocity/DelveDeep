@@ -1,3 +1,4 @@
+import { fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import GameState from '../game/GameState.js';
 import HapticsService from '../services/HapticsService.js';
 import { bindSelectionDetails } from './SelectionDetails.js';
@@ -57,14 +58,14 @@ export function renderFacilityMenu(scene, facility, selected, onSelect, onReturn
   addFacilityReturnButton(scene, facility.name, onReturn,
     { y: UI_SAFE_TOP + 32 });
   scene.add.text(width / 2, UI_SAFE_TOP + 24, facility.title, {
-    fontFamily: 'Arial', fontSize: '70px', fontStyle: 'bold', color: '#fff1d2',
+    fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('display70'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff1d2',
     stroke: '#241008', strokeThickness: 4
   }).setOrigin(0.5);
   scene.add.text(width / 2, UI_SAFE_TOP + 91, facility.subtitle, {
-    fontFamily: 'Arial', fontSize: '31px', color: '#f4d5ab'
+    fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body31'), color: '#f4d5ab'
   }).setOrigin(0.5);
   scene.add.text(width - 72, UI_SAFE_TOP + 32, `${GameState.gold} GOLD`, {
-    fontFamily: 'Arial', fontSize: '34px', fontStyle: 'bold', color: '#fbbf24'
+    fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body34'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fbbf24'
   }).setOrigin(1, 0.5);
 
   let panelBounds = choice && renderDetail?.(choice);
@@ -73,10 +74,10 @@ export function renderFacilityMenu(scene, facility, selected, onSelect, onReturn
     addWoodenPanel(scene, width / 2, 535, panelWidth, 280);
     panelBounds = { x: width / 2, y: 535, width: panelWidth, height: 280 };
     scene.add.text(width / 2, 469, choice.label, {
-      fontFamily: 'Arial', fontSize: '48px', fontStyle: 'bold', color: '#fff1d2'
+      fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('heading48'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff1d2'
     }).setOrigin(0.5);
     scene.add.text(width / 2, 554, choice.message, {
-      fontFamily: 'Arial', fontSize: '37px', color: '#f1dfca', align: 'center',
+      fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body37'), color: '#f1dfca', align: 'center',
       wordWrap: { width: panelWidth - 100 }
     }).setOrigin(0.5);
   }
@@ -88,7 +89,7 @@ export function renderFacilityMenu(scene, facility, selected, onSelect, onReturn
     const close = scene.add.rectangle(x, y, 76, 76, 0, 0).setName('facility-close').setInteractive({ useHandCursor: true });
     close.pressVisuals = [art];
     const label = scene.add.text(x, y, 'X', {
-      fontFamily: 'Arial', fontSize: '42px', fontStyle: 'bold', color: '#fff1d2'
+      fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('heading42'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff1d2'
     }).setOrigin(0.5);
     bindButtonPress(scene, close, [label], () => { HapticsService.tap(); onClose(); });
   }

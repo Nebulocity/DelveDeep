@@ -1,3 +1,4 @@
+import { fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import HapticsService from '../services/HapticsService.js';
 import { addWoodenPanel } from './WoodenPanel.js';
 import { addRegionPanel } from './RegionMapTheme.js';
@@ -30,7 +31,7 @@ export function showConfirmation(scene, { title, description, confirmLabel = 'CO
   scene.events.once('shutdown', close);
   const add = (object) => { objects.push(object); return object; };
   const body = add(scene.add.text(width / 2 - panelWidth / 2 + 52, 0, description, {
-    fontFamily: 'Arial', fontSize: '36px', color: stone ? STONE.text : hall ? '#f1dfca' : '#e2e8f0', wordWrap: { width: panelWidth - 104 },
+    fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body36'), color: stone ? STONE.text : hall ? '#f1dfca' : '#e2e8f0', wordWrap: { width: panelWidth - 104 },
     align: stone ? 'center' : 'left', fixedWidth: stone ? panelWidth - 104 : undefined
   }).setDepth(depth + 2));
   const panelHeight = Math.max(420, body.height + 240);
@@ -44,7 +45,7 @@ export function showConfirmation(scene, { title, description, confirmLabel = 'CO
     box.on('pointerup', stop);
   }
   add(scene.add.text(width / 2, top + 52, title, {
-    fontFamily: stone ? 'Georgia' : 'Arial', fontSize: '42px', fontStyle: 'bold', color: stone ? STONE.text : hall ? '#fff1d2' : '#f8fafc',
+    fontFamily: stone ? UI_FONT_FAMILIES.serif : UI_FONT_FAMILIES.sans, fontSize: fontPx('heading42'), fontStyle: UI_FONT_WEIGHTS.bold, color: stone ? STONE.text : hall ? '#fff1d2' : '#f8fafc',
     wordWrap: { width: panelWidth - 104 }, align: 'center'
   }).setOrigin(0.5).setDepth(depth + 2));
 
@@ -52,7 +53,7 @@ export function showConfirmation(scene, { title, description, confirmLabel = 'CO
     const y = top + panelHeight - 72;
     if (stone) {
       const box = add(addStoneButton(scene, x, y, (panelWidth - 156) / 2, 96, depth + 2, accept ? 0x3f1d1d : 0x1f2937));
-      const caption = add(scene.add.text(x, y, label, { fontFamily: 'Georgia', fontSize: '34px', color: STONE.text })
+      const caption = add(scene.add.text(x, y, label, { fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx('body34'), color: STONE.text })
         .setOrigin(0.5).setDepth(depth + 3));
       bindButtonPress(scene, box, [caption], () => {
         if (closed) return;
@@ -65,7 +66,7 @@ export function showConfirmation(scene, { title, description, confirmLabel = 'CO
     }
     const box = add((regionMap ? addRegionPanel : addWoodenPanel)(scene, x, y, (panelWidth - 156) / 2, 96, depth + 2,
       regionMap && accept ? 'danger' : 'normal').setInteractive({ useHandCursor: true }));
-    add(scene.add.text(x, y, label, { fontFamily: 'Arial', fontSize: '34px', fontStyle: 'bold', color: '#ffffff' })
+    add(scene.add.text(x, y, label, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body34'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#ffffff' })
       .setOrigin(0.5).setDepth(depth + 3));
     let press = null;
     box.on('pointerdown', (pointer, localX, localY, event) => {

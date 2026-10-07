@@ -1,3 +1,4 @@
+import { fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
 import HapticsService from '../services/HapticsService.js';
@@ -37,7 +38,7 @@ export default class TitleScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true })
       .setDepth(1000);
     this.add.text(x, y, enabled ? 'DEV MODE: ON' : 'DEV TOOLS', {
-      fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: '#fff1d2'
+      fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('support28'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff1d2'
     }).setOrigin(0.5).setDepth(1001);
     button.on('pointerdown', () => {
 
@@ -69,19 +70,19 @@ export default class TitleScene extends Phaser.Scene {
     const panel = addRegionPanel(this, width / 2, height / 2, panelWidth, panelHeight, depth + 1);
     objects.push(panel);
     objects.push(this.add.text(width / 2, panelTop + 72, 'DEV TOOLS', {
-      fontFamily: 'Arial', fontSize: '48px', fontStyle: 'bold', color: '#f8fafc'
+      fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('heading48'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#f8fafc'
     }).setOrigin(0.5).setDepth(depth + 2));
 
     const addLabel = (index, label) => {
       objects.push(this.add.text(labelX, rowY(index), label, {
-        fontFamily: 'Arial', fontSize: '36px', fontStyle: 'bold', color: '#e2e8f0'
+        fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body36'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#e2e8f0'
       }).setOrigin(0, 0.5).setDepth(depth + 2));
     };
     const addButton = (x, y, label, color, stroke, action, textColor = '#ffffff') => {
       const button = addRegionPanel(this, x, y, buttonWidth, 74, depth + 2, label === 'RESET' ? 'danger' : label === 'ON' ? 'selected' : 'normal')
         .setInteractive({ useHandCursor: true });
       const caption = this.add.text(x, y, label, {
-        fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#fff1d2'
+        fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body32'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff1d2'
       }).setOrigin(0.5).setDepth(depth + 3);
       button.on('pointerdown', action);
       objects.push(button, caption);
@@ -210,14 +211,14 @@ export default class TitleScene extends Phaser.Scene {
     const record = GameState.records[delve.id] ?? {};
     const loot = (record.lastRewards ?? []).map((reward) => reward.type === 'gold' ? `${reward.amount} Gold` : reward.label ?? reward.type).join(', ') || 'No recorded loot';
     const overlay = addRegionPanel(this, centerX, height / 2, mapWidth * 0.8, height * 0.48, 3000);
-    this.add.text(centerX, height * 0.34, `${delve.name} - CLEARED`, { fontFamily: 'Arial', fontSize: '52px', fontStyle: 'bold', color: '#bef264' })
+    this.add.text(centerX, height * 0.34, `${delve.name} - CLEARED`, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('display52'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#bef264' })
       .setOrigin(0.5).setDepth(3001);
-    this.add.text(centerX, height * 0.43, `Waves: ${record.waves ?? delve.rooms}   Best: ${formatDuration(record.bestTimeMs)}`, { fontFamily: 'Arial', fontSize: '32px', color: '#e2e8f0' })
+    this.add.text(centerX, height * 0.43, `Waves: ${record.waves ?? delve.rooms}   Best: ${formatDuration(record.bestTimeMs)}`, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body32'), color: '#e2e8f0' })
       .setOrigin(0.5).setDepth(3001);
-    this.add.text(centerX, height * 0.51, `Last haul: ${loot}`, { fontFamily: 'Arial', fontSize: '32px', color: '#fbbf24', wordWrap: { width: mapWidth * 0.68 }, align: 'center' })
+    this.add.text(centerX, height * 0.51, `Last haul: ${loot}`, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body32'), color: '#fbbf24', wordWrap: { width: mapWidth * 0.68 }, align: 'center' })
       .setOrigin(0.5).setDepth(3001);
     const close = addRegionPanel(this, centerX, height * 0.64, 360, 78, 3001).setInteractive({ useHandCursor: true });
-    this.add.text(centerX, height * 0.64, 'CLOSE', { fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5).setDepth(3002);
+    this.add.text(centerX, height * 0.64, 'CLOSE', { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body32'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#ffffff' }).setOrigin(0.5).setDepth(3002);
     close.on('pointerdown', () => this.scene.restart());
   }
 }

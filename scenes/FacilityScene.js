@@ -3,7 +3,7 @@ import { FACILITIES, renderFacilityMenu } from '../ui/FacilityMenu.js';
 import GameState from '../game/GameState.js';
 import { saveProfile } from '../game/GameStorage.js';
 import { buyPotionPack, equipmentOwner, equipmentStatsText } from '../game/Equipment.js';
-import { UI_FONT_SIZES } from '../config/uiTypography.js';
+import { UI_FONT_SIZES, fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import { POTION_ITEMS, CRAFTING_RECIPES } from '../data/items.js';
 import { ACTIVE_ENCHANTMENTS, ENCHANTMENT_BY_ID } from '../data/enchantments.js';
 import { bindSelectionDetails } from '../ui/SelectionDetails.js';
@@ -112,10 +112,10 @@ export default class FacilityScene extends Phaser.Scene {
     const categories = ['all', ...Object.keys(CATEGORIES).filter(key => key !== 'all' && allRows.some(row => row.category === key))];
     if (!categories.includes(this.category)) this.category = 'all';
     const rows = allRows.filter(row => this.category === 'all' || row.category === this.category);
-    const pages = Math.max(1, Math.ceil(rows.length / 3));
+    const pages = Math.max(1, Math.ceil(rows.length / 2));
     this.page = Math.max(0, Math.min(this.page, pages - 1));
     this.add.rectangle(1200, 555, 2080, 490, theme.panel, 0.97).setStrokeStyle(4, theme.edge);
-    const heading = this.add.text(395, 342, choice.id === 'sell' ? 'YOUR INVENTORY' : choice.label, { fontFamily: 'Georgia', fontSize: '42px', fontStyle: 'bold', color: theme.text }).setOrigin(0.5);
+    const heading = this.add.text(395, 342, choice.id === 'sell' ? 'YOUR INVENTORY' : choice.label, { fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx('heading42'), fontStyle: UI_FONT_WEIGHTS.bold, color: theme.text }).setOrigin(0.5);
     if (heading.width > 380) heading.setScale(380 / heading.width);
     addFacilityDetailsHint(this, this.facility.name, 342, { x: 1400 });
     this.add.rectangle(395, 575, 390, 384, theme.face, 0.45).setStrokeStyle(2, theme.edge, 0.45);
@@ -125,27 +125,28 @@ export default class FacilityScene extends Phaser.Scene {
       const active = category === this.category;
       const button = this.add.rectangle(395, y, 360, 48, theme.face, active ? 1 : 0.25).setStrokeStyle(active ? 3 : 1, theme.edge, active ? 1 : 0.25);
       addCategoryIcon(this, icon, 251, y, theme.edge);
-      this.add.text(288, y, label, { fontFamily: 'Arial', fontSize: '30px', color: theme.text }).setOrigin(0, 0.5);
+      this.add.text(288, y, label, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('shopCategory'), color: theme.text }).setOrigin(0, 0.5);
       bindSelectionDetails(this, button, { title: label, description: `Browse ${label.toLowerCase()}.`, shopTheme: theme }, () => { HapticsService.tap(); this.category = category; this.page = 0; this.render(); });
     });
-    if (!rows.length) this.add.text(1400, 520, choice.id === 'sell' ? 'No owned items in this category.' : choice.id === 'disenchant' ? 'No gear with known enchantments.' : choice.id === 'enchant' ? this.selectedScroll ? 'No compatible gear without an enchantment.\nChoose Enchant again to select another scroll.' : 'Buy or inscribe a scroll to begin.' : 'Nothing available.', { fontFamily: 'Arial', fontSize: '34px', color: theme.text, align: 'center', wordWrap: { width: 1450 } }).setOrigin(0.5);
-    rows.slice(this.page * 3, this.page * 3 + 3).forEach((row, index) => {
-      const y = 430 + index * 118;
-      const card = this.add.rectangle(1400, y, 1520, 112, theme.face, 0.64).setStrokeStyle(2, theme.edge, 0.7);
+    if (!rows.length) this.add.text(1400, 520, choice.id === 'sell' ? 'No owned items in this category.' : choice.id === 'disenchant' ? 'No gear with known enchantments.' : choice.id === 'enchant' ? this.selectedScroll ? 'No compatible gear without an enchantment.\nChoose Enchant again to select another scroll.' : 'Buy or inscribe a scroll to begin.' : 'Nothing available.', { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body34'), color: theme.text, align: 'center', wordWrap: { width: 1450 } }).setOrigin(0.5);
+    rows.slice(this.page * 2, this.page * 2 + 2).forEach((row, index) => {
+      const y = 463 + index * 180;
+      const card = this.add.rectangle(1400, y, 1520, 164, theme.face, 0.64).setStrokeStyle(2, theme.edge, 0.7);
       addCategoryIcon(this, CATEGORIES[row.category]?.[1] ?? 'satchel', 686, y, theme.edge);
-      this.add.text(728, y - 25, row.name, { fontFamily: 'Arial', fontSize: '34px', fontStyle: 'bold', color: theme.text }).setOrigin(0, 0.5);
-      this.add.text(728, y + 0, row.description, { fontFamily: 'Arial', fontSize: `${UI_FONT_SIZES.itemDescription}px`, color: '#ddd5c7', wordWrap: { width: 1080 } });
+      this.add.text(728, y - 46, row.name, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body34'), fontStyle: UI_FONT_WEIGHTS.bold, color: theme.text }).setOrigin(0, 0.5);
+      this.add.text(728, y - 13, row.description, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('shopDescription'), color: '#ddd5c7', wordWrap: { width: 1080 }, maxLines: 2 });
       const details = { title: row.name, description: row.detailsDescription ?? row.description, shopTheme: theme };
       bindSelectionDetails(this, card, details);
       const button = this.add.rectangle(1990, y, 285, 86, theme.face).setStrokeStyle(3, theme.edge).setAlpha(row.enabled ? 1 : 0.45);
-      this.add.text(1990, y, row.action, { fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: theme.text }).setOrigin(0.5).setAlpha(row.enabled ? 1 : 0.55);
+      this.add.text(1990, y, row.action, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('shopCost'), fontStyle: UI_FONT_WEIGHTS.bold,
+        color: row.enabled ? '#fff3c4' : '#d4c8b0' }).setOrigin(0.5);
       if (row.enabled) bindSelectionDetails(this, button, details, () => this.transact(row.run));
     });
-    this.add.text(1400, 759, this.message || `${this.page + 1} / ${pages}`, { fontFamily: 'Arial', fontSize: '27px', color: theme.text, align: 'center', wordWrap: { width: 1000 } }).setOrigin(0.5);
+    this.add.text(1400, 759, this.message || `${this.page + 1} / ${pages}`, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('shopPager'), color: theme.text, align: 'center', wordWrap: { width: 1000 } }).setOrigin(0.5);
     for (const [x, label, delta] of [[760, 'PREV', -1], [2040, 'NEXT >', 1]]) {
       const enabled = this.page + delta >= 0 && this.page + delta < pages;
       const button = this.add.rectangle(x, 765, 195, 62, theme.face).setStrokeStyle(2, theme.edge).setAlpha(enabled ? 1 : 0.4);
-      this.add.text(x, 765, label, { fontFamily: 'Arial', fontSize: '28px', color: theme.text }).setOrigin(0.5);
+      this.add.text(x, 765, label, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('shopPager'), color: theme.text }).setOrigin(0.5);
       if (enabled) bindSelectionDetails(this, button, { title: label, description: 'Browse more items.', shopTheme: theme }, () => { HapticsService.tap(); this.page += delta; this.render(); });
     }
     return { x: 1200, y: 555, width: 2080, height: 490 };

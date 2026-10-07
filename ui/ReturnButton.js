@@ -1,3 +1,4 @@
+import { fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import HapticsService from '../services/HapticsService.js';
 
 export function addReturnButton(scene, destination, onReturn, { x = 312, y = 166, feedback = 'tap' } = {}) {
@@ -5,7 +6,7 @@ export function addReturnButton(scene, destination, onReturn, { x = 312, y = 166
     .setStrokeStyle(3, 0xd4a15e)
     .setInteractive({ useHandCursor: true });
   scene.add.text(x, y, `Return to ${destination}`, {
-    fontFamily: 'Arial', fontSize: '36px', fontStyle: 'bold', color: '#fff1d2'
+    fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body36'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff1d2'
   }).setOrigin(0.5);
   button.on('pointerdown', () => {
     HapticsService[feedback]();

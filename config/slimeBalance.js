@@ -18,7 +18,7 @@ export const SLIME_BALANCE = {
     }
   },
   slimeSovereign: {
-    maxHp: 20000, armor: 160, attackPower: 200,
+    maxHp: 24000, armor: 160, attackPower: 230,
     abilities: {
       primary: { name: 'Crushing Slime Slam', cooldown: 5400, telegraph: 1350, radius: 165,
         power: 180, ...physicalPotency },

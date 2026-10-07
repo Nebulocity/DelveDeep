@@ -1,3 +1,4 @@
+import { UI_FONT_SIZES, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import { tutorialSlides } from '../data/tutorial.js';
 import { addRegionPanel, setRegionPanelState } from './RegionMapTheme.js';
 import { syncRegionMapCameras } from './RegionMapUI.js';
@@ -16,7 +17,7 @@ export function showTutorialSlideshow(scene) {
   let closed = false;
   const keep = object => { objects.push(object); return object; };
   const text = (x, y, value, size, options = {}) => keep(scene.add.text(x, y, value, {
-    fontFamily: 'Arial', fontSize: `${size}px`, color: '#f1f8ec', align: 'center', ...options
+    fontFamily: UI_FONT_FAMILIES.sans, fontSize: `${size}px`, color: '#f1f8ec', align: 'center', ...options
   }).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 3));
   const close = () => {
     if (closed) return;
@@ -31,15 +32,15 @@ export function showTutorialSlideshow(scene) {
   keep(scene.add.rectangle(cx, height / 2, width, height, 0x000000, 0.78)
     .setScrollFactor(0).setDepth(depth).setInteractive());
   keep(addRegionPanel(scene, cx, height / 2, width - 120, height - 60, depth + 1)).setInteractive();
-  text(cx, 80, 'WELCOME TO DELVE DEEP', 38, { fontStyle: 'bold', color: '#f2d79f' });
-  const title = text(cx, 137, '', 36, { fontStyle: 'bold' });
-  const caption = text(cx, height - 236, '', 32, { wordWrap: { width: width - 330 }, fixedWidth: width - 330 });
-  const status = text(cx, 472, 'Loading gameplay...', 34);
-  const count = text(cx, height - 66, '', 28, { color: '#b4c4af' });
+  text(cx, 80, 'WELCOME TO DELVE DEEP', UI_FONT_SIZES.heading38, { fontStyle: UI_FONT_WEIGHTS.bold, color: '#f2d79f' });
+  const title = text(cx, 137, '', UI_FONT_SIZES.body36, { fontStyle: UI_FONT_WEIGHTS.bold });
+  const caption = text(cx, height - 236, '', UI_FONT_SIZES.body32, { wordWrap: { width: width - 330 }, fixedWidth: width - 330 });
+  const status = text(cx, 472, 'Loading gameplay...', UI_FONT_SIZES.body34);
+  const count = text(cx, height - 66, '', UI_FONT_SIZES.support28, { color: '#b4c4af' });
   const button = (x, label, action, buttonWidth = 310) => {
     const panel = keep(addRegionPanel(scene, x, height - 136, buttonWidth, 82, depth + 4))
       .setInteractive({ useHandCursor: true }).setName(`tutorial-${label.toLowerCase()}`);
-    const caption = text(x, height - 136, label, 32, { fontStyle: 'bold' }).setDepth(depth + 5);
+    const caption = text(x, height - 136, label, UI_FONT_SIZES.body32, { fontStyle: UI_FONT_WEIGHTS.bold }).setDepth(depth + 5);
     bindButtonPress(scene, panel, [caption], () => { HapticsService.tap(); action(); });
     return { panel, caption };
   };
@@ -59,7 +60,7 @@ export function showTutorialSlideshow(scene) {
   const next = button(cx + 750, 'NEXT', () => show(index + 1));
   const closePanel = keep(addRegionPanel(scene, width - 235, 87, 270, 74, depth + 4))
     .setInteractive({ useHandCursor: true }).setName('tutorial-close');
-  const closeLabel = text(width - 235, 87, 'CLOSE', 32).setDepth(depth + 5);
+  const closeLabel = text(width - 235, 87, 'CLOSE', UI_FONT_SIZES.body32).setDepth(depth + 5);
   bindButtonPress(scene, closePanel, [closeLabel], () => { HapticsService.tap(); close(); });
   const enable = (control, enabled) => {
     control.panel.input.enabled = enabled;

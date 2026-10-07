@@ -1,3 +1,4 @@
+import { fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
 import HapticsService from '../services/HapticsService.js';
@@ -84,11 +85,11 @@ export default class TownScene extends Phaser.Scene {
 
     this.add.rectangle(width / 2, UI_SAFE_TOP + 115, 1800, 138, 0x17120f, 0.72);
     this.add.text(width / 2, UI_SAFE_TOP + 90, this.townName.toUpperCase(), {
-      fontFamily: 'Georgia', fontSize: '72px', fontStyle: 'bold', color: '#fff1d2',
+      fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx('display72'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff1d2',
       stroke: '#21150c', strokeThickness: 4
     }).setOrigin(0.5);
     this.add.text(width / 2, UI_SAFE_TOP + 145, 'Rest, prepare, and decide who is going underground next.', {
-      fontFamily: 'Arial', fontSize: '32px', color: '#e3d4bd'
+      fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body32'), color: '#e3d4bd'
     }).setOrigin(0.5);
 
     const signCenters = [-700, -300, 300, 700].map((offset) => width / 2 + offset);
@@ -138,8 +139,8 @@ export default class TownScene extends Phaser.Scene {
     const attachmentY = choice.artTop + choice.artHeight * choice.chainCrop / source.height;
     const icon = addSignIcon(this, choice.icon, choice.tint);
     const label = this.add.text(0, 190, choice.label, {
-      fontFamily: 'Georgia', fontSize: choice.icon === 'hall' ? '34px' : '40px',
-      fontStyle: 'bold', color: '#fff1d2', align: 'center',
+      fontFamily: UI_FONT_FAMILIES.serif, fontSize: choice.icon === 'hall' ? fontPx('body34') : fontPx('heading40'),
+      fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff1d2', align: 'center',
       lineSpacing: -2, stroke: '#241b17', strokeThickness: 4
     }).setOrigin(0.5);
     const hit = this.add.rectangle(0, 179, 380, 250, 0x000000, 0);
@@ -159,7 +160,7 @@ export default class TownScene extends Phaser.Scene {
     const attachmentY = signCenterY - 83 + 166 * 190 / 756;
     const art = this.add.image(0, signCenterY, 'town-sign-world-map').setDisplaySize(490, 166);
     const label = this.add.text(0, signCenterY, 'WORLD MAP', {
-      fontFamily: 'Georgia', fontSize: '40px', fontStyle: 'bold', color: '#fff1d2',
+      fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx('heading40'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff1d2',
       stroke: '#241b17', strokeThickness: 4
     }).setOrigin(0.5);
     const hit = this.add.rectangle(0, signCenterY, 490, 130, 0x000000, 0);

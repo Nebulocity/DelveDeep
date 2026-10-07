@@ -1,3 +1,4 @@
+import { fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
 import { formatDuration } from '../game/ExpeditionProgression.js';
@@ -27,22 +28,22 @@ export default class EncounterSummaryScene extends Phaser.Scene {
     const fled = summary.result === 'fled';
     this.cameras.main.setBackgroundColor('#15120f');
     this.add.text(width / 2, UI_SAFE_TOP + 40, summary.title ?? (fled ? 'PARTY FLED' : 'DEFEAT'), {
-      fontFamily: 'Arial', fontSize: '76px', fontStyle: 'bold', color: fled ? '#fbbf24' : '#fca5a5'
+      fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('display76'), fontStyle: UI_FONT_WEIGHTS.bold, color: fled ? '#fbbf24' : '#fca5a5'
     }).setOrigin(0.5);
-    this.add.text(width / 2, height * 0.38, GameState.currentDelve?.name ?? 'The Delve', { fontFamily: 'Arial', fontSize: '46px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
-    this.add.text(width / 2, height * 0.49, summary.message ?? '', { fontFamily: 'Arial', fontSize: '34px', color: '#d6d3d1', align: 'center', wordWrap: { width: width * 0.7 } }).setOrigin(0.5);
+    this.add.text(width / 2, height * 0.38, GameState.currentDelve?.name ?? 'The Delve', { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('heading46'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#ffffff' }).setOrigin(0.5);
+    this.add.text(width / 2, height * 0.49, summary.message ?? '', { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body34'), color: '#d6d3d1', align: 'center', wordWrap: { width: width * 0.7 } }).setOrigin(0.5);
     const checkpoint = getDelveCheckpoint();
     const combatLog = loadLastCombatLog();
     const combatStats = combatLog?.summary;
     this.add.text(width / 2, height * 0.57,
       `Time in encounter: ${formatDuration(summary.elapsedMs)}\n${checkpoint ? `Cleared rewards banked • ${checkpoint.campUnlocked ? 'Camp unlocked' : `Resume Wave ${checkpoint.nextWave + 1}`}` : 'Rewards kept: none'}${combatStats ? `\nDamage taken: ${combatStats.partyDamageTaken}  •  Healing: ${combatStats.partyHealing}  •  Falls: ${combatStats.partyDeaths}` : ''}`,
-      { fontFamily: 'Arial', fontSize: '31px', color: '#a8a29e', align: 'center', lineSpacing: 12 }).setOrigin(0.5);
+      { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body31'), color: '#a8a29e', align: 'center', lineSpacing: 12 }).setOrigin(0.5);
 
     if (combatLog?.entries?.length) {
       const logButton = this.add.rectangle(width / 2, height * 0.71, 520, 74, 0x292524).setStrokeStyle(3, 0x78716c)
         .setInteractive({ useHandCursor: true });
       this.add.text(width / 2, height * 0.71, 'DOWNLOAD COMBAT LOG', {
-        fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: '#f5f5f4'
+        fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('support28'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#f5f5f4'
       }).setOrigin(0.5);
       logButton.on('pointerdown', () => {
         const blob = new Blob([JSON.stringify(combatLog, null, 2)], { type: 'application/json' });

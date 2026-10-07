@@ -30,6 +30,8 @@ export function installVisualQaBridge(game) {
         : sceneName === 'FacilityScene'
           ? { title: options.facility ?? 'Alchemist' }
           : undefined;
+      current.selectionDetailsClose?.();
+      if (sceneName === 'TitleScene') current.selectionDetailsClose ??= null;
       current.scene.start(sceneName, data);
     },
     inspect(sceneName) {

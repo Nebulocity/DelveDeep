@@ -1,3 +1,13 @@
+import { UI_DOM_FONTS, UI_FONT_FAMILIES } from '../config/uiTypography.js';
+
+document.documentElement.style.setProperty('--ui-sans-family', UI_FONT_FAMILIES.sans);
+for (const [name, settings] of Object.entries(UI_DOM_FONTS)) {
+  const key = name === 'loadingTitle' ? 'loading-title' : 'loading-status';
+  document.documentElement.style.setProperty(`--${key}-family`, settings.family);
+  document.documentElement.style.setProperty(`--${key}-size`, settings.size);
+  document.documentElement.style.setProperty(`--${key}-weight`, settings.weight);
+}
+
 const screen = () => document.getElementById('loading-screen');
 let revealVersion = 0;
 const initialLoadingStartedAt = performance.now();

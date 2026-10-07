@@ -1,3 +1,4 @@
+import { UI_FONT_SIZES, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import Phaser from 'phaser';
 import { showSelectionDetails } from '../ui/SelectionDetails.js';
 import { showConfirmation } from '../ui/ConfirmationDialog.js';
@@ -23,29 +24,30 @@ export default class RaidLeaderScene extends Phaser.Scene {
     addHallFrame(this, 'Tactics', this.message);
     const leader = GameState.leader;
     hallPanel(this, 1200, 638, 2296, 736);
-    hallText(this, 90, 321, 'Raid Leader tactics', 42, { fontFamily: 'Georgia' });
-    hallText(this, 2310, 321, `Renown Level ${leader.level} · ${leader.tacticsPoints} TP available`, 34, { color: '#ffe0a7' }).setOrigin(1, 0.5);
-    hallText(this, 90, 380, `Equipped ${leader.battleLoadout.length}/5 · Hold a tactic for its effect.`, 30, { color: HALL.muted });
+    hallText(this, 90, 321, 'Party Tactics', UI_FONT_SIZES.hallTacticHeading, { fontFamily: UI_FONT_FAMILIES.serif });
+    hallText(this, 2310, 321, `Renown Level ${leader.level} · ${leader.tacticsPoints} TP available`, UI_FONT_SIZES.hallTacticRenown, { color: '#ffe0a7' }).setOrigin(1, 0.5);
+    hallText(this, 90, 380, `Equipped ${leader.battleLoadout.length}/5 · Hold a tactic for its effect.`, UI_FONT_SIZES.hallTacticMeta, { color: HALL.muted });
     this.tacticScroll ??= {};
     CATEGORIES.forEach(([category, icon], index) => {
       const x = 340 + index * 573;
       hallIcon(this, icon, x - 177, 447);
-      hallText(this, x - 125, 447, category, 36, { fontStyle: 'bold' });
+      hallText(this, x - 125, 447, category, UI_FONT_SIZES.body36, { fontStyle: UI_FONT_WEIGHTS.bold });
       const entries = leaderAbilities.filter((ability) => ability.category === category);
-      const rowHeight = 194;
-      if (!entries.length) hallText(this, x, 620, 'No tactics\navailable yet.', 32, { color: HALL.muted, align: 'center' }).setOrigin(0.5);
+      const rowHeight = 224;
+      if (!entries.length) hallText(this, x, 620, 'No tactics\navailable yet.', UI_FONT_SIZES.body32, { color: HALL.muted, align: 'center' }).setOrigin(0.5);
       const listObjects = [];
       entries.forEach((ability, row) => {
-        const y = 593 + row * rowHeight;
+        const y = 615 + row * rowHeight;
         const unlocked = hasLeaderAbility(leader, ability.id), equipped = leader.battleLoadout.includes(ability.id);
         const childStart = this.children.length;
-        hallButton(this, x, y, 513, 176, '', () => this.choose(ability), {
+        hallButton(this, x, y, 513, 206, '', () => this.choose(ability), {
           selected: equipped, details: { title: ability.name, description: ability.description }, name: `hall-tactic-${ability.id}`
         });
-        hallText(this, x - 224, y - 48, ability.name, 31, { fontStyle: 'bold', wordWrap: { width: 448 } });
-        hallText(this, x - 224, y + 6, ability.description, 22, { color: HALL.muted, wordWrap: { width: 448, maxLines: 2 } });
-        hallText(this, x - 224, y + 62, ability.oncePerEncounter ? 'Once per encounter' : `${ability.cooldown / 1000}s cooldown`, 24, { color: HALL.muted });
-        hallText(this, x + 224, y + 62, equipped ? 'Equipped' : unlocked ? 'Tap to equip' : `Unlock · ${ability.cost} TP`, 24,
+        hallText(this, x - 224, y - 66, ability.name, UI_FONT_SIZES.hallTacticName, { fontStyle: UI_FONT_WEIGHTS.bold, wordWrap: { width: 448 } });
+        hallText(this, x - 224, y - 22, ability.description, UI_FONT_SIZES.hallTacticSummary,
+          { color: HALL.muted, wordWrap: { width: 448 }, maxLines: 2 }).setOrigin(0, 0);
+        hallText(this, x - 224, y + 75, ability.oncePerEncounter ? 'Once per encounter' : `${ability.cooldown / 1000}s cooldown`, UI_FONT_SIZES.hallTacticSummary, { color: HALL.muted });
+        hallText(this, x + 224, y + 75, equipped ? 'Equipped' : unlocked ? 'Tap to equip' : `Unlock · ${ability.cost} TP`, UI_FONT_SIZES.hallTacticSummary,
           { color: equipped ? HALL.green : '#ffe0a7' }).setOrigin(1, 0.5);
         listObjects.push(...this.children.list.slice(childStart));
       });

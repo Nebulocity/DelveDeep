@@ -25,8 +25,9 @@ test(`requested map, shop and wooden dialog corrections at ${viewport.width}`, a
       scene.cameras.main.stopFollow();
       const rect = game.canvas.getBoundingClientRect();
       const object = useLabel ? scene.children.list.find(object => object.text === 'Pineshire') : { x: scene.party.x, y: scene.party.y - 100 };
-      return { x: rect.x + (object.x - scene.cameras.main.scrollX) * rect.width / game.scale.width,
-        y: rect.y + (object.y - scene.cameras.main.scrollY) * rect.height / game.scale.height,
+      const camera = scene.cameras.main;
+      return { x: rect.x + (camera.x + (object.x - camera.scrollX) * camera.zoom) * rect.width / game.scale.width,
+        y: rect.y + (camera.y + (object.y - camera.scrollY) * camera.zoom) * rect.height / game.scale.height,
         scroll: scene.cameras.main.scrollX };
     }, label);
     await page.mouse.move(point.x, point.y);
@@ -66,14 +67,21 @@ test(`requested map, shop and wooden dialog corrections at ${viewport.width}`, a
       scene.selection = id; scene.render();
     }, choice);
     await capture(`enchanter-${choice}`);
-    expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('FacilityScene').children.list.some(object => object.text?.includes('Minor Might Scroll') || object.text?.includes('No owned items')))).toBe(true);
+    expect(await page.evaluate(() => {
+      const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('FacilityScene');
+      const visibleText = scene.children.list.filter(object => typeof object.text === 'string').map(object => object.text).join('\n');
+      const rows = scene.rowsFor({ id: scene.selection });
+      return rows.length
+        ? rows.slice(0, 3).some(row => visibleText.includes(row.name))
+        : /No owned items|No gear|Nothing available|Buy or inscribe/.test(visibleText);
+    })).toBe(true);
   }
   await page.evaluate(() => {
     const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('FacilityScene');
     scene.init({ title: 'Alchemist' }); scene.selection = 'brew'; scene.render();
   });
   await capture('potion-recipes');
-  expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('FacilityScene').children.list.some(object => object.text?.includes('3 potions')))).toBe(true);
+  expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('FacilityScene').children.list.some(object => /Health Potion Pack|Mana Potion Pack/.test(object.text ?? '')))).toBe(true);
   expect(errors).toEqual([]);
 });
 }

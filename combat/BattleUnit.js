@@ -1,3 +1,4 @@
+import { fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import Phaser from 'phaser';
 import { armorReduction } from '../config/characterProgression.js';
 import { characterStats } from '../game/CharacterStats.js';
@@ -138,9 +139,9 @@ export default class BattleUnit {
     const barY = Math.min(-this.bodyRadius, spriteTop) - (this.isEnemy ? 30 : 18) - motionMargin;
     const nameY = barY - (this.isEnemy ? 34 : 28);
     this.label = scene.add.text(0, nameY, this.name, {
-      fontFamily: 'Arial',
-      fontSize: this.isEnemy ? '34px' : '32px',
-      fontStyle: 'bold',
+      fontFamily: UI_FONT_FAMILIES.sans,
+      fontSize: this.isEnemy ? fontPx('body34') : fontPx('body32'),
+      fontStyle: UI_FONT_WEIGHTS.bold,
       color: '#ffffff',
       stroke: '#000000',
       strokeThickness: 4
@@ -148,18 +149,18 @@ export default class BattleUnit {
 
     // Keep the current enemy target visible above its nameplate.
     this.targetLabel = scene.add.text(0, nameY - 36, '', {
-      fontFamily: 'Arial',
-      fontSize: '27px',
-      fontStyle: 'bold',
+      fontFamily: UI_FONT_FAMILIES.sans,
+      fontSize: fontPx('support27'),
+      fontStyle: UI_FONT_WEIGHTS.bold,
       color: '#fca5a5',
       stroke: '#000000',
       strokeThickness: 3
     }).setOrigin(0.5).setVisible(this.isEnemy);
 
     this.actionLabel = scene.add.text(0, nameY - (this.isEnemy ? 68 : 30), '', {
-      fontFamily: 'Arial',
-      fontSize: this.isEnemy ? '29px' : '24px',
-      fontStyle: 'bold',
+      fontFamily: UI_FONT_FAMILIES.sans,
+      fontSize: this.isEnemy ? fontPx('support29') : fontPx('compact24'),
+      fontStyle: UI_FONT_WEIGHTS.bold,
       color: '#fde68a',
       stroke: '#000000',
       strokeThickness: 3

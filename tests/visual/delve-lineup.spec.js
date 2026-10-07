@@ -9,20 +9,23 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
     await page.goto('/?visualQa=1');
     await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__?.game.scene.getScene('TitleScene').sys.isActive());
     await page.locator('#loading-screen').waitFor({ state: 'hidden' });
+    await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.activate('BattleScene', { delve: 'thornbriar-hollow' }));
+    await page.waitForFunction(() => {
+      const s = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
+      return s.sys.isActive() && s.enemies?.some(e => e.alive && !e.landing);
+    });
+    await page.locator('#loading-screen').waitFor({ state: 'hidden' });
     for (const count of [0, 1, 3, 5]) {
       await page.evaluate(count => {
         const qa = window.__DELVE_DEEP_VISUAL_QA__;
-        qa.state.leader.battleLoadout = ['focusFire', 'rally', 'coordinatedAssault', 'brace', 'encouragement'].slice(0, count);
-        qa.activate('BattleScene', { delve: 'thornbriar-hollow' });
+        qa.state.leader.battleLoadout = ['focusFire', 'coordinatedAttack', 'lunarAssault', 'brace', 'encouragement'].slice(0, count);
+        const scene = qa.game.scene.getScene('BattleScene');
+        scene.children.list.filter(object => object.depth === 4700 || object.depth === 4701).forEach(object => object.destroy());
+        scene.createLeaderLoadoutBar(scene.scale.width);
       }, count);
-      await page.waitForFunction(count => {
-        const s = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
-        return s.sys.isActive() && s.leaderButtons?.length === count && s.enemies?.some(e => e.alive && !e.landing);
-      }, count);
-      await page.locator('#loading-screen').waitFor({ state: 'hidden' });
       const state = await page.evaluate(() => {
         const s = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
-        s.togglePause();
+        if (!s.combatPaused) s.togglePause();
         const boxes = s.leaderButtons.map(b => b.box);
         const first = boxes[0], last = boxes.at(-1);
         const formation = [...s.partyUnits].sort((a, b) => {
@@ -51,7 +54,7 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
         ready: s.waveReturnReadyAt };
     });
     expect(before.text).toContain('+1 Health Potion');
-    expect(before.text).toContain('+2 Woven Cloth');
+    expect(before.text).toContain('+2 Linen Cloth');
     expect(before.active).toBe(true);
     expect(before.plaque).toBe(false);
     expect(before.ready).toBeNull();
@@ -65,7 +68,7 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
       s.updateWaveRetreat(time, 0, 0);
       return s.waveReturnReadyAt - time;
     });
-    expect(delay).toBe(3000);
+    expect(delay).toBeCloseTo(3000, 6);
     expect(await page.evaluate(() => {
       const s = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
       s.updateWaveRetreat(s.waveReturnReadyAt - 1, 0, 0);

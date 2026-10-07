@@ -7,6 +7,7 @@ export default class CombatLog {
 
     this.startedAt = Date.now();
     this.entries = [];
+    this.entryCount = 0;
     this.record = {
       delve: delveName,
       startedAt: new Date(this.startedAt).toISOString(),
@@ -37,6 +38,8 @@ export default class CombatLog {
       ...details
     };
     this.entries.push(entry);
+    this.entryCount += 1;
+    if (this.entries.length > 2000) this.entries.shift();
     if (type === 'damage') {
       const summaryKey = details.targetSide === 'enemy' ? 'enemyDamageTaken' : 'partyDamageTaken';
       this.record.summary[summaryKey] += Number(details.amount ?? 0);
@@ -45,11 +48,11 @@ export default class CombatLog {
     if (type === 'death' && (details.targetSide === 'party' || (!details.targetSide && this.partyNames.has(details.target)))) {
       this.record.summary.partyDeaths += 1;
     }
-    console.info(`[Combat ${entry.time.toFixed(2)}s] ${message}`, details);
+    if (!this.backgroundProgress?.isReplaying) console.info(`[Combat ${entry.time.toFixed(2)}s] ${message}`, details);
 
     // Save periodically to retain recent events without writing storage on
     // every log entry.
-    if (this.entries.length % 10 === 0) this.persist();
+    if (this.entryCount % 10 === 0 && !this.backgroundProgress?.isReplaying) this.persist();
     return entry;
   }
 
@@ -64,6 +67,7 @@ export default class CombatLog {
 
   // This function saves the latest combat record for later inspection.
   persist() {
+    if (this.backgroundProgress?.isReplaying) return;
 
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...this.record, entries: this.entries.slice(-2000) }));

@@ -1,3 +1,4 @@
+import { fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import HapticsService from '../services/HapticsService.js';
 import { addFacilityPlate } from './FacilityChoiceArt.js';
 import { bindButtonPress } from './ButtonPress.js';
@@ -12,7 +13,7 @@ export function addFacilityReturnButton(scene, facilityName, onReturn, { x = 312
   art.lineBetween(-width / 2 + 38, 0, -width / 2 + 49, -11);
   art.lineBetween(-width / 2 + 38, 0, -width / 2 + 49, 11);
   const label = scene.add.text(x + 19, y, 'Return to Town', {
-    fontFamily: 'Georgia', fontSize: '36px', fontStyle: 'bold', color: '#fff1d2',
+    fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx('body36'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff1d2',
     stroke: '#100e0c', strokeThickness: 2
   }).setOrigin(0.5);
   const target = scene.add.rectangle(x, y, width, height, 0x000000, 0)
@@ -27,7 +28,7 @@ export function addFacilityDetailsHint(scene, facilityName, y, { x = scene.scale
   const { art } = addFacilityPlate(scene, facilityName, x, y, width, 64);
   art.setName('facility-details-hint');
   return scene.add.text(x, y, DETAILS_HINT, {
-    fontFamily: 'Georgia', fontSize: '28px', fontStyle: 'bold', color: '#fff1d2',
+    fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx('shopHint'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff1d2',
     align: 'center', wordWrap: { width: width - 90 }, stroke: '#100e0c', strokeThickness: 1
   }).setOrigin(0.5);
 }

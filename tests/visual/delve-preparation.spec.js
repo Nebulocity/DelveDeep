@@ -17,7 +17,7 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
       await page.waitForFunction(name => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene(name).sys.isActive(), name);
     };
     const capture = async name => {
-      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      await page.waitForTimeout(50);
       await page.screenshot({ path: `output/qa/delve-preparation/${name}-${viewport.width}.png` });
     };
     for (const [delve, motif] of [['slime-cave', 'slime'], ['thornbriar-hollow', 'roots'], ['dolmark-den', 'water'], ['murmuring-abyss', 'runes']]) {

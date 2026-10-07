@@ -60,7 +60,8 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
     await ready();
     expect(await count()).toBe('1 of 5');
     await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.activate('TownScene'));
-    expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('TitleScene').selectionDetailsClose)).toBeNull();
+    await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('TownScene').sys.isActive());
+    expect(await page.evaluate(() => Boolean(window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('TitleScene').selectionDetailsClose))).toBe(false);
     expect(errors).toEqual([]);
   });
 }

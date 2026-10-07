@@ -15,6 +15,9 @@ export default class BackgroundProgress {
     this.lastWallTime = now();
     this.time = null;
     this.pendingMs = 0;
+    this.isReplaying = false;
+    this.replayDirty = false;
+    this.catchUpTimer = null;
     this.hidden = page.hidden;
     this.originalUpdate = game.scene.update;
     game.scene.update = (time, delta) => this.frame(time, delta);
@@ -85,18 +88,29 @@ export default class BackgroundProgress {
         this.pendingMs = 0;
         break;
       }
-      if (this.budgetNow() - started >= 12) break;
+      if (this.budgetNow() - started >= 24) break;
     }
     this.showCatchUp(!this.hidden && this.pendingMs >= BACKGROUND_STEP_MS);
     if (this.pendingMs < BACKGROUND_STEP_MS) {
+      if (this.replayDirty) {
+        this.replayDirty = false;
+        for (const scene of this.game.scene.getScenes?.(true) ?? []) scene.onCatchUpSettled?.();
+      }
       this.onSettle();
       this.onBackground(this.hidden);
+    } else if (!this.hidden && this.catchUpTimer === null) {
+      this.catchUpTimer = this.host.setTimeout(() => {
+        this.catchUpTimer = null;
+        this.pump();
+      }, 0);
     }
   }
 
   step(delta, catchUp) {
     this.time += delta;
     const restores = [];
+    this.isReplaying = catchUp;
+    if (catchUp) this.replayDirty = true;
     if (catchUp) {
 
       // Phaser tweens use Date.now internally, so replay must provide their simulation delta.
@@ -116,6 +130,7 @@ export default class BackgroundProgress {
     try {
       this.originalUpdate.call(this.game.scene, this.time, delta);
     } finally {
+      this.isReplaying = false;
       for (const restore of restores) restore();
 
       // SceneManager normally clears this during render; background steps have no render.
@@ -138,6 +153,7 @@ export default class BackgroundProgress {
   }
 
   destroy() {
+    if (this.catchUpTimer !== null) this.host.clearTimeout(this.catchUpTimer);
     this.host.clearInterval(this.timer);
     this.page.removeEventListener('visibilitychange', this.visibilityChanged);
     this.page.removeEventListener('freeze', this.pageHidden);

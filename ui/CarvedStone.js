@@ -1,3 +1,4 @@
+import { UI_FONT_SIZES, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import stonePanelUrl from '../assets/ui/carved-stone/panel.png?inline';
 
 export const STONE = { text: '#f3ead5', muted: '#bdc9d4', gold: 0xe8b75c, edge: 0x62778f };
@@ -28,9 +29,9 @@ export function delveStoneTheme(delve) {
   return { accent: 0xa1d65c, crystal: 0xb572e6, motif: 'slime' };
 }
 
-export function stoneText(scene, x, y, text, size = 34, depth = 4602, options = {}) {
+export function stoneText(scene, x, y, text, size = UI_FONT_SIZES.body34, depth = 4602, options = {}) {
   return scene.add.text(x, y, text, {
-    fontFamily: 'Georgia', fontSize: `${size}px`, fontStyle: 'bold', color: STONE.text,
+    fontFamily: UI_FONT_FAMILIES.serif, fontSize: `${size}px`, fontStyle: UI_FONT_WEIGHTS.bold, color: STONE.text,
     stroke: '#090e17', strokeThickness: 2, ...options
   }).setOrigin(0.5).setDepth(depth);
 }

@@ -6,7 +6,7 @@ body {
   height: 100%;
   background: #10131a;
   overflow: hidden;
-  font-family: Arial, sans-serif;
+  font-family: var(--ui-sans-family, Arial), sans-serif;
 }
 
 body {
@@ -104,9 +104,9 @@ body {
   stroke-width: 4px;
   paint-order: stroke fill;
   filter: drop-shadow(0 4px 2px #120b0a) drop-shadow(0 7px 8px #120b0a);
-  font-family: Copperplate, Papyrus, fantasy, serif;
-  font-size: 145px;
-  font-weight: 900;
+  font-family: var(--loading-title-family, Copperplate, Papyrus, fantasy, serif);
+  font-size: var(--loading-title-size, 145px);
+  font-weight: var(--loading-title-weight, 900);
   letter-spacing: 3px;
 }
 
@@ -128,8 +128,9 @@ body {
   left: 50%;
   width: 66%;
   transform: translateX(-50%);
-  font-size: clamp(18px, calc(2.2cqw + 2px), 34px);
-  font-weight: 700;
+  font-family: var(--loading-status-family, Arial), sans-serif;
+  font-size: var(--loading-status-size, clamp(18px, calc(2.2cqw + 2px), 34px));
+  font-weight: var(--loading-status-weight, 700);
   text-shadow: 0 2px 4px #10282e;
 }
 

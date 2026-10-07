@@ -1,3 +1,4 @@
+import { fontPx, UI_FONT_SIZES, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import { showTutorialSlideshow } from '../ui/TutorialSlideshow.js';
 import { addRegionPanel } from '../ui/RegionMapTheme.js';
 import { REGION_RAIL_WIDTH, MAP_HEADER_HEIGHT, MAP_FOOTER_HEIGHT, createRegionLocationRail, updateRegionLocationRail, syncRegionMapCameras } from '../ui/RegionMapUI.js';
@@ -33,13 +34,13 @@ function drawWorld(scene) {
   if (!cleared(branchLock.requiresClear)) {
     const point = mapPoint(branchLock.position);
     addRegionPanel(scene, point.x, point.y, 180, 100, 90, 'normal', false);
-    scene.add.text(point.x, point.y, 'LOCKED', { fontFamily: 'Arial', fontSize: '32px',
-      fontStyle: 'bold', color: '#ffe2a2' }).setOrigin(0.5).setDepth(91);
+    scene.add.text(point.x, point.y, 'LOCKED', { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body32'),
+      fontStyle: UI_FONT_WEIGHTS.bold, color: '#ffe2a2' }).setOrigin(0.5).setDepth(91);
   }
   const exit = mapPoint(regionExit.position);
   const open = cleared(regionExit.requiresClear);
   const sign = scene.add.text(exit.x, exit.y, open ? 'HIGHMERE →' : 'PORTAL LOCK', {
-    fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: open ? '#c9f2d3' : '#d7b3eb',
+    fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('support28'), fontStyle: UI_FONT_WEIGHTS.bold, color: open ? '#c9f2d3' : '#d7b3eb',
     padding: { x: 16, y: 14 }
   }).setOrigin(1, 0.5).setDepth(170).setInteractive({ useHandCursor: true });
   addRegionPanel(scene, exit.x - sign.width / 2, exit.y, sign.width + 14, sign.height + 8, 169, 'normal', false);
@@ -81,7 +82,7 @@ function createParty(scene) {
   }
   scene.partyFacing = 'south-east';
   scene.party.play(savedEdge ? 'world-party-walk-south-east' : 'world-party-idle-south-east');
-  scene.partyLabel = scene.add.text(x, y + 92, 'PARTY', { fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: '#ffffff', stroke: '#142019', strokeThickness: 5 })
+  scene.partyLabel = scene.add.text(x, y + 92, 'PARTY', { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('support28'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#ffffff', stroke: '#142019', strokeThickness: 5 })
     .setOrigin(0.5).setDepth(510);
 }
 
@@ -94,12 +95,12 @@ function renderPois(scene) {
     scene.add.circle(label.x, label.y + 58, 22, unlocked ? color : 0x415047, 0.95)
       .setStrokeStyle(4, unlocked ? 0xf4eac9 : 0x738278).setDepth(160);
     const nameplate = scene.add.text(label.x, label.y, `${unlocked ? '' : 'LOCKED · '}${poi.name}`, {
-      fontFamily: 'Georgia', fontSize: '42px', fontStyle: 'bold', color: unlocked ? '#fff1d1' : '#bcc4bb',
+      fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx('mapLabel'), fontStyle: UI_FONT_WEIGHTS.bold, color: unlocked ? '#fff1d1' : '#bcc4bb',
       stroke: '#142019', strokeThickness: 5, padding: { x: 18, y: 12 }
     }).setOrigin(0.5).setDepth(170).setInteractive({ useHandCursor: true });
     addRegionPanel(scene, label.x, label.y, nameplate.width + 14, nameplate.height + 8, 169, 'normal', false);
     if (cleared(poi.id) && (poi.type === 'delve' || poi.type === 'void')) {
-      scene.add.text(label.x, label.y + 58, '✓', { fontFamily: 'Arial', fontSize: '34px', color: '#a8efb4', stroke: '#142019', strokeThickness: 5 })
+      scene.add.text(label.x, label.y + 58, '✓', { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body34'), color: '#a8efb4', stroke: '#142019', strokeThickness: 5 })
         .setOrigin(0.5).setDepth(180);
     }
     const hit = scene.add.circle(point.x, point.y - 100, 145, 0xffffff, 0.001).setDepth(900);
@@ -208,6 +209,7 @@ function arrive(scene) {
 
 export function createScrollingWorldMap(scene) {
   settleEverdeep();
+  scene.selectionDetailsClose ??= null;
   const { width, height } = scene.scale;
   scene.cameras.main.setBackgroundColor('#233b2b');
   drawWorld(scene);
@@ -223,17 +225,17 @@ export function createScrollingWorldMap(scene) {
   scene.mapUiCamera = scene.cameras.add(0, 0, width, height, false, 'region-map-ui');
   createRegionLocationRail(scene, pois, available, cleared, locationDetails, poi => selectPoi(scene, poi));
   addRegionPanel(scene, width / 2, 58, width, MAP_HEADER_HEIGHT, 1000);
-  scene.add.text(58, 18, 'DELVE DEEP', { fontFamily: 'Arial', fontSize: '54px', fontStyle: 'bold', color: '#f8fafc' })
+  scene.add.text(58, 18, 'DELVE DEEP', { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('display54'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#f8fafc' })
     .setScrollFactor(0).setDepth(1001);
-  scene.regionText = scene.add.text(58, 69, 'WORLD MAP', { fontFamily: 'Arial', fontSize: '30px', fontStyle: 'bold', color: '#94a3b8' })
+  scene.regionText = scene.add.text(58, 69, 'WORLD MAP', { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('mapRegion'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#b2c7d1' })
     .setScrollFactor(0).setDepth(1001);
   scene.currencyText = scene.add.text(width - 58, 26, `Gold: ${GameState.gold}`, {
-    fontFamily: 'Arial', fontSize: '31px', fontStyle: 'bold', color: '#fbbf24'
+    fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('mapGold'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fbbf24'
   }).setOrigin(1, 0).setScrollFactor(0).setDepth(1001);
   const recenter = addRegionPanel(scene, width - 185, height - 65, 300, 100, 1000)
     .setInteractive({ useHandCursor: true });
   scene.add.text(width - 185, height - 65, 'FIND PARTY', {
-    fontFamily: 'Arial', fontSize: '38px', fontStyle: 'bold', color: '#f1f8ec'
+    fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('heading38'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#f1f8ec'
   }).setOrigin(0.5).setScrollFactor(0).setDepth(1001);
   recenter.on('pointerdown', (pointer, x, y, event) => {
     event?.stopPropagation?.();
@@ -273,16 +275,16 @@ export function createScrollingWorldMap(scene) {
     scene.input.off('gameout', endDrag);
   });
   addRegionPanel(scene, (width + REGION_RAIL_WIDTH) / 2, height - MAP_FOOTER_HEIGHT / 2, width - REGION_RAIL_WIDTH, MAP_FOOTER_HEIGHT, 999);
-  addDetailsHint(scene, height - 65, 'Drag map to explore. Hold for details.', { x: 1430, fontSize: 28, fixed: true, width: 570 });
+  addDetailsHint(scene, height - 65, 'Drag map to explore. Hold for details.', { x: 1430, fontSize: UI_FONT_SIZES.support28, fixed: true, width: 570 });
   const help = addRegionPanel(scene, 640, height - 65, 300, 100, 1000).setInteractive({ useHandCursor: true });
-  scene.add.text(640, height - 65, 'HOW TO PLAY', { fontFamily: 'Arial', fontSize: '38px', fontStyle: 'bold', color: '#f1f8ec' })
+  scene.add.text(640, height - 65, 'HOW TO PLAY', { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('heading38'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#f1f8ec' })
     .setOrigin(0.5).setScrollFactor(0).setDepth(1001);
   help.on('pointerdown', () => {
     HapticsService.tap();
     showTutorialSlideshow(scene);
   });
   const reset = addRegionPanel(scene, 970, height - 65, 300, 100, 1000).setInteractive({ useHandCursor: true });
-  scene.add.text(970, height - 65, 'DEV TOOLS', { fontFamily: 'Arial', fontSize: '38px', fontStyle: 'bold', color: '#fff1d2' })
+  scene.add.text(970, height - 65, 'DEV TOOLS', { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('heading38'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff1d2' })
     .setOrigin(0.5).setScrollFactor(0).setDepth(1001);
   reset.on('pointerdown', () => { HapticsService.tap();
     scene.showDevelopmentTools();

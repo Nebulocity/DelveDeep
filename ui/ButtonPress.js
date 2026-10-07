@@ -4,8 +4,13 @@ export function bindButtonPress(scene, target, labels = [], onClick) {
   const baseY = target.y;
   const travel = 5;
   const progress = { value: 0 };
-  const shadow = scene.add.rectangle(target.x, baseY + travel, target.width, target.height, 0x080b10)
-    .setOrigin(target.originX, target.originY).setDepth((target.pressVisuals?.[0]?.depth ?? target.depth) - 0.1);
+  const surface = target.pressVisuals?.[0];
+  const regionTexture = surface?.texture?.key?.startsWith('region-surface-') ? surface.texture.key : null;
+  const shadow = regionTexture
+    ? scene.add.image(target.x, baseY + travel, regionTexture).setDisplaySize(target.width, target.height).setTint(0x080b10)
+    : scene.add.rectangle(target.x, baseY + travel, target.width, target.height, 0x080b10)
+      .setOrigin(target.originX, target.originY);
+  shadow.setDepth((surface?.depth ?? target.depth) - 0.1);
   shadow.setScrollFactor(target.scrollFactorX, target.scrollFactorY);
   let tween = null;
   let pointerId = null;

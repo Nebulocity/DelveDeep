@@ -2179,5 +2179,7 @@ export const CRAFTING_RECIPE_BY_ID = Object.fromEntries(CRAFTING_RECIPES.map(rec
 
 export function getEquipmentDefinition(id) { return EQUIPMENT_BY_ID[id] ?? null; }
 export function getPotionDefinition(id) { return POTION_BY_ID[id] ?? null; }
-export function getMaterialDefinition(id) { return CRAFTING_MATERIALS[id] ?? null; }
+export function getMaterialDefinition(id) {
+  return CRAFTING_MATERIALS[id] ?? CRAFTING_MATERIALS[MATERIAL_ID_ALIASES[id]] ?? null;
+}
 export function getCatalogItemDefinition(id) { return CATALOG_ITEMS.find(item => item.id === id) ?? null; }

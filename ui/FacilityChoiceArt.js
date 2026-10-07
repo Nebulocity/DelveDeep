@@ -1,3 +1,4 @@
+import { fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 const THEMES = {
   Hall: { face: 0x382416, edge: 0xc89b61, glow: 0xf3d5a1, shadow: 0x160d08 },
   Alchemist: { face: 0x20382e, edge: 0xb99a67, glow: 0xc7e4b2, shadow: 0x0c1813 },
@@ -118,12 +119,12 @@ export function addFacilityChoiceCard(scene, facilityName, entry, x, y, width, a
   if (compact) emblem.setScale(0.55);
 
   scene.add.text(x, compact ? y + 14 : y - 24, entry.label, {
-    fontFamily: 'Georgia', fontSize: compact ? '34px' : entry.label.length > 10 ? '38px' : '42px',
-    fontStyle: 'bold', color: '#fff1d2',
+    fontFamily: UI_FONT_FAMILIES.serif, fontSize: compact ? fontPx('body34') : entry.label.length > 10 ? fontPx('heading38') : fontPx('heading42'),
+    fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff1d2',
     stroke: theme.shadow === 0x100d1a ? '#100d1a' : '#170f0a', strokeThickness: 3
   }).setOrigin(0.5);
   scene.add.text(x, compact ? y + 53 : y + 34, entry.subtitle, {
-    fontFamily: 'Arial', fontSize: compact ? '28px' : '29px', color: '#e8d6bc', align: 'center',
+    fontFamily: UI_FONT_FAMILIES.sans, fontSize: compact ? fontPx('support28') : fontPx('support29'), color: '#e8d6bc', align: 'center',
     wordWrap: { width: compact ? width - 30 : width - 185 }
   }).setOrigin(0.5);
   return scene.add.rectangle(x, y, width, 150, 0x000000, 0).setInteractive({ useHandCursor: true });

@@ -25,7 +25,7 @@ function nextInstanceId(state) {
 }
 
 export function grantEquipment(itemId, state = GameState) {
-  const definition = getEquipmentDefinition(itemId);
+  const definition = getEquipmentDefinition(LEGACY_ITEM_IDS[itemId] ?? itemId);
   if (!definition) return null;
   const instance = {
     id: nextInstanceId(state),

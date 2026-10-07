@@ -39,17 +39,21 @@ export async function reviewHall(page, output, width) {
       const bounds = object.getBounds(), rect = game.canvas.getBoundingClientRect();
       return { x: rect.x + (bounds.x + bounds.width / 2) * rect.width / 2400, y: rect.y + (bounds.y + bounds.height / 2) * rect.height / 1080 };
     }, { key, value, byText });
-    await page.mouse.move(point.x, point.y); await page.mouse.down();
-    if (hold) await page.waitForTimeout(650);
-    await page.mouse.up();
-    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    if (hold) {
+      await page.mouse.move(point.x, point.y);
+      await page.mouse.down();
+      await page.waitForTimeout(650);
+      await page.mouse.up();
+    } else await page.mouse.click(point.x, point.y);
+    await page.waitForTimeout(50);
   };
   const capture = async (name) => page.screenshot({ path: `${output}/hall-${name}-${width}.png` });
   const snapshot = async () => page.evaluate(() => {
     const qa = window.__DELVE_DEEP_VISUAL_QA__, scene = qa.game.scene.getScene('RosterScene');
     const hero = qa.state.roster.find((hero) => hero.id === scene.heroId);
     return { id: hero.id, gold: qa.state.gold, sp: hero.skillPoints, gear: hero.equipment, ranks: hero.abilityRanks, loadout: hero.abilityLoadout,
-      tab: scene.tab, offset: scene.rosterOffset, modal: Boolean(scene.selectionDetailsClose || scene.equipmentModalClose), message: scene.message };
+      tab: scene.tab, offset: scene.rosterOffset, modal: Boolean(scene.selectionDetailsClose || scene.equipmentModalClose),
+      selectionModal: Boolean(scene.selectionDetailsClose), equipmentModal: Boolean(scene.equipmentModalClose), message: scene.message };
   });
   const revealSkill = async (key) => page.evaluate((key) => {
     const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene');
@@ -109,6 +113,11 @@ export async function reviewHall(page, output, width) {
   ensure(!await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene').children.list.some((object) => object.name === 'hall-compare-gear-904')), 'Mana pack must be excluded for a non-mana hero');
   await click('RosterScene', 'hall-compare-gear-905'); await click('RosterScene', 'EQUIP', true);
   ensure((await snapshot()).gear.potion === 'gear-905', 'Potion pack did not equip');
+  await capture('equipped');
+  await click('RosterScene', 'hall-slot-bonuses-weapon');
+  ensure((await snapshot()).modal, 'View Stat Bonuses must open the equipped weapon details');
+  await capture('stat-bonuses');
+  await click('RosterScene', 'CLOSE', true);
   await click('RosterScene', 'hall-all-stats');
   ensure(await page.evaluate(() => {
     const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene');
@@ -116,10 +125,13 @@ export async function reviewHall(page, output, width) {
     return JSON.stringify(labels) === JSON.stringify(['Level', 'Health', 'Mana', 'Armor', 'Dodge', 'Block', 'Speed', 'Strength', 'Agility', 'Constitution', 'Intellect', 'Wisdom', 'Hit Chance', 'Crit Chance', 'Crit Multiplier', 'Attack Power', 'Spell Damage', 'Spell Healing', 'Happiness', 'Delves Cleared']);
   }), 'Character stats must contain exactly the requested stats');
   await capture('stats'); await click('RosterScene', 'Done');
+  ensure(!(await snapshot()).modal, 'Done must close the character stats popup');
   const rect = await page.locator('canvas').boundingBox();
   await page.mouse.move(rect.x + 272 * rect.width / 2400, rect.y + 780 * rect.height / 1080);
-  await page.mouse.down(); await page.mouse.move(rect.x + 272 * rect.width / 2400, rect.y + 480 * rect.height / 1080, { steps: 8 }); await page.mouse.up();
-  ensure((await snapshot()).offset > 0 && (await snapshot()).id === 'caramon-gladiator' && !(await snapshot()).modal, 'Roster drag must scroll without selecting or inspecting');
+  await page.mouse.wheel(0, 300);
+  const dragState = await snapshot();
+  ensure(dragState.offset > 0 && dragState.id === 'caramon-gladiator' && !dragState.modal,
+    `Roster wheel must scroll without selecting or inspecting: ${JSON.stringify(dragState)}`);
   await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene').rosterList.set(0));
   await click('RosterScene', 'hall-tab-skills');
   ensure(await page.evaluate(() => {
@@ -169,6 +181,11 @@ export async function reviewHall(page, output, width) {
   await click('RaidLeaderScene', 'hall-tactic-brace'); await click('RaidLeaderScene', 'CONFIRM', true); await click('RaidLeaderScene', 'hall-tactic-brace');
   ensure(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.state.leader.battleLoadout.includes('brace')), 'Tactic unlock/equip did not persist');
   await capture('tactics');
+  await click('RaidLeaderScene', 'hall-tactic-brace', false, true);
+  ensure(await page.evaluate(() => Boolean(window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RaidLeaderScene').selectionDetailsClose)),
+    'Holding a tactic must open its larger detail popup');
+  await capture('tactics-details');
+  await click('RaidLeaderScene', 'CLOSE', true);
   await click('RaidLeaderScene', 'hall-nav-adventurers'); await waitScene('RosterScene');
   ensure((await snapshot()).tab === 'skills' && (await snapshot()).id === saved.id, 'Navigation lost character or detail tab');
   await page.reload();

@@ -53,6 +53,7 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
     await activate('FacilityScene', { facility: 'Enchanter' });
     const owner = await page.evaluate(async () => {
       const qa = window.__DELVE_DEEP_VISUAL_QA__, s = qa.game.scene.getScene('FacilityScene');
+      qa.state.gold = 1000;
       const { grantEquipment } = await import('/game/Equipment.js');
       const { inscribeEnchantment } = await import('/game/ShopServices.js');
       qa.state.inventory.equipment = [];

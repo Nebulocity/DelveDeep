@@ -7,14 +7,14 @@ import { bindButtonPress } from './ButtonPress.js';
 import { addRegionPanel, addRegionNotice, regionMessageBounds } from './RegionMapTheme.js';
 import { isGuildHall } from './GuildHallTheme.js';
 import { showGuildDetails } from './GuildHallDialogs.js';
-import { UI_FONT_SIZES } from '../config/uiTypography.js';
+import { UI_FONT_SIZES, fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 
 export const DETAILS_HINT = 'Long-press or hold-click a selection for details.';
 
 export function addDetailsHint(scene, y, text = DETAILS_HINT, options = {}) {
   if (isDelvePreparation(scene)) return preparationNotice(scene, options.x ?? scene.scale.width / 2, y, text, options).text;
   return (scene.scene?.key === 'TitleScene' ? addRegionNotice : addWoodenNotice)(scene, options.x ?? scene.scale.width / 2, y, text,
-    { width: 1100, fontSize: 28, ...(scene.scene?.key === 'TitleScene' ? { depth: 1000 } : {}), ...options }).text;
+    { width: 1100, fontSize: UI_FONT_SIZES.support28, ...(scene.scene?.key === 'TitleScene' ? { depth: 1000 } : {}), ...options }).text;
 }
 
 function isDelvePreparation(scene) {
@@ -97,7 +97,7 @@ export function showSelectionDetails(scene, details) {
   const bodyWidth = panelWidth - bodyMargin * 2 - imageColumn;
   const bodyCenter = centerX + imageColumn / 2;
   const body = scene.add.text(bodyCenter, 0, details.description, {
-    fontFamily: 'Arial', fontSize: `${UI_FONT_SIZES.detailBody}px`, color: stone ? STONE.text : shop ? shopTheme.text : warm ? '#f1dfca' : '#e2e8f0',
+    fontFamily: UI_FONT_FAMILIES.sans, fontSize: `${UI_FONT_SIZES.detailBody}px`, color: stone ? STONE.text : shop ? shopTheme.text : warm ? '#f1dfca' : '#e2e8f0',
     wordWrap: { width: bodyWidth }, fixedWidth: bodyWidth, align: details.align ?? 'center'
   }).setOrigin(0.5, 0).setDepth(depth + 2);
   const panelHeight = Math.min(height - 140, Math.max(hasImage ? 540 : 340, body.height + (details.gear ? 480 : 210)));
@@ -137,15 +137,15 @@ export function showSelectionDetails(scene, details) {
       const x = centerX - panelWidth / 2 + 65 + cardWidth / 2 + index * (cardWidth + 16);
       const y = top + panelHeight - 235;
       objects.push(addStonePanel(scene, x, y, cardWidth, 220, depth + 2));
-      objects.push(stoneText(scene, x, y - 72, item.slot.toUpperCase(), 26, depth + 3, { color: STONE.muted }));
-      objects.push(stoneText(scene, x, y - 12, item.name, 30, depth + 3, { wordWrap: { width: cardWidth - 40 } }));
-      objects.push(stoneText(scene, x, y + 65, item.summary, 26, depth + 3, { fontFamily: 'Arial', wordWrap: { width: cardWidth - 40 } }));
+      objects.push(stoneText(scene, x, y - 72, item.slot.toUpperCase(), UI_FONT_SIZES.compact26, depth + 3, { color: STONE.muted }));
+      objects.push(stoneText(scene, x, y - 12, item.name, UI_FONT_SIZES.body30, depth + 3, { wordWrap: { width: cardWidth - 40 } }));
+      objects.push(stoneText(scene, x, y + 65, item.summary, UI_FONT_SIZES.compact26, depth + 3, { fontFamily: UI_FONT_FAMILIES.sans, wordWrap: { width: cardWidth - 40 } }));
     });
   }
   const buttonY = top + panelHeight - 52;
   const button = (stone ? addStoneButton : regionMap ? addRegionPanel : addWoodenPanel)(scene, centerX, buttonY, 300, 72, depth + 3).setInteractive({ useHandCursor: true });
   if (stone) {
-    const label = stoneText(scene, centerX, buttonY, 'CLOSE', 32, depth + 4);
+    const label = stoneText(scene, centerX, buttonY, 'CLOSE', UI_FONT_SIZES.body32, depth + 4);
     objects.push(label);
     bindButtonPress(scene, button, [label], () => { HapticsService.tap(); close(); });
   } else button.on('pointerdown', dismiss);
@@ -155,13 +155,13 @@ export function showSelectionDetails(scene, details) {
   if (shopSign) objects.push(shopSign);
   objects.push(
     scene.add.text(details.titleAboveBody ? bodyCenter : centerX, top + 44, details.title, {
-      fontFamily: town || stone ? 'Georgia' : 'Arial', fontSize: '36px', fontStyle: 'bold',
+      fontFamily: town || stone ? UI_FONT_FAMILIES.serif : UI_FONT_FAMILIES.sans, fontSize: fontPx('body36'), fontStyle: UI_FONT_WEIGHTS.bold,
       wordWrap: { width: details.titleAboveBody ? bodyWidth : panelWidth - 170 }, align: 'center',
       color: warm || shop ? (shop ? shopTheme.text : '#fff1d2') : '#bef264', stroke: town || shop ? '#24170f' : undefined,
       strokeThickness: town || shop ? 3 : 0
     }).setOrigin(0.5).setDepth(depth + 2),
     scene.add.text(centerX, button.y, stone ? '' : 'CLOSE', {
-      fontFamily: town || shop ? 'Georgia' : 'Arial', fontSize: '32px', color: warm || shop ? (shop ? shopTheme.text : '#fff1d2') : '#ffffff',
+      fontFamily: town || shop ? UI_FONT_FAMILIES.serif : UI_FONT_FAMILIES.sans, fontSize: fontPx('body32'), color: warm || shop ? (shop ? shopTheme.text : '#fff1d2') : '#ffffff',
       stroke: town || shop ? '#24170f' : undefined, strokeThickness: town || shop ? 2 : 0
     }).setOrigin(0.5).setDepth(depth + 4));
 }

@@ -1,13 +1,13 @@
 import { abilityPower, linkedHealing } from '../game/CharacterStats.js';
 
-import { arenaDistance, ADJACENT_DISTANCE, NEAR_DISTANCE } from '../config/combatRanges.js';
+import { arenaDistance, ADJACENT_DISTANCE } from '../config/combatRanges.js';
 
 export function abilityDistance(scene, a, b) {
   return arenaDistance(a, b) / ADJACENT_DISTANCE;
 }
 
 export function zoneContains(scene, point, anchor, zone) {
-  return arenaDistance(point, anchor) <= Math.min(NEAR_DISTANCE, zone * ADJACENT_DISTANCE);
+  return arenaDistance(point, anchor) <= zone * ADJACENT_DISTANCE;
 }
 
 export function beamContains(scene, caster, target, point, range) {
@@ -256,7 +256,7 @@ export default class ClassAbilitySystem {
     const healTarget = unit.role === 'Healer' && !ordered ? injured[0] : null;
     if (healTarget) {
       if (this.distance(unit,healTarget)>unit.basicHealRange) unit.moveToward(healTarget.arenaX,healTarget.arenaY,delta,100);
-      else if (preferred) scene.movement.maintainRange(unit,preferred,delta,true);
+      else if (preferred) scene.movement.maintainPreferredRange(unit, preferred, delta, true);
     } else if (preferred) scene.movement.moveToCombatPosition(unit,preferred,time,delta);
   }
   bestLine(unit, ability, candidates) {

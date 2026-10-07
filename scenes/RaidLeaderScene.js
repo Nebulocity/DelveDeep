@@ -4,7 +4,7 @@ import { showConfirmation } from '../ui/ConfirmationDialog.js';
 import GameState from '../game/GameState.js';
 import HapticsService from '../services/HapticsService.js';
 import { leaderAbilities, hasLeaderAbility, purchaseLeaderAbility, toggleLeaderLoadoutAbility } from '../game/LeaderProgression.js';
-import { HALL, hallText, hallPanel, hallButton, hallIcon, addHallFrame } from '../ui/HallUI.js';
+import { HALL, hallText, hallPanel, hallButton, hallIcon, hallScroll, addHallFrame } from '../ui/HallUI.js';
 
 const CATEGORIES = [['Assault', 'sword'], ['Protect', 'shield'], ['Restore', 'healer'], ['Prepare', 'satchel']];
 
@@ -26,22 +26,32 @@ export default class RaidLeaderScene extends Phaser.Scene {
     hallText(this, 90, 321, 'Raid Leader tactics', 42, { fontFamily: 'Georgia' });
     hallText(this, 2310, 321, `Renown Level ${leader.level} · ${leader.tacticsPoints} TP available`, 34, { color: '#ffe0a7' }).setOrigin(1, 0.5);
     hallText(this, 90, 380, `Equipped ${leader.battleLoadout.length}/5 · Hold a tactic for its effect.`, 30, { color: HALL.muted });
+    this.tacticScroll ??= {};
     CATEGORIES.forEach(([category, icon], index) => {
       const x = 340 + index * 573;
       hallIcon(this, icon, x - 177, 447);
       hallText(this, x - 125, 447, category, 36, { fontStyle: 'bold' });
       const entries = leaderAbilities.filter((ability) => ability.category === category);
+      const rowHeight = 194;
       if (!entries.length) hallText(this, x, 620, 'No tactics\navailable yet.', 32, { color: HALL.muted, align: 'center' }).setOrigin(0.5);
+      const listObjects = [];
       entries.forEach((ability, row) => {
-        const y = 589 + row * 233;
+        const y = 593 + row * rowHeight;
         const unlocked = hasLeaderAbility(leader, ability.id), equipped = leader.battleLoadout.includes(ability.id);
-        hallButton(this, x, y, 513, 212, '', () => this.choose(ability), {
+        const childStart = this.children.length;
+        hallButton(this, x, y, 513, 176, '', () => this.choose(ability), {
           selected: equipped, details: { title: ability.name, description: ability.description }, name: `hall-tactic-${ability.id}`
         });
-        hallText(this, x - 224, y - 62, ability.name, 35, { fontStyle: 'bold', wordWrap: { width: 448 } });
-        hallText(this, x - 224, y + 4, ability.cooldown ? `${ability.cooldown / 1000}s cooldown` : 'Once per encounter', 29, { color: HALL.muted });
-        hallText(this, x - 224, y + 64, equipped ? 'Equipped' : unlocked ? 'Tap to equip' : `Unlock · ${ability.cost} TP`, 32, { color: equipped ? HALL.green : '#ffe0a7' });
+        hallText(this, x - 224, y - 48, ability.name, 31, { fontStyle: 'bold', wordWrap: { width: 448 } });
+        hallText(this, x - 224, y + 6, ability.description, 22, { color: HALL.muted, wordWrap: { width: 448, maxLines: 2 } });
+        hallText(this, x - 224, y + 62, ability.oncePerEncounter ? 'Once per encounter' : `${ability.cooldown / 1000}s cooldown`, 24, { color: HALL.muted });
+        hallText(this, x + 224, y + 62, equipped ? 'Equipped' : unlocked ? 'Tap to equip' : `Unlock · ${ability.cost} TP`, 24,
+          { color: equipped ? HALL.green : '#ffe0a7' }).setOrigin(1, 0.5);
+        listObjects.push(...this.children.list.slice(childStart));
       });
+      if (entries.length > 2) hallScroll(this, { x: x - 260, y: 505, width: 520, height: 442 },
+        listObjects, entries.length * rowHeight, this.tacticScroll[category] ?? 0,
+        value => { this.tacticScroll[category] = value; });
     });
   }
 

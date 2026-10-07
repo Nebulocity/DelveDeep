@@ -65,11 +65,11 @@ test('pursuit and retreat navigate around fallen allies and blocked terrain', as
         const length = Math.hypot(dx, dy);
         if (length < 1) continue;
         const travel = Math.min(12, length);
-        const next = movement.steerStep(unit, dx / length * travel, dy / length * travel, false);
+        const next = movement.getSteeredMovementPoint(unit, dx / length * travel, dy / length * travel, false);
         unit.arenaX = next.x;
         unit.arenaY = next.y;
         if (bodies.some(body => Math.hypot(unit.arenaX - body.arenaX, unit.arenaY - body.arenaY)
-          < movement.getSpacing(unit, body) - 1)
+          < movement.getRequiredUnitSpacing(unit, body) - 1)
           || scene.terrain.isUnitBlocked(unit, unit.arenaX, unit.arenaY)) clear = false;
         if (Math.hypot(unit.arenaX - destinationX, unit.arenaY - 500) < 32) break;
       }

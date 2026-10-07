@@ -5,7 +5,7 @@ import { saveProfile } from '../game/GameStorage.js';
 import { buyPotionPack, equipmentOwner, equipmentStatsText } from '../game/Equipment.js';
 import { UI_FONT_SIZES } from '../config/uiTypography.js';
 import { POTION_ITEMS, CRAFTING_RECIPES } from '../data/items.js';
-import { ENCHANTMENTS, ENCHANTMENT_BY_ID } from '../data/enchantments.js';
+import { ACTIVE_ENCHANTMENTS, ENCHANTMENT_BY_ID } from '../data/enchantments.js';
 import { bindSelectionDetails } from '../ui/SelectionDetails.js';
 import { addCategoryIcon } from '../ui/FacilityChoiceArt.js';
 import { addFacilityDetailsHint } from '../ui/FacilityChrome.js';
@@ -57,20 +57,29 @@ export default class FacilityScene extends Phaser.Scene {
   rowsFor(choice) {
     const state = GameState;
     if (choice.id === 'sell') return saleRows().map(row => ({ ...row, action: `SELL ${row.value}g`, run: () => sellOwnedItem(row.id) }));
-    if (choice.id === 'craft' || choice.id === 'brew') return CRAFTING_RECIPES.filter(recipe => recipe.category === (choice.id === 'brew' ? 'alchemy' : 'equipment')).map(recipe => ({
-      id: recipe.id, category: choice.id === 'brew' ? 'potion' : GEAR_STOCK.find(item => item.id === recipe.output.itemId)?.slot,
-      name: recipe.name, description: `${choice.id === 'brew' ? '3 potions | ' : ''}${recipeIngredientText(recipe)}`,
+    if (choice.id === 'craft' || choice.id === 'brew') return CRAFTING_RECIPES.filter(recipe => choice.id === 'brew'
+      ? recipe.category === 'alchemy' : ['equipment', 'material'].includes(recipe.category)).map(recipe => ({
+      id: recipe.id,
+      category: recipe.output.type === 'potion' ? 'potion' : recipe.output.type === 'material' ? 'material'
+        : recipe.output.type === 'scroll' ? 'scroll' : GEAR_STOCK.find(item => item.id === recipe.output.itemId)?.slot,
+      name: recipe.name,
+      description: `${recipeIngredientText(recipe)}${recipe.fee ? ` | ${recipe.fee} Gold fee` : ''}${recipe.knownAtStart ? '' : ' | Learn by buying the item or recipe'}`,
       enabled: canCraft(recipe.id).ok, action: choice.id === 'brew' ? 'BREW' : 'CRAFT', run: () => craftItem(recipe.id)
     }));
     if (choice.id === 'buy' && this.facility.name !== 'Enchanter') return (this.facility.name === 'Blacksmith' ? GEAR_STOCK : POTION_ITEMS).map(item => ({
       id: item.id, category: item.slot, name: item.name, description: `${item.description} ${item.uses ? '| 3 uses' : equipmentStatsText(item.stats)}`,
       enabled: state.gold >= item.price, action: `BUY ${item.price}g`, run: () => item.slot === 'potion' ? buyPotionPack(item.id) : buyGear(item.id)
     }));
-    if (choice.id === 'buy' || choice.id === 'inscribe') return ENCHANTMENTS.map(definition => ({
+    if (choice.id === 'buy' || choice.id === 'inscribe') return ACTIVE_ENCHANTMENTS.map(definition => ({
       id: definition.id, category: 'scroll', name: `${definition.name} Scroll`,
-      description: `${definition.description} ${choice.id === 'inscribe' ? recipeIngredientText(definition) : 'Consume at Enchant to improve gear.'}`,
-      enabled: choice.id === 'buy' ? state.gold >= definition.price : Object.entries(definition.ingredients).every(([id, count]) => (state.inventory.materials[id] ?? 0) >= count),
-      action: choice.id === 'buy' ? `BUY ${definition.price}g` : 'INSCRIBE', run: () => inscribeEnchantment(definition.id, state, choice.id === 'buy')
+      description: `${definition.description} ${choice.id === 'inscribe' ? `${recipeIngredientText(definition)}${definition.craftingFee ? ` | ${definition.craftingFee} Gold fee` : ''}` : 'Consume at Enchant to improve gear.'}`,
+      enabled: choice.id === 'buy' ? state.gold >= definition.price
+        : state.inventory.knownRecipes?.includes(CRAFTING_RECIPES.find(recipe => recipe.output.itemId === definition.id)?.id)
+          && state.gold >= definition.craftingFee
+          && Object.entries(definition.ingredients).every(([id, count]) => (state.inventory.materials[id] ?? 0) >= count),
+      action: choice.id === 'buy' ? `BUY ${definition.price}g`
+        : state.inventory.knownRecipes?.includes(CRAFTING_RECIPES.find(recipe => recipe.output.itemId === definition.id)?.id) ? 'INSCRIBE' : 'LEARN',
+      run: () => inscribeEnchantment(definition.id, state, choice.id === 'buy')
     }));
     if (choice.id === 'disenchant') return state.inventory.equipment.filter(item => item.slot !== 'scroll' && ENCHANTMENT_BY_ID[item.enchantmentId]).map(item => ({
       id: item.id, category: item.slot, name: item.name, description: `${ENCHANTMENT_BY_ID[item.enchantmentId].name} | Keep gear; recover 2 random recipe materials.`, enabled: true, action: 'DISENCHANT', run: () => disenchantItem(item.id)

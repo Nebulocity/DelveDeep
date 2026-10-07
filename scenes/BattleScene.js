@@ -32,6 +32,7 @@ import { getBattleLayout } from '../ui/Layout.js';
 import { preloadEnvironment, createEnvironment, getDelveArena } from '../combat/LayeredEnvironment.js';
 import { trackLoading, hideLoadingScreenAfterRender } from '../ui/LoadingScreen.js';
 import { installBattlePersistence, restoreBattle } from '../combat/BattlePersistence.js';
+import { cappedChance } from '../config/characterProgression.js';
 
 export default class BattleScene extends Phaser.Scene {
 
@@ -497,7 +498,20 @@ export default class BattleScene extends Phaser.Scene {
   // tap.
   toggleUnitSelection(unit) {
 
-    if (!unit?.alive) return;
+    if (!unit?.alive && this.commandMode !== 'REVIVE') return;
+
+    if (this.commandMode === 'REVIVE' && !unit.alive) {
+      const ability = leaderAbilities.find(entry => entry.id === 'revive');
+      unit.revive(ability.healthFraction, ability.manaFraction);
+      this.leaderAbilityCooldowns.set('revive', this.time.now);
+      this.commandMode = null;
+      this.updateHud();
+      this.showBattleMessage(`REVIVE! - ${unit.name} restored`, '#fde68a');
+      this.combatLog?.add('tactic', `${ability.name} used`, { wave: this.currentWaveIndex + 1, ability: ability.name });
+      this.refreshTacticsMenus();
+      this.updateLeaderLoadoutBar();
+      return;
+    }
 
     if (this.assignAllyTarget(unit)) return;
 
@@ -868,7 +882,42 @@ export default class BattleScene extends Phaser.Scene {
       HapticsService.tap();
     } else if (this.commandMode === 'FOCUS') {
       this.focusTargetId = enemy.id;
+      this.focusDamageTargetId = enemy.id;
+      this.focusDamageUntil = this.time.now + (leaderAbilities.find(entry => entry.id === 'focusFire')?.duration ?? 10000);
       this.showBattleMessage(`FOCUS SET: ${enemy.name}`, '#fb923c');
+    } else if (this.commandMode === 'COORDINATED_ATTACK') {
+      const melee = this.partyUnits.filter(unit => unit.alive && unit.role === 'Melee DPS');
+      if (melee.length) {
+        melee.forEach(unit => {
+          this.manualTargets.delete(unit.id);
+          this.heldUnitIds.delete(unit.id);
+          unit.spacingMode = 'normal';
+          unit.finishAction();
+          this.attackTargets.set(unit.id, enemy.id);
+        });
+        const damage = melee.reduce((sum, unit) => sum + unit.attackPower, 0) * 3;
+        this.resolveDamage(melee[0], enemy, damage, 'melee', 1, 'Coordinated Attack!', false);
+        if (enemy.alive) enemy.status.rootedUntil = Math.max(enemy.status.rootedUntil ?? 0, this.time.now + 6000);
+      }
+      this.showBattleMessage(`COORDINATED ATTACK - ${enemy.name} rooted`, '#bef264');
+    } else if (this.commandMode === 'LUNAR_ASSAULT') {
+      const mages = this.partyUnits.filter(unit => unit.alive && unit.className?.startsWith('Mage of the'));
+      const targets = this.getLivingEnemies().filter(target => Math.hypot(target.arenaX - enemy.arenaX, target.arenaY - enemy.arenaY) <= 400);
+      if (mages.length && targets.length) {
+        mages.forEach(unit => {
+          this.manualTargets.delete(unit.id);
+          this.heldUnitIds.delete(unit.id);
+          unit.finishAction();
+          this.attackTargets.set(unit.id, enemy.id);
+        });
+        const damage = mages.reduce((sum, unit) => sum + unit.spellDamage, 0) * 3;
+        targets.forEach(target => {
+          if (!this.isEnemyEngaged(target)) return;
+          this.resolveDamage(mages[0], target, damage, 'spell', 1, 'Lunar Assault!', false);
+          if (target.alive) target.status.rootedUntil = Math.max(target.status.rootedUntil ?? 0, this.time.now + 8000);
+        });
+      }
+      this.showBattleMessage('LUNAR ASSAULT - enemies rooted', '#c4b5fd');
     } else if (this.commandMode === 'INTERRUPT') {
       if (enemy.pendingAction) {
         enemy.finishAction();
@@ -936,13 +985,26 @@ export default class BattleScene extends Phaser.Scene {
     }
     const living = this.partyUnits.filter((unit) => unit.alive);
     const fallen = this.partyUnits.filter((unit) => !unit.alive && !unit.delvesUsed?.honorSacrifice);
-    if (id === 'arise' && fallen.length === 0) {
+    if (['arise', 'revive'].includes(id) && fallen.length === 0) {
       this.showBattleMessage('No fallen adventurers to revive', '#a8a29e');
       return;
     }
-    if (id !== 'arise' && living.length === 0) return;
+    if (!['arise', 'revive'].includes(id) && living.length === 0) return;
     if (id === 'encouragement' && !living.some((unit) => unit.hp < unit.maxHp)) {
       this.showBattleMessage('The party is already at full health', '#a8a29e');
+      return;
+    }
+    if (id === 'manaVortex' && !living.some(unit => unit.maxMana > unit.mana)) return;
+    if (id === 'shieldWall' && !living.some(unit => unit.role === 'Tank')) return;
+    if (id === 'coordinatedAttack' && !living.some(unit => unit.role === 'Melee DPS')) return;
+    if (id === 'lunarAssault' && !living.some(unit => unit.className?.startsWith('Mage of the'))) return;
+    if (id === 'supplies' && !living.some(unit => {
+      const hero = GameState.roster.find(entry => entry.id === unit.id);
+      return Boolean(equippedItem(hero, 'potion'));
+    })) return;
+    if (id === 'revive') {
+      this.commandMode = 'REVIVE';
+      this.showBattleMessage('REVIVE! - tap a fallen character', '#fde68a', true);
       return;
     }
 
@@ -954,20 +1016,25 @@ export default class BattleScene extends Phaser.Scene {
     if (id === 'focusFire') {
       this.commandMode = 'FOCUS';
       this.setTargetingInputState(true);
-      this.showBattleMessage('FOCUS FIRE - tap an enemy', '#bef264', true);
-    } else if (id === 'rally') {
-      this.commandMode = 'STACK';
-      this.selectedUnitIds = new Set(living.map((unit) => unit.id));
-      this.setTargetingInputState(false);
-      this.showBattleMessage('RALLY - tap a destination', '#bef264', true);
-    } else if (id === 'coordinatedAssault') {
+      this.showBattleMessage('FOCUS! - tap an enemy', '#bef264', true);
+    } else if (id === 'coordinatedAttack' || id === 'lunarAssault') {
+      this.commandMode = id === 'coordinatedAttack' ? 'COORDINATED_ATTACK' : 'LUNAR_ASSAULT';
+      this.setTargetingInputState(true);
+      this.showBattleMessage(`${ability.name} - tap an enemy`, '#bef264', true);
+    } else if (id === 'fightOn') {
       this.assaultUntil = now + ability.duration;
       this.assaultBonus = ability.damageBonus;
-      this.showBattleMessage('ASSAULT - +20% damage for 8 seconds', '#bef264', false, 1.5);
+      this.showBattleMessage('FIGHT ON! - +10% damage for 6 seconds', '#bef264', false, 1.5);
     } else if (id === 'brace') {
       this.braceUntil = now + ability.duration;
       this.braceReduction = ability.damageReduction;
       this.showBattleMessage('BRACE! - 30% less damage for 8 seconds', '#bef264', false, 1.5);
+    } else if (id === 'shieldWall') {
+      living.filter(unit => unit.role === 'Tank').forEach(unit => {
+        unit.status.leaderBlockBonus = ability.blockBonus;
+        unit.status.leaderBlockUntil = now + ability.duration;
+      });
+      this.showBattleMessage('SHIELD WALL! - tanks gain Block', '#bef264', false, 1.5);
     } else if (id === 'encouragement') {
       living.forEach((unit) => {
 
@@ -975,7 +1042,7 @@ export default class BattleScene extends Phaser.Scene {
         unit.heal(Math.round(unit.maxHp * ability.healFraction));
         this.createFloatingText(unit.x, unit.y - 80, '+' + (unit.hp - before), '#86efac');
       });
-      this.showBattleMessage('ENCOURAGEMENT - party healed', '#bef264', false, 1.5);
+      this.showBattleMessage('ENCOURAGE! - party healed', '#bef264', false, 1.5);
     } else if (id === 'arise') {
       fallen.forEach((unit) => {
 
@@ -990,6 +1057,27 @@ export default class BattleScene extends Phaser.Scene {
       this.setTargetingInputState(false);
       this.updateHud();
       this.showBattleMessage('ARISE! - fallen allies restored', '#fde68a', false, 1.5);
+    } else if (id === 'manaVortex') {
+      living.forEach(unit => { unit.mana = unit.maxMana; });
+      this.showBattleMessage('MANA VORTEX! - mana restored', '#c4b5fd', false, 1.5);
+    } else if (id === 'regen') {
+      living.forEach(unit => {
+        unit.status.leaderRegenUntil = now + ability.duration;
+        unit.status.leaderRegenNext = now + ability.healInterval;
+        unit.status.leaderRegenAmount = ability.healAmount;
+      });
+      this.showBattleMessage('REGEN! - healing over time', '#86efac', false, 1.5);
+    } else if (id === 'supplies') {
+      living.forEach(unit => {
+        const hero = GameState.roster.find(entry => entry.id === unit.id);
+        const item = equippedItem(hero, 'potion');
+        const definition = item && getPotionDefinition(item.itemId);
+        if (definition) item.charges = definition.uses;
+      });
+      this.showBattleMessage('SUPPLIES! - potion uses restored', '#bef264', false, 1.5);
+    } else if (id === 'ready') {
+      living.forEach(unit => { unit.status.nextAbilityCrit = true; });
+      this.showBattleMessage('READY! - next abilities critically hit', '#fde68a', false, 1.5);
     }
     this.combatLog?.add('tactic', ability.name + ' used', { wave: this.currentWaveIndex + 1, ability: ability.name });
     this.refreshTacticsMenus();
@@ -1007,8 +1095,8 @@ export default class BattleScene extends Phaser.Scene {
     }
     const living = this.partyUnits.filter((unit) => unit.alive);
     const fallen = this.partyUnits.filter((unit) => !unit.alive);
-    if ((id !== 'arise' && living.length === 0)
-      || (id === 'arise' && fallen.length === 0)
+    if ((!['arise', 'revive'].includes(id) && living.length === 0)
+      || (['arise', 'revive'].includes(id) && fallen.length === 0)
       || (id === 'encouragement' && !living.some((unit) => unit.hp < unit.maxHp))) {
       this.showBattleMessage(id === 'arise' ? 'No fallen adventurers to revive' : 'Tactic has no effect yet', '#a8a29e');
       return;
@@ -1260,6 +1348,10 @@ export default class BattleScene extends Phaser.Scene {
     if (this.restoringBattle) return;
 
     this.classAbilitySystem?.syncChargeTweens?.(this.combatPaused);
+    if (this.focusTargetId && time >= (this.focusDamageUntil ?? 0)) {
+      this.focusTargetId = null;
+      this.focusDamageTargetId = null;
+    }
     this.updatePotionHud();
     if (!this.combatPaused) this.enemies?.filter(enemy => enemy.container?.active !== false).forEach((enemy) => {
       enemy.spriteVisual?.update(delta);
@@ -1290,6 +1382,13 @@ export default class BattleScene extends Phaser.Scene {
 
       unit.updateActionBar(time);
       unit.regenMana(deltaSeconds);
+      while (unit.alive && unit.status.leaderRegenNext <= time
+        && unit.status.leaderRegenNext <= unit.status.leaderRegenUntil) {
+        const before = unit.hp;
+        unit.heal(unit.status.leaderRegenAmount);
+        if (unit.hp > before) this.createFloatingText(unit.x, unit.y - 80, `+${unit.hp - before}`, '#86efac');
+        unit.status.leaderRegenNext += 3000;
+      }
     });
     this.enemies.forEach((enemy) => enemy.updateActionBar(time));
 
@@ -1307,7 +1406,7 @@ export default class BattleScene extends Phaser.Scene {
     this.classAbilitySystem.tickWorld(time);
     this.partyUnits.forEach((unit) => this.updatePartyUnit(unit, time, deltaSeconds));
     this.updateEnemies(time, deltaSeconds);
-    this.movement.separate(deltaSeconds);
+    this.movement.separateUnits(deltaSeconds);
 
     this.partyUnits.forEach((unit) => this.movement.validateUnitPosition(unit));
     livingEnemies.forEach((enemy) => this.movement.validateUnitPosition(enemy));
@@ -1375,7 +1474,7 @@ export default class BattleScene extends Phaser.Scene {
   // by the shared visual-clearance allowance so a readable melee slot can
   // still resolve its attack without changing ranged combat ranges.
   isWithinAttackReach(attacker, target, padding = 0) {
-    const meleePadding = this.movement.isMelee(attacker) ? combatSpacing.meleeReachPadding : 0;
+    const meleePadding = this.movement.isMeleeUnit(attacker) ? combatSpacing.meleeReachPadding : 0;
     return attacker.distanceTo(target) <= attacker.attackRange + meleePadding + padding;
   }
 
@@ -1723,7 +1822,9 @@ export default class BattleScene extends Phaser.Scene {
 
     // Roll the critical result and apply outgoing damage bonuses or
     // penalties.
-    const critical = this.rollCritical(attacker, allowCrit);
+    const guaranteedAbilityCritical = allowCrit && attacker.status.nextAbilityCrit === true && abilityName !== 'Attack';
+    const critical = guaranteedAbilityCritical || this.rollCritical(attacker, allowCrit);
+    if (guaranteedAbilityCritical) attacker.status.nextAbilityCrit = false;
     if (attacker.status.abilityCritOnce) { attacker.status.abilityCritUntil = 0; attacker.status.abilityCritOnce = false; }
     let amount = Math.round(baseAmount * (critical ? attacker.critMultiplier : 1));
     if (attackType !== 'reflection' && attacker.status.nextAttackBoost) {
@@ -1741,6 +1842,10 @@ export default class BattleScene extends Phaser.Scene {
     else if (now < (attacker.status.exhaustedUntil ?? 0)) amount = Math.round(amount * attacker.status.exhaustedDamage);
     if (attackType !== 'reflection' && now < (attacker.status.honorDamageUntil ?? 0)) amount = Math.round(amount * (1 + attacker.status.honorDamageBoost));
     if (attackType !== 'reflection' && !attacker.isEnemy && now < this.assaultUntil) amount = Math.round(amount * (1 + this.assaultBonus));
+    if (!attacker.isEnemy && attacker.role !== 'Healer' && target.id === this.focusDamageTargetId
+      && now < (this.focusDamageUntil ?? 0)) {
+      amount = Math.round(amount * 1.05);
+    }
     if (attacker.isEnemy && !target.isEnemy && now < this.braceUntil) amount = Math.max(1, Math.round(amount * (1 - this.braceReduction)));
 
     // Let the target apply its defenses, then measure actual health loss for
@@ -1763,8 +1868,9 @@ export default class BattleScene extends Phaser.Scene {
       && Math.random() < (target.status.abilityDodgeChance ?? 0)) return 0;
     if (attacker.isEnemy && this.classAbilitySystem?.tryParry(target, attacker, amount, now)) return 0;
     const physical = ['melee', 'ranged', 'enemy', 'reflection'].includes(attackType);
+    const leaderBlock = now < (target.status.leaderBlockUntil ?? 0) ? target.status.leaderBlockBonus ?? 0 : 0;
     const armorBlocked = physical && attackType !== 'reflection' && attacker !== target
-      && target.statProgressionVersion === 2 && Math.random() < (target.block ?? 0);
+      && target.statProgressionVersion === 2 && Math.random() < cappedChance('block', (target.block ?? 0) + leaderBlock);
     const hpBefore = target.hp;
     target.takeDamage(amount, { time: now, ranged, attacker, physical, armorBlocked,
       blocked: armorBlocked || (!target.isEnemy && now < this.braceUntil)
@@ -2163,8 +2269,8 @@ export default class BattleScene extends Phaser.Scene {
     this.waveReturnTargets = new Map(this.partyUnits.filter(unit => unit.alive).map(unit => {
       const home = this.waveReturnPositions.get(unit.id);
       if (!home) return [unit.id, { x: unit.arenaX, y: unit.arenaY }];
-      const clear = this.movement.clearCorpseDestination(unit, home);
-      return [unit.id, this.movement.clamp(clear.x, clear.y, unit)];
+      const clearDestination = this.movement.getWaveReturnPointClearOfFallenAllies(unit, home);
+      return [unit.id, this.movement.getSafeArenaPoint(clearDestination.x, clearDestination.y, unit)];
     }));
     if (this.currentWaveIndex + 1 < this.waves.length) {
       this.partyUnits.filter(unit => unit.alive).forEach(unit => {

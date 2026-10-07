@@ -13,7 +13,8 @@ const GameState = {
     equipment: [],
     materials: {},
     nextEquipmentId: 1,
-    equipmentSchemaVersion: 1
+    equipmentSchemaVersion: 2,
+    knownRecipes: []
   },
   records: {},
   delveCheckpoints: {},

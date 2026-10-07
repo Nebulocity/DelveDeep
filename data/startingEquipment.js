@@ -1,15 +1,15 @@
 export const STARTING_EQUIPMENT = {
-  Gladiator: { weapon: 'field-blade', armor: 'iron-guard' },
-  Oathwarden: { weapon: 'field-blade', armor: 'iron-guard' },
-  Dawnwarden: { weapon: 'field-blade', armor: 'iron-guard' },
-  Barbarian: { weapon: 'field-blade', armor: 'padded-vest' },
-  Barmaid: { weapon: 'field-blade', armor: 'padded-vest' },
-  Scoundrel: { weapon: 'field-blade', armor: 'padded-vest' },
-  Ranger: { weapon: 'trail-bow', armor: 'padded-vest' },
-  'Mage of the Umbral Veil': { weapon: 'apprentice-focus', armor: 'padded-vest' },
-  'Mage of the Crimson Spire': { weapon: 'apprentice-focus', armor: 'padded-vest' },
-  'Mage of the Luminous Archive': { weapon: 'apprentice-focus', armor: 'padded-vest' },
-  'Cleric of the Everbright': { weapon: 'pilgrim-staff', armor: 'padded-vest' },
-  'Cleric of the Verdant Covenant': { weapon: 'pilgrim-staff', armor: 'padded-vest' },
-  'Cleric of the Sanguine Song': { weapon: 'pilgrim-staff', armor: 'padded-vest' }
+  Gladiator: { weapon: 'BLS01', armor: 'PV01' },
+  Oathwarden: { weapon: 'BLS01', armor: 'PV01' },
+  Dawnwarden: { weapon: 'BLS01', armor: 'PV01' },
+  Barbarian: { weapon: 'BLS01', armor: 'PV01' },
+  Barmaid: { weapon: 'BSS01', armor: 'PV01' },
+  Scoundrel: { weapon: 'BDS01', armor: 'PV01' },
+  Ranger: { weapon: 'PBR01', armor: 'PV01' },
+  'Mage of the Umbral Veil': { weapon: 'PST01', armor: 'LRO01' },
+  'Mage of the Crimson Spire': { weapon: 'PST01', armor: 'LRO01' },
+  'Mage of the Luminous Archive': { weapon: 'PST01', armor: 'LRO01' },
+  'Cleric of the Everbright': { weapon: 'PST01', armor: 'LRO01' },
+  'Cleric of the Verdant Covenant': { weapon: 'PST01', armor: 'LRO01' },
+  'Cleric of the Sanguine Song': { weapon: 'PST01', armor: 'LRO01' }
 };

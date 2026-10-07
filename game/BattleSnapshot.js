@@ -33,6 +33,7 @@ const SCENE_FIELDS = [
   'battleOver', 'waveTransitioning', 'waveRetreating', 'farmStopRequested', 'currentWaveIndex',
   'enemySerial', 'earnedGold', 'enemyThreat', 'lastPotionUseAt', 'selectedUnitIds', 'manualTargets',
   'attackTargets', 'healerPriorityTargets', 'heldUnitIds', 'commandMode', 'focusTargetId',
+  'focusDamageTargetId', 'focusDamageUntil',
   'leaderAbilityCooldowns', 'assaultUntil', 'assaultBonus', 'braceUntil', 'braceReduction',
   'usedLeaderAbilities', 'pendingPausedTactics', 'awaitingRevive', 'combatPaused',
   'waveReturnPositions', 'waveReturnTargets', 'waveReturnReadyAt', 'waveReturnStartedAt',

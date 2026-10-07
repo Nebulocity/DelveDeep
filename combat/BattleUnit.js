@@ -382,7 +382,7 @@ export default class BattleUnit {
   moveBy(dx, dy, avoidUnits = true) {
     if (this.scene.time?.now < Math.max(this.status?.rootedUntil ?? 0, this.status?.stunnedUntil ?? 0)) return;
     const point = this.scene?.movement
-      ? this.scene.movement.steerStep(this, dx, dy, avoidUnits)
+      ? this.scene.movement.getSteeredMovementPoint(this, dx, dy, avoidUnits)
       : this.scene?.terrain?.resolveStep(this, this.arenaX + dx, this.arenaY + dy,
         this.scene.movement?.config.terrainFootRadius)
         ?? { x: this.arenaX + dx, y: this.arenaY + dy };

@@ -21,15 +21,15 @@ export const FACILITIES = {
     choices: [
       { id: 'buy', label: 'BUY', icon: 'sword', subtitle: 'Browse gear', description: 'Buy stocked weapons and armor.', message: 'Choose gear.' },
       { id: 'sell', label: 'SELL', icon: 'satchel', subtitle: 'Sell any item', description: 'Sell owned gear, potions, materials, and scrolls. Unequip gear first.', message: 'Choose an owned item to sell.' },
-      { id: 'craft', label: 'CRAFT', icon: 'anvil', subtitle: 'Visit the forge', description: 'Craft the baseline weapons and armor from gathered materials.', message: 'Choose an equipment recipe.' }
+      { id: 'craft', label: 'CRAFT', icon: 'anvil', subtitle: 'Visit the forge', description: 'Craft learned weapons, armor, and material components from gathered materials.', message: 'Choose a recipe.' }
     ]
   },
   Enchanter: {
     name: 'Enchanter', title: 'ENCHANTER', background: 'enchanter', subtitle: 'Arcane improvements and magical wares.',
     choices: [
-      { id: 'buy', label: 'BUY', icon: 'scroll', subtitle: 'Minor scrolls', description: 'Buy minor enchantment scrolls.' },
+      { id: 'buy', label: 'BUY', icon: 'scroll', subtitle: 'Attribute scrolls', description: 'Buy attribute scrolls. Buying a scroll teaches its inscription recipe.' },
       { id: 'sell', label: 'SELL', icon: 'satchel', subtitle: 'Sell any item', description: 'Sell gear, potions, materials, and scrolls. Unequip gear first.' },
-      { id: 'inscribe', label: 'INSCRIBE', icon: 'scroll', subtitle: 'Craft scrolls', description: 'Inscribe minor enchantments from materials.' },
+      { id: 'inscribe', label: 'INSCRIBE', icon: 'scroll', subtitle: 'Craft scrolls', description: 'Inscribe learned attribute scroll recipes from materials and Gold.' },
       { id: 'enchant', label: 'ENCHANT', icon: 'rune', subtitle: 'Improve gear', description: 'Consume a scroll to apply one minor enchantment to compatible gear.' },
       { id: 'disenchant', label: 'DISENCHANT', icon: 'rune', subtitle: 'Recover materials', description: 'Remove a known enchantment, keep the gear, and recover a random half of its recipe materials.' }
     ]

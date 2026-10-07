@@ -48,7 +48,7 @@ export default class ItemsScene extends Phaser.Scene {
     rows.slice(this.page * 4, this.page * 4 + 4).forEach((item, index) => {
       const y = 429 + index * 138;
       const stats = this.category === 'materials' ? item.description
-        : this.category === 'recipes' ? recipeIngredientText(item)
+        : this.category === 'recipes' ? `${recipeIngredientText(item)}${item.fee ? ` · ${item.fee} Gold fee` : ''}`
           : item.slot === 'scroll' ? ENCHANTMENTS.find((entry) => entry.id === item.enchantmentId)?.description ?? 'Enchantment scroll'
             : item.slot === 'potion' ? `${item.charges}/3 uses · ${getPotionDefinition(item.itemId)?.description ?? ''}`
               : equipmentStatsText(item.stats) || 'No bonuses';
@@ -57,7 +57,9 @@ export default class ItemsScene extends Phaser.Scene {
       hallDetails(this, card, { title: item.name, description: `${stats}${equipmentOwner(item.id) ? `\n\nEquipped by ${equipmentOwner(item.id).name}` : ''}` });
       hallIcon(this, this.category === 'materials' ? 'ingot' : this.category === 'recipes' ? 'scroll' : item.slot === 'weapon' ? 'sword' : item.slot === 'potion' ? 'flask' : item.slot === 'scroll' ? 'scroll' : 'shield', 606, y);
       hallText(this, 660, y - 29, item.name, 35, { fontStyle: 'bold', wordWrap: { width: 1170 } });
-      hallText(this, 2265, y - 29, this.category === 'materials' ? `×${item.count}` : this.category === 'recipes' ? canCraft(item.id).ok ? 'Ready' : 'Gather materials' : equipmentOwner(item.id)?.name ?? 'Unequipped', UI_FONT_SIZES.itemOwner, {
+      const craftCheck = this.category === 'recipes' ? canCraft(item.id) : null;
+      const recipeLabel = craftCheck?.ok ? 'Ready' : craftCheck?.message?.startsWith('Learn this') ? 'Learn recipe' : 'Gather materials';
+      hallText(this, 2265, y - 29, this.category === 'materials' ? `×${item.count}` : this.category === 'recipes' ? recipeLabel : equipmentOwner(item.id)?.name ?? 'Unequipped', UI_FONT_SIZES.itemOwner, {
         color: '#ffe0a7'
       }).setOrigin(1, 0.5);
       hallText(this, 660, y + 30, stats, UI_FONT_SIZES.itemSummary, { color: HALL.muted, wordWrap: { width: 1590 } });

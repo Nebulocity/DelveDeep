@@ -1,6 +1,12 @@
 import { NEAR_DISTANCE, ADJACENT_DISTANCE, ARENA_RANGE } from '../config/combatRanges.js';
+import { ABILITY_WORKBOOK, STARTER_KITS } from './abilityWorkbook.js';
 
 const A = (category, name, target, effect, value, unit, duration, cooldown) => ({ category, name, target, effect, value, unit, duration, cooldown });
+
+function abilityKey(name) {
+  return name.normalize('NFKD').replace(/[^a-zA-Z0-9 ]/g, '').trim()
+    .replace(/\s+(.)/g, (_, letter) => letter.toUpperCase()).replace(/^(.)/, (_, letter) => letter.toLowerCase());
+}
 
 // Six new class abilities per class. Potency is a rank 1 value.
 export const NEW_CLASS_ABILITIES = {
@@ -110,21 +116,8 @@ export const NEW_CLASS_ABILITIES = {
   ]
 };
 
-export const STARTER_ABILITIES = {
-  Gladiator: ['roar','cleave','Second Wind'],
-  Oathwarden: ['vow','parry','Judicator’s Blow'],
-  Dawnwarden: ['challenge','strike','Sunlit Ward'],
-  Barmaid: ['pan','swing','Quick Sip'],
-  Scoundrel: ['stealth','surprise','Patch Up'],
-  Barbarian: ['enrage','strike','Battle Breath'],
-  Ranger: ['mark','arrow','Field Dressing'],
-  'Mage of the Umbral Veil': ['nightbolt','veilstep','Siphon Breath'],
-  'Mage of the Crimson Spire': ['stabilization','arcflare','Arcane Reweave'],
-  'Mage of the Luminous Archive': ['refuge','spear','Self Annotation'],
-  'Cleric of the Everbright': ['blessing','pulse','Halo Ward'],
-  'Cleric of the Verdant Covenant': ['touch','bloom','Barkskin Oath'],
-  'Cleric of the Sanguine Song': ['beam','chorus','Vein Ward']
-};
+export const STARTER_ABILITIES = Object.fromEntries(Object.entries(STARTER_KITS)
+  .map(([className, names]) => [className, names.map(abilityKey)]));
 
 export const CATEGORY_OVERRIDES = {
   stealth:'Prepare', enrage:'Prepare', veilstep:'Prepare', stabilization:'Prepare', ascendance:'Prepare',
@@ -137,9 +130,6 @@ export const CLASS_CATEGORY_OVERRIDES = {
   'Cleric of the Verdant Covenant': { refuge:'Protect', thorn:'Assault' },
   'Cleric of the Sanguine Song': { rend:'Assault', ascendance:'Prepare' }
 };
-
-const abilityKey = (name) => name.normalize('NFKD').replace(/[^a-zA-Z0-9 ]/g, '').trim()
-  .replace(/\s+(.)/g, (_, letter) => letter.toUpperCase()).replace(/^(.)/, (_, letter) => letter.toLowerCase());
 
 const targetKind = (target) => target.includes('Self only') ? 'self'
   : target.includes('All allies') ? 'allies'
@@ -338,10 +328,42 @@ export function addAbilityProgression(classDefinitions) {
       if (entry.effect.includes('poison')) ability.poison = { power: entry.value, interval: 2000, duration: 6000 };
       definition.abilities[key] = ability;
     }
-    for (const ability of Object.values(definition.abilities)) {
-      ability.range = ability.range > 2 ? ARENA_RANGE : ability.range > 1 ? NEAR_DISTANCE / ADJACENT_DISTANCE : ability.range;
-      for (const field of ['radius', 'splash']) {
-        if (ability[field] > 1) ability[field] = NEAR_DISTANCE / ADJACENT_DISTANCE;
+    for (const [key, ability] of Object.entries(definition.abilities)) {
+      const workbook = ABILITY_WORKBOOK[className]?.[ability.name];
+      if (!workbook) continue;
+
+      ability.workbookId = workbook['Ability ID'];
+      ability.category = workbook.Category;
+      ability.description = workbook['Description / Special Effects'];
+      ability.targetLabel = workbook.Target;
+      ability.target = workbook.Target === 'Self' ? 'self'
+        : workbook.Target === 'Single ally or self' ? 'ally'
+          : workbook.Target === 'Allies' ? 'allies'
+            : workbook.Target === 'Enemies' ? 'enemies'
+              : 'enemy';
+      ability.starter = STARTER_KITS[className].includes(ability.name);
+      ability.origin = ability.origin ?? 'Existing';
+      ability.power = workbook.Potency;
+      ability.powerUnit = workbook.Unit;
+      ability.duration = workbook['Duration (s)'] * 1000;
+      ability.cooldown = workbook['Cooldown (s)'] * 1000;
+      ability.range = workbook['Cast Range'] === 'Self' ? 0
+        : workbook['Cast Range'] === 'Anywhere' ? ARENA_RANGE
+          : workbook['Cast Range'] / ADJACENT_DISTANCE;
+      ability.radius = undefined;
+      ability.zone = undefined;
+      ability.beam = undefined;
+      ability.splash = undefined;
+      if (workbook['Area Shape'] === 'Circle') {
+        const radius = workbook['Area Radius'] / ADJACENT_DISTANCE;
+        if (workbook['Area Anchor'] === 'Caster') ability.radius = radius;
+        else ability.zone = radius;
+      }
+      if (workbook['Area Shape'] === 'Line') ability.beam = true;
+      const targetLimit = workbook['Maximum Targets'];
+      ability.targets = targetLimit === 'All' ? undefined : targetLimit;
+      if (ability.targets === undefined && ['taunt', 'damage'].includes(ability.effect)) {
+        ability.targets = targetLimit === 'All' ? Infinity : undefined;
       }
     }
   }

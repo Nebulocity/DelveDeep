@@ -1,23 +1,25 @@
 import GameState from './GameState.js';
-import { EQUIPMENT_ITEMS, getPotionDefinition, getMaterialDefinition } from '../data/items.js';
+import { EQUIPMENT_ITEMS, EQUIPMENT_BY_ID, getPotionDefinition, getMaterialDefinition } from '../data/items.js';
 import { ENCHANTMENT_BY_ID } from '../data/enchantments.js';
 import { grantEquipment, equipmentOwner, sellMaterial, sellPotionPack } from './Equipment.js';
+import { CRAFTING_RECIPES } from '../data/items.js';
 
-export const GEAR_STOCK = EQUIPMENT_ITEMS.map(item => ({ ...item, price: item.slot === 'armor' ? 100 : 80 }));
+export const GEAR_STOCK = EQUIPMENT_ITEMS.filter(item => Number.isFinite(item.price) && item.price > 0);
 
 export function saleValue(item) {
   if (item.slot === 'potion') {
     const definition = getPotionDefinition(item.itemId);
     return definition ? Math.floor(definition.price * 0.5 * item.charges / definition.uses) : 0;
   }
-  if (item.slot === 'scroll') return Math.floor((ENCHANTMENT_BY_ID[item.enchantmentId]?.price ?? 0) / 2);
-  return Math.floor((GEAR_STOCK.find(entry => entry.id === item.itemId)?.price ?? 80) / 2);
+  if (item.slot === 'scroll') return Math.floor((ENCHANTMENT_BY_ID[item.enchantmentId]?.price ?? 0) * 0.3);
+  const definition = EQUIPMENT_BY_ID[item.itemId];
+  return definition?.sellPrice ?? Math.floor((definition?.price ?? 0) * 0.3);
 }
 
 export function saleRows(state = GameState) {
   return [
     ...state.inventory.equipment.map(item => ({ id: item.id, category: item.slot, name: item.name, description: equipmentOwner(item.id, state) ? `Equipped by ${equipmentOwner(item.id, state).name}. Unequip to sell.` : item.slot === 'potion' ? `${item.charges}/3 uses remaining` : 'One owned item', value: saleValue(item), enabled: !equipmentOwner(item.id, state), item })),
-    ...Object.entries(state.inventory.materials ?? {}).filter(([, count]) => count > 0).map(([id, count]) => ({ id, category: 'material', name: getMaterialDefinition(id)?.name ?? id, description: `Owned: ${count} | Sell one at a time`, value: 5, enabled: true }))
+    ...Object.entries(state.inventory.materials ?? {}).filter(([, count]) => count > 0).map(([id, count]) => ({ id, category: 'material', name: getMaterialDefinition(id)?.name ?? id, description: `Owned: ${count} | Sell one at a time`, value: getMaterialDefinition(id)?.sellPrice ?? 0, enabled: true }))
   ];
 }
 
@@ -36,6 +38,11 @@ export function buyGear(id, state = GameState) {
   const stock = GEAR_STOCK.find(entry => entry.id === id);
   if (!stock || state.gold < stock.price) return { ok: false, message: 'Not enough Gold or item unavailable.' };
   const instance = grantEquipment(id, state);
+  const recipe = CRAFTING_RECIPES.find(entry => entry.output.itemId === id);
+  if (recipe) {
+    state.inventory.knownRecipes ??= [];
+    if (!state.inventory.knownRecipes.includes(recipe.id)) state.inventory.knownRecipes.push(recipe.id);
+  }
   state.gold -= stock.price;
   return { ok: true, instance, message: `Bought ${stock.name}.` };
 }
@@ -43,17 +50,33 @@ export function buyGear(id, state = GameState) {
 export function inscribeEnchantment(id, state = GameState, buy = false) {
   const definition = ENCHANTMENT_BY_ID[id];
   if (!definition) return { ok: false, message: 'Unknown enchantment.' };
-  if (buy ? state.gold < definition.price : Object.entries(definition.ingredients).some(([key, count]) => (state.inventory.materials[key] ?? 0) < count)) return { ok: false, message: buy ? 'Not enough Gold.' : 'Need more materials.' };
+  const recipe = CRAFTING_RECIPES.find(entry => entry.output.itemId === id);
+  if (!buy && recipe && !(state.inventory.knownRecipes ?? []).includes(recipe.id)) {
+    return { ok: false, message: 'Buy this scroll once to learn its inscription recipe.' };
+  }
+  if (buy ? state.gold < definition.price : state.gold < definition.craftingFee
+    || Object.entries(definition.ingredients).some(([key, count]) => (state.inventory.materials[key] ?? 0) < count)) {
+    return { ok: false, message: buy ? 'Not enough Gold.' : state.gold < definition.craftingFee ? `Need ${definition.craftingFee} Gold for the crafting fee.` : 'Need more materials.' };
+  }
   if (buy) state.gold -= definition.price;
-  else for (const [key, count] of Object.entries(definition.ingredients)) {
+  else {
+    state.gold -= definition.craftingFee;
+    for (const [key, count] of Object.entries(definition.ingredients)) {
     state.inventory.materials[key] -= count;
     if (!state.inventory.materials[key]) delete state.inventory.materials[key];
+    }
   }
   let next = state.inventory.nextEquipmentId ?? 1;
   while (state.inventory.equipment.some(item => item.id === `gear-${next}`)) next++;
   state.inventory.nextEquipmentId = next + 1;
   const instance = { id: `gear-${next}`, itemId: id, enchantmentId: id, name: `${definition.name} Scroll`, slot: 'scroll', rarity: 'common', stats: {} };
   state.inventory.equipment.push(instance);
+  if (buy) {
+    if (recipe) {
+      state.inventory.knownRecipes ??= [];
+      if (!state.inventory.knownRecipes.includes(recipe.id)) state.inventory.knownRecipes.push(recipe.id);
+    }
+  }
   return { ok: true, instance, message: `${buy ? 'Bought' : 'Inscribed'} ${instance.name}.` };
 }
 

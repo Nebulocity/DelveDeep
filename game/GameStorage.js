@@ -4,7 +4,7 @@ import { restoreEverdeep } from './EverdeepState.js';
 import { restoreEquipment } from './Equipment.js';
 import { grantStartingEquipment } from './StartingEquipment.js';
 import { restoreAdventurerAbilities } from './AdventurerAbilities.js';
-import { CRAFTING_MATERIALS } from '../data/items.js';
+import { CRAFTING_MATERIALS, CRAFTING_RECIPES, MATERIAL_ID_ALIASES } from '../data/items.js';
 import { PROFILE_STORAGE_KEY } from './BuildSave.js';
 import { validBattleSnapshot } from './BattleSnapshot.js';
 import { roads, pois, nodes, WORLD_LAYOUT_ID } from '../data/worldMap.js';
@@ -41,13 +41,28 @@ export function loadProfile(baseRoster) {
   // Restore currencies, inventory, world state, and development options with
   // defaults for missing save fields.
   GameState.gold = Number.isFinite(saved?.gold) ? saved.gold : 0;
+  const savedMaterials = saved?.inventory?.materials ?? {};
+  const materials = {};
+  if (saved?.inventory?.equipmentSchemaVersion === 1) {
+    for (const [oldId, count] of Object.entries(savedMaterials)) {
+      const id = MATERIAL_ID_ALIASES[oldId];
+      if (id && CRAFTING_MATERIALS[id] && Number.isSafeInteger(count) && count > 0) {
+        materials[id] = (materials[id] ?? 0) + count;
+      }
+    }
+  } else {
+    for (const [id, count] of Object.entries(savedMaterials)) {
+      if (CRAFTING_MATERIALS[id] && Number.isSafeInteger(count) && count > 0) materials[id] = count;
+    }
+  }
+  const starterRecipes = CRAFTING_RECIPES.filter(recipe => recipe.knownAtStart).map(recipe => recipe.id);
   GameState.inventory = {
     equipment: [],
-    materials: saved?.inventory?.equipmentSchemaVersion === 1
-      ? Object.fromEntries(Object.entries(saved.inventory.materials ?? {}).filter(([id, count]) =>
-        CRAFTING_MATERIALS[id] && Number.isSafeInteger(count) && count > 0)) : {},
+    materials,
     nextEquipmentId: 1,
-    equipmentSchemaVersion: 1
+    equipmentSchemaVersion: 2,
+    knownRecipes: [...new Set([...(saved?.inventory?.knownRecipes ?? []), ...starterRecipes])]
+      .filter(id => CRAFTING_RECIPES.some(recipe => recipe.id === id))
   };
   GameState.records = saved?.records ?? {};
   GameState.everdeep = restoreEverdeep(saved?.everdeep);

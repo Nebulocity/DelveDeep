@@ -5,7 +5,11 @@ import { ENCHANTMENT_BY_ID } from '../data/enchantments.js';
 import { getEquipmentDefinition, getMaterialDefinition, getPotionDefinition } from '../data/items.js';
 
 export const EQUIPMENT_SLOTS = ['weapon', 'armor', 'accessory', 'potion'];
-export const EQUIPMENT_SCHEMA_VERSION = 1;
+export const EQUIPMENT_SCHEMA_VERSION = 2;
+const LEGACY_ITEM_IDS = {
+  'field-blade': 'BLS01', 'trail-bow': 'PBR01', 'apprentice-focus': 'PST01',
+  'pilgrim-staff': 'PST01', 'padded-vest': 'PV01', 'iron-guard': 'PV01'
+};
 
 export function ownedEquipment(state = GameState) {
   return state.inventory.equipment ?? [];
@@ -52,6 +56,23 @@ export function grantPotionPack(itemId, state = GameState) {
   return instance;
 }
 
+export function grantEnchantmentScroll(itemId, state = GameState) {
+  const definition = ENCHANTMENT_BY_ID[itemId];
+  if (!definition) return null;
+  const instance = {
+    id: nextInstanceId(state),
+    itemId,
+    enchantmentId: itemId,
+    name: `${definition.name} Scroll`,
+    slot: 'scroll',
+    rarity: 'uncommon',
+    usableBy: ['All'],
+    stats: {}
+  };
+  state.inventory.equipment.push(instance);
+  return instance;
+}
+
 export function buyPotionPack(itemId, state = GameState) {
   const definition = getPotionDefinition(itemId);
   if (!definition) return { ok: false, message: 'That potion is not stocked.' };
@@ -85,7 +106,7 @@ export function sellMaterial(materialId, amount = 1, state = GameState) {
   const definition = getMaterialDefinition(materialId);
   const owned = state.inventory.materials?.[materialId] ?? 0;
   if (!definition || !Number.isSafeInteger(amount) || amount <= 0 || owned < amount) return { ok: false, message: 'You do not have enough of that material.' };
-  const value = amount * 5;
+  const value = amount * (definition.sellPrice ?? 0);
   state.inventory.materials[materialId] -= amount;
   if (!state.inventory.materials[materialId]) delete state.inventory.materials[materialId];
   state.gold += value;
@@ -101,7 +122,7 @@ export function canEquipItem(hero, item) {
     && (item.slot === 'potion'
       ? Number.isInteger(item.charges) && item.charges > 0 && item.charges <= 3
         && (getPotionDefinition(item.itemId)?.effect.resource !== 'mana' || hero.maxMana > 0)
-      : item.className === hero.className || item.usableBy?.includes(hero.className));
+      : item.className === hero.className || item.usableBy?.includes('All') || item.usableBy?.includes(hero.className));
 }
 
 export function equippedItem(hero, slot, state = GameState) {
@@ -143,10 +164,12 @@ export function getEquippedAdventurer(hero, state = GameState) {
 }
 
 export function equipmentStatsText(stats = {}) {
-  const labels = { maxHp: 'HP', attackPower: 'Attack Power', spellDamage: 'Spell Damage', spellHealing: 'Spell Healing', healPower: 'Spell Healing', armor: 'Armor' };
-  return Object.entries(stats).filter(([, value]) => Number.isFinite(value)).map(([key, value]) =>
-    `+${Math.round(value * 100) / 100} ${labels[key] ?? key}`
-  ).join('  / ');
+  const labels = { maxHp: 'HP', attackPower: 'Attack Power', spellDamage: 'Spell Damage', spellHealing: 'Spell Healing', healPower: 'Spell Healing', armor: 'Armor', maxMana: 'Mana', speed: 'Speed', dodge: 'Dodge', block: 'Block', hitChance: 'Hit', critChance: 'Crit', strength: 'STR', agility: 'AGI', intelligence: 'INT', wisdom: 'WIS' };
+  return Object.entries(stats).filter(([, value]) => Number.isFinite(value)).map(([key, value]) => {
+    const chance = ['dodge', 'block', 'hitChance', 'critChance'].includes(key);
+    const display = Math.round((chance ? value * 100 : value) * 100) / 100;
+    return `+${display}${chance ? '%' : ''} ${labels[key] ?? key}`;
+  }).join('  / ');
 }
 
 export function equipItem(heroId, instanceId, state = GameState) {
@@ -170,7 +193,7 @@ export function unequipItem(heroId, slot, state = GameState) {
 // Only the new empty-catalog schema can restore equipment. Old item IDs are discarded.
 export function restoreEquipment(savedInventory, savedRoster, state = GameState) {
   const ids = new Set();
-  state.inventory.equipment = savedInventory?.equipmentSchemaVersion === EQUIPMENT_SCHEMA_VERSION
+  state.inventory.equipment = [1, EQUIPMENT_SCHEMA_VERSION].includes(savedInventory?.equipmentSchemaVersion)
     ? (Array.isArray(savedInventory.equipment) ? savedInventory.equipment : []).filter((item) => {
       if (!item || typeof item.id !== 'string' || !item.id || ids.has(item.id)
         || typeof item.name !== 'string' || ![...EQUIPMENT_SLOTS, 'scroll'].includes(item.slot)
@@ -181,7 +204,7 @@ export function restoreEquipment(savedInventory, savedRoster, state = GameState)
       return true;
     }).map((item) => ({
       id: item.id, name: item.slot === 'potion' ? getPotionDefinition(item.itemId)?.name ?? item.name : item.name, slot: item.slot,
-      itemId: typeof item.itemId === 'string' ? item.itemId : undefined,
+      itemId: typeof item.itemId === 'string' ? LEGACY_ITEM_IDS[item.itemId] ?? item.itemId : undefined,
       rarity: typeof item.rarity === 'string' ? item.rarity : undefined,
       enchantmentId: ENCHANTMENT_BY_ID[item.enchantmentId] ? item.enchantmentId : undefined,
       className: item.className,

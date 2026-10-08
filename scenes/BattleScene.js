@@ -1,11 +1,12 @@
 import { fontPx, UI_FONT_SIZES, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import { abilityPower, hitAccuracy } from '../game/CharacterStats.js';
+import { leaderAbilityDescription } from '../game/AbilityDescriptions.js';
 import { showConfirmation } from '../ui/ConfirmationDialog.js';
 import { bindButtonPress } from '../ui/ButtonPress.js';
 import { preloadCarvedStone, addStonePanel, addStoneButton, addStoneOrnaments, stoneText, stoneIcon, campStoneIcon, delveStoneTheme, STONE } from '../ui/CarvedStone.js';
 import { preloadSlimeSprites } from '../data/slimeSprites.js';
 import { chooseWaveLandings } from '../combat/WaveLanding.js';
-import { bindSelectionDetails, characterDetails } from '../ui/SelectionDetails.js';
+import { bindSelectionDetails, characterDetails, showSelectionDetails } from '../ui/SelectionDetails.js';
 import Phaser from 'phaser';
 import ClassAbilitySystem from '../combat/ClassAbilitySystem.js';
 import { preloadCharacterSprites } from '../data/characterSprites.js';
@@ -28,12 +29,15 @@ import CombatLog from '../combat/CombatLog.js';
 import HapticsService from '../services/HapticsService.js';
 import { completeExpedition, failExpedition, fleeExpedition, formatDuration } from '../game/ExpeditionProgression.js';
 import { saveProfile } from '../game/GameStorage.js';
-import { awardOrdinaryWave, getDelveCheckpoint, isOrdinaryDelve, WAVE_REWARDS } from '../game/DelveCheckpoints.js';
+import { awardOrdinaryWave, getDelveCheckpoint, isOrdinaryDelve, FARM_REWARDS } from '../game/DelveCheckpoints.js';
 import { getBattleLayout } from '../ui/Layout.js';
 import { preloadEnvironment, createEnvironment, getDelveArena } from '../combat/LayeredEnvironment.js';
 import { trackLoading, hideLoadingScreenAfterRender } from '../ui/LoadingScreen.js';
 import { installBattlePersistence, restoreBattle } from '../combat/BattlePersistence.js';
 import { cappedChance } from '../config/characterProgression.js';
+import { advanceIdleBattle, resumeIdleBattle, recordIdleEvent } from '../combat/IdleBattle.js';
+import { prepareDeathNotifications } from '../services/DeathNotifications.js';
+import { idleRewardLines } from '../game/IdleSummary.js';
 
 export default class BattleScene extends Phaser.Scene {
 
@@ -98,6 +102,13 @@ export default class BattleScene extends Phaser.Scene {
     this.usedLeaderAbilities = new Set();
     this.pendingPausedTactics = [];
     this.awaitingRevive = false;
+    this.idleSummary = null;
+    this.idleSummaryOpen = false;
+    this.idleSummaryResumePaused = undefined;
+    this.idlePhaseRemainingMs = undefined;
+    this.idleSimulation = null;
+    this.idleSimulating = false;
+    this.combatRngState = (Date.now() >>> 0) || 1;
     this.battleLayout = getBattleLayout(width, height);
     this.combatPaused = false;
     this.time.paused = false;
@@ -139,6 +150,8 @@ export default class BattleScene extends Phaser.Scene {
     this.createParty();
     this.combatLog = new CombatLog(GameState.currentDelve?.name ?? 'The Delve', this.partyUnits);
     this.combatLog.backgroundProgress = this.game.backgroundProgress;
+    this.combatLog.setSimulationClock(() => this.time.now);
+    this.combatLog.onEntry = entry => recordIdleEvent(this, entry);
     this.createArenaInteraction();
     this.createTacticsMenus(width, height);
     this.createLeaderLoadoutBar(width);
@@ -146,6 +159,7 @@ export default class BattleScene extends Phaser.Scene {
 
     this.bossWaveIndex = Math.max(0, this.waves.findIndex((wave) => wave.boss));
     this.createFarmControls();
+    void prepareDeathNotifications();
     if (GameState.activeBattle?.scene.currentWaveIndex >= this.waves.length) GameState.activeBattle = null;
     if (GameState.activeBattle) {
       this.restoringBattle = true;
@@ -153,6 +167,7 @@ export default class BattleScene extends Phaser.Scene {
         restoreBattle(this, GameState.activeBattle);
         this.restoringBattle = false;
         installBattlePersistence(this);
+        this.onForeground();
       });
       hideLoadingScreenAfterRender(this);
       return;
@@ -477,7 +492,8 @@ export default class BattleScene extends Phaser.Scene {
       const status = this.add.text(x, layout.buttonY + 20, '', {
         fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('compact25'), color: '#d6d3d1'
       }).setOrigin(0.5).setDepth(4701);
-      bindSelectionDetails(this, box, { title: ability.name, description: ability.description }, () => this.useLeaderAbility(id));
+      bindSelectionDetails(this, box, () => ({ title: ability.name,
+        description: leaderAbilityDescription(ability, this.partyUnits) }), () => this.useLeaderAbility(id));
       bindButtonPress(this, box, [name, status]);
       this.leaderButtons.push({ ability, box, status });
     });
@@ -926,7 +942,6 @@ export default class BattleScene extends Phaser.Scene {
       if (enemy.pendingAction) {
         enemy.finishAction();
         this.showBattleMessage(`INTERRUPTED: ${enemy.name}`, '#fde68a');
-        HapticsService.heavy();
       } else {
         this.showBattleMessage(`${enemy.name} is not casting`, '#a8a29e');
       }
@@ -1245,10 +1260,16 @@ export default class BattleScene extends Phaser.Scene {
   // This function creates the announced enemies once the countdown ends.
   spawnWave(index) {
 
+    // Finished enemy records cannot affect the next wave and must not accumulate in saves.
+    this.enemyThreat.clear();
+    for (const unit of this.enemies) {
+      this.movement.slots.delete(unit);
+      this.movement.rangeStates.delete(unit);
+    }
     const wave = this.waves[index];
     this.combatLog?.add('wave', `Wave ${index + 1} started`, { wave: index + 1 });
 
-    const landings = chooseWaveLandings(wave, this.battlefield, this.terrain, this.partyUnits);
+    const landings = chooseWaveLandings(wave, this.battlefield, this.terrain, this.partyUnits, () => this.combatRandom());
     this.pendingWaveSpawns = [];
     this.enemies = wave.enemies.map((spawn, spawnIndex) => {
       const landing = landings[spawnIndex];
@@ -1263,10 +1284,6 @@ export default class BattleScene extends Phaser.Scene {
     this.attackTargets.clear();
     this.setTargetingInputState(['ATTACK', 'FOCUS', 'INTERRUPT'].includes(this.commandMode));
     this.waveTransitioning = false;
-
-    if (wave.boss) {
-      HapticsService.heavy();
-    }
   }
 
   // This function builds an enemy from its definition and registers its
@@ -1287,6 +1304,14 @@ export default class BattleScene extends Phaser.Scene {
     enemy.enemyType = type;
     enemy.definition = definition;
     enemy.rewarded = false;
+    this.combatMembershipRevision = (this.combatMembershipRevision ?? 0) + 1;
+    if (!this.idleSimulating) this.bindEnemyInput(enemy);
+    this.movement.validateUnitPosition(enemy);
+    this.enemyThreat.set(enemy.id, new Map(this.partyUnits.map((unit) => [unit.id, 0])));
+    return enemy;
+  }
+
+  bindEnemyInput(enemy) {
     enemy.hitZone.disableInteractive();
     enemy.hitZone.on('pointerdown', (pointer, localX, localY, event) => {
 
@@ -1294,9 +1319,16 @@ export default class BattleScene extends Phaser.Scene {
       this.handleEnemyTap(enemy);
     });
     bindSelectionDetails(this, enemy.hitZone, () => characterDetails(enemy));
-    this.movement.validateUnitPosition(enemy);
-    this.enemyThreat.set(enemy.id, new Map(this.partyUnits.map((unit) => [unit.id, 0])));
-    return enemy;
+  }
+
+  // Combat rolls use saved state, independently of presentation or other scenes.
+  combatRandom() {
+    let value = this.combatRngState >>> 0 || 1;
+    value ^= value << 13;
+    value ^= value >>> 17;
+    value ^= value << 5;
+    this.combatRngState = value >>> 0;
+    return this.combatRngState / 4294967296;
   }
 
   // Retry crowded waves as characters move, without losing any monsters.
@@ -1309,7 +1341,7 @@ export default class BattleScene extends Phaser.Scene {
     const wave = { enemies: this.pendingWaveSpawns.map(({ spawn }) => spawn) };
     const reserved = this.enemies.filter(enemy => enemy.alive).map(enemy => ({ x: enemy.arenaX, y: enemy.arenaY }));
     const landings = chooseWaveLandings(wave, this.battlefield, this.terrain,
-      this.partyUnits, Math.random, reserved);
+      this.partyUnits, () => this.combatRandom(), reserved);
     this.pendingWaveSpawns = this.pendingWaveSpawns.filter(({ spawn, spawnIndex }, index) => {
       if (!landings[index]) return true;
       const enemy = this.createEnemy(spawn.type, landings[index], spawnIndex);
@@ -1324,6 +1356,12 @@ export default class BattleScene extends Phaser.Scene {
   animateEnemyLanding(enemy) {
 
     enemy.landing = true;
+    this.combatMembershipRevision = (this.combatMembershipRevision ?? 0) + 1;
+    if (this.idleSimulating) {
+      enemy.landingFloorY = 0;
+      this.scheduleBattleEvent(720, { kind: 'landing', unitId: enemy.id });
+      return;
+    }
     const visual = enemy.spriteVisual?.image ?? enemy.body;
     const floorY = visual.y;
     enemy.landingFloorY = floorY;
@@ -1340,6 +1378,7 @@ export default class BattleScene extends Phaser.Scene {
   finishEnemyLanding(enemy) {
     if (!enemy.container.active) return;
     enemy.landing = false;
+    this.combatMembershipRevision = (this.combatMembershipRevision ?? 0) + 1;
     enemy.hitZone.setInteractive({ useHandCursor: true });
     for (const label of [enemy.label, enemy.targetLabel, enemy.actionLabel,
       enemy.hpBack, enemy.hpFill, enemy.castBack, enemy.castFill]) label.setAlpha(1);
@@ -1349,7 +1388,7 @@ export default class BattleScene extends Phaser.Scene {
   // It updates resources and actions, runs party and enemy decisions,
   // separates crowded units, and checks for a cleared wave or defeated party.
   update(time, delta) {
-    if (this.restoringBattle) return;
+    if (this.restoringBattle || this.idleSummaryOpen) return;
     const replaying = this.game.backgroundProgress?.isReplaying === true;
 
     this.classAbilitySystem?.syncChargeTweens?.(this.combatPaused);
@@ -1730,7 +1769,6 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    HapticsService.heavy();
     this.partyUnits.filter((unit) => unit.alive).forEach((unit) => {
 
       if (unit.distanceToPoint(center.arenaX, center.arenaY) <= ability.radius) {
@@ -1789,7 +1827,7 @@ export default class BattleScene extends Phaser.Scene {
   rollCritical(attacker, allowCrit = true) {
 
     const bonus = this.time.now < (attacker.status.abilityCritUntil ?? 0) ? attacker.status.abilityCritBonus ?? 0 : 0;
-    return allowCrit && Math.random() < Math.min(attacker.statProgressionVersion === 2 ? 0.4 : 0.95, (attacker.critChance ?? 0) + bonus);
+    return allowCrit && this.combatRandom() < Math.min(attacker.statProgressionVersion === 2 ? 0.4 : 0.95, (attacker.critChance ?? 0) + bonus);
   }
 
   // This function resolves an attack from its base damage through critical
@@ -1806,8 +1844,8 @@ export default class BattleScene extends Phaser.Scene {
     // Resolve blindness before damage modifiers; a miss stops the rest of the
     // hit processing.
     const accuracy = hitAccuracy(attacker);
-    if (attackType !== 'reflection' && (accuracy < (target.minimumAccuracy ?? 0) || accuracy < 1 && Math.random() >= accuracy
-      || now < (attacker.status.blindUntil ?? 0) && Math.random() < (attacker.status.blindChance ?? 0))) {
+    if (attackType !== 'reflection' && (accuracy < (target.minimumAccuracy ?? 0) || accuracy < 1 && this.combatRandom() >= accuracy
+      || now < (attacker.status.blindUntil ?? 0) && this.combatRandom() < (attacker.status.blindChance ?? 0))) {
       this.createFloatingText(target.x, target.y - 82, 'MISS', '#cbd5e1', false, 'miss');
       this.combatLog?.add('miss', `${attacker.name}'s ${abilityName} missed ${target.name}`, {
         wave: this.currentWaveIndex + 1,
@@ -1865,18 +1903,18 @@ export default class BattleScene extends Phaser.Scene {
       && (!target.status.abilityDodgeRangedOnly || attackType === 'ranged' || attackType === 'spell' || attacker.attackRange > 180)
       ? target.status.abilityDodgeChance ?? 0 : 0;
     if (attackType !== 'reflection' && attacker !== target && target.statProgressionVersion === 2
-      && Math.random() < Math.min(0.3, (target.dodge ?? 0) + temporaryDodge)) {
+      && this.combatRandom() < Math.min(0.3, (target.dodge ?? 0) + temporaryDodge)) {
       this.createFloatingText(target.x, target.y - 82, 'DODGE', '#cbd5e1', false, 'miss');
       return 0;
     }
     if (target.statProgressionVersion !== 2 && attacker.isEnemy && now < (target.status.abilityDodgeUntil ?? 0)
       && (!target.status.abilityDodgeRangedOnly || attackType === 'ranged' || attackType === 'spell' || attacker.attackRange > 180)
-      && Math.random() < (target.status.abilityDodgeChance ?? 0)) return 0;
+      && this.combatRandom() < (target.status.abilityDodgeChance ?? 0)) return 0;
     if (attacker.isEnemy && this.classAbilitySystem?.tryParry(target, attacker, amount, now)) return 0;
     const physical = ['melee', 'ranged', 'enemy', 'reflection'].includes(attackType);
     const leaderBlock = now < (target.status.leaderBlockUntil ?? 0) ? target.status.leaderBlockBonus ?? 0 : 0;
     const armorBlocked = physical && attackType !== 'reflection' && attacker !== target
-      && target.statProgressionVersion === 2 && Math.random() < cappedChance('block', (target.block ?? 0) + leaderBlock);
+      && target.statProgressionVersion === 2 && this.combatRandom() < cappedChance('block', (target.block ?? 0) + leaderBlock);
     const hpBefore = target.hp;
     target.takeDamage(amount, { time: now, ranged, attacker, physical, armorBlocked,
       blocked: armorBlocked || (!target.isEnemy && now < this.braceUntil)
@@ -1965,13 +2003,14 @@ export default class BattleScene extends Phaser.Scene {
     if (!target.alive && target.isEnemy) {
       this.handleEnemyDeath(target);
     }
-    if (!target.alive) {
+    if (hpBefore > 0 && !target.alive) {
       this.combatLog?.add('death', `${target.name} was defeated by ${attacker.name}'s ${abilityName}`, {
         wave: this.currentWaveIndex + 1,
         actor: attacker.name,
         target: target.name,
       ability: abilityName,
-      targetSide: target.isEnemy ? 'enemy' : 'party'
+      targetSide: target.isEnemy ? 'enemy' : 'party', amount: actualDamage,
+      hpBefore, targetHp: target.hp, targetMaxHp: target.maxHp
       });
     }
     return actualDamage;
@@ -2023,7 +2062,8 @@ export default class BattleScene extends Phaser.Scene {
     }
     enemy.rewarded = true;
     const definition = enemy.definition;
-    this.earnedGold += Phaser.Math.Between(definition.goldMin ?? 0, definition.goldMax ?? 0);
+    const minimum = definition.goldMin ?? 0;
+    this.earnedGold += minimum + Math.floor(this.combatRandom() * ((definition.goldMax ?? 0) - minimum + 1));
 
     // Keep the container until the death clip and shared fade/pop finish.
     // Wave cleanup removes it after the animation.
@@ -2263,9 +2303,24 @@ export default class BattleScene extends Phaser.Scene {
     let waveReward = null;
     if (isOrdinaryDelve() && this.currentWaveIndex < this.bossWaveIndex) {
       waveReward = awardOrdinaryWave(GameState.currentDelve, this.currentWaveIndex,
-        this.bossWaveIndex, GameState.run.entry === 'farm');
+        this.bossWaveIndex, GameState.run.entry === 'farm', this.partyUnits, () => this.combatRandom());
       if (waveReward) {
         this.earnedGold = 0;
+      }
+    }
+    if (this.idleSimulating) {
+      const summary = this.idleSummary;
+      summary.waves += 1;
+      if (waveReward) {
+        summary.gold += waveReward.gold;
+        summary.xp += waveReward.xp;
+        summary.xpByHero ??= Object.fromEntries(this.partyUnits.map(hero => [hero.id, summary.xp - waveReward.xp]));
+        for (const [id, xp] of Object.entries(waveReward.xpByHero)) {
+          summary.xpByHero[id] = (summary.xpByHero[id] ?? 0) + xp;
+        }
+        for (const [id, count] of Object.entries(waveReward.materials)) {
+          summary.materials[id] = (summary.materials[id] ?? 0) + count;
+        }
       }
     }
     this.waveRetreating = true;
@@ -2324,6 +2379,7 @@ export default class BattleScene extends Phaser.Scene {
   formatWaveReward(reward) {
     const materials = reward.materials ?? { [reward.materialId]: reward.materialCount };
     return [`+${reward.gold} GOLD  +${reward.xp} XP`,
+      ...(reward.happiness ? [`+${reward.happiness} HAPPINESS per living adventurer`] : []),
       ...Object.entries(materials).filter(([, count]) => count > 0)
         .map(([id, count]) => `+${count} ${getMaterialDefinition(id)?.name ?? id}`),
       ...(reward.items ?? []).map(item => `+${item.count ?? 1} ${item.name ?? item.itemId ?? item.id}`)].join('\n');
@@ -2387,9 +2443,9 @@ export default class BattleScene extends Phaser.Scene {
     GameState.currentRoom = this.bossWaveIndex;
     this.clearBattleMessage();
     const delve = GameState.currentDelve;
-    const values = WAVE_REWARDS[delve.difficulty] ?? WAVE_REWARDS.Easy;
+    if (this.idleSimulating) return;
+    const values = FARM_REWARDS[delve.difficulty] ?? FARM_REWARDS.Easy;
     const farmIndex = Math.max(0, this.bossWaveIndex - 1);
-    const farmXp = Math.max(1, Math.floor(values.xp / 2));
     const { width, height } = this.scale;
     this.encounterStatusText.setText('CAMP CHECKPOINT');
     this.encounterTimerText.setText('Rewards saved');
@@ -2427,7 +2483,7 @@ export default class BattleScene extends Phaser.Scene {
       this.scene.start('TownScene', { townId });
     }, 0x1f2937);
     choice(1, `FARM WAVE ${this.bossWaveIndex}`,
-      `Gold + Materials\nHalf XP: ${farmXp} per adventurer\nRepeats until cancelled`, () => {
+      `${values.gold} Gold + ${values.materialCount} Materials\n${values.xp} XP + ${values.happiness} Happiness\nper living adventurer\nRepeats until cancelled`, () => {
         GameState.run.entry = 'farm';
         this.startWave(farmIndex);
       }, 0x50432e);
@@ -2495,11 +2551,88 @@ export default class BattleScene extends Phaser.Scene {
 
   onCatchUpSettled() {
     if (!this.sys.isActive()) return;
+    if (this.game.backgroundProgress?.hidden) {
+      if (Date.now() - (this.lastIdleSaveAt ?? 0) >= 2000) {
+        this.lastIdleSaveAt = Date.now();
+        saveProfile();
+      }
+      return;
+    }
+    resumeIdleBattle(this);
+    this.partyUnits?.forEach(unit => unit.syncPresentation());
     this.enemies?.forEach(enemy => enemy.updateDeathPresentation?.(0));
     this.partyUnits?.forEach(unit => unit.spriteVisual?.update(0));
     this.enemies?.forEach(enemy => enemy.spriteVisual?.update(0));
     this.updateHud();
     this.combatLog?.persist();
+    saveProfile();
+    this.onForeground();
+  }
+
+  advanceIdleProgress(durationMs, budgetNow) {
+    return advanceIdleBattle(this, durationMs, budgetNow);
+  }
+
+  onForeground() {
+    if (this.game.backgroundProgress?.hidden || this.restoringBattle
+      || this.game.backgroundProgress?.pendingMs >= 50) return;
+    resumeIdleBattle(this);
+    this.showIdleSummary();
+  }
+
+  // Keep idle rewards and casualties visible until the player has read the return summary.
+  showIdleSummary() {
+    const summary = this.idleSummary;
+    if (this.idleSummaryOpen || !summary || (!summary.waves && !summary.deaths.length)) return;
+    this.idleSummaryOpen = true;
+    this.idleSummaryResumePaused ??= this.combatPaused;
+    this.combatPaused = true;
+    this.time.paused = true;
+    const { width, height } = this.scale;
+    const casualtyLines = summary.casualties?.length ? summary.casualties.slice(-5).flatMap(death => [
+      `${death.name} - Wave ${death.wave}, ${formatDuration(death.time * 1000)}`,
+      `${death.actor ?? 'Unknown attacker'}: ${death.ability ?? 'Unknown ability'}`
+    ]) : summary.deaths.length ? [`Died: ${summary.deaths.join(', ')}`, 'Details unavailable for these earlier idle deaths.']
+      : [];
+    const lines = idleRewardLines(summary, GameState.activeParty,
+      id => getMaterialDefinition(id)?.name ?? id);
+    const panelHeight = Math.min(height - 100, 270 + lines.length * 46);
+    const centerY = height / 2;
+    const blocker = this.add.rectangle(width / 2, centerY, width, height, 0x000000, 0.65)
+      .setDepth(13000).setInteractive();
+    blocker.on('pointerdown', (pointer, x, y, event) => event?.stopPropagation?.());
+    const panel = addStonePanel(this, width / 2, centerY, width * 0.78, panelHeight, 13001);
+    const title = stoneText(this, width / 2, centerY - panelHeight / 2 + 62,
+      'While you were away:', UI_FONT_SIZES.heading46, 13002);
+    const text = this.add.text(width / 2, centerY - panelHeight / 2 + 122, lines.join('\n'), {
+      fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body30'), color: '#f5f5dc',
+      align: 'left', fixedWidth: width * 0.7, lineSpacing: 10, wordWrap: { width: width * 0.7 }
+    }).setOrigin(0.5, 0).setDepth(13002).setName('idle-summary-text');
+    const buttonY = centerY + panelHeight / 2 - 72;
+    const continueX = casualtyLines.length ? width * 0.34 : width / 2;
+    const button = addStoneButton(this, continueX, buttonY, width * (casualtyLines.length ? 0.28 : 0.5), 96, 13002);
+    const label = stoneText(this, continueX, buttonY, 'CONTINUE', UI_FONT_SIZES.heading38, 13003);
+    const deathViews = [];
+    if (casualtyLines.length) {
+      const deathButton = addStoneButton(this, width * 0.66, buttonY, width * 0.28, 96, 13002);
+      const deathLabel = stoneText(this, width * 0.66, buttonY, 'DEATH DETAILS', UI_FONT_SIZES.heading38, 13003);
+      deathViews.push(deathButton, deathLabel);
+      bindButtonPress(this, deathButton, [deathLabel], () => showSelectionDetails(this, {
+        title: 'Death details', description: casualtyLines.join('\n'), align: 'left',
+        panelWidth: width * 0.72, depth: 14000
+      }));
+    }
+    bindButtonPress(this, button, [label], () => {
+      this.selectionDetailsClose?.();
+      for (const object of [blocker, panel, title, text, button, label, ...deathViews]) object.destroy();
+      this.idleSummaryOpen = false;
+      this.idleSummary = null;
+      this.combatPaused = this.idleSummaryResumePaused;
+      this.time.paused = this.combatPaused;
+      this.idleSummaryResumePaused = undefined;
+      resumeIdleBattle(this);
+      saveProfile();
+    });
     saveProfile();
   }
 
@@ -2595,9 +2728,12 @@ export default class BattleScene extends Phaser.Scene {
     GameState.gold += gold;
     GameState.currentRoom = this.waves.length;
     GameState.rewards = [{ type: 'gold', amount: gold, source: GameState.currentDelve?.name ?? 'Delve' }];
+    if (this.idleSimulating) {
+      this.idleSummary.gold += gold;
+      this.idleSummary.xp += 35;
+    }
     const summary = completeExpedition();
     saveProfile();
-    HapticsService.success();
     this.showResultOverlay('DELVE CLEARED!', `${GameState.currentDelve?.name ?? 'The Delve'} has been cleared.`, 'CONFIRM', () => {
 
       HapticsService.confirm();
@@ -2644,7 +2780,6 @@ export default class BattleScene extends Phaser.Scene {
     this.battleOver = true;
     this.combatLog?.finish('fled');
     fleeExpedition();
-    HapticsService.heavy();
     this.scene.start('EncounterSummaryScene');
   }
 

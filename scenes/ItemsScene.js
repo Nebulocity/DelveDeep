@@ -64,9 +64,9 @@ export default class ItemsScene extends Phaser.Scene {
       }).setOrigin(1, 0.5);
       hallText(this, 660, y + 30, stats, UI_FONT_SIZES.itemSummary, { color: HALL.muted, wordWrap: { width: 1590 } });
     });
-    hallButton(this, 1100, 950, 270, 112, 'Prev', () => { this.page--; this.render(); }, { enabled: this.page > 0 });
-    hallText(this, 1431, 950, `${this.page + 1} / ${pages}`, UI_FONT_SIZES.body32).setOrigin(0.5);
-    hallButton(this, 1760, 950, 270, 112, 'Next >', () => { this.page++; this.render(); }, { enabled: this.page < pages - 1 });
+    hallButton(this, 1100, 954, 300, 76, 'Prev', () => { this.page--; this.render(); }, { enabled: this.page > 0 });
+    hallText(this, 1431, 954, `${this.page + 1} / ${pages}`, UI_FONT_SIZES.body32).setOrigin(0.5);
+    hallButton(this, 1760, 954, 300, 76, 'Next >', () => { this.page++; this.render(); }, { enabled: this.page < pages - 1 });
   }
 
   rows() {

@@ -105,7 +105,9 @@ test('countdown restoration catches offline time without restarting the wave', a
     setBattleSaveProvider(null);
     qa.state.activeBattle = profile.activeBattle;
     localStorage.setItem('delveDeep.profile.v2', JSON.stringify(profile));
-    return { countdown: Boolean(event), time: profile.activeBattle.time };
+    const phase = profile.activeBattle.scene;
+    return { countdown: Boolean(event) || (phase.waveTransitioning && !phase.waveRetreating
+      && Number.isFinite(phase.idlePhaseRemainingMs)), time: profile.activeBattle.time };
   });
   expect(before.countdown).toBe(true);
   await reloadBattle(page);
@@ -114,12 +116,13 @@ test('countdown restoration catches offline time without restarting the wave', a
     const qa = window.__DELVE_DEEP_VISUAL_QA__;
     const scene = qa.game.scene.getScene('BattleScene');
     return { time: scene.time.now, wave: scene.currentWaveIndex, enemies: scene.enemies.length,
+      cleared: scene.idleSummary?.waves ?? 0,
       started: scene.combatLog.entries.filter(entry => entry.type === 'wave' && entry.wave === 1
         && entry.message.includes('started')).length };
   });
   expect(result.time - before.time).toBeGreaterThanOrEqual(10000);
-  expect(result.enemies).toBeGreaterThan(0);
-  expect(result.started).toBe(1);
+  expect(result.enemies > 0 || result.cleared > 0).toBe(true);
+  expect(result.started).toBeLessThanOrEqual(1);
   expect(errors).toEqual([]);
 });
 

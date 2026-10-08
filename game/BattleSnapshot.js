@@ -37,11 +37,12 @@ const SCENE_FIELDS = [
   'leaderAbilityCooldowns', 'assaultUntil', 'assaultBonus', 'braceUntil', 'braceReduction',
   'usedLeaderAbilities', 'pendingPausedTactics', 'awaitingRevive', 'combatPaused',
   'waveReturnPositions', 'waveReturnTargets', 'waveReturnReadyAt', 'waveReturnStartedAt',
-  'waveReturnTimedOut', 'waveReturnProgress', 'waveReturnSettled', 'pendingWaveSpawns'
+  'waveReturnTimedOut', 'waveReturnProgress', 'waveReturnSettled', 'pendingWaveSpawns',
+  'idlePhaseRemainingMs', 'idleSummary', 'idleSummaryResumePaused', 'combatRngState'
 ];
 
 function unitSnapshot(unit) {
-  const excluded = new Set(['scene', 'battlefield', 'definition']);
+  const excluded = new Set(['scene', 'battlefield', 'definition', 'presentationDeferred', 'spriteVisual']);
   const model = Object.fromEntries(Object.entries(unit).filter(([key]) => !excluded.has(key)));
   if (unit.landing) model.landingVisualY = (unit.spriteVisual?.image ?? unit.body).y;
   return packBattleValue(model);

@@ -1,0 +1,42 @@
+import groovy.json.JsonSlurper
+
+def repositoryRoot = rootProject.projectDir.parentFile
+def packageJson = new JsonSlurper().parse(new File(repositoryRoot, 'package.json'))
+def version = packageJson.version.toString()
+def code = providers.gradleProperty('APP_VERSION_CODE').get().toInteger()
+if (code < 1 || code > 2100000000) {
+    throw new GradleException('APP_VERSION_CODE must be between 1 and 2100000000.')
+}
+ext.appVersionName = version
+ext.appVersionCode = code
+
+// Read Git metadata without requiring a repository in exported source archives.
+def gitOutput = { List<String> arguments ->
+    try {
+        def result = providers.exec {
+            workingDir repositoryRoot
+            commandLine(['git'] + arguments)
+            ignoreExitValue = true
+        }
+        return result.result.get().exitValue == 0 ? result.standardOutput.asText.get().trim() : ''
+    } catch (org.gradle.process.internal.ExecException ignored) {
+        return ''
+    }
+}
+def branch = gitOutput(['branch', '--show-current'])
+def commit = gitOutput(['rev-parse', '--short=8', 'HEAD']) ?: 'unknown'
+def dirty = gitOutput(['status', '--porcelain']) ? '-dirty' : ''
+def branchLabel = branch.startsWith(version + '-') ? branch.substring(version.length() + 1) : branch
+def safeBranch = branchLabel.replaceAll('[^A-Za-z0-9._-]+', '-').replaceAll('^-+|-+$', '')
+def apkBranch = (branch ?: 'detached').replaceAll('[^A-Za-z0-9._-]+', '-').replaceAll('^-+|-+$', '')
+def debugVersion = version + ((safeBranch && safeBranch != version) ? '-' + safeBranch : '') + '-' + commit + dirty
+
+// Use the variant API supported by this project's Android Gradle Plugin 8.13.
+android.applicationVariants.all { variant ->
+    if (variant.buildType.name == 'debug') {
+        variant.outputs.all { output ->
+            output.versionNameOverride = debugVersion
+            output.outputFileName = "DelveDeep-" + apkBranch + "-" + commit + ".apk"
+        }
+    }
+}

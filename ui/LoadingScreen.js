@@ -2,7 +2,7 @@ import { UI_DOM_FONTS, UI_FONT_FAMILIES } from '../config/uiTypography.js';
 
 document.documentElement.style.setProperty('--ui-sans-family', UI_FONT_FAMILIES.sans);
 for (const [name, settings] of Object.entries(UI_DOM_FONTS)) {
-  const key = name === 'loadingTitle' ? 'loading-title' : 'loading-status';
+  const key = { loadingTitle: 'loading-title', loadingStatus: 'loading-status', loadingBuild: 'loading-build' }[name];
   document.documentElement.style.setProperty(`--${key}-family`, settings.family);
   document.documentElement.style.setProperty(`--${key}-size`, settings.size);
   document.documentElement.style.setProperty(`--${key}-weight`, settings.weight);
@@ -37,13 +37,9 @@ function revealTextAfterImage() {
 revealTextAfterImage();
 
 // Keep this DOM layer independent of Phaser assets so it can cover cold starts.
-export function showLoadingScreen(mode = 'world', title = '') {
+export function showLoadingScreen() {
   const element = screen();
   if (!element) return;
-  const isDelve = mode === 'delve';
-  element.querySelector('#loading-message').textContent = isDelve
-    ? `Preparing ${title || 'the battlefield'}`
-    : 'Preparing the world map';
   updateLoadingProgress(0);
   element.classList.remove('is-art-ready');
   element.classList.remove('is-hidden');
@@ -54,7 +50,7 @@ function updateLoadingProgress(value) {
   const element = screen();
   if (!element) return;
   const percent = Math.round(Math.max(0, Math.min(1, value)) * 100);
-  element.querySelector('#loading-percent').textContent = `${percent}%`;
+  element.querySelector('.loading-track').setAttribute('aria-valuenow', String(percent));
   element.querySelector('#loading-progress').style.width = `${percent}%`;
 }
 
@@ -88,8 +84,6 @@ export function trackLoading(scene) {
       initialProgressAtCompletion = initialDisplayedProgress;
     }
     else updateLoadingProgress(1);
-    const message = screen()?.querySelector('#loading-message');
-    if (message) message.textContent = 'Opening the scene';
   };
   scene.load.on('progress', progress);
   scene.load.once('complete', complete);

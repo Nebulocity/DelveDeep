@@ -21,6 +21,7 @@ export function installBattlePersistence(scene) {
       saveProfile();
     }
   };
+
   const save = () => saveProfile();
   scene.events.on('postupdate', checkpoint);
   scene.input.on('pointerup', save);
@@ -41,7 +42,10 @@ export function installBattlePersistence(scene) {
 }
 
 function restoreUnit(unit, saved) {
-  Object.assign(unit, unpackBattleValue(saved));
+  const model = unpackBattleValue(saved);
+  delete model.spriteVisual;
+  delete model.presentationDeferred;
+  Object.assign(unit, model);
   unit.syncPresentation();
   unit.setStealthed(unit.stealthed);
   unit.updateHealthBar();
@@ -83,7 +87,8 @@ export function restoreBattle(scene, snapshot) {
     restoreUnit(enemy, saved);
     return enemy;
   });
-  scene.enemyThreat = threat;
+  const enemyIds = new Set(scene.enemies.map(unit => unit.id));
+  scene.enemyThreat = new Map([...threat].filter(([id]) => enemyIds.has(id)));
   scene.enemySerial = enemySerial;
   scene.partyUnits.forEach(unit => restoreUnit(unit, snapshot.party.find(saved => saved.id === unit.id)));
   scene.tactics.preferences = unpackBattleValue(snapshot.preferences);
@@ -101,6 +106,7 @@ export function restoreBattle(scene, snapshot) {
     ability: unpackBattleValue(trap.ability) })).filter(trap => trap.owner);
   scene.combatLog.record = unpackBattleValue(snapshot.log);
   scene.combatLog.entries = scene.combatLog.record.entries;
+  scene.combatLog.setSimulationClock(() => scene.time.now);
   scene.combatLog.startedAt = snapshot.logStartedAt;
   scene.combatLog.publish();
 

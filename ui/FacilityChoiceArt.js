@@ -66,28 +66,28 @@ function drawChoiceIcon(graphics, icon, color) {
   }
 }
 
-export function addFacilityChoiceCard(scene, facilityName, entry, x, y, width, active = false) {
+export function addFacilityChoiceCard(scene, facilityName, entry, x, y, width, active = false, { height = 150, showSubtitle = true } = {}) {
   const theme = THEMES[facilityName] ?? THEMES.Hall;
   const left = x - width / 2;
-  const top = y - 75;
+  const top = y - height / 2;
   const art = scene.add.graphics();
   art.fillStyle(theme.shadow, 0.96);
-  art.fillRoundedRect(left + 5, top + 7, width, 150, 15);
+  art.fillRoundedRect(left + 5, top + 7, width, height, 15);
   art.fillStyle(theme.face, 0.96);
-  art.fillRoundedRect(left, top, width, 150, 15);
+  art.fillRoundedRect(left, top, width, height, 15);
   art.lineStyle(active ? 6 : 4, active ? theme.glow : theme.edge, 0.95);
-  art.strokeRoundedRect(left, top, width, 150, 15);
+  art.strokeRoundedRect(left, top, width, height, 15);
   art.lineStyle(2, theme.edge, 0.45);
-  art.strokeRoundedRect(left + 9, top + 9, width - 18, 132, 10);
+  art.strokeRoundedRect(left + 9, top + 9, width - 18, height - 18, 10);
   for (let i = 0; i < 9; i++) {
     art.lineStyle(1, i % 3 === 0 ? theme.glow : theme.shadow, i % 3 === 0 ? 0.15 : 0.3);
-    const grainY = top + 16 + i * 15;
+    const grainY = top + 16 + i * (height - 32) / 8;
     art.lineBetween(left + 120, grainY, left + width - 20 - i % 3 * 13, grainY);
   }
   if (facilityName === 'Blacksmith') {
     art.fillStyle(0x111515, 0.7);
-    art.fillRect(left + 14, top + 16, 8, 118);
-    art.fillRect(left + width - 22, top + 16, 8, 118);
+    art.fillRect(left + 14, top + 16, 8, height - 32);
+    art.fillRect(left + width - 22, top + 16, 8, height - 32);
   } else if (facilityName === 'Enchanter') {
     art.lineStyle(2, theme.glow, 0.43);
     art.strokeCircle(left + width - 54, y, 25);
@@ -98,7 +98,7 @@ export function addFacilityChoiceCard(scene, facilityName, entry, x, y, width, a
     art.strokeCircle(left + width - 39, y + 17, 5);
   }
   [left + 21, left + width - 21].forEach((rivetX) => {
-    [top + 20, top + 130].forEach((rivetY) => {
+    [top + 20, top + height - 20].forEach((rivetY) => {
       art.fillStyle(0x171819);
       art.fillCircle(rivetX, rivetY, 6);
       art.fillStyle(theme.edge, 0.55);
@@ -106,7 +106,7 @@ export function addFacilityChoiceCard(scene, facilityName, entry, x, y, width, a
     });
   });
 
-  const compact = width < 500;
+  const compact = showSubtitle && width < 500;
   const emblemX = compact ? x : left + 78;
   const emblem = scene.add.graphics().setPosition(emblemX, compact ? y - 32 : y);
   emblem.fillStyle(theme.shadow, 0.96);
@@ -116,18 +116,18 @@ export function addFacilityChoiceCard(scene, facilityName, entry, x, y, width, a
   emblem.lineStyle(1, theme.glow, 0.55);
   emblem.strokeCircle(0, 0, 44);
   drawChoiceIcon(emblem, entry.icon, theme.glow);
-  if (compact) emblem.setScale(0.55);
+  if (compact || !showSubtitle) emblem.setScale(0.55);
 
-  scene.add.text(x, compact ? y + 14 : y - 24, entry.label, {
-    fontFamily: UI_FONT_FAMILIES.serif, fontSize: compact ? fontPx('body34') : entry.label.length > 10 ? fontPx('heading38') : fontPx('heading42'),
+  scene.add.text(showSubtitle ? x : x + 28, showSubtitle ? compact ? y + 14 : y - 24 : y, entry.label, {
+    fontFamily: UI_FONT_FAMILIES.serif, fontSize: width < 500 ? fontPx('body34') : entry.label.length > 10 ? fontPx('heading38') : fontPx('heading42'),
     fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff1d2',
     stroke: theme.shadow === 0x100d1a ? '#100d1a' : '#170f0a', strokeThickness: 3
   }).setOrigin(0.5);
-  scene.add.text(x, compact ? y + 53 : y + 34, entry.subtitle, {
+  if (showSubtitle) scene.add.text(x, compact ? y + 53 : y + 34, entry.subtitle, {
     fontFamily: UI_FONT_FAMILIES.sans, fontSize: compact ? fontPx('support28') : fontPx('support29'), color: '#e8d6bc', align: 'center',
     wordWrap: { width: compact ? width - 30 : width - 185 }
   }).setOrigin(0.5);
-  return scene.add.rectangle(x, y, width, 150, 0x000000, 0).setInteractive({ useHandCursor: true });
+  return scene.add.rectangle(x, y, width, height, 0x000000, 0).setInteractive({ useHandCursor: true });
 }
 
 export function addCategoryIcon(scene, icon, x, y, color) {

@@ -4,6 +4,8 @@ import { armorReduction } from '../config/characterProgression.js';
 import { characterStats } from '../game/CharacterStats.js';
 import UnitSprite from './UnitSprite.js';
 import { monsterDeathPose } from './SpritePresentation.js';
+import HapticsService from '../services/HapticsService.js';
+import { deferUnitPresentation, deferredSprite } from './DeferredPresentation.js';
 
 export default class BattleUnit {
 
@@ -109,6 +111,21 @@ export default class BattleUnit {
     this.arenaX = config.arenaX ?? config.x ?? 0;
     this.arenaY = config.arenaY ?? config.y ?? 0;
 
+    if (scene.idleSimulating) {
+      deferUnitPresentation(this);
+      this.spriteVisual = deferredSprite(UnitSprite.definitionFor(this));
+      this.presentationDeferred = true;
+      return;
+    }
+    this.createPresentation();
+  }
+
+  // Build views only for units still present when the player returns.
+  createPresentation() {
+    const scene = this.scene;
+    this.presentationDeferred = false;
+    this.hitZone = null;
+
     // Group the battlefield visuals so position, scale, depth, and defeat
     // fading affect the whole unit.
     this.container = scene.add.container(0, 0);
@@ -205,6 +222,7 @@ export default class BattleUnit {
   setTargetName(name) {
 
     this.targetName = name;
+    if (this.scene.idleSimulating) return;
     if (!this.isEnemy || !this.targetLabel?.active) return;
     this.targetLabel.setText(name ? `(${name})` : '');
   }
@@ -275,6 +293,7 @@ export default class BattleUnit {
     this.actionSerial = (this.actionSerial ?? 0) + 1;
     this.pendingAction = { id: this.actionSerial, name, startAt: time, duration };
     this.busyUntil = time + duration;
+    if (this.scene.idleSimulating) return true;
     this.actionLabel.setText(name === 'Attack' ? '' : name);
     this.castBack.setVisible(true);
     this.castFill.setVisible(true).setScale(0, 1);
@@ -286,6 +305,7 @@ export default class BattleUnit {
 
     this.pendingAction = null;
     this.busyUntil = 0;
+    if (this.scene.idleSimulating) return;
     this.actionLabel.setText('');
     this.castBack.setVisible(false);
     this.castFill.setVisible(false).setScale(0, 1);
@@ -293,6 +313,7 @@ export default class BattleUnit {
 
   // This function shows how close the current action is to resolving.
   updateActionBar(time) {
+    if (this.scene.idleSimulating) return;
 
     if (!this.pendingAction) {
       return;
@@ -315,6 +336,7 @@ export default class BattleUnit {
   // This function keeps unit placement, size, and draw order aligned with
   // depth.
   syncPresentation() {
+    if (this.scene.idleSimulating) return;
 
     const screenPosition = this.battlefield.arenaToScreen(this.arenaX, this.arenaY);
     const scale = this.battlefield.getUnitScale(this.arenaY);
@@ -455,6 +477,7 @@ export default class BattleUnit {
   setStealthed(value) {
 
     this.stealthed = value === true;
+    if (this.scene.idleSimulating) return;
     if (this.body?.active) this.body.setAlpha(this.stealthed ? 0.55 : 1);
     this.spriteVisual?.image.setAlpha(this.stealthed ? 0.55 : 1);
   }
@@ -521,9 +544,21 @@ export default class BattleUnit {
   }
 
   defeat() {
+    if (this.alive) this.scene.combatMembershipRevision = (this.scene.combatMembershipRevision ?? 0) + 1;
+
+    // Pulse only for a new party death, never restored or replayed deaths.
+    if (this.alive && !this.isEnemy && !this.scene.restoringBattle
+      && !this.scene.game?.backgroundProgress?.isReplaying) {
+      HapticsService.heavy();
+    }
     this.hp = 0;
     this.alive = false;
     this.finishAction();
+    if (this.scene.idleSimulating) {
+      if (this.isEnemy) this.deathElapsed = 0;
+      else this.stealthed = false;
+      return;
+    }
     this.spriteVisual?.play('death');
     this.body.setFillStyle(0x44403c, this.spriteVisual ? 0 : 1);
     if (this.isEnemy) {
@@ -555,6 +590,7 @@ export default class BattleUnit {
   revive(healthFraction = 0.5, manaFraction = 0.5) {
 
     if (this.alive || this.isEnemy || this.delvesUsed?.honorSacrifice) return false;
+    this.scene.combatMembershipRevision = (this.scene.combatMembershipRevision ?? 0) + 1;
     this.alive = true;
     this.hp = Math.max(1, Math.round(this.maxHp * healthFraction));
     this.mana = Math.round(this.maxMana * manaFraction);
@@ -586,6 +622,7 @@ export default class BattleUnit {
 
   // This function makes the unit health bar reflect its remaining health.
   updateHealthBar() {
+    if (this.scene.idleSimulating) return;
 
     const ratio = this.maxHp > 0 ? this.hp / this.maxHp : 0;
     this.hpFill.setScale(ratio, 1);
@@ -609,6 +646,7 @@ export default class BattleUnit {
 
   // This function brieflies emphasize a unit when combat affects it.
   flash(color = 0xffffff) {
+    if (this.scene.idleSimulating) return;
 
     this.body.setStrokeStyle(6, color);
     this.spriteVisual?.image.setTintFill(color);

@@ -79,7 +79,8 @@ export const UI_FONT_WEIGHTS = Object.freeze({
 
 export const UI_DOM_FONTS = Object.freeze({
   loadingTitle: Object.freeze({ family: UI_FONT_FAMILIES.splash, size: '145px', weight: '900' }),
-  loadingStatus: Object.freeze({ family: UI_FONT_FAMILIES.sans, size: 'clamp(18px, calc(2.2cqw + 2px), 34px)', weight: '700' })
+  loadingStatus: Object.freeze({ family: UI_FONT_FAMILIES.sans, size: 'clamp(18px, calc(2.2cqw + 2px), 34px)', weight: '700' }),
+  loadingBuild: Object.freeze({ family: UI_FONT_FAMILIES.sans, size: 'clamp(18px, calc(1.5cqw + 2px), 26px)', weight: '700' })
 });
 
 export function fontPx(category) {

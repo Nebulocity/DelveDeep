@@ -6,8 +6,16 @@ import GameState from '../game/GameState.js';
 import HapticsService from '../services/HapticsService.js';
 import { leaderAbilities, hasLeaderAbility, purchaseLeaderAbility, toggleLeaderLoadoutAbility } from '../game/LeaderProgression.js';
 import { HALL, hallText, hallPanel, hallButton, hallIcon, hallScroll, addHallFrame } from '../ui/HallUI.js';
+import { leaderAbilityDescription } from '../game/AbilityDescriptions.js';
+import { getEquippedAdventurer } from '../game/Equipment.js';
 
 const CATEGORIES = [['Assault', 'sword'], ['Protect', 'shield'], ['Restore', 'healer'], ['Prepare', 'satchel']];
+
+const tacticDescription = ability => {
+  const partyIds = GameState.activeParty.length ? GameState.activeParty.map(hero => hero.id) : GameState.lastPartyIds;
+  const party = GameState.roster.filter(hero => partyIds.includes(hero.id)).map(hero => getEquippedAdventurer(hero));
+  return leaderAbilityDescription(ability, party);
+};
 
 export default class RaidLeaderScene extends Phaser.Scene {
   constructor() { super('RaidLeaderScene'); }
@@ -41,7 +49,7 @@ export default class RaidLeaderScene extends Phaser.Scene {
         const unlocked = hasLeaderAbility(leader, ability.id), equipped = leader.battleLoadout.includes(ability.id);
         const childStart = this.children.length;
         hallButton(this, x, y, 513, 206, '', () => this.choose(ability), {
-          selected: equipped, details: { title: ability.name, description: ability.description }, name: `hall-tactic-${ability.id}`
+          selected: equipped, details: { title: ability.name, description: tacticDescription(ability) }, name: `hall-tactic-${ability.id}`
         });
         hallText(this, x - 224, y - 66, ability.name, UI_FONT_SIZES.hallTacticName, { fontStyle: UI_FONT_WEIGHTS.bold, wordWrap: { width: 448 } });
         hallText(this, x - 224, y - 22, ability.description, UI_FONT_SIZES.hallTacticSummary,
@@ -65,7 +73,7 @@ export default class RaidLeaderScene extends Phaser.Scene {
         return;
       }
       showConfirmation(this, {
-        title: `Unlock ${ability.name}`, description: `${ability.description}\n\nSpend ${ability.cost} TP? Available: ${leader.tacticsPoints} TP.`,
+        title: `Unlock ${ability.name}`, description: `${tacticDescription(ability)}\n\nSpend ${ability.cost} TP? Available: ${leader.tacticsPoints} TP.`,
         onConfirm: () => {
           if (purchaseLeaderAbility(leader, ability.id)) { this.message = `${ability.name} unlocked. Tap to equip.`; HapticsService.confirm(); }
           else this.message = 'This tactic could not be unlocked.';

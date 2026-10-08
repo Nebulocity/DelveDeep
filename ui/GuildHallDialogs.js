@@ -4,6 +4,11 @@ import HapticsService from '../services/HapticsService.js';
 import GameState from '../game/GameState.js';
 import { CHARACTER_SPRITES } from '../data/characterSprites.js';
 import { UI_FONT_SIZES, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
+import { hallScroll } from './HallUI.js';
+import { bindSelectionDetails } from './SelectionDetails.js';
+import { abilityDescription } from '../game/AbilityDescriptions.js';
+import { rankedAbility } from '../game/AdventurerAbilities.js';
+import { getEquippedAdventurer } from '../game/Equipment.js';
 
 function text(scene, x, y, value, size, options = {}) {
   return scene.add.text(x, y, value, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: `${size}px`, color: GUILD.ink, ...options }).setOrigin(0.5);
@@ -56,10 +61,11 @@ function start(scene, title, width, height, label, preserveEquipment = false) {
 export function showGuildDetails(scene, details) {
   const hero = GameState.roster.find((entry) => entry.name === details.title);
   const width = Math.min(hero ? 1560 : 1380, scene.scale.width - 120);
-  const body = !hero ? text(scene, 0, 0, details.description, UI_FONT_SIZES.detailBody, { align: 'center', wordWrap: { width: width - 180 }, lineSpacing: 12 }) : null;
+  const body = !hero ? text(scene, 0, 0, details.description, UI_FONT_SIZES.detailBody, { align: 'center', fixedWidth: width - 180, wordWrap: { width: width - 180 }, lineSpacing: 12 }) : null;
   const height = hero ? Math.min(970, scene.scale.height - 90) : Math.min(scene.scale.height - 90, Math.max(540, body.height + 430));
   const modal = start(scene, details.title, width, height, hero ? 'GUILD REGISTRY' : 'GUILD HANDBOOK', details.preserveEquipment);
   const { x, top, depth } = modal;
+  let bodyScroll;
   guildSurface(scene, x, top + (height + 10) / 2, width - 82, height - 350, 'paper').setDepth(depth + 3);
   if (hero) {
     const left = x - width / 2;
@@ -78,15 +84,24 @@ export function showGuildDetails(scene, details) {
     Object.entries(hero.abilities ?? {}).filter(([key]) => (hero.abilityRanks?.[key] ?? 0) > 0).forEach(([key, ability], index) => {
       const tx = left + 610 + index % 2 * 470, ty = top + 465 + Math.floor(index / 2) * 57;
       scene.add.circle(tx - 17, ty, 3, 0x9b7643).setDepth(depth + 5);
-      text(scene, tx, ty, `${ability.name} (Rank ${hero.abilityRanks[key]})`, UI_FONT_SIZES.body30, { wordWrap: { width: 445 } }).setOrigin(0, 0.5).setDepth(depth + 5);
+      const skill = text(scene, tx, ty, `${ability.name} (Rank ${hero.abilityRanks[key]})`, UI_FONT_SIZES.body30, { wordWrap: { width: 445 } }).setOrigin(0, 0.5).setDepth(depth + 5);
+      const hit = scene.add.rectangle(tx + 208, ty, 445, 57, 0, 0).setDepth(depth + 5);
+      bindSelectionDetails(scene, hit, () => ({ title: ability.name,
+        description: abilityDescription(getEquippedAdventurer(hero), rankedAbility(ability, hero.abilityRanks[key])) }),
+      undefined, undefined, { allowSceneInput: true, allowWhileModal: true });
+      skill.setName(`known-skill-${key}`);
     });
     text(scene, left + 235, top + 618, hero.shortName ?? hero.className, UI_FONT_SIZES.support29, { align: 'center', wordWrap: { width: 290 }, fontFamily: UI_FONT_FAMILIES.serif }).setDepth(depth + 5);
   } else {
-    body.setPosition(x, top + (height + 10) / 2).setDepth(depth + 5);
-    if (body.height > height - 402) body.setFontSize(UI_FONT_SIZES.detailBodyCompact);
+    body.setPosition(x - (width - 180) / 2, top + 220).setOrigin(0, 0).setDepth(depth + 5);
+    bodyScroll = hallScroll(scene, { x: body.x, y: body.y, width: width - 180, height: height - 402 },
+      [body], body.height, 0, () => {},
+      (owner, sx, sy, sw, sh, style) => guildSurface(owner, sx, sy, sw, sh, style).setDepth(depth + 5),
+      () => false);
+    bodyScroll.container.setDepth(depth + 5);
   }
   button(scene, x, top + height - 87, 380, 'CLOSE', modal.close, depth + 6);
-  modal.finish(body);
+  modal.finish(body, bodyScroll?.container);
   return modal.close;
 }
 

@@ -1,6 +1,6 @@
 export const BACKGROUND_STEP_MS = 50;
 
-// Account for suspended time in small combat steps without rendering hidden frames.
+// Account for suspended time through scene settlement, with a small-step fallback.
 export default class BackgroundProgress {
   constructor(game, { now = () => Date.now(), budgetNow = () => performance.now(),
     document: page = globalThis.document, window: host = globalThis.window,
@@ -54,6 +54,9 @@ export default class BackgroundProgress {
     this.onBackground(hidden || this.pendingMs > BACKGROUND_STEP_MS);
     this.onSettle();
     this.pump();
+    if (!hidden) {
+      for (const scene of this.game.scene.getScenes?.(true) ?? []) scene.onForeground?.();
+    }
   }
 
   frame(time, delta) {
@@ -81,7 +84,22 @@ export default class BackgroundProgress {
     this.time ??= this.game.loop.time || 0;
     this.onBackground(true);
     const started = this.budgetNow();
-    while (this.pendingMs >= BACKGROUND_STEP_MS) {
+    const idleScene = this.game.scene.getScenes?.(true).find(scene => scene.advanceIdleProgress);
+    let sceneSettlement = false;
+    if (this.pendingMs >= BACKGROUND_STEP_MS && idleScene) {
+      this.isReplaying = true;
+      try {
+        const result = idleScene.advanceIdleProgress(this.pendingMs, this.budgetNow);
+        const consumedMs = result === true ? this.pendingMs : result?.consumedMs ?? 0;
+        this.time += consumedMs;
+        this.pendingMs -= consumedMs;
+        this.replayDirty ||= consumedMs > 0;
+        sceneSettlement = result !== false;
+      } finally {
+        this.isReplaying = false;
+      }
+    }
+    while (!sceneSettlement && this.pendingMs >= BACKGROUND_STEP_MS) {
       this.step(BACKGROUND_STEP_MS, true);
       this.pendingMs -= BACKGROUND_STEP_MS;
       if (this.game.scene.getScenes?.(true).some(scene => scene.isWaitingForPlayer?.())) {

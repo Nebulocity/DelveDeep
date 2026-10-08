@@ -58,7 +58,7 @@ export async function reviewHall(page, output, width) {
   const revealSkill = async (key) => page.evaluate((key) => {
     const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene');
     const row = scene.skillList.container.list.find((object) => object.name === `hall-skill-${key}`);
-    scene.skillList.set(row.y - 783);
+    scene.skillList.set(row.y - 678);
   }, key);
   const headings = await page.evaluate(() => {
     const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene');
@@ -121,8 +121,10 @@ export async function reviewHall(page, output, width) {
   await click('RosterScene', 'hall-all-stats');
   ensure(await page.evaluate(() => {
     const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene');
-    const labels = scene.children.list.filter(object => object.depth >= 2000 && object.x === 581 || object.depth >= 2000 && object.x === 1215).map(object => object.text);
-    return JSON.stringify(labels) === JSON.stringify(['Level', 'Health', 'Mana', 'Armor', 'Dodge', 'Block', 'Speed', 'Strength', 'Agility', 'Constitution', 'Intellect', 'Wisdom', 'Hit Chance', 'Crit Chance', 'Crit Multiplier', 'Attack Power', 'Spell Damage', 'Spell Healing', 'Happiness', 'Delves Cleared']);
+    const labels = scene.children.list.filter(object => object.name?.startsWith('hall-stat-')).map(object => object.name.slice(10));
+    const expected = ['Level', 'Health', 'Mana', 'Armor', 'Dodge', 'Block', 'Speed', 'Strength', 'Agility', 'Constitution', 'Intellect', 'Wisdom', 'Hit Chance', 'Crit Chance', 'Crit Multiplier', 'Attack Power', 'Spell Damage', 'Spell Healing', 'Happiness', 'Delves Cleared'];
+    return JSON.stringify(labels.sort()) === JSON.stringify(expected.sort())
+      && ['Progress', 'Attributes', 'Defense', 'Offense'].every(title => scene.children.list.some(object => object.text === title));
   }), 'Character stats must contain exactly the requested stats');
   await capture('stats'); await click('RosterScene', 'Done');
   ensure(!(await snapshot()).modal, 'Done must close the character stats popup');

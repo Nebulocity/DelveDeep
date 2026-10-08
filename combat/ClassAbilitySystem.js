@@ -44,6 +44,10 @@ export default class ClassAbilitySystem {
     unit.delvesUsed ??= {};
     unit.delvesUsed.honorSacrifice = true;
     unit.defeat(); // A sacrifice bypasses armor, immunity, parry and temporary HP.
+    scene.combatLog?.add('death', `${unit.name} sacrificed themself with ${ability.name}`, {
+      wave: scene.currentWaveIndex + 1, actor: unit.name, target: unit.name,
+      ability: ability.name, targetSide: 'party', reason: 'sacrifice'
+    });
     for (const ally of scene.partyUnits.filter(ally => ally !== unit)) {
       if (!ally.alive) ally.revive(1, 1);
       ally.hp = ally.maxHp;
@@ -72,7 +76,7 @@ export default class ClassAbilitySystem {
       || time - (unit.lastAbilityAt.parry ?? -Infinity) < ability.cooldown) return false;
     // Reactive abilities are independent of the Oathwarden's current action.
     unit.lastAbilityAt.parry = time;
-    if (Math.random() >= ability.chance) return false;
+    if ((this.scene.combatRandom?.() ?? Math.random()) >= ability.chance) return false;
     unit.spriteVisual?.play('block', attacker);
     this.scene.announceAbility(unit, ability.name, '#cbd5e1');
     this.scene.resolveDamage(unit, attacker, damage, 'reflection', 1, ability.name, false);

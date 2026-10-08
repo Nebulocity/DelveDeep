@@ -67,15 +67,15 @@ export function addHallFrame(scene, active, message = '') {
   addHallBackground(scene, 0.3);
   const { width, height } = scene.scale;
   guildSurface(scene, width / 2, 63, width, 126, 'beam');
-  guildCrest(scene, width / 2 - 370, 75, 78);
-  guildCrest(scene, width / 2 + 370, 75, 78);
-  hallText(scene, width / 2, 28, 'PINESHIRE', UI_FONT_SIZES.compact24, { color: '#e6bd70', letterSpacing: 6 }).setOrigin(0.5);
-  hallText(scene, width / 2, 78, 'Adventurer’s Hall', UI_FONT_SIZES.display54, { fontFamily: UI_FONT_FAMILIES.serif }).setOrigin(0.5);
+  guildCrest(scene, width / 2 - 370, 63, 78);
+  guildCrest(scene, width / 2 + 370, 63, 78);
+  hallText(scene, width / 2, 23, 'PINESHIRE', UI_FONT_SIZES.compact24, { color: '#e6bd70', letterSpacing: 6 }).setOrigin(0.5);
+  hallText(scene, width / 2, 70, 'Adventurer’s Hall', UI_FONT_SIZES.display54, { fontFamily: UI_FONT_FAMILIES.serif }).setOrigin(0.5);
   hallButton(scene, 200, 63, 290, 112, 'TOWN', () => scene.scene.start('TownScene'), { size: UI_FONT_SIZES.hallNavigation });
   hallText(scene, width - 60, 67, `${GameState.gold} GOLD`, UI_FONT_SIZES.heading38, { color: '#e6bd70' }).setOrigin(1, 0.5);
   guildSurface(scene, width / 2, 186, width, 120, 'beam');
   [['Adventurers', 'RosterScene'], ['Items', 'ItemsScene'], ['Tactics', 'RaidLeaderScene']].forEach(([label, destination], index) => {
-    hallButton(scene, 250 + index * 405, 186, 380, 112, label, () => {
+    hallButton(scene, 225 + index * 350, 186, 330, 112, label, () => {
       if (destination !== scene.scene.key) scene.scene.start(destination);
     }, { selected: label === active, size: UI_FONT_SIZES.hallNavigation, name: `hall-nav-${label.toLowerCase()}` });
   });
@@ -101,7 +101,8 @@ export function hallPortrait(scene, hero, x, y, size) {
 }
 
 // Masks constrain drawing and hit tests; off-screen controls cannot receive taps.
-export function hallScroll(scene, bounds, objects, contentHeight, initial = 0, onScroll = () => {}) {
+export function hallScroll(scene, bounds, objects, contentHeight, initial = 0, onScroll = () => {}, surface = guildSurface,
+  isBlocked = () => Boolean(scene.selectionDetailsClose || scene.equipmentModalClose)) {
   const { x, y, width, height } = bounds;
   const container = scene.add.container(0, 0, objects.sort((a, b) => a.depth - b.depth));
   const maskArt = scene.make.graphics({ add: false }).fillRect(x, y, width, height);
@@ -110,11 +111,11 @@ export function hallScroll(scene, bounds, objects, contentHeight, initial = 0, o
   const max = Math.max(0, contentHeight - height);
   let value = Math.min(initial, max), drag = null, disposed = false;
   const trackX = x + width + 13;
-  const track = guildSurface(scene, trackX, y + height / 2, 20, height, 'track');
+  const track = surface(scene, trackX, y + height / 2, 20, height, 'track');
   const thumbHeight = Math.max(105, height * height / (height + max));
-  const thumb = guildSurface(scene, trackX, y + thumbHeight / 2, 30, thumbHeight, 'thumb');
+  const thumb = surface(scene, trackX, y + thumbHeight / 2, 30, thumbHeight, 'thumb');
   track.setVisible(max > 0); thumb.setVisible(max > 0);
-  const blocked = () => Boolean(scene.selectionDetailsClose || scene.equipmentModalClose);
+  const blocked = isBlocked;
   const inside = (px, py) => px >= x && px <= x + width && py >= y && py <= y + height;
   for (const object of objects.filter((object) => object.input?.enabled)) {
     const hit = object.input.hitAreaCallback;

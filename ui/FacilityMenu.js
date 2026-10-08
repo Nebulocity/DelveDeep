@@ -2,10 +2,8 @@ import { fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypograph
 import GameState from '../game/GameState.js';
 import HapticsService from '../services/HapticsService.js';
 import { bindSelectionDetails } from './SelectionDetails.js';
-import { UI_SAFE_TOP } from './Layout.js';
 import { addFacilityReturnButton, addFacilityDetailsHint } from './FacilityChrome.js';
-import { addFacilityChoiceCard, addFacilityPlate } from './FacilityChoiceArt.js';
-import { bindButtonPress } from './ButtonPress.js';
+import { addFacilityChoiceCard } from './FacilityChoiceArt.js';
 import { addWoodenPanel } from './WoodenPanel.js';
 
 export const FACILITIES = {
@@ -43,7 +41,7 @@ const DETAIL_THEMES = {
   Enchanter: { plaque: 'town-sign-enchanter', edge: 0xb69ada, button: 0x463663, face: 0x28243b, text: '#f3eaff' }
 };
 
-export function renderFacilityMenu(scene, facility, selected, onSelect, onReturn, onClose, renderDetail) {
+export function renderFacilityMenu(scene, facility, selected, onSelect, onReturn, renderDetail) {
   scene.selectionDetailsClose?.();
   scene.children.removeAll(true);
   const { width, height } = scene.scale;
@@ -52,19 +50,19 @@ export function renderFacilityMenu(scene, facility, selected, onSelect, onReturn
   const background = scene.add.image(width / 2, height / 2, facility.background);
   background.setScale(Math.max(width / background.width, height / background.height));
   scene.add.rectangle(width / 2, height / 2, width, height, 0x120904, 0.08);
-  scene.add.rectangle(width / 2, 0, width, UI_SAFE_TOP + 152, 0x180d09, 0.84).setOrigin(0.5, 0);
-  scene.add.rectangle(width / 2, height, width, 320, 0x180d09, 0.78).setOrigin(0.5, 1);
+  scene.add.rectangle(width / 2, 0, width, 188, 0x180d09, 0.84).setOrigin(0.5, 0);
+  scene.add.rectangle(width / 2, height, width, 150, 0x180d09, 0.78).setOrigin(0.5, 1);
 
   addFacilityReturnButton(scene, facility.name, onReturn,
-    { y: UI_SAFE_TOP + 32 });
-  scene.add.text(width / 2, UI_SAFE_TOP + 24, facility.title, {
+    { y: 76 });
+  scene.add.text(width / 2, 66, facility.title, {
     fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('display70'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff1d2',
     stroke: '#241008', strokeThickness: 4
   }).setOrigin(0.5);
-  scene.add.text(width / 2, UI_SAFE_TOP + 91, facility.subtitle, {
+  scene.add.text(width / 2, 133, facility.subtitle, {
     fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body31'), color: '#f4d5ab'
   }).setOrigin(0.5);
-  scene.add.text(width - 72, UI_SAFE_TOP + 32, `${GameState.gold} GOLD`, {
+  scene.add.text(width - 72, 76, `${GameState.gold} GOLD`, {
     fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body34'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fbbf24'
   }).setOrigin(1, 0.5);
 
@@ -82,30 +80,18 @@ export function renderFacilityMenu(scene, facility, selected, onSelect, onReturn
     }).setOrigin(0.5);
   }
 
-  if (choice) {
-    const x = panelBounds.x + panelBounds.width / 2 - 46;
-    const y = panelBounds.y - panelBounds.height / 2 + 46;
-    const { art } = addFacilityPlate(scene, facility.name, x, y, 76, 76);
-    const close = scene.add.rectangle(x, y, 76, 76, 0, 0).setName('facility-close').setInteractive({ useHandCursor: true });
-    close.pressVisuals = [art];
-    const label = scene.add.text(x, y, 'X', {
-      fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('heading42'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff1d2'
-    }).setOrigin(0.5);
-    bindButtonPress(scene, close, [label], () => { HapticsService.tap(); onClose(); });
-  }
-
   const cardWidth = Math.min(600, (width - 280) / facility.choices.length);
   const gap = 28;
   const firstX = width / 2 - (cardWidth + gap) * (facility.choices.length - 1) / 2;
-  const cardY = height - 151;
+  const cardY = height - 79;
   facility.choices.forEach((entry, index) => {
     const x = firstX + index * (cardWidth + gap);
     const active = selected === entry.id;
-    const card = addFacilityChoiceCard(scene, facility.name, entry, x, cardY, cardWidth, active);
+    const card = addFacilityChoiceCard(scene, facility.name, entry, x, cardY, cardWidth, active, { height: 104, showSubtitle: false });
     bindSelectionDetails(scene, card, { title: entry.label, description: entry.description, shopTheme: DETAIL_THEMES[facility.name] }, () => {
       HapticsService.tap();
       onSelect(entry.id);
     });
   });
-  if (!choice) addFacilityDetailsHint(scene, facility.name, height - 42);
+  if (!choice) addFacilityDetailsHint(scene, facility.name, height - 202);
 }

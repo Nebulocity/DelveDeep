@@ -7,6 +7,7 @@ import { getDelveCheckpoint } from '../game/DelveCheckpoints.js';
 import { bindSelectionDetails, addDetailsHint, delveDetails } from '../ui/SelectionDetails.js';
 import { preloadCarvedStone, addStonePanel, addStoneOrnaments, stoneText, STONE } from '../ui/CarvedStone.js';
 import { preparationFrame, preparationButton } from '../ui/DelvePreparation.js';
+import { hallScroll } from '../ui/HallUI.js';
 
 export default class DelveSelectScene extends Phaser.Scene {
   constructor() {
@@ -51,9 +52,13 @@ export default class DelveSelectScene extends Phaser.Scene {
     stoneText(this, difficultyX, panelY + 8, `Recommended Level ${delve.recommendedLevel}`, UI_FONT_SIZES.delveInfoBody, 3, { fontFamily: UI_FONT_FAMILIES.sans });
     stoneText(this, difficultyX, panelY + 58, `${delve.rooms} waves expected`, UI_FONT_SIZES.delveInfoBody, 3, { fontFamily: UI_FONT_FAMILIES.sans });
     stoneText(this, dropsX, panelY - 120, 'POSSIBLE DROPS', UI_FONT_SIZES.delveInfoLabel, 3, { color: STONE.muted });
-    stoneText(this, dropsX - width * 0.082, panelY - 75, delveDropNames(delve).map(name => `• ${name}`).join('\n'), UI_FONT_SIZES.delveInfoBody, 3, {
+    const dropText = stoneText(this, dropsX - width * 0.082, panelY - 75, delveDropNames(delve).map(name => `• ${name}`).join('\n'), UI_FONT_SIZES.delveInfoBody, 3, {
       fontFamily: UI_FONT_FAMILIES.sans, color: '#e8b75c', lineSpacing: 12, align: 'left', wordWrap: { width: width * 0.185 }
     }).setOrigin(0, 0);
+    const dropsScroll = hallScroll(this, { x: dropText.x, y: dropText.y, width: width * 0.185, height: 220 },
+      [dropText], dropText.height, 0, () => {},
+      (scene, x, y, w, h) => addStonePanel(scene, x, y, w, h, 4));
+    dropsScroll.container.setDepth(3);
     if (checkpoint) {
       stoneText(this, right, panelY + 175, checkpoint.campUnlocked ? 'Camp unlocked' : `Next: Wave ${checkpoint.nextWave + 1}`, UI_FONT_SIZES.delveInfoNext, 3, {
         color: `#${this.stoneTheme.accent.toString(16).padStart(6, '0')}`

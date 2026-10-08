@@ -3,12 +3,13 @@ import { FACILITIES, renderFacilityMenu } from '../ui/FacilityMenu.js';
 import GameState from '../game/GameState.js';
 import { saveProfile } from '../game/GameStorage.js';
 import { buyPotionPack, equipmentOwner, equipmentStatsText } from '../game/Equipment.js';
-import { UI_FONT_SIZES, fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
+import { fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import { POTION_ITEMS, CRAFTING_RECIPES } from '../data/items.js';
 import { ACTIVE_ENCHANTMENTS, ENCHANTMENT_BY_ID } from '../data/enchantments.js';
 import { bindSelectionDetails } from '../ui/SelectionDetails.js';
 import { addCategoryIcon } from '../ui/FacilityChoiceArt.js';
 import { addFacilityDetailsHint } from '../ui/FacilityChrome.js';
+import { hallScroll } from '../ui/HallUI.js';
 import HapticsService from '../services/HapticsService.js';
 import { canCraft, craftItem, recipeIngredientText } from '../game/Crafting.js';
 import { GEAR_STOCK, saleRows, sellOwnedItem, buyGear, inscribeEnchantment, applyEnchantment, disenchantItem } from '../game/ShopServices.js';
@@ -31,7 +32,7 @@ export default class FacilityScene extends Phaser.Scene {
     this.returnScene = data?.returnScene ?? 'TownScene';
     this.selection = null;
     this.category = 'all';
-    this.page = 0;
+    this.itemOffset = 0;
     this.message = '';
     this.selectedScroll = null;
   }
@@ -40,9 +41,8 @@ export default class FacilityScene extends Phaser.Scene {
 
   render() {
     renderFacilityMenu(this, this.facility, this.selection,
-      selection => { this.selection = selection; this.category = 'all'; this.page = 0; this.message = ''; this.selectedScroll = null; this.render(); },
+      selection => { this.selection = selection; this.category = 'all'; this.itemOffset = 0; this.message = ''; this.selectedScroll = null; this.render(); },
       () => this.scene.start(this.returnScene),
-      () => { this.selection = null; this.render(); },
       choice => this.renderFacilityDetail(choice));
   }
 
@@ -88,7 +88,7 @@ export default class FacilityScene extends Phaser.Scene {
       const scroll = state.inventory.equipment.find(item => item.id === this.selectedScroll && item.slot === 'scroll');
       if (!scroll) return state.inventory.equipment.filter(item => item.slot === 'scroll').map(item => ({
         id: item.id, category: 'scroll', name: item.name, description: ENCHANTMENT_BY_ID[item.enchantmentId].description, enabled: true, action: 'SELECT',
-        run: () => { this.selectedScroll = item.id; this.category = 'all'; this.page = 0; return { ok: false, message: 'Choose gear to enchant. The selected scroll will be consumed.' }; }
+        run: () => { this.selectedScroll = item.id; this.category = 'all'; this.itemOffset = 0; return { ok: false, message: 'Choose gear to enchant. The selected scroll will be consumed.' }; }
       }));
       const definition = ENCHANTMENT_BY_ID[scroll.enchantmentId];
       return state.inventory.equipment.filter(item => !item.enchantmentId && definition.slots.includes(item.slot)).map(item => {
@@ -112,43 +112,46 @@ export default class FacilityScene extends Phaser.Scene {
     const categories = ['all', ...Object.keys(CATEGORIES).filter(key => key !== 'all' && allRows.some(row => row.category === key))];
     if (!categories.includes(this.category)) this.category = 'all';
     const rows = allRows.filter(row => this.category === 'all' || row.category === this.category);
-    const pages = Math.max(1, Math.ceil(rows.length / 2));
-    this.page = Math.max(0, Math.min(this.page, pages - 1));
-    this.add.rectangle(1200, 555, 2080, 490, theme.panel, 0.97).setStrokeStyle(4, theme.edge);
-    const heading = this.add.text(395, 342, choice.id === 'sell' ? 'YOUR INVENTORY' : choice.label, { fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx('heading42'), fontStyle: UI_FONT_WEIGHTS.bold, color: theme.text }).setOrigin(0.5);
-    if (heading.width > 380) heading.setScale(380 / heading.width);
-    addFacilityDetailsHint(this, this.facility.name, 342, { x: 1400 });
-    this.add.rectangle(395, 575, 390, 384, theme.face, 0.45).setStrokeStyle(2, theme.edge, 0.45);
+
+    this.add.rectangle(1200, 553, 2280, 690, theme.panel, 0.97).setStrokeStyle(4, theme.edge);
+    const heading = this.add.text(255, 252, choice.id === 'sell' ? 'YOUR INVENTORY' : choice.label, { fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx('heading42'), fontStyle: UI_FONT_WEIGHTS.bold, color: theme.text }).setOrigin(0.5);
+    if (heading.width > 330) heading.setScale(330 / heading.width);
+    addFacilityDetailsHint(this, this.facility.name, 252, { x: 1400 });
+    this.add.rectangle(255, 578, 350, 570, theme.face, 0.45).setStrokeStyle(2, theme.edge, 0.45);
     categories.forEach((category, index) => {
-      const y = 405 + index * 52;
+      const y = 333 + index * 76;
       const [label, icon] = CATEGORIES[category];
       const active = category === this.category;
-      const button = this.add.rectangle(395, y, 360, 48, theme.face, active ? 1 : 0.25).setStrokeStyle(active ? 3 : 1, theme.edge, active ? 1 : 0.25);
-      addCategoryIcon(this, icon, 251, y, theme.edge);
-      this.add.text(288, y, label, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('shopCategory'), color: theme.text }).setOrigin(0, 0.5);
-      bindSelectionDetails(this, button, { title: label, description: `Browse ${label.toLowerCase()}.`, shopTheme: theme }, () => { HapticsService.tap(); this.category = category; this.page = 0; this.render(); });
+      const button = this.add.rectangle(255, y, 330, 68, theme.face, active ? 1 : 0.25).setStrokeStyle(active ? 3 : 1, theme.edge, active ? 1 : 0.25);
+      addCategoryIcon(this, icon, 118, y, theme.edge);
+      this.add.text(154, y, label, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('shopCategory'), color: theme.text }).setOrigin(0, 0.5);
+      bindSelectionDetails(this, button, { title: label, description: `Browse ${label.toLowerCase()}.`, shopTheme: theme }, () => { HapticsService.tap(); this.category = category; this.itemOffset = 0; this.render(); });
     });
     if (!rows.length) this.add.text(1400, 520, choice.id === 'sell' ? 'No owned items in this category.' : choice.id === 'disenchant' ? 'No gear with known enchantments.' : choice.id === 'enchant' ? this.selectedScroll ? 'No compatible gear without an enchantment.\nChoose Enchant again to select another scroll.' : 'Buy or inscribe a scroll to begin.' : 'Nothing available.', { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body34'), color: theme.text, align: 'center', wordWrap: { width: 1450 } }).setOrigin(0.5);
-    rows.slice(this.page * 2, this.page * 2 + 2).forEach((row, index) => {
-      const y = 463 + index * 180;
-      const card = this.add.rectangle(1400, y, 1520, 164, theme.face, 0.64).setStrokeStyle(2, theme.edge, 0.7);
-      addCategoryIcon(this, CATEGORIES[row.category]?.[1] ?? 'satchel', 686, y, theme.edge);
-      this.add.text(728, y - 46, row.name, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body34'), fontStyle: UI_FONT_WEIGHTS.bold, color: theme.text }).setOrigin(0, 0.5);
-      this.add.text(728, y - 13, row.description, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('shopDescription'), color: '#ddd5c7', wordWrap: { width: 1080 }, maxLines: 2 });
+    const start = this.children.list.length;
+    const stride = 264;
+    rows.forEach((row, index) => {
+      const x = 962 + index % 2 * 900;
+      const y = 416 + Math.floor(index / 2) * stride;
+      const card = this.add.rectangle(x, y, 872, 246, theme.face, 0.64).setStrokeStyle(2, theme.edge, 0.7).setName(`shop-item-${row.id}`);
+      addCategoryIcon(this, CATEGORIES[row.category]?.[1] ?? 'satchel', x - 399, y - 81, theme.edge);
+      this.add.text(x - 363, y - 106, row.name, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body34'), fontStyle: UI_FONT_WEIGHTS.bold, color: theme.text,
+        wordWrap: { width: 770 }, maxLines: 2 }).setOrigin(0, 0);
+      this.add.text(x - 409, y - 16, row.description, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('shopDescription'), color: '#ddd5c7', wordWrap: { width: 804 }, maxLines: 2 });
       const details = { title: row.name, description: row.detailsDescription ?? row.description, shopTheme: theme };
       bindSelectionDetails(this, card, details);
-      const button = this.add.rectangle(1990, y, 285, 86, theme.face).setStrokeStyle(3, theme.edge).setAlpha(row.enabled ? 1 : 0.45);
-      this.add.text(1990, y, row.action, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('shopCost'), fontStyle: UI_FONT_WEIGHTS.bold,
+      const button = this.add.rectangle(x + 247, y + 82, 330, 68, theme.face).setStrokeStyle(3, theme.edge).setAlpha(row.enabled ? 1 : 0.45).setName(`shop-action-${row.id}`);
+      this.add.text(x + 247, y + 82, row.action, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('shopCost'), fontStyle: UI_FONT_WEIGHTS.bold,
         color: row.enabled ? '#fff3c4' : '#d4c8b0' }).setOrigin(0.5);
       if (row.enabled) bindSelectionDetails(this, button, details, () => this.transact(row.run));
     });
-    this.add.text(1400, 759, this.message || `${this.page + 1} / ${pages}`, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('shopPager'), color: theme.text, align: 'center', wordWrap: { width: 1000 } }).setOrigin(0.5);
-    for (const [x, label, delta] of [[760, 'PREV', -1], [2040, 'NEXT >', 1]]) {
-      const enabled = this.page + delta >= 0 && this.page + delta < pages;
-      const button = this.add.rectangle(x, 765, 195, 62, theme.face).setStrokeStyle(2, theme.edge).setAlpha(enabled ? 1 : 0.4);
-      this.add.text(x, 765, label, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('shopPager'), color: theme.text }).setOrigin(0.5);
-      if (enabled) bindSelectionDetails(this, button, { title: label, description: 'Browse more items.', shopTheme: theme }, () => { HapticsService.tap(); this.page += delta; this.render(); });
-    }
-    return { x: 1200, y: 555, width: 2080, height: 490 };
+    const surface = (scene, x, y, width, height, variant) => scene.add.rectangle(x, y, width, height,
+      variant === 'thumb' ? theme.edge : theme.face, variant === 'thumb' ? 1 : 0.65).setStrokeStyle(2, theme.edge, 0.7);
+    this.itemList = hallScroll(this, { x: 516, y: 291, width: 1794, height: 548 },
+      this.children.list.slice(start), Math.ceil(rows.length / 2) * stride, this.itemOffset,
+      value => { this.itemOffset = value; }, surface);
+    this.add.text(1400, 868, this.message || `${rows.length} items · Drag or scroll to browse`, { fontFamily: UI_FONT_FAMILIES.sans,
+      fontSize: fontPx('shopPager'), color: theme.text, align: 'center', wordWrap: { width: 1700 } }).setOrigin(0.5);
+    return { x: 1200, y: 553, width: 2280, height: 690 };
   }
 }

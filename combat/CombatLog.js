@@ -2,6 +2,11 @@ const STORAGE_KEY = 'delveDeep.lastCombatLog.v1';
 
 export default class CombatLog {
 
+  setSimulationClock(now) {
+    this.simulationNow = now;
+    this.record.simulationStartedAt ??= now() - (this.entries.at(-1)?.time ?? 0) * 1000;
+  }
+
   // This function starts a reviewable record of this encounter and its party.
   constructor(delveName, party) {
 
@@ -31,7 +36,8 @@ export default class CombatLog {
     // Timestamp the event relative to the encounter start and include any
     // structured combat details.
     const entry = {
-      time: Number(((Date.now() - this.startedAt) / 1000).toFixed(2)),
+      time: Number(((this.simulationNow ? this.simulationNow() - this.record.simulationStartedAt
+        : Date.now() - this.startedAt) / 1000).toFixed(2)),
       wave: details.wave,
       type,
       message,
@@ -47,7 +53,10 @@ export default class CombatLog {
     if (type === 'healing' && details.targetSide !== 'enemy') this.record.summary.partyHealing += Number(details.amount ?? 0);
     if (type === 'death' && (details.targetSide === 'party' || (!details.targetSide && this.partyNames.has(details.target)))) {
       this.record.summary.partyDeaths += 1;
+      this.record.casualties ??= [];
+      this.record.casualties.push({ ...entry });
     }
+    this.onEntry?.(entry);
     if (!this.backgroundProgress?.isReplaying) console.info(`[Combat ${entry.time.toFixed(2)}s] ${message}`, details);
 
     // Save periodically to retain recent events without writing storage on

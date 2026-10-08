@@ -18,10 +18,16 @@ export default class UnitSprite {
     this.applyPose();
   }
 
-  static create(unit) {
+  static definitionFor(unit) {
     const definition = unit.isEnemy ? (SLIME_SPRITES[unit.spriteId] ?? ENEMY_SPRITES[unit.spriteId]) : CHARACTER_SPRITES[unit.id];
     if (!definition?.textures || !unit.scene.textures) return null;
     if (!definition.textures.every(({ key }) => unit.scene.textures.exists(key))) return null;
+    return definition;
+  }
+
+  static create(unit) {
+    const definition = this.definitionFor(unit);
+    if (!definition) return null;
     definition.textures.forEach(({ key }) => {
 
       // Phaser's NEAREST texture filter preserves the native sprite pixels.

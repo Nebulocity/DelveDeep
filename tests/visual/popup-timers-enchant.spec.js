@@ -76,7 +76,9 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
     await page.screenshot({ path: `tests/visual/screenshots/enchant-owner-${viewport.width}.png` });
     const point = await page.evaluate(() => {
       const qa = window.__DELVE_DEEP_VISUAL_QA__, rect = qa.game.canvas.getBoundingClientRect();
-      return { x: rect.x + 1990 * rect.width / qa.game.scale.width, y: rect.y + 430 * rect.height / qa.game.scale.height };
+      const button = qa.game.scene.getScene('FacilityScene').itemList.container.list.find(object => object.name === `shop-action-${qa.game.scene.getScene('FacilityScene').testGearId}`);
+      const bounds = button.getBounds();
+      return { x: rect.x + bounds.centerX * rect.width / qa.game.scale.width, y: rect.y + bounds.centerY * rect.height / qa.game.scale.height };
     });
     await page.mouse.click(point.x, point.y, { delay: 80 });
     expect(await page.evaluate(() => {

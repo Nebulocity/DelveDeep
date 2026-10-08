@@ -12,6 +12,8 @@ import { preparationFrame, preparationButton, preparationNotice } from '../ui/De
 import { CHARACTER_SPRITES } from '../data/characterSprites.js';
 import { preloadEnvironment } from '../combat/LayeredEnvironment.js';
 import { bindButtonPress } from '../ui/ButtonPress.js';
+import { abilityDescription, leaderAbilityDescription } from '../game/AbilityDescriptions.js';
+import { rankedAbility } from '../game/AdventurerAbilities.js';
 
 export default class DungeonScene extends Phaser.Scene {
 
@@ -106,10 +108,10 @@ export default class DungeonScene extends Phaser.Scene {
   adventurerDetails(hero) {
     const stats = getEquippedAdventurer(hero);
     const skills = (hero.abilityLoadout ?? []).filter(key => hero.abilities?.[key] && (hero.abilityRanks?.[key] ?? 0) > 0)
-      .map(key => `${hero.abilities[key].name} (Rank ${hero.abilityRanks[key]})`);
+      .map(key => `${hero.abilities[key].name}\n${abilityDescription(stats, rankedAbility(hero.abilities[key], hero.abilityRanks[key]))}`);
     return {
       title: hero.name, align: 'left',
-      description: `${hero.className} | ${hero.role} | Level ${hero.level}\n\nHealth: ${Math.round(stats.maxHp)} | Mana: ${Math.round(stats.maxMana ?? 0)} | Armor: ${Math.round(stats.armor ?? 0)}\nAttack Power: ${Math.round(stats.attackPower)} | Spell Damage: ${Math.round(stats.spellDamage ?? 0)} | Spell Healing: ${Math.round(stats.spellHealing ?? 0)}\nSpeed: ${Math.round(stats.speed ?? 100)} | Dodge: ${Math.round((stats.dodge ?? 0) * 100)}% | Crit: ${Math.round((stats.critChance ?? 0) * 100)}%\n\nEquipped Skills\n${skills.length ? skills.join(' • ') : 'No skills equipped.'}`,
+      description: `${hero.className} | ${hero.role} | Level ${hero.level}\n\nHealth: ${Math.round(stats.maxHp)} | Mana: ${Math.round(stats.maxMana ?? 0)} | Armor: ${Math.round(stats.armor ?? 0)}\nAttack Power: ${Math.round(stats.attackPower)} | Spell Damage: ${Math.round(stats.spellDamage ?? 0)} | Spell Healing: ${Math.round(stats.spellHealing ?? 0)}\nSpeed: ${Math.round(stats.speed ?? 100)} | Dodge: ${Math.round((stats.dodge ?? 0) * 100)}% | Crit: ${Math.round((stats.critChance ?? 0) * 100)}%\n\nEquipped Skills\n${skills.length ? skills.join('\n\n') : 'No skills equipped.'}`,
       gear: ['weapon', 'armor', 'accessory', 'potion'].map(slot => {
         const item = equippedItem(hero, slot);
         return { slot, name: item?.name ?? 'Empty slot', summary: item ? slot === 'potion'
@@ -152,7 +154,11 @@ export default class DungeonScene extends Phaser.Scene {
     this.hideTacticDescription();
     const { width, height } = this.scale;
     const panelWidth = 760;
-    const panelHeight = modal ? 340 : 240;
+    const description = leaderAbilityDescription(ability, GameState.activeParty.map(hero => getEquippedAdventurer(hero)));
+    const body = this.add.text(0, 0, description, {
+      fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body32'), color: STONE.text, align: 'center', wordWrap: { width: panelWidth - 64 }
+    }).setOrigin(0.5, 0).setDepth(102);
+    const panelHeight = Math.min(height - 100, body.height + (modal ? 190 : 120));
     const x = modal ? width / 2 : card.x;
     const y = modal ? height / 2 : Math.min(card.y + 42 + panelHeight / 2, height - panelHeight / 2 - 30);
     const objects = [];
@@ -175,9 +181,7 @@ export default class DungeonScene extends Phaser.Scene {
     objects.push(this.add.text(x, y - panelHeight / 2 + 42, ability.name, {
       fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx('body36'), fontStyle: UI_FONT_WEIGHTS.bold, color: STONE.text
     }).setOrigin(0.5).setDepth(102));
-    objects.push(this.add.text(x, y - panelHeight / 2 + 85, ability.description, {
-      fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body32'), color: STONE.text, align: 'center', wordWrap: { width: panelWidth - 64 }
-    }).setOrigin(0.5, 0).setDepth(102));
+    objects.push(body.setPosition(x, y - panelHeight / 2 + 85));
     if (modal) {
       const close = addStoneButton(this, x, y + panelHeight / 2 - 52, 260, 72, 102)
         .setInteractive({ useHandCursor: true });

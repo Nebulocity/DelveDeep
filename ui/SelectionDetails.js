@@ -8,6 +8,8 @@ import { addRegionPanel, addRegionNotice, regionMessageBounds } from './RegionMa
 import { isGuildHall } from './GuildHallTheme.js';
 import { showGuildDetails } from './GuildHallDialogs.js';
 import { UI_FONT_SIZES, fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
+import { abilityDescription } from '../game/AbilityDescriptions.js';
+import { hallScroll } from './HallUI.js';
 
 export const DETAILS_HINT = 'Long-press or hold-click a selection for details.';
 
@@ -58,7 +60,8 @@ export function characterDetails(unit) {
       `HP: ${unit.hp ?? unit.maxHp}/${unit.maxHp} | Attack: ${unit.attackPower}`,
       (unit.maxMana ?? 0) > 0 ? `Mana: ${Math.floor(unit.mana ?? unit.maxMana)}/${unit.maxMana}` : '',
       unit.description ?? '',
-      Object.values(unit.abilities ?? {}).map((ability) => ability.name).filter(Boolean).join(', ')
+      Object.entries(unit.abilities ?? {}).filter(([key]) => !unit.abilityRanks || unit.abilityRanks[key] > 0)
+        .map(([, ability]) => `${ability.name}\n${abilityDescription(unit, ability)}`).join('\n\n')
     ].filter(Boolean).join('\n\n')
   };
 }
@@ -88,7 +91,7 @@ export function showSelectionDetails(scene, details) {
   };
   scene.selectionDetailsClose = close;
   scene.events.once('shutdown', close);
-  const depth = 10000;
+  const depth = details.depth ?? 10000;
   const stone = scene.scene?.key === 'BattleScene' || isDelvePreparation(scene);
   const panelWidth = Math.min(details.panelWidth ?? (details.gear ? 1760 : 1100), messageBounds.width - 120);
   const hasImage = Boolean(details.image && scene.textures.exists(details.image));
@@ -103,9 +106,9 @@ export function showSelectionDetails(scene, details) {
   const panelHeight = Math.min(height - 140, Math.max(hasImage ? 540 : 340, body.height + (details.gear ? 480 : 210)));
   const top = (height - panelHeight) / 2;
   body.setY(top + 94);
-  // Keep long descriptions contained while retaining the normal large type.
+
+  // Scroll long descriptions without shrinking the reading size.
   const bodyHeight = panelHeight - (details.gear ? 450 : 190);
-  if (body.height > bodyHeight) body.setScale(bodyHeight / body.height);
   const shade = scene.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7)
     .setDepth(depth).setInteractive();
   const panel = (stone ? addStonePanel : regionMap ? addRegionPanel : addWoodenPanel)(scene, centerX, height / 2, panelWidth + 36, panelHeight + 36, depth + 1);
@@ -150,6 +153,14 @@ export function showSelectionDetails(scene, details) {
     bindButtonPress(scene, button, [label], () => { HapticsService.tap(); close(); });
   } else button.on('pointerdown', dismiss);
   objects.push(shade, panel, body, button);
+  if (body.height > bodyHeight) {
+    const scroll = hallScroll(scene, { x: body.x - bodyWidth / 2, y: body.y, width: bodyWidth, height: bodyHeight },
+      [body], body.height, 0, () => {},
+      (owner, x, y, w, h) => (stone ? addStonePanel : addWoodenPanel)(owner, x, y, w, h, depth + 2),
+      () => false);
+    scroll.container.setDepth(depth + 2);
+    objects.push(scroll.container);
+  }
   if (conceptImage) objects.push(conceptImage);
   if (town) objects.push(panelHit);
   if (shopSign) objects.push(shopSign);
@@ -169,7 +180,8 @@ export function showSelectionDetails(scene, details) {
 // Bind after a selection's normal pointerdown action. Defer that action until
 // release, and suppress it after a hold or drag. Navigation-only buttons need
 // no binding. Each binding cleans up with its object, including wave enemies.
-export function bindSelectionDetails(scene, target, getDetails, onTap, onDetails, { allowSceneInput = false } = {}) {
+export function bindSelectionDetails(scene, target, getDetails, onTap, onDetails,
+  { allowSceneInput = false, allowWhileModal = false } = {}) {
   const taps = onTap ? [onTap] : target.listeners('pointerdown').slice();
   target.removeAllListeners('pointerdown');
   target.setInteractive({ useHandCursor: true });
@@ -186,7 +198,7 @@ export function bindSelectionDetails(scene, target, getDetails, onTap, onDetails
     press = { id: pointer.id, x: pointer.x, y: pointer.y, held: false };
     timer = globalThis.setTimeout(() => {
       timer = null;
-      if (!press || !pointer.isDown || scene.selectionDetailsClose) return;
+      if (!press || !pointer.isDown || (scene.selectionDetailsClose && !allowWhileModal)) return;
       if (Math.hypot(pointer.x - press.x, pointer.y - press.y) > 24) return cancel();
       press.held = true;
       HapticsService.tap();
@@ -202,7 +214,7 @@ export function bindSelectionDetails(scene, target, getDetails, onTap, onDetails
     if (!allowSceneInput) args[3]?.stopPropagation?.();
     const tap = press?.id === pointer.id && !press.held;
     cancel();
-    if (tap && !scene.selectionDetailsClose) taps.forEach((callback) => callback.apply(target, args));
+    if (tap && (!scene.selectionDetailsClose || allowWhileModal)) taps.forEach((callback) => callback.apply(target, args));
   });
   target.on('pointerout', cancel);
   scene.input.on('pointermove', move);

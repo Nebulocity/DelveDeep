@@ -3,7 +3,7 @@ import { STAT_DESCRIPTIONS } from '../data/statDescriptions.js';
 import { showSelectionDetails } from '../ui/SelectionDetails.js';
 import Phaser from 'phaser';
 import { UI_FONT_SIZES, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
-import { abilityPower } from '../game/CharacterStats.js';
+import { abilityDescription } from '../game/AbilityDescriptions.js';
 import GameState from '../game/GameState.js';
 import { saveProfile } from '../game/GameStorage.js';
 import { equippedItem, getEquippedAdventurer, ownedEquipment, equipmentOwner, equipItem, unequipItem, equipmentStatsText, canEquipItem } from '../game/Equipment.js';
@@ -56,7 +56,7 @@ export default class RosterScene extends Phaser.Scene {
     }
     this.renderSummary(hero);
     [['gear', 'Gear & potions'], ['skills', 'Skills & training']].forEach(([key, label], index) => {
-      hallButton(this, 1414 + index * 618, 326, 586, 112, label, () => {
+      hallButton(this, 1414 + index * 618, 186, 586, 112, label, () => {
         this.tab = key; this.render();
       }, { selected: this.tab === key, name: `hall-tab-${key}`, size: UI_FONT_SIZES.hallSection });
     });
@@ -105,8 +105,8 @@ export default class RosterScene extends Phaser.Scene {
     }, { name: 'hall-class-info', size: UI_FONT_SIZES.hallClass, details: { title: hero.className, description: CLASS_DESCRIPTIONS[hero.className] } });
     guildRule(this, 794, 462, 420);
     const archetype = HALL_ARCHETYPES.find((entry) => entry.role === hero.role);
-    hallIcon(this, archetype?.icon ?? 'shield', 685, 428, archetype?.color, 0.7);
-    hallText(this, 728, 428, hero.role, UI_FONT_SIZES.hallRole, { color: HALL.muted });
+    hallIcon(this, archetype?.icon ?? 'shield', 685, 437, archetype?.color, 0.7);
+    hallText(this, 728, 437, hero.role, UI_FONT_SIZES.hallRole, { color: HALL.muted });
     hallPortrait(this, hero, 794, 578, 216);
     hallText(this, 547, 709, `Character level ${hero.level}`, UI_FONT_SIZES.hallSummary);
     hallText(this, 1040, 709, `${hero.xp ?? 0} / ${xpRequired(hero.level)} XP`, UI_FONT_SIZES.hallRoleCount, { color: HALL.muted }).setOrigin(1, 0.5);
@@ -120,13 +120,12 @@ export default class RosterScene extends Phaser.Scene {
       hallDetails(this, hit, { title: label, description: STAT_DESCRIPTIONS[label === 'Attack' ? 'Attack Power' : label] }, () => {});
     });
     hallText(this, 794, 873, `${happinessLabel(hero.happiness ?? 70)} · ${hero.happiness ?? 70}% happiness`, UI_FONT_SIZES.hallRole, { color: HALL.green }).setOrigin(0.5);
-    hallButton(this, 794, 950, 488, 112, 'View all stats', () => this.openStats(hero), { name: 'hall-all-stats', size: UI_FONT_SIZES.hallSection });
+    hallButton(this, 794, 946, 488, 84, 'View all stats', () => this.openStats(hero), { name: 'hall-all-stats', size: UI_FONT_SIZES.hallSection });
   }
 
   renderGear(hero) {
-    hallText(this, 1130, 423, 'Ready for adventure', UI_FONT_SIZES.heading38, { fontStyle: UI_FONT_WEIGHTS.bold });
     ['weapon', 'armor', 'accessory', 'potion'].forEach((slot, index) => {
-      const x = 1412 + index % 2 * 609, y = 580 + Math.floor(index / 2) * 253;
+      const x = 1412 + index % 2 * 609, y = 431 + Math.floor(index / 2) * 253;
       const item = equippedItem(hero, slot);
       hallButton(this, x, y, 563, 216, '', () => this.openEquipment(hero, slot), {
         name: `hall-slot-${slot}`, details: { title: item?.name ?? slot, description: item
@@ -137,7 +136,7 @@ export default class RosterScene extends Phaser.Scene {
       hallText(this, x - 160, y - 64, slot.toUpperCase(), UI_FONT_SIZES.support27, { color: HALL.muted });
       hallText(this, x - 160, y - 9, item?.name ?? 'Empty slot', UI_FONT_SIZES.body36, { fontStyle: UI_FONT_WEIGHTS.bold, wordWrap: { width: 412 } });
       if (item && slot !== 'potion') {
-        hallButton(this, x + 52, y + 63, 330, 64, 'View Stat Bonuses', () => {
+        hallButton(this, x, y + 61, 300, 72, 'View Stats', () => {
           showSelectionDetails(this, { title: `${item.name} bonuses`, description: equipmentStatsText(item.stats) || 'No stat bonuses.' });
         }, { name: `hall-slot-bonuses-${slot}`, size: UI_FONT_SIZES.hallGearSummary,
           details: { title: `${item.name} bonuses`, description: equipmentStatsText(item.stats) || 'No stat bonuses.' } });
@@ -150,23 +149,23 @@ export default class RosterScene extends Phaser.Scene {
 
   renderSkills(hero) {
     const loadout = hero.abilityLoadout ?? [];
-    hallText(this, 1130, 423, 'Battle abilities', UI_FONT_SIZES.body36, { fontStyle: UI_FONT_WEIGHTS.bold });
-    hallText(this, 2295, 423, `${loadout.length}/${MAX_EQUIPPED_ABILITIES} equipped`, UI_FONT_SIZES.hallSkillCount, { color: HALL.muted }).setOrigin(1, 0.5);
+    hallText(this, 1130, 314, 'Battle abilities', UI_FONT_SIZES.body36, { fontStyle: UI_FONT_WEIGHTS.bold });
+    hallText(this, 2295, 314, `${loadout.length}/${MAX_EQUIPPED_ABILITIES} equipped`, UI_FONT_SIZES.hallSkillCount, { color: HALL.muted }).setOrigin(1, 0.5);
     for (let index = 0; index < MAX_EQUIPPED_ABILITIES; index++) {
       const key = loadout[index], ability = hero.abilities[key];
       const x = 1268 + index * 293;
-      hallButton(this, x, 537, 272, 142, '', () => this.commit(toggleAdventurerAbility(hero.id, key)), {
+      hallButton(this, x, 428, 272, 142, '', () => this.commit(toggleAdventurerAbility(hero.id, key)), {
         enabled: Boolean(key), details: ability ? this.abilityDetails(hero, key, ability) : undefined, name: `hall-ability-slot-${index}`
       });
-      hallText(this, x, 493, `SLOT ${index + 1}`, UI_FONT_SIZES.compact24, { color: HALL.muted }).setOrigin(0.5);
-      hallText(this, x, 552, ability?.name ?? 'Empty', UI_FONT_SIZES.hallSkillSlot, { align: 'center', wordWrap: { width: 248 } }).setOrigin(0.5);
+      hallText(this, x, 384, `SLOT ${index + 1}`, UI_FONT_SIZES.compact24, { color: HALL.muted }).setOrigin(0.5);
+      hallText(this, x, 443, ability?.name ?? 'Empty', UI_FONT_SIZES.hallSkillSlot, { align: 'center', wordWrap: { width: 248 } }).setOrigin(0.5);
     }
-    hallText(this, 1130, 653, 'Skill book', UI_FONT_SIZES.body36, { fontStyle: UI_FONT_WEIGHTS.bold });
-    hallText(this, 2295, 653, `${hero.skillPoints ?? 0} SP available`, UI_FONT_SIZES.support29, { color: HALL.muted }).setOrigin(1, 0.5);
+    hallText(this, 1130, 544, 'Skill book', UI_FONT_SIZES.body36, { fontStyle: UI_FONT_WEIGHTS.bold });
+    hallText(this, 2295, 544, `${hero.skillPoints ?? 0} SP available`, UI_FONT_SIZES.support29, { color: HALL.muted }).setOrigin(1, 0.5);
     const start = this.children.list.length;
     const entries = sortedAbilityEntries(hero);
     entries.forEach(([key, ability], index) => {
-      const y = 787 + index * 198, rank = hero.abilityRanks?.[key] ?? 0, next = rank + 1;
+      const y = 678 + index * 198, rank = hero.abilityRanks?.[key] ?? 0, next = rank + 1;
       const level = abilityLevelRequired(hero, key, next), cost = abilityGoldCost(hero, key, next);
       const canTrain = next <= MAX_ABILITY_RANK && hero.level >= level && (hero.skillPoints ?? 0) >= next && GameState.gold >= cost;
       guildSurface(this, 1710, y, 1156, 182, 'row', canTrain);
@@ -192,31 +191,14 @@ export default class RosterScene extends Phaser.Scene {
         });
       }, { enabled: canTrain, name: `hall-train-${key}` });
     });
-    this.skillList = hallScroll(this, { x: 1128, y: 692, width: 1178, height: 290 },
+    this.skillList = hallScroll(this, { x: 1128, y: 583, width: 1178, height: 399 },
       this.children.list.slice(start), entries.length * 198, this.skillOffset, (value) => { this.skillOffset = value; });
   }
 
   abilityDetails(hero, key, base) {
     const ability = rankedAbility(base, Math.max(1, hero.abilityRanks?.[key] ?? 0));
     const stats = getEquippedAdventurer(hero);
-    const amounts = [];
-    const damage = ['damage', 'trap'].includes(ability.effect) && !ability.poison;
-    const healing = ability.effect === 'heal' || ability.effect === 'refuge';
-    if (damage || healing) {
-      let low = ability.power, high = ability.highPower ?? ability.lowHealthPower ?? low;
-      if (ability.missingHealthBonus) high = low * 2;
-      if (ability.rearBonus) high = Math.max(high, low * (1 + ability.rearBonus));
-      if (ability.lowHealthBoost) high = Math.max(high, low * (1 + ability.lowHealthBoost));
-      const minimum = Math.round(abilityPower(stats, ability, low, healing));
-      const maximum = Math.round(abilityPower(stats, ability, high, healing));
-      amounts.push(`${healing ? 'Healing' : 'Damage'}: ${Math.min(minimum, maximum)}-${Math.max(minimum, maximum)}`);
-      if (ability.healRatio) amounts.push(`Healing: ${Math.round(abilityPower(stats, ability, low, true) * ability.healRatio)}-${Math.round(abilityPower(stats, ability, high, true) * ability.healRatio)} per enemy hit`);
-    }
-    if (ability.poison) {
-      const power = Math.round(abilityPower(stats, ability, ability.poison.power));
-      amounts.push(`Damage: ${power}-${power} per poison tick`);
-    }
-    return { title: ability.name, description: [ability.targetLabel ?? ability.target ?? 'Self only', ...amounts].join('\n\n') };
+    return { title: ability.name, description: abilityDescription(stats, ability) };
   }
 
   openStats(hero) {
@@ -232,15 +214,28 @@ export default class RosterScene extends Phaser.Scene {
       ['Attack Power', format(stats.attackPower)], ['Spell Damage', format(stats.spellDamage)], ['Spell Healing', format(stats.spellHealing)],
       ['Happiness', `${hero.happiness ?? 70}%`], ['Delves Cleared', `${hero.delvesCompleted ?? 0}`]];
     const modal = this.modal(`${hero.name} · Character stats`);
-    entries.forEach(([label, value], index) => {
-      const x = 581 + Math.floor(index / 10) * 634, y = 296 + index % 10 * 52;
-      hallText(this, x, y, label, UI_FONT_SIZES.body30, { color: HALL.muted });
-      hallText(this, x + 545, y, value, UI_FONT_SIZES.body30).setOrigin(1, 0.5);
-      const hit = this.add.rectangle(x + 273, y, 575, 52, 0, 0).setName(`hall-stat-${label}`);
-      hallDetails(this, hit, { title: label, description: STAT_DESCRIPTIONS[label], preserveEquipment: true }, () => {});
+    const groups = [
+      ['Progress', ['Level', 'Happiness', 'Delves Cleared']],
+      ['Attributes', ['Strength', 'Agility', 'Constitution', 'Intellect', 'Wisdom']],
+      ['Defense', ['Health', 'Mana', 'Armor', 'Dodge', 'Block']],
+      ['Offense', ['Attack Power', 'Spell Damage', 'Spell Healing', 'Speed', 'Hit Chance', 'Crit Chance', 'Crit Multiplier']]
+    ];
+    groups.forEach(([title, labels], groupIndex) => {
+      const x = 570 + groupIndex % 2 * 650;
+      const top = 258 + Math.floor(groupIndex / 2) * 275;
+      hallText(this, x, top, title, UI_FONT_SIZES.body34, { color: '#ffe0a7', fontStyle: UI_FONT_WEIGHTS.bold });
+      guildRule(this, x + 287, top + 28, 574);
+      labels.forEach((label, index) => {
+        const value = entries.find(([name]) => name === label)[1];
+        const y = top + 58 + index * 44;
+        hallText(this, x, y, label, UI_FONT_SIZES.body30, { color: HALL.muted });
+        hallText(this, x + 574, y, value, UI_FONT_SIZES.body30).setOrigin(1, 0.5);
+        const hit = this.add.rectangle(x + 287, y, 594, 44, 0, 0).setName(`hall-stat-${label}`);
+        hallDetails(this, hit, { title: label, description: STAT_DESCRIPTIONS[label], preserveEquipment: true }, () => {});
+      });
     });
-    hallText(this, 1200, 855, 'Hold a stat to learn what it does.', UI_FONT_SIZES.support28, { color: HALL.muted }).setOrigin(0.5);
-    hallButton(this, 1200, 930, 320, 112, 'Done', modal.close, { modal: true });
+    hallText(this, 1200, 893, 'Hold a stat to learn what it does.', UI_FONT_SIZES.support28, { color: HALL.muted }).setOrigin(0.5);
+    hallButton(this, 1200, 952, 320, 76, 'Done', modal.close, { modal: true });
     modal.finish();
   }
 

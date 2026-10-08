@@ -1,3 +1,8 @@
+// This encounter owns its artwork layers, waves and walkable floor outline. The polygon
+// points use original artwork pixels. LayeredEnvironment scales and positions them with
+// the art, then clips the lower edge above the party HUD. Foreground decoration can cover
+// sprites without becoming blocking terrain.
+
 export default {
   id: 'murmuring-abyss',
   name: 'The Murmuring Abyss',
@@ -24,6 +29,7 @@ export default {
           url: new URL('../../assets/environments/murmuring-abyss-pixel/portal.png', import.meta.url).href,
           depth: -1000 }
       ],
+
       foreground: {
         sourceKey: 'murmuring-abyss-pixel-art', depth: 4300,
         polygons: [
@@ -33,6 +39,7 @@ export default {
             [1490, 769], [1434, 792], [1360, 846], [1278, 941], [1672, 941]]
         ]
       },
+
       voidEffects: {
         portal: { x: 836, y: 231, radiusX: 251, radiusY: 207, particles: 30 },
         clouds: [
@@ -41,12 +48,14 @@ export default {
           { x: 548, y: 321, width: 116, height: 36, phase: 3.1 },
           { x: 1126, y: 319, width: 126, height: 39, phase: 4.6 }
         ],
+
         flames: [
           { x: 46, y: 285, size: 38 },
           { x: 1627, y: 281, size: 41 },
           { x: 141, y: 408, size: 26 },
           { x: 1519, y: 412, size: 27 }
         ],
+
         lightning: [
           { startX: 336, startY: 43, endX: 534, endY: 184 },
           { startX: 1337, startY: 40, endX: 1158, endY: 180 },

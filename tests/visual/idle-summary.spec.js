@@ -1,3 +1,8 @@
+// This is a browser check for the game. Playwright drives the page while the visual QA
+// bridge exposes live Phaser scenes. page.evaluate runs in the browser, not in this test
+// process, so values cross that boundary as plain serializable data. Wait for observable
+// state before checking it; asset loading and animations take time.
+
 import { test, expect } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 
@@ -12,9 +17,13 @@ test('return rewards list waves, gold, each adventurer and combined loot', async
     const scene = qa.game.scene.getScene('BattleScene');
     scene.idleSummary = { waves: 12, gold: 345, xp: 48, materials: {}, deaths: [], casualties: [] };
     scene.showIdleSummary();
+
+    // map builds one output entry for each input entry, in the same order. The callback's
+    // return value becomes that output entry.
     return { text: scene.children.getByName('idle-summary-text').text,
       names: qa.state.activeParty.map(hero => hero.name) };
   });
+
   expect(result.text).toContain('- 12 waves cleared.');
   expect(result.text).toContain('- You gained 345 Gold.');
   for (const name of result.names) expect(result.text).toContain(`- ${name} gained 48 Exp.`);

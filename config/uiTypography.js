@@ -1,8 +1,13 @@
+// Our text sizes live here so we can tune phone readability in one place. Values are
+// logical canvas pixels, before Phaser scales the game to the actual display. A named slot
+// lets one kind of text change without changing every other label that happens to have the
+// same size.
 
-// Phaser sizes use logical canvas pixels before device scaling.
-// The compact, support, body, heading and display groups cover every runtime text size.
-// A numeric suffix records the original size. Change a slot to update its assigned text.
-// Named slots below the scale isolate helper, detail, timer and inventory text.
+
+// Phaser sizes use logical canvas pixels before device scaling. The compact, support,
+// body, heading and display groups cover every runtime text size. A numeric suffix records
+// the original size. Change a slot to update its assigned text. Named slots below the
+// scale isolate helper, detail, timer and inventory text.
 export const UI_FONT_SIZES = Object.freeze({
 
   // Compact readouts include battlefield resources, timers and editor data.
@@ -45,6 +50,7 @@ export const UI_FONT_SIZES = Object.freeze({
   hallSkillCount: 32, hallSkillSlot: 34, hallSkillName: 37,
   hallSkillDetail: 32, hallTacticHeading: 46,
   hallTacticMeta: 34, hallTacticRenown: 38,
+
   hallTacticName: 36, hallTacticSummary: 28,
 
   // Shop list rows and controls.
@@ -83,6 +89,8 @@ export const UI_DOM_FONTS = Object.freeze({
   loadingBuild: Object.freeze({ family: UI_FONT_FAMILIES.sans, size: 'clamp(18px, calc(1.5cqw + 2px), 26px)', weight: '700' })
 });
 
+// Look up a named typography slot and turn its logical size into a Phaser pixel-size
+// string.
 export function fontPx(category) {
   const size = UI_FONT_SIZES[category];
   if (size === undefined) throw new Error(`Unknown UI font category: ${category}`);

@@ -1,8 +1,13 @@
+// These tables describe skill ranks, costs and requirements. A learned rank is progression
+// data; an equipped slot is a choice of which learned skill enters combat.
+
 import { NEAR_DISTANCE, ADJACENT_DISTANCE, ARENA_RANGE } from '../config/combatRanges.js';
 import { ABILITY_WORKBOOK, STARTER_KITS } from './abilityWorkbook.js';
 
 const A = (category, name, target, effect, value, unit, duration, cooldown) => ({ category, name, target, effect, value, unit, duration, cooldown });
 
+// Turn a displayed ability name into a consistent camelCase lookup key without
+// punctuation.
 function abilityKey(name) {
   return name.normalize('NFKD').replace(/[^a-zA-Z0-9 ]/g, '').trim()
     .replace(/\s+(.)/g, (_, letter) => letter.toUpperCase()).replace(/^(.)/, (_, letter) => letter.toLowerCase());
@@ -18,6 +23,7 @@ export const NEW_CLASS_ABILITIES = {
     A('Restore','Second Wind','Self only','Catch your breath and restore your own health.',24,'healing',0,24),
     A('Prepare','Crowd Favorite','Self only','Gain armor before engaging; first hit also generates extra threat.',15,'% damage reduction',8,25)
   ],
+
   Oathwarden: [
     A('Protect','Shield of Honor','Single ally','Redirect the next hit from an ally and reduce it.',30,'% reduction',6,18),
     A('Protect','Oathbound Circle','All allies near the caster','Reduce incoming damage for allies standing near the caster.',14,'% reduction',6,22),
@@ -26,6 +32,7 @@ export const NEW_CLASS_ABILITIES = {
     A('Restore','Steadfast Heart','Self only','Steady your resolve and restore your own health.',22,'healing',0,25),
     A('Prepare','Vigil Before Battle','Self only','Gain armor and empower the next protection ability.',12,'% damage reduction',8,24)
   ],
+
   Dawnwarden: [
     A('Protect','Sunlit Ward','Single ally','Wrap an ally or yourself in a shield of sunlight.',22,'shield HP',7,16),
     A('Protect','Dawnwall','All allies near the caster','Reduce incoming damage for nearby allies.',14,'% reduction',6,21),
@@ -34,6 +41,7 @@ export const NEW_CLASS_ABILITIES = {
     A('Restore','Renewed Resolve','Self only','Restore own HP with a brief flash of dawn light.',23,'healing',0,24),
     A('Prepare','Consecrated Stance','Self only','Gain armor and empower the next holy strike.',12,'% damage reduction',8,23)
   ],
+
   Barmaid: [
     A('Assault','Tray Toss','Single enemy at ranged distance','Throw a serving tray for physical damage.',19,'damage',0,8),
     A('Assault','Barroom Scramble','Enemies near the caster','Hit nearby foes with improvised weapons.',15,'damage',0,14),
@@ -42,6 +50,7 @@ export const NEW_CLASS_ABILITIES = {
     A('Prepare','Set the Table','Self only','Improve the next damaging ability and gain brief armor.',12,'% next-hit bonus',8,18),
     A('Prepare','Find an Opening','Self only','Gain movement speed and critical chance before entering melee.',10,'% critical chance',7,21)
   ],
+
   Scoundrel: [
     A('Assault','Back Alley Cut','Single enemy','Cut an enemy more deeply while their attention is elsewhere.',23,'damage',0,7),
     A('Assault','Smoke Bomb','Enemies near the caster','Deal light damage and blind enemies for 2 seconds.',13,'damage',2,17),
@@ -50,6 +59,7 @@ export const NEW_CLASS_ABILITIES = {
     A('Prepare','Coated Blades','Self only','Add poison damage to the next attack.',12,'poison damage',8,19),
     A('Prepare','False Trail','Self only','Reduce threat and gain movement speed.',20,'% threat reduction',8,21)
   ],
+
   Barbarian: [
     A('Assault','Skullsplitter','Single enemy','Deal heavy physical damage to one target.',27,'damage',0,10),
     A('Assault','Earthshaker','Enemies near the caster','Slam the ground for physical damage and a brief slow.',17,'damage',2,16),
@@ -58,6 +68,7 @@ export const NEW_CLASS_ABILITIES = {
     A('Prepare','Blood Rush','Self only','Gain movement speed and attack power for the next engagement.',15,'% attack bonus',7,22),
     A('Prepare','War Cry','Self only','Increase critical chance and threat before charging.',10,'% critical chance',7,23)
   ],
+
   Ranger: [
     A('Assault','Pinning Shot','Single enemy','Deal physical damage and slow the target for 3 seconds.',21,'damage',3,9),
     A('Assault','Volley','Enemies near the target','Fire multiple arrows across a small zone.',15,'damage',0,15),
@@ -66,6 +77,7 @@ export const NEW_CLASS_ABILITIES = {
     A('Prepare','Steady Aim','Self only','Increase critical chance for the next ranged attack.',14,'% critical chance',8,18),
     A('Prepare','Scout’s Route','Self only','Gain movement speed and extend the next shot’s range.',18,'% movement speed',8,22)
   ],
+
   'Mage of the Umbral Veil': [
     A('Assault','Void Needle','Single enemy','Deal necrotic damage and reduce target healing briefly.',22,'damage',4,8),
     A('Assault','Eclipse Field','Enemies near the target','Deal necrotic damage in a shadowed zone.',15,'damage',0,16),
@@ -74,6 +86,7 @@ export const NEW_CLASS_ABILITIES = {
     A('Prepare','Night Focus','Self only','Increase the next necrotic spell’s damage.',16,'% spell bonus',8,20),
     A('Prepare','Shrouded Steps','Self only','Gain movement speed and lower threat.',18,'% movement speed',8,21)
   ],
+
   'Mage of the Crimson Spire': [
     A('Assault','Crimson Lance','Single enemy','Deal focused force damage.',23,'damage',0,8),
     A('Assault','Shatter Pattern','Enemies near the target','Explode a force sigil for area damage.',15,'damage',0,16),
@@ -82,6 +95,7 @@ export const NEW_CLASS_ABILITIES = {
     A('Prepare','Overcharge Sigil','Self only','Increase the next damaging spell’s power.',18,'% spell bonus',8,21),
     A('Prepare','Measured Casting','Self only','Prepare your next spell to cast more quickly.',20,'% windup reduction',8,20)
   ],
+
   'Mage of the Luminous Archive': [
     A('Assault','Index of Light','Single enemy','Deal radiant damage; mark the target for allied focus.',21,'damage',6,9),
     A('Assault','Prism Script','Enemies near the target','Deal radiant damage across a scripted pattern.',15,'damage',0,16),
@@ -90,6 +104,7 @@ export const NEW_CLASS_ABILITIES = {
     A('Prepare','Illuminated Thesis','Self only','Increase the next radiant spell’s damage and linked healing.',14,'% spell bonus',8,21),
     A('Prepare','Quick Reference','Self only','Reduce the next spell’s windup.',20,'% windup reduction',8,19)
   ],
+
   'Cleric of the Everbright': [
     A('Restore','Dawn Benediction','Single ally or self','Restore HP to one ally.',30,'healing',0,7),
     A('Restore','Morning Chorus','All allies near the target','Restore HP to allies in a small area.',15,'healing',0,16),
@@ -98,6 +113,7 @@ export const NEW_CLASS_ABILITIES = {
     A('Prepare','Prayer of Clarity','Self only','Increase the next heal’s potency.',16,'% next-heal bonus',8,20),
     A('Prepare','Kindled Faith','Self only','Reduce the next protective spell’s windup.',20,'% windup reduction',8,21)
   ],
+
   'Cleric of the Verdant Covenant': [
     A('Restore','Seedling Mend','Single ally or self','Restore HP to one ally.',29,'healing',0,7),
     A('Restore','Spring Canopy','All allies near the target','Restore HP to allies in a small area.',15,'healing',0,16),
@@ -106,6 +122,7 @@ export const NEW_CLASS_ABILITIES = {
     A('Prepare','Living Sap','Self only','Increase the next heal’s potency.',16,'% next-heal bonus',8,20),
     A('Prepare','Rooted Patience','Self only','Increase protection duration on the next cast.',20,'% duration bonus',8,21)
   ],
+
   'Cleric of the Sanguine Song': [
     A('Restore','Pulse Exchange','Single ally or self','Restore health to an ally or yourself with a pulse of blood magic.',30,'healing',0,7),
     A('Restore','Red Refrain','All allies near the target','Restore HP to allies in a small area.',15,'healing',0,17),
@@ -124,6 +141,7 @@ export const CATEGORY_OVERRIDES = {
   aegis:'Prepare', refuge:'Protect', armor:'Protect', vow:'Protect', parry:'Protect', sacrifice:'Restore',
   mark:'Prepare', trap:'Prepare', challenge:'Protect', defiant:'Protect', defense:'Protect', roar:'Protect'
 };
+
 export const CLASS_CATEGORY_OVERRIDES = {
   'Mage of the Luminous Archive': { refuge:'Protect', touch:'Assault', spear:'Assault', libram:'Assault' },
   'Cleric of the Everbright': { aegis:'Prepare', judgement:'Assault' },
@@ -140,7 +158,11 @@ const targetRange = (role, target, category) => {
   if (target.includes('near the caster')) return 2;
   if (target.includes('at ranged distance')) return ARENA_RANGE;
   if (target.includes('Self only')) return 0;
+
   if (category === 'Restore' || category === 'Protect') return 6;
+
+  // The condition before ? chooses the first value when true and the value after : when
+  // false.
   return role === 'Ranged DPS' || role === 'Healer' ? 6 : 1;
 };
 
@@ -151,60 +173,70 @@ const EXISTING_ABILITY_DESCRIPTIONS = {
     cleave: 'Spin through nearby enemies, dealing damage and drawing their attention.',
     sand: 'Kick sand at an enemy, dealing damage with a chance to blind them.'
   },
+
   Oathwarden: {
     sacrifice: 'In a desperate final stand, give your life to restore your allies and strengthen them.',
     vow: 'Shield an ally from harm and draw their attackers to you.',
     defense: 'Taunt nearby enemies and greatly reduce the damage you take.',
     parry: 'Deflect an incoming strike and turn its force against the attacker.'
   },
+
   Dawnwarden: {
     challenge: 'Call out an enemy and force it to face you.',
     defiant: 'Draw the attention of several enemies, even those farther away.',
     nova: 'Release a holy burst that damages nearby enemies and draws their attention.',
     strike: 'Strike one enemy with radiant force.'
   },
+
   Barmaid: {
     pan: 'Smack an enemy with a frying pan, dealing damage and stunning them.',
     swing: 'Swing wildly and hit enemies close to you.',
     bash: 'Bash an enemy with your shield, dealing damage and stunning them.',
     lastCall: 'Send a powerful strike down a line, damaging and stunning enemies in its path.'
   },
+
   Scoundrel: {
     stealth: 'Slip out of enemy sight until you attack.',
     surprise: 'Strike from behind while hidden, dealing heavy damage and stunning your target.',
     poison: 'Poison an enemy, slowing their attacks as the poison wears them down.',
     dagger: 'Throw a dagger at a distant enemy.'
   },
+
   Barbarian: {
     enrage: 'Deal more damage in a frenzy, but take more damage and tire afterward.',
     charge: 'Rush an enemy, striking hard and stunning them.',
     strike: 'Deliver a powerful blow to one enemy.',
     rend: 'Tear into one enemy with a devastating strike.'
   },
+
   Ranger: {
     mark: 'Mark an enemy so your party deals more damage to them.',
     rain: 'Rain arrows over a small area, damaging enemies inside it.',
     trap: 'Set a trap that damages and stuns the next enemy to trigger it.',
     arrow: 'Fire an explosive arrow at an enemy.'
   },
+
   'Mage of the Umbral Veil': {
     grasp: 'Seize a nearby enemy with necrotic magic.',
     nightbolt: 'Hurl a bolt of shadow at a distant enemy.',
     gloom: 'Unleash shadow magic across an area, damaging enemies within it.',
     veilstep: 'Step through shadow to reach a distant destination or escape danger.'
   },
+
   'Mage of the Crimson Spire': {
     stabilization: 'Steady your magic, reducing incoming damage and empowering your next damaging spell.',
     lash: 'Lash out with force magic, striking up to two nearby enemies.',
     arcflare: 'Launch a force blast that splashes around its target.',
     spire: 'Fire a piercing beam of force. Allies caught in its path can be hurt too.'
   },
+
   'Mage of the Luminous Archive': {
     refuge: 'Create a refuge that heals you over time and shields you from one hit.',
     touch: 'Burn a nearby enemy with radiant magic and heal your most wounded ally.',
     spear: 'Pierce an enemy with radiant light and heal allies near the target.',
     libram: 'Strike enemies in an area with radiant light and heal your whole party.'
   },
+
   'Cleric of the Everbright': {
     aegis: 'Bless your next single-target heal so it restores both you and your chosen ally.',
     blessing: 'Call down a strong blessing to heal one ally or yourself.',
@@ -212,6 +244,7 @@ const EXISTING_ABILITY_DESCRIPTIONS = {
     pulse: 'Release a pulse of light that heals allies in an area.',
     judgement: 'Scorch an enemy with radiant light, striking harder when they are not focused on a tank.'
   },
+
   'Cleric of the Verdant Covenant': {
     refuge: 'Wrap yourself in living bark, greatly increasing your armor.',
     touch: 'Restore an ally or yourself with a touch of verdant magic.',
@@ -219,6 +252,7 @@ const EXISTING_ABILITY_DESCRIPTIONS = {
     bloom: 'Call forth a bloom that heals allies in an area.',
     thorn: 'Pierce an enemy with a thorn and root them in place.'
   },
+
   'Cleric of the Sanguine Song': {
     ascendance: 'Strengthen your healing and gain a short step through blood magic.',
     transfer: 'Give some of your own health to heal an ally.',
@@ -233,36 +267,54 @@ const specialEffects = {
   'Judicator’s Blow': { threatMultiplier: 1.5 },
   'Reckoning Arc': { threatMultiplier: 1.5 },
   'Dawn Hammer': { threatMultiplier: 1.5 },
+
   'Vigil Before Battle': { nextProtectionBonus: 0.15 },
   'Crowd Favorite': { nextThreatBonus: 1.5 },
   'Set the Table': { selfReduction: 0.1 },
   'Find an Opening': { extraMoveBonus: 0.1 },
+
   'Back Alley Cut': { rearBonus: 0.25 },
   'False Trail': { extraMoveBonus: 0.1 },
   'Battle Breath': { lowHealthBoost: 0.4 },
   'Blood Rush': { extraMoveBonus: 0.15 },
+
   'War Cry': { nextThreatBonus: 1.25 },
   'Scout’s Route': { nextRangeBonus: 1 },
   'Steady Aim': { nextCritOnly: true },
   'Covering Fire': { rangedOnlyDodge: true },
+
   'Void Needle': { healingReduction: 0.2 },
   'Veil Mantle': { targetThreatReduction: 0.2 },
   'Shrouded Steps': { targetThreatReduction: 0.2 },
   'Index of Light': { damageTakenBoost: 0.1 },
+
   'Illuminated Thesis': { nextLinkedHealRatio: 0.25 },
   'Rooted Patience': { nextProtectionDurationBonus: 0.2 },
   'Kindled Faith': { protectiveOnlyWindup: true },
   'Quiet Cadence': { targetThreatReduction: 0.2 }
 };
 
+// Join class skills to their authored workbook rows and add ranked costs, targeting and
+// effect metadata.
 export function addAbilityProgression(classDefinitions) {
+
+  // Object.entries turns own fields into [key, value] pairs so we can visit or transform
+  // them.
   for (const [className, definition] of Object.entries(classDefinitions)) {
     const starters = STARTER_ABILITIES[className];
     for (const [key, ability] of Object.entries(definition.abilities)) {
+
+      // ?? uses the fallback only for null or undefined. A real zero or false stays
+      // intact. ?. only follows this link when the value exists; a missing optional value
+      // gives undefined. The condition before ? chooses the first value when true and the
+      // value after : when false.
       ability.category = CLASS_CATEGORY_OVERRIDES[className]?.[key] ?? CATEGORY_OVERRIDES[key]
         ?? (ability.effect === 'heal' ? 'Restore' : 'Assault');
       ability.starter = starters.includes(key);
       ability.origin = 'Existing';
+
+      // ??= fills a missing value once. It leaves an existing value, including zero or
+      // false, alone.
       ability.description ??= EXISTING_ABILITY_DESCRIPTIONS[className]?.[key] ?? ability.name;
       ability.targetLabel = ability.effect === 'heal' ? ability.zone ? 'Allies near the target' : 'Single ally or self'
         : ability.beam ? 'Enemies in a line'
@@ -271,28 +323,39 @@ export function addAbilityProgression(classDefinitions) {
               : ability.targets ? `Up to ${ability.targets} enemies`
                 : ability.effect === 'vow' ? 'Single ally or self'
                   : ['damage', 'mark', 'taunt', 'trap'].includes(ability.effect) ? 'Single enemy' : 'Self only';
+
       if (Number.isFinite(ability.power) && ability.power > 0) {
+
+        // Math.min chooses the smallest value; pairing it with Math.max can keep a result
+        // inside both a lower and an upper bound.
         ability.power = Math.min(32, Math.max(4, Math.round(ability.power * (ability.effect === 'heal' ? 0.7 : 0.65))));
       }
+
       if (Number.isFinite(ability.highPower)) ability.highPower = Math.min(32, Math.max(4, Math.round(ability.highPower * 0.65)));
       if (Number.isFinite(ability.lowHealthPower)) ability.lowHealthPower = Math.min(32, Math.max(4, Math.round(ability.lowHealthPower * 0.7)));
       if (Number.isFinite(ability.retaliation)) ability.retaliation = Math.max(4, Math.round(ability.retaliation * 0.65));
+
       if (ability.effect === 'enrage') {
         ability.damageMultiplier = 1.3;
         ability.incomingMultiplier = 1.3;
         ability.recoveryMultiplier = 0.8;
       }
+
       if (ability.effect === 'stealth') ability.duration = 8000;
       if (ability.effect === 'aegis') ability.healBonus = 0.25;
       if (ability.effect === 'vow') ability.reduction = 0.35;
+
       if (ability.effect === 'armor') ability.armorMultiplier = 2.25;
       if (ability.effect === 'taunt') ability.threatBonus = 0.2;
       if (ability.poison) ability.poison = { ...ability.poison, power: Math.max(3, Math.round(ability.poison.power * 0.7)) };
+
       if (ability.duration) ability.duration = Math.min(10000, ability.duration);
       if (ability.stun) ability.stun = Math.min(2000, ability.stun);
       if (ability.root) ability.root = Math.min(3000, ability.root);
+
       if (ability.blind) ability.blind = Math.min(3000, ability.blind);
     }
+
     for (const entry of NEW_CLASS_ABILITIES[className]) {
       const key = abilityKey(entry.name);
       const kind = targetKind(entry.target);
@@ -304,6 +367,7 @@ export function addAbilityProgression(classDefinitions) {
         description: entry.effect,
         target: kind,
         targetLabel: entry.target === 'Single ally' ? 'Single ally or self' : entry.target,
+
         effect: entry.category === 'Assault' ? 'damage' : entry.category === 'Restore' ? 'heal'
           : entry.category === 'Protect' ? 'protect' : 'prepare',
         power: entry.value,
@@ -317,17 +381,23 @@ export function addAbilityProgression(classDefinitions) {
             : className.includes('Luminous') || className === 'Dawnwarden' || className.includes('Everbright') ? 'radiant'
               : className.includes('Verdant') ? 'nature' : className.includes('Sanguine') ? 'blood/necrotic' : 'physical'
       };
+
+      // Object.assign writes these fields into its first argument. Later sources replace
+      // earlier fields; nested values are not deep-copied.
       Object.assign(ability, specialEffects[entry.name] ?? {});
       if (entry.target.includes('near the target')) ability.zone = 2;
       if (entry.target.includes('near the caster')) ability.radius = 2;
+
       if (entry.effect.includes('slow')) ability.slow = 0.2;
       if (entry.effect.includes('blind')) ability.blind = 2000;
       if (entry.effect.includes('rush')) ability.charge = true;
+
       if (entry.effect.includes('threat') && entry.category === 'Assault') ability.threatMultiplier = 1.5;
       if (entry.effect.includes('Intercept') || entry.effect.includes('intercept')) ability.intercept = true;
       if (entry.effect.includes('poison')) ability.poison = { power: entry.value, interval: 2000, duration: 6000 };
       definition.abilities[key] = ability;
     }
+
     for (const [key, ability] of Object.entries(definition.abilities)) {
       const workbook = ABILITY_WORKBOOK[className]?.[ability.name];
       if (!workbook) continue;
@@ -341,6 +411,7 @@ export function addAbilityProgression(classDefinitions) {
           : workbook.Target === 'Allies' ? 'allies'
             : workbook.Target === 'Enemies' ? 'enemies'
               : 'enemy';
+
       ability.starter = STARTER_KITS[className].includes(ability.name);
       ability.origin = ability.origin ?? 'Existing';
       ability.power = workbook.Potency;
@@ -350,22 +421,27 @@ export function addAbilityProgression(classDefinitions) {
       ability.range = workbook['Cast Range'] === 'Self' ? 0
         : workbook['Cast Range'] === 'Anywhere' ? ARENA_RANGE
           : workbook['Cast Range'] / ADJACENT_DISTANCE;
+
       ability.radius = undefined;
       ability.zone = undefined;
       ability.beam = undefined;
       ability.splash = undefined;
+
       if (workbook['Area Shape'] === 'Circle') {
         const radius = workbook['Area Radius'] / ADJACENT_DISTANCE;
         if (workbook['Area Anchor'] === 'Caster') ability.radius = radius;
         else ability.zone = radius;
       }
+
       if (workbook['Area Shape'] === 'Line') ability.beam = true;
       const targetLimit = workbook['Maximum Targets'];
       ability.targets = targetLimit === 'All' ? undefined : targetLimit;
+
       if (ability.targets === undefined && ['taunt', 'damage'].includes(ability.effect)) {
         ability.targets = targetLimit === 'All' ? Infinity : undefined;
       }
     }
   }
+
   return classDefinitions;
 }

@@ -1,4 +1,8 @@
+
+/* Start with a full-window page; Phaser owns game scrolling, so the browser page stays still. */
 html,
+
+/* Fixed edges prevent browser page movement while fingers drag the map or a game list. */
 body {
   margin: 0;
   padding: 0;
@@ -14,12 +18,8 @@ body {
   inset: 0;
 }
 
-/*
- * Android can render the WebView edge-to-edge underneath the status
- * and navigation bars. Capacitor's native margin adjustment is the
- * primary protection. These safe-area insets are an additional layer
- * for display cutouts and browsers that expose them.
- */
+/* Capacitor reserves Android system-bar space; env() adds browser-reported cutout insets. */
+/* Each inset falls back to zero when unavailable. Flex centers Phaser within the usable area. */
 #game {
   position: absolute;
   top: env(safe-area-inset-top, 0px);
@@ -36,6 +36,9 @@ body {
   overflow: hidden;
 }
 
+
+/* A canvas is normally inline and can leave a text-baseline gap, so make it block-level. */
+/* touch-action:none gives game gestures to Phaser instead of browser zoom or scrolling. */
 #game canvas {
   display: block;
   max-width: 100%;
@@ -63,8 +66,11 @@ body {
   opacity: 1;
 }
 
+/* Hidden means invisible and unable to intercept input, allowing touches into the game below. */
 .loading-screen.is-hidden { opacity: 0; pointer-events: none; visibility: hidden; }
 
+/* Keep the 1672-by-941 splash proportions. 177.68% of height is the matching artwork width. */
+/* dvh uses viewport height; cqw/cqh use the containing splash box and override when supported. */
 .loading-content {
   position: relative;
   width: min(100%, 177.68dvh);
@@ -74,7 +80,11 @@ body {
   overflow: hidden;
 }
 
+
+/* The artwork and dark overlay cover the same local box; neither changes its layout size. */
 .loading-art,
+
+/* Darken the top and bottom for text contrast while leaving the center artwork unobscured. */
 .loading-vignette {
   position: absolute;
   width: 100%;
@@ -91,6 +101,9 @@ body {
   background: linear-gradient(180deg, rgba(7, 15, 25, .7), transparent 32%, transparent 64%, rgba(7, 15, 25, .88));
 }
 
+
+/* left:50% places the SVG's left edge at center; translateX(-50%) then centers the SVG itself. */
+/* CSS variables come from uiTypography. fill/stroke style SVG text; paint-order puts trim behind it. */
 .loading-title {
   position: absolute;
   top: 6%;
@@ -110,7 +123,12 @@ body {
   letter-spacing: 3px;
 }
 
+
+/* Wait for the art-ready class before showing text over an image that has not loaded yet. */
 .loading-title,
+
+/* Anchor the footer to the same art box. max() leaves at least 18 pixels at the bottom. */
+/* clamp() keeps the text between readable bounds while its middle value follows box width. */
 .loading-footer {
   visibility: hidden;
   opacity: 0;
@@ -134,7 +152,15 @@ body {
   text-shadow: 0 2px 4px #10282e;
 }
 
-.loading-status { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 11px; }
+.loading-status {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 11px;
+}
+
+/* Keep Loading intact; let the build label use the remaining width and wrap long branch names. */
 #loading-message { flex: 0 0 auto; white-space: nowrap; }
 #loading-build {
   min-width: 0;
@@ -151,14 +177,30 @@ body {
   clip-path: inset(0 100% 0 0);
   animation: loading-dots 1.6s steps(1, end) infinite;
 }
+
+/* Reveal one more third of the dots at a time. steps() gives discrete changes instead of a fade. */
 @keyframes loading-dots {
   25% { clip-path: inset(0 66.67% 0 0); }
   50% { clip-path: inset(0 33.33% 0 0); }
   75%, 100% { clip-path: inset(0 0 0 0); }
 }
-.loading-track { height: clamp(10px, 1.3cqw, 18px); border: 3px solid #e7c98f; background: #193439; box-shadow: 0 3px 0 #10292f; }
-.loading-progress { width: 0; height: 100%; background: linear-gradient(90deg, #8ec9b0, #f5d58e); transition: width 100ms linear; }
 
+/* The track is the full capacity. JavaScript changes the inner fill width as assets load. */
+.loading-track {
+  height: clamp(10px, 1.3cqw, 18px);
+  border: 3px solid #e7c98f;
+  background: #193439;
+  box-shadow: 0 3px 0 #10292f;
+}
+
+.loading-progress {
+  width: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #8ec9b0, #f5d58e);
+  transition: width 100ms linear;
+}
+
+/* Respect the device's reduced-motion preference without hiding actual loading progress. */
 @media (prefers-reduced-motion: reduce) {
   .loading-progress { transition: none; }
   .loading-dots::after { animation: none; clip-path: none; }

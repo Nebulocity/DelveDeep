@@ -1,3 +1,8 @@
+// This encounter owns its artwork layers, waves and walkable floor outline. The polygon
+// points use original artwork pixels. LayeredEnvironment scales and positions them with
+// the art, then clips the lower edge above the party HUD. Foreground decoration can cover
+// sprites without becoming blocking terrain.
+
 export default {
   id: 'thornbriar-hollow',
   name: 'Thornbriar Hollow',
@@ -24,6 +29,7 @@ export default {
           url: new URL('../../assets/environments/thornbriar-hollow-pixel/camp.png', import.meta.url).href,
           depth: -1000 }
       ],
+
       foreground: {
         sourceKey: 'thornbriar-hollow-pixel-art', depth: 4300,
         polygons: [
@@ -35,6 +41,7 @@ export default {
             [1672, 941]]
         ]
       },
+
       forestEffects: {
         fires: [
           { x: 908, y: 380, radius: 76, strength: 1 },
@@ -42,6 +49,7 @@ export default {
           { x: 1071, y: 246, radius: 34, strength: 0.55 },
           { x: 1436, y: 262, radius: 38, strength: 0.68 }
         ],
+
         embers: [
           { x: 908, y: 359, spread: 31, rise: 68, count: 8 },
           { x: 227, y: 314, spread: 13, rise: 36, count: 3 },

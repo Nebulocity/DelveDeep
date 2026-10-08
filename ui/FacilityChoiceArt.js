@@ -1,3 +1,7 @@
+// These helpers draw the decorative illustrations for facility actions. Artwork uses local
+// drawing coordinates, then the container places the finished illustration on the screen.
+// It does not decide prices or perform transactions.
+
 import { fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 const THEMES = {
   Hall: { face: 0x382416, edge: 0xc89b61, glow: 0xf3d5a1, shadow: 0x160d08 },
@@ -6,14 +10,17 @@ const THEMES = {
   Enchanter: { face: 0x28243b, edge: 0x9d86bd, glow: 0xe2d1ff, shadow: 0x100d1a }
 };
 
+// Trace and outline the supplied local-coordinate shape on this Graphics object.
 function strokeShape(graphics, points, close = true) {
   graphics.beginPath();
   graphics.moveTo(points[0], points[1]);
   for (let i = 2; i < points.length; i += 2) graphics.lineTo(points[i], points[i + 1]);
+
   if (close) graphics.closePath();
   graphics.strokePath();
 }
 
+// Draw the matching decorative illustration in the action card's local coordinate space.
 function drawChoiceIcon(graphics, icon, color) {
   graphics.lineStyle(5, color, 0.96);
   if (icon === 'shield') {
@@ -59,6 +66,7 @@ function drawChoiceIcon(graphics, icon, color) {
     graphics.strokeCircle(18, 20, 6);
     graphics.lineBetween(-9, -10, 9, -10);
     graphics.lineBetween(-9, 0, 9, 0);
+
     if (icon === 'scroll-sale') graphics.strokeCircle(23, -22, 8);
   } else if (icon === 'rune') {
     strokeShape(graphics, [0, -31, 8, -8, 29, 0, 8, 8, 0, 31, -8, 8, -29, 0, -8, -8]);
@@ -66,7 +74,10 @@ function drawChoiceIcon(graphics, icon, color) {
   }
 }
 
+// Combine the facility face, icon and label with a fixed card input area.
 export function addFacilityChoiceCard(scene, facilityName, entry, x, y, width, active = false, { height = 150, showSubtitle = true } = {}) {
+
+  // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
   const theme = THEMES[facilityName] ?? THEMES.Hall;
   const left = x - width / 2;
   const top = y - height / 2;
@@ -74,16 +85,25 @@ export function addFacilityChoiceCard(scene, facilityName, entry, x, y, width, a
   art.fillStyle(theme.shadow, 0.96);
   art.fillRoundedRect(left + 5, top + 7, width, height, 15);
   art.fillStyle(theme.face, 0.96);
+
   art.fillRoundedRect(left, top, width, height, 15);
+
+  // The condition before ? chooses the first value when true and the value after : when
+  // false.
   art.lineStyle(active ? 6 : 4, active ? theme.glow : theme.edge, 0.95);
   art.strokeRoundedRect(left, top, width, height, 15);
   art.lineStyle(2, theme.edge, 0.45);
   art.strokeRoundedRect(left + 9, top + 9, width - 18, height - 18, 10);
+
   for (let i = 0; i < 9; i++) {
+
+    // % gives the remainder. With a nonnegative index and positive list length, it wraps
+    // the index back to the start of the list.
     art.lineStyle(1, i % 3 === 0 ? theme.glow : theme.shadow, i % 3 === 0 ? 0.15 : 0.3);
     const grainY = top + 16 + i * (height - 32) / 8;
     art.lineBetween(left + 120, grainY, left + width - 20 - i % 3 * 13, grainY);
   }
+
   if (facilityName === 'Blacksmith') {
     art.fillStyle(0x111515, 0.7);
     art.fillRect(left + 14, top + 16, 8, height - 32);
@@ -97,6 +117,7 @@ export function addFacilityChoiceCard(scene, facilityName, entry, x, y, width, a
     art.strokeCircle(left + width - 59, y - 20, 9);
     art.strokeCircle(left + width - 39, y + 17, 5);
   }
+
   [left + 21, left + width - 21].forEach((rivetX) => {
     [top + 20, top + height - 20].forEach((rivetY) => {
       art.fillStyle(0x171819);
@@ -113,33 +134,50 @@ export function addFacilityChoiceCard(scene, facilityName, entry, x, y, width, a
   emblem.fillCircle(0, 0, 53);
   emblem.lineStyle(4, theme.edge, 0.95);
   emblem.strokeCircle(0, 0, 52);
+
   emblem.lineStyle(1, theme.glow, 0.55);
   emblem.strokeCircle(0, 0, 44);
   drawChoiceIcon(emblem, entry.icon, theme.glow);
+
   if (compact || !showSubtitle) emblem.setScale(0.55);
 
+  // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the center and
+  // 1 is the right/bottom edge. x/y place that anchor, not necessarily the object's
+  // corner.
   scene.add.text(showSubtitle ? x : x + 28, showSubtitle ? compact ? y + 14 : y - 24 : y, entry.label, {
     fontFamily: UI_FONT_FAMILIES.serif, fontSize: width < 500 ? fontPx('body34') : entry.label.length > 10 ? fontPx('heading38') : fontPx('heading42'),
     fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff1d2',
     stroke: theme.shadow === 0x100d1a ? '#100d1a' : '#170f0a', strokeThickness: 3
   }).setOrigin(0.5);
+
   if (showSubtitle) scene.add.text(x, compact ? y + 53 : y + 34, entry.subtitle, {
     fontFamily: UI_FONT_FAMILIES.sans, fontSize: compact ? fontPx('support28') : fontPx('support29'), color: '#e8d6bc', align: 'center',
     wordWrap: { width: compact ? width - 30 : width - 185 }
   }).setOrigin(0.5);
+
+  // This gives the display object an input hit area. Visible artwork alone does not make
+  // an object respond to a tap.
   return scene.add.rectangle(x, y, width, height, 0x000000, 0).setInteractive({ useHandCursor: true });
 }
 
+// Draw a small matching symbol beside the item category control.
 export function addCategoryIcon(scene, icon, x, y, color) {
   const art = scene.add.graphics().setPosition(x, y).setScale(0.55);
   drawChoiceIcon(art, icon, color);
   return art;
 }
+
+// Build the facility action surface using the supplied dimensions and visual theme.
 export function addFacilityPlate(scene, facilityName, x, y, width, height) {
+
+  // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
   const theme = THEMES[facilityName] ?? THEMES.Hall;
   const art = scene.add.graphics().setPosition(x, y);
   const left = -width / 2;
   const top = -height / 2;
+
+  // The condition before ? chooses the first value when true and the value after : when
+  // false.
   const radius = facilityName === 'Blacksmith' ? 5 : 14;
   art.fillStyle(theme.shadow, 0.95);
   art.fillRoundedRect(left + 4, top + 6, width, height, radius);
@@ -147,12 +185,20 @@ export function addFacilityPlate(scene, facilityName, x, y, width, height) {
   art.fillRoundedRect(left, top, width, height, radius);
   art.lineStyle(3, theme.edge, 0.95);
   art.strokeRoundedRect(left, top, width, height, radius);
+
   art.lineStyle(1, theme.glow, 0.4);
+
+  // Math.max chooses the largest value; pairing it with Math.min can keep a result inside
+  // both a lower and an upper bound.
   art.strokeRoundedRect(left + 7, top + 7, width - 14, height - 14, Math.max(2, radius - 4));
   for (let i = 0; i < 5; i++) {
+
+    // % gives the remainder. With a nonnegative index and positive list length, it wraps
+    // the index back to the start of the list.
     art.lineStyle(1, i % 2 ? theme.glow : theme.shadow, i % 2 ? 0.08 : 0.35);
     art.lineBetween(left + 18, top + 15 + i * (height - 30) / 4, -left - 18, top + 15 + i * (height - 30) / 4);
   }
+
   for (const side of [-1, 1]) {
     const edgeX = side * (width / 2 - 17);
     if (facilityName === 'Blacksmith') {
@@ -176,5 +222,6 @@ export function addFacilityPlate(scene, facilityName, x, y, width, height) {
       art.lineBetween(edgeX - 8, 0, edgeX + 8, 0);
     }
   }
+
   return { art, theme };
 }

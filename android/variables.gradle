@@ -1,7 +1,13 @@
+
+// Gradle's ext exposes these shared settings to the app build.
+// minSdk is the oldest supported Android API level. compileSdk supplies build-time APIs;
+// targetSdk opts into that Android version's behavior. The remaining values pin libraries.
 ext {
     minSdkVersion = 24
     compileSdkVersion = 36
     targetSdkVersion = 36
+
+    // AndroidX supports the native activity, WebView, splash screen and other host pieces.
     androidxActivityVersion = '1.11.0'
     androidxAppCompatVersion = '1.7.1'
     androidxCoordinatorLayoutVersion = '1.3.0'
@@ -9,6 +15,8 @@ ext {
     androidxFragmentVersion = '1.8.9'
     coreSplashScreenVersion = '1.2.0'
     androidxWebkitVersion = '1.14.0'
+
+    // These libraries support native tests; Phaser gameplay tests run separately through Node.
     junitVersion = '4.13.2'
     androidxJunitVersion = '1.3.0'
     androidxEspressoCoreVersion = '3.7.0'

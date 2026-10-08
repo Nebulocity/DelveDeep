@@ -1,3 +1,7 @@
+// These builders make the fixed map controls and messages. The map camera moves world
+// artwork, while fixed controls should remain in screen space. Keep the visible list mask
+// and the list's valid touch region lined up.
+
 import { fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import { bindSelectionDetails } from './SelectionDetails.js';
 import { addRegionPanel, setRegionPanelState } from './RegionMapTheme.js';
@@ -6,7 +10,12 @@ export const REGION_RAIL_WIDTH = 460;
 export const MAP_HEADER_HEIGHT = 116;
 export const MAP_FOOTER_HEIGHT = 146;
 
+// Build the scrollable destination list and its fixed visible/input bounds. scene is the
+// Phaser screen that owns the objects, clock and input used here.
 export function createRegionLocationRail(scene, locations, canVisit, isCleared, details, select) {
+
+  // The braces pull named fields into local variables. This reads those fields without
+  // copying the whole source object.
   const { height } = scene.scale;
   const width = REGION_RAIL_WIDTH;
   const fixed = object => object.setScrollFactor(0).setDepth(1000);
@@ -14,24 +23,47 @@ export function createRegionLocationRail(scene, locations, canVisit, isCleared, 
   fixed(scene.add.text(32, 147, 'DESTINATIONS', {
     fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx('body36'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#f2d79f'
   }));
+
   fixed(scene.add.text(32, 198, 'Choose a place to travel', {
     fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('mapDestinationHint'), color: '#b4c4af'
   }));
   const listTop = 239;
   const listBottom = height - 158;
   const rowStep = 102;
+
+  // Scroll factor controls how much the object follows the camera. Zero keeps it fixed
+  // while the world scrolls. Depth is drawing order, not distance or size. Higher-depth
+  // objects draw on top of lower-depth objects.
   const list = scene.add.container(0, 0).setDepth(1002).setScrollFactor(0);
   const clip = scene.make.graphics({ x: 0, y: 0, add: false });
   clip.fillStyle(0xffffff).fillRect(18, listTop, width - 36, listBottom - listTop);
+
+  // The mask limits which pixels are drawn. It does not automatically limit the touch hit
+  // area; input bounds need their own check. A geometry mask uses a Graphics shape to
+  // decide which pixels remain visible. The mask shape can be hidden while still clipping
+  // its target.
   list.setMask(clip.createGeometryMask());
+
+  // once registers a callback that removes itself after the first matching event.
   scene.events.once('shutdown', () => clip.destroy());
+
+  // map builds one output entry for each input entry, in the same order. The callback's
+  // return value becomes that output entry.
   scene.locationRows = locations.map((poi, index) => {
     const y = 282 + index * rowStep;
     const open = canVisit(poi);
     const row = addRegionPanel(scene, width / 2 - 3, y, width - 40, 92, 1001).setName(`destination-${poi.id}`);
+
+    // Depth is drawing order, not distance or size. Higher-depth objects draw on top of
+    // lower-depth objects. The condition before ? chooses the first value when true and
+    // the value after : when false.
     const name = fixed(scene.add.text(38, y - 28, poi.name, {
       fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx('mapDestination'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff0cd'
     })).setDepth(1002).setAlpha(open ? 1 : 0.55);
+
+    // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the center
+    // and 1 is the right/bottom edge. x/y place that anchor, not necessarily the object's
+    // corner.
     const status = fixed(scene.add.text(38, y + 20, '', {
       fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('mapDestinationStatus'), color: '#acc7a5'
     })).setOrigin(0, 0.5).setDepth(1002);
@@ -42,8 +74,12 @@ export function createRegionLocationRail(scene, locations, canVisit, isCleared, 
       const screenY = row.y + list.y + localY - row.height / 2;
       return screenY >= listTop && screenY <= listBottom && hitTest(area, localX, localY, object);
     };
+
     return { poi, row, status, open };
   });
+
+  // Math.max chooses the largest value; pairing it with Math.min can keep a result inside
+  // both a lower and an upper bound.
   const maxOffset = Math.max(0, 282 + (locations.length - 1) * rowStep + 46 - listBottom);
   const track = scene.add.graphics().lineStyle(4, 0x9ab39b, 0.45)
     .lineBetween(0, -(listBottom - listTop - 10) / 2, 0, (listBottom - listTop - 10) / 2)
@@ -52,13 +88,18 @@ export function createRegionLocationRail(scene, locations, canVisit, isCleared, 
   const thumb = scene.add.graphics().lineStyle(8, 0xe1c887, 0.9)
     .lineBetween(0, -thumbHeight / 2, 0, thumbHeight / 2)
     .setPosition(width - 12, listTop + 5 + thumbHeight / 2).setScrollFactor(0).setDepth(1004);
+
   track.setVisible(maxOffset > 0);
   thumb.setVisible(maxOffset > 0);
   const scroll = delta => {
+
+    // Math.max chooses the largest value; pairing it with Math.min can keep a result
+    // inside both a lower and an upper bound.
     list.y = -Math.max(0, Math.min(maxOffset, -list.y + delta));
     if (maxOffset > 0) thumb.y = listTop + 5 + thumbHeight / 2
       + (-list.y / maxOffset) * (listBottom - listTop - 10 - thumbHeight);
   };
+
   const inList = pointer => pointer.x >= 18 && pointer.x <= width - 18 && pointer.y >= listTop && pointer.y <= listBottom;
   const onWheel = (pointer, objects, deltaX, deltaY) => { if (inList(pointer)) scroll(deltaY); };
   let drag = null;
@@ -69,7 +110,11 @@ export function createRegionLocationRail(scene, locations, canVisit, isCleared, 
     scroll(drag.y - pointer.y);
     drag.y = pointer.y;
   };
+
   const onUp = () => { drag = null; };
+
+  // on registers a callback for later events; it does not call that callback now.
+  // Long-lived emitters need matching listener cleanup.
   scene.input.on('wheel', onWheel);
   scene.input.on('pointerdown', onDown);
   scene.input.on('pointermove', onMove);
@@ -82,16 +127,27 @@ export function createRegionLocationRail(scene, locations, canVisit, isCleared, 
     scene.input.off('pointerup', onUp);
     scene.input.off('gameout', onUp);
   });
+
   fixed(scene.add.text(32, height - 95, 'Hold a destination\nfor details', {
     fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('mapDestinationHint'), color: '#b4c4af', lineSpacing: 7
   }));
   updateRegionLocationRail(scene, isCleared);
 }
 
+// Refresh destination access, travel and clear labels from current world progress. scene
+// is the Phaser screen that owns the objects, clock and input used here.
 export function updateRegionLocationRail(scene, isCleared) {
+
+  // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
   for (const { poi, row, status, open } of scene.locationRows ?? []) {
+
+    // ?. only follows this link when the value exists; a missing optional value gives
+    // undefined.
     const traveling = scene.destination?.id === poi.id;
     const here = !scene.activeEdge && scene.partyNode === poi.node;
+
+    // The condition before ? chooses the first value when true and the value after : when
+    // false.
     setRegionPanelState(scene, row, traveling || here ? 'selected' : 'normal', open ? 1 : 0.4);
     status.setText(!open ? 'Locked' : traveling ? 'Traveling...' : here ? 'Party is here'
       : isCleared(poi.id) && ['delve', 'void'].includes(poi.type) ? 'Cleared · Travel' : 'Travel')
@@ -99,15 +155,24 @@ export function updateRegionLocationRail(scene, isCleared) {
   }
 }
 
+// Keep fixed controls and scrollable world artwork assigned to the appropriate camera.
+// scene is the Phaser screen that owns the objects, clock and input used here.
 export function syncRegionMapCameras(scene) {
   const map = scene.cameras.main;
   const ui = scene.mapUiCamera;
   if (!ui) return;
+
   for (const object of scene.children.list) {
     const fixed = object.depth >= 999 || object.name === 'region-map-surface';
+
+    // The condition before ? chooses the first value when true and the value after : when
+    // false. These bit operators work with 32-bit integers. >>> shifts in zero bits, while
+    // ^ mixes bits with XOR. They are different from ordinary multiplication or
+    // exponentiation.
     object.cameraFilter = fixed
       ? (object.cameraFilter | map.id) & ~ui.id
       : (object.cameraFilter | ui.id) & ~map.id;
+
     if (fixed) object.setScrollFactor(0);
   }
 }

@@ -1,3 +1,8 @@
+// These values tune the Slime Cave against the starting party without changing the shared
+// combat rules. Treat durability, damage and skill potency as separate knobs. Enemy
+// definitions read this configuration; the battle still uses the normal armor, accuracy
+// and targeting code.
+
 const physicalPotency = { damageType: 'physical', powerUnit: 'percent' };
 
 export const SLIME_BALANCE = {
@@ -8,20 +13,24 @@ export const SLIME_BALANCE = {
         power: 180, ...physicalPotency }
     }
   },
+
   elderSlime: {
     maxHp: 7000, armor: 120, attackPower: 28,
     abilities: {
       primary: { name: 'Crushing Slime Slam', cooldown: 5400, telegraph: 1350, radius: 165,
         power: 180, ...physicalPotency },
+
       secondary: { name: 'Toxic Glob', cooldown: 7200, windup: 750,
         power: 120, ...physicalPotency }
     }
   },
+
   slimeSovereign: {
     maxHp: 24000, armor: 160, attackPower: 230,
     abilities: {
       primary: { name: 'Crushing Slime Slam', cooldown: 5400, telegraph: 1350, radius: 165,
         power: 180, ...physicalPotency },
+
       secondary: { name: 'Toxic Glob', cooldown: 7200, windup: 750,
         power: 120, ...physicalPotency }
     }

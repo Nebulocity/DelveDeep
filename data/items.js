@@ -1,5 +1,20 @@
-export const ITEM_RARITIES = { common: { label: 'Common', color: '#d6d3d1' }, uncommon: { label: 'Uncommon', color: '#4ade80' }, rare: { label: 'Rare', color: '#60a5fa' }, epic: { label: 'Epic', color: '#c084fc' }, legendary: { label: 'Legendary', color: '#fb923c' } };
+// This is the shared item, material and recipe catalog. Definitions describe kinds of
+// items; inventory stores owned counts and individual gear copies. Recipe material keys
+// must match material IDs, and aliases preserve compatibility with old saves.
 
+export const ITEM_RARITIES = {
+  common: { label: 'Common', color: '#d6d3d1' },
+  uncommon: { label: 'Uncommon', color: '#4ade80' },
+  rare: { label: 'Rare', color: '#60a5fa' },
+  epic: { label: 'Epic', color: '#c084fc' },
+  legendary: { label: 'Legendary', color: '#fb923c' }
+};
+
+
+// id names the reusable definition; an owned copy receives a separate instance ID.
+// slot chooses weapon, armor, accessory or potion, and usableBy lists compatible classes.
+// stats are bonuses applied by equipment helpers; attribute bonuses can also affect
+// derived combat values. price and sellPrice are Gold amounts, not percentages.
 export const CATALOG_ITEMS = [
   {
     "id": "BLS01",
@@ -14,6 +29,7 @@ export const CATALOG_ITEMS = [
       "Barmaid",
       "Scoundrel"
     ],
+
     "stats": {
       "strength": 1.0,
       "attackPower": 2.0
@@ -25,6 +41,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "ILS01",
     "name": "Iron Longsword",
@@ -38,6 +55,7 @@ export const CATALOG_ITEMS = [
       "Barmaid",
       "Scoundrel"
     ],
+
     "stats": {
       "strength": 3.0,
       "attackPower": 6.0
@@ -49,6 +67,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "SLS01",
     "name": "Steel Longsword",
@@ -62,6 +81,7 @@ export const CATALOG_ITEMS = [
       "Barmaid",
       "Scoundrel"
     ],
+
     "stats": {
       "speed": 1.0,
       "strength": 6.0,
@@ -75,6 +95,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "MLS01",
     "name": "Mithril Longsword",
@@ -88,6 +109,7 @@ export const CATALOG_ITEMS = [
       "Barmaid",
       "Scoundrel"
     ],
+
     "stats": {
       "speed": 2.0,
       "strength": 10.0,
@@ -101,6 +123,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "BSS01",
     "name": "Bronze Shortsword",
@@ -111,6 +134,7 @@ export const CATALOG_ITEMS = [
       "Barmaid",
       "Scoundrel"
     ],
+
     "stats": {
       "strength": 1.0,
       "attackPower": 2.0
@@ -122,6 +146,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "ISS01",
     "name": "Iron Shortsword",
@@ -132,6 +157,7 @@ export const CATALOG_ITEMS = [
       "Barmaid",
       "Scoundrel"
     ],
+
     "stats": {
       "strength": 3.0,
       "attackPower": 6.0
@@ -143,6 +169,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "SSS01",
     "name": "Steel Shortsword",
@@ -153,6 +180,7 @@ export const CATALOG_ITEMS = [
       "Barmaid",
       "Scoundrel"
     ],
+
     "stats": {
       "speed": 1.0,
       "strength": 6.0,
@@ -166,6 +194,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "MSS01",
     "name": "Mithril Shortsword",
@@ -176,6 +205,7 @@ export const CATALOG_ITEMS = [
       "Barmaid",
       "Scoundrel"
     ],
+
     "stats": {
       "speed": 2.0,
       "strength": 10.0,
@@ -189,6 +219,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "BDS01",
     "name": "Bronze Dagger",
@@ -197,6 +228,7 @@ export const CATALOG_ITEMS = [
     "usableBy": [
       "Scoundrel"
     ],
+
     "stats": {
       "agility": 1.0,
       "critChance": 0.005,
@@ -204,11 +236,13 @@ export const CATALOG_ITEMS = [
     },
     "price": 25.0,
     "sellPrice": 7.0,
+
     "description": "A slightly bent bronze dagger.",
     "uses": 0,
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "IDS01",
     "name": "Iron Dagger",
@@ -217,6 +251,7 @@ export const CATALOG_ITEMS = [
     "usableBy": [
       "Scoundrel"
     ],
+
     "stats": {
       "agility": 3.0,
       "critChance": 0.0075,
@@ -224,11 +259,13 @@ export const CATALOG_ITEMS = [
     },
     "price": 100.0,
     "sellPrice": 30.0,
+
     "description": "A decent quality Iron Dagger",
     "uses": 0,
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "SDS01",
     "name": "Steel Dagger",
@@ -237,6 +274,7 @@ export const CATALOG_ITEMS = [
     "usableBy": [
       "Scoundrel"
     ],
+
     "stats": {
       "speed": 1.0,
       "agility": 6.0,
@@ -250,6 +288,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "MDS01",
     "name": "Mithril Dagger",
@@ -258,6 +297,7 @@ export const CATALOG_ITEMS = [
     "usableBy": [
       "Scoundrel"
     ],
+
     "stats": {
       "speed": 2.0,
       "agility": 10.0,
@@ -271,6 +311,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "PST01",
     "name": "Pine Staff",
@@ -284,6 +325,7 @@ export const CATALOG_ITEMS = [
       "Cleric of the Verdant Covenant",
       "Cleric of the Sanguine Song"
     ],
+
     "stats": {
       "maxMana": 10.0,
       "intellect": 1.0,
@@ -291,6 +333,7 @@ export const CATALOG_ITEMS = [
       "spellDamage": 5.0,
       "spellHealing": 5.0
     },
+
     "price": 25.0,
     "sellPrice": 7.0,
     "description": "A freshly-cut Pine Staff",
@@ -298,6 +341,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "MST01",
     "name": "Maple Staff",
@@ -311,6 +355,7 @@ export const CATALOG_ITEMS = [
       "Cleric of the Verdant Covenant",
       "Cleric of the Sanguine Song"
     ],
+
     "stats": {
       "maxMana": 25.0,
       "intellect": 3.0,
@@ -318,6 +363,7 @@ export const CATALOG_ITEMS = [
       "spellDamage": 10.0,
       "spellHealing": 10.0
     },
+
     "price": 100.0,
     "sellPrice": 30.0,
     "description": "A decent quality Maple Staff",
@@ -325,6 +371,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "OST01",
     "name": "Oak Staff",
@@ -338,6 +385,7 @@ export const CATALOG_ITEMS = [
       "Cleric of the Verdant Covenant",
       "Cleric of the Sanguine Song"
     ],
+
     "stats": {
       "maxMana": 50.0,
       "speed": 1.0,
@@ -346,6 +394,7 @@ export const CATALOG_ITEMS = [
       "spellDamage": 20.0,
       "spellHealing": 20.0
     },
+
     "price": 300.0,
     "sellPrice": 90.0,
     "description": "A sturdy, leather-wrapped oak staff.",
@@ -353,6 +402,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "IST01",
     "name": "Ironwood Staff",
@@ -366,6 +416,7 @@ export const CATALOG_ITEMS = [
       "Cleric of the Verdant Covenant",
       "Cleric of the Sanguine Song"
     ],
+
     "stats": {
       "maxMana": 100.0,
       "speed": 2.0,
@@ -374,6 +425,7 @@ export const CATALOG_ITEMS = [
       "spellDamage": 30.0,
       "spellHealing": 30.0
     },
+
     "price": 900.0,
     "sellPrice": 270.0,
     "description": "A heavy ironwood staff.",
@@ -381,6 +433,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "PBR01",
     "name": "Pine Bow",
@@ -389,6 +442,7 @@ export const CATALOG_ITEMS = [
     "usableBy": [
       "Ranger"
     ],
+
     "stats": {
       "agility": 1.0,
       "critChance": 0.0025,
@@ -402,6 +456,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "MBR01",
     "name": "Maple Bow",
@@ -410,6 +465,7 @@ export const CATALOG_ITEMS = [
     "usableBy": [
       "Ranger"
     ],
+
     "stats": {
       "agility": 3.0,
       "critChance": 0.005,
@@ -423,6 +479,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "OBR01",
     "name": "Oak Bow",
@@ -431,6 +488,7 @@ export const CATALOG_ITEMS = [
     "usableBy": [
       "Ranger"
     ],
+
     "stats": {
       "speed": 1.0,
       "agility": 6.0,
@@ -438,6 +496,7 @@ export const CATALOG_ITEMS = [
       "critMultiplier": 0.06,
       "attackPower": 12.0
     },
+
     "price": 300.0,
     "sellPrice": 90.0,
     "description": "A sturdy, leather-wrapped oak bow.",
@@ -445,6 +504,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "IBR01",
     "name": "Ironwood Bow",
@@ -453,6 +513,7 @@ export const CATALOG_ITEMS = [
     "usableBy": [
       "Ranger"
     ],
+
     "stats": {
       "speed": 2.0,
       "agility": 10.0,
@@ -460,6 +521,7 @@ export const CATALOG_ITEMS = [
       "critMultiplier": 0.08,
       "attackPower": 20.0
     },
+
     "price": 900.0,
     "sellPrice": 270.0,
     "description": "A heavy ironwood bow.",
@@ -467,6 +529,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "PV01",
     "name": "Padded Leather Vest",
@@ -481,6 +544,7 @@ export const CATALOG_ITEMS = [
       "Scoundrel",
       "Ranger"
     ],
+
     "stats": {
       "maxHp": 10.0,
       "armor": 8.0,
@@ -488,6 +552,7 @@ export const CATALOG_ITEMS = [
       "speed": 1.0,
       "agility": 1.0
     },
+
     "price": 25.0,
     "sellPrice": 7.0,
     "description": "A soft, quilted leather vest offering basic protection without restricting movement.",
@@ -495,6 +560,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "SAR01",
     "name": "Studded Leather Armor",
@@ -509,6 +575,7 @@ export const CATALOG_ITEMS = [
       "Scoundrel",
       "Ranger"
     ],
+
     "stats": {
       "maxHp": 25.0,
       "armor": 18.0,
@@ -518,6 +585,7 @@ export const CATALOG_ITEMS = [
       "agility": 2.0,
       "constitution": 1.0
     },
+
     "price": 100.0,
     "sellPrice": 30.0,
     "description": "Tough leather reinforced with metal studs, giving it a rugged, battle-ready feel.",
@@ -525,6 +593,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "CSH01",
     "name": "Chain Shirt",
@@ -539,6 +608,7 @@ export const CATALOG_ITEMS = [
       "Scoundrel",
       "Ranger"
     ],
+
     "stats": {
       "maxHp": 50.0,
       "armor": 35.0,
@@ -548,6 +618,7 @@ export const CATALOG_ITEMS = [
       "agility": 3.0,
       "constitution": 2.0
     },
+
     "price": 300.0,
     "sellPrice": 90.0,
     "description": "A flexible shirt of interlocking steel rings that protects the torso while staying breathable.",
@@ -555,6 +626,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "SM01",
     "name": "Scale Mail",
@@ -569,6 +641,7 @@ export const CATALOG_ITEMS = [
       "Scoundrel",
       "Ranger"
     ],
+
     "stats": {
       "maxHp": 80.0,
       "armor": 60.0,
@@ -577,6 +650,7 @@ export const CATALOG_ITEMS = [
       "agility": 4.0,
       "constitution": 4.0
     },
+
     "price": 900.0,
     "sellPrice": 270.0,
     "description": "Overlapping steel scales sewn onto leather, clattering faintly with each step.",
@@ -584,6 +658,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "SBB01",
     "name": "Steel Breastplate",
@@ -595,6 +670,7 @@ export const CATALOG_ITEMS = [
       "Dawnwarden",
       "Barmaid"
     ],
+
     "stats": {
       "maxHp": 120.0,
       "armor": 120.0,
@@ -602,6 +678,7 @@ export const CATALOG_ITEMS = [
       "speed": -1.5,
       "constitution": 8.0
     },
+
     "price": 3600.0,
     "sellPrice": 1080.0,
     "description": "A polished steel chestguard that balances mobility with solid frontal protection.",
@@ -609,6 +686,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "SPB01",
     "name": "Steel Half Plate",
@@ -620,6 +698,7 @@ export const CATALOG_ITEMS = [
       "Dawnwarden",
       "Barmaid"
     ],
+
     "stats": {
       "maxHp": 180.0,
       "armor": 180.0,
@@ -627,6 +706,7 @@ export const CATALOG_ITEMS = [
       "speed": -2.5,
       "constitution": 12.0
     },
+
     "price": 10800.0,
     "sellPrice": 3240.0,
     "description": "Layered steel plates covering vital areas, offering strong defense without full armor weight.",
@@ -634,6 +714,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "RMD01",
     "name": "Ring Mail",
@@ -644,6 +725,7 @@ export const CATALOG_ITEMS = [
       "Oathwarden",
       "Dawnwarden"
     ],
+
     "stats": {
       "maxHp": 50.0,
       "armor": 50.0,
@@ -651,6 +733,7 @@ export const CATALOG_ITEMS = [
       "speed": -1.0,
       "constitution": 3.0
     },
+
     "price": 300.0,
     "sellPrice": 90.0,
     "description": "Leather armor reinforced with loose steel rings, giving a rough but dependable defense.",
@@ -658,6 +741,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "CMD01",
     "name": "Chain Mail",
@@ -668,6 +752,7 @@ export const CATALOG_ITEMS = [
       "Oathwarden",
       "Dawnwarden"
     ],
+
     "stats": {
       "maxHp": 80.0,
       "armor": 80.0,
@@ -675,6 +760,7 @@ export const CATALOG_ITEMS = [
       "speed": -1.5,
       "constitution": 5.0
     },
+
     "price": 900.0,
     "sellPrice": 270.0,
     "description": "Heavy, full‑body chain links that provide sturdy protection at the cost of weight.",
@@ -682,6 +768,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "SAD01",
     "name": "Splint Armor",
@@ -692,6 +779,7 @@ export const CATALOG_ITEMS = [
       "Oathwarden",
       "Dawnwarden"
     ],
+
     "stats": {
       "maxHp": 120.0,
       "armor": 120.0,
@@ -699,6 +787,7 @@ export const CATALOG_ITEMS = [
       "speed": -2.0,
       "constitution": 8.0
     },
+
     "price": 3600.0,
     "sellPrice": 1080.0,
     "description": "Thick leather backing fitted with vertical steel splints, built for frontline endurance.",
@@ -706,6 +795,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "PAD01",
     "name": "Plate Armor",
@@ -716,6 +806,7 @@ export const CATALOG_ITEMS = [
       "Oathwarden",
       "Dawnwarden"
     ],
+
     "stats": {
       "maxHp": 180.0,
       "armor": 180.0,
@@ -723,6 +814,7 @@ export const CATALOG_ITEMS = [
       "speed": -3.0,
       "constitution": 12.0
     },
+
     "price": 10800.0,
     "sellPrice": 3240.0,
     "description": "Interlocking steel plates crafted for maximum protection, gleaming with disciplined craftsmanship.",
@@ -730,6 +822,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "LRO01",
     "name": "Linen Robes",
@@ -743,6 +836,7 @@ export const CATALOG_ITEMS = [
       "Cleric of the Verdant Covenant",
       "Cleric of the Sanguine Song"
     ],
+
     "stats": {
       "maxHp": 30.0,
       "maxMana": 40.0,
@@ -752,6 +846,7 @@ export const CATALOG_ITEMS = [
       "intellect": 2.0,
       "wisdom": 2.0
     },
+
     "price": 300.0,
     "sellPrice": 90.0,
     "description": "A simple robe of linen cloth, comfortable and flexible enough for long hours of spellcasting.",
@@ -759,6 +854,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "RWR01",
     "name": "Reinforced Wool Robes",
@@ -772,6 +868,7 @@ export const CATALOG_ITEMS = [
       "Cleric of the Verdant Covenant",
       "Cleric of the Sanguine Song"
     ],
+
     "stats": {
       "maxHp": 50.0,
       "maxMana": 75.0,
@@ -781,6 +878,7 @@ export const CATALOG_ITEMS = [
       "intellect": 4.0,
       "wisdom": 4.0
     },
+
     "price": 900.0,
     "sellPrice": 270.0,
     "description": "Light garments reinforced with thin leather panels, offering modest protection without hindering movement.",
@@ -788,6 +886,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "SRO01",
     "name": "Silk Robes",
@@ -801,6 +900,7 @@ export const CATALOG_ITEMS = [
       "Cleric of the Verdant Covenant",
       "Cleric of the Sanguine Song"
     ],
+
     "stats": {
       "maxHp": 80.0,
       "maxMana": 125.0,
@@ -810,6 +910,7 @@ export const CATALOG_ITEMS = [
       "intellect": 7.0,
       "wisdom": 7.0
     },
+
     "price": 3600.0,
     "sellPrice": 1080.0,
     "description": "A soft mantle and vest set spun with silk.",
@@ -817,6 +918,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "RTR01",
     "name": "Runethread Robes",
@@ -830,6 +932,7 @@ export const CATALOG_ITEMS = [
       "Cleric of the Verdant Covenant",
       "Cleric of the Sanguine Song"
     ],
+
     "stats": {
       "maxHp": 120.0,
       "maxMana": 200.0,
@@ -839,6 +942,7 @@ export const CATALOG_ITEMS = [
       "intellect": 10.0,
       "wisdom": 10.0
     },
+
     "price": 10800.0,
     "sellPrice": 3240.0,
     "description": "A finely‑stitched robe woven with faint arcane filaments that subtly strengthen the fabric.",
@@ -846,6 +950,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "UMI001",
     "name": "Splendid Pearl Ring",
@@ -859,6 +964,7 @@ export const CATALOG_ITEMS = [
       "Cleric of the Verdant Covenant",
       "Cleric of the Sanguine Song"
     ],
+
     "stats": {
       "maxMana": 80.0,
       "constitution": 2.0,
@@ -868,6 +974,7 @@ export const CATALOG_ITEMS = [
       "critChance": 0.005,
       "spellHealing": 10.0
     },
+
     "price": null,
     "sellPrice": 2000.0,
     "description": "A small ring of white gold with a pearl set into the center.",
@@ -875,6 +982,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "UMI002",
     "name": "Inlaid Mithril Bracelet",
@@ -885,6 +993,7 @@ export const CATALOG_ITEMS = [
       "Scoundrel",
       "Ranger"
     ],
+
     "stats": {
       "maxHp": 50.0,
       "dodge": 0.01,
@@ -895,6 +1004,7 @@ export const CATALOG_ITEMS = [
       "critChance": 0.005,
       "attackPower": 10.0
     },
+
     "price": null,
     "sellPrice": 2000.0,
     "description": "A small leather bracelet with inlaid Mithril threads.",
@@ -902,6 +1012,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "UMI003",
     "name": "Stalwart Shield",
@@ -913,6 +1024,7 @@ export const CATALOG_ITEMS = [
       "Gladiator",
       "Barmaid"
     ],
+
     "stats": {
       "maxHp": 120.0,
       "armor": 100.0,
@@ -921,6 +1033,7 @@ export const CATALOG_ITEMS = [
       "strength": 4.0,
       "constitution": 6.0
     },
+
     "price": null,
     "sellPrice": 2000.0,
     "description": "A medium-sized shield decorated with gold lion in the center.",
@@ -928,6 +1041,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "UMI004",
     "name": "Brightsteel Sword",
@@ -937,6 +1051,7 @@ export const CATALOG_ITEMS = [
       "Oathwarden",
       "Dawnwarden"
     ],
+
     "stats": {
       "maxHp": 60.0,
       "maxMana": 80.0,
@@ -951,6 +1066,7 @@ export const CATALOG_ITEMS = [
       "spellDamage": 20.0,
       "spellHealing": 20.0
     },
+
     "price": null,
     "sellPrice": 2000.0,
     "description": "A sword made of very shiny Brightsteel.",
@@ -958,6 +1074,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "UMI005",
     "name": "Hellsteel Axe",
@@ -967,6 +1084,7 @@ export const CATALOG_ITEMS = [
       "Gladiator",
       "Barbarian"
     ],
+
     "stats": {
       "maxHp": 80.0,
       "speed": 2.0,
@@ -977,6 +1095,7 @@ export const CATALOG_ITEMS = [
       "critMultiplier": 0.12,
       "attackPower": 24.0
     },
+
     "price": null,
     "sellPrice": 2000.0,
     "description": "An axe made of infernal metal.",
@@ -984,6 +1103,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "UMI006",
     "name": "Robe of Intellect",
@@ -994,6 +1114,7 @@ export const CATALOG_ITEMS = [
       "Mage of the Crimson Spire",
       "Mage of the Luminous Archive"
     ],
+
     "stats": {
       "maxHp": 100.0,
       "maxMana": 150.0,
@@ -1006,6 +1127,7 @@ export const CATALOG_ITEMS = [
       "critMultiplier": 0.08,
       "spellDamage": 30.0
     },
+
     "price": null,
     "sellPrice": 2000.0,
     "description": "Runethread robes spun with arcane runes.",
@@ -1013,6 +1135,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "UMI007",
     "name": "Robes of Insight",
@@ -1023,6 +1146,7 @@ export const CATALOG_ITEMS = [
       "Cleric of the Verdant Covenant",
       "Cleric of the Sanguine Song"
     ],
+
     "stats": {
       "maxHp": 100.0,
       "maxMana": 150.0,
@@ -1035,6 +1159,7 @@ export const CATALOG_ITEMS = [
       "critMultiplier": 0.08,
       "spellHealing": 30.0
     },
+
     "price": null,
     "sellPrice": 2000.0,
     "description": "Runethread robes spun with mystical runes.",
@@ -1042,6 +1167,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 1
   },
+
   {
     "id": "SCE001",
     "name": "Scroll of Ferocity",
@@ -1050,6 +1176,7 @@ export const CATALOG_ITEMS = [
     "usableBy": [
       "All"
     ],
+
     "stats": {
       "strength": 5.0
     },
@@ -1060,6 +1187,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 0
   },
+
   {
     "id": "SCE002",
     "name": "Scroll of Intensity",
@@ -1068,6 +1196,7 @@ export const CATALOG_ITEMS = [
     "usableBy": [
       "All"
     ],
+
     "stats": {
       "intellect": 5.0
     },
@@ -1078,6 +1207,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 0
   },
+
   {
     "id": "SCE003",
     "name": "Scroll of Foresight",
@@ -1086,6 +1216,7 @@ export const CATALOG_ITEMS = [
     "usableBy": [
       "All"
     ],
+
     "stats": {
       "wisdom": 5.0
     },
@@ -1096,6 +1227,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 0
   },
+
   {
     "id": "SCE004",
     "name": "Scroll of Cunning",
@@ -1104,6 +1236,7 @@ export const CATALOG_ITEMS = [
     "usableBy": [
       "All"
     ],
+
     "stats": {
       "agility": 5.0
     },
@@ -1114,6 +1247,7 @@ export const CATALOG_ITEMS = [
     "effect": null,
     "enchantmentSlots": 0
   },
+
   {
     "id": "SCE005",
     "name": "Scroll of Health",
@@ -1122,6 +1256,7 @@ export const CATALOG_ITEMS = [
     "usableBy": [
       "All"
     ],
+
     "stats": {
       "constitution": 5.0
     },
@@ -1133,6 +1268,7 @@ export const CATALOG_ITEMS = [
     "enchantmentSlots": 0
   }
 ];
+
 export const EQUIPMENT_ITEMS = CATALOG_ITEMS.filter(item => item.slot !== 'scroll');
 export const EQUIPMENT_BY_ID = Object.fromEntries(EQUIPMENT_ITEMS.map(item => [item.id, item]));
 export const ENCHANTMENT_ITEMS = CATALOG_ITEMS.filter(item => item.slot === 'scroll');
@@ -1149,8 +1285,10 @@ export const POTION_ITEMS = [
       "resource": "hp",
       "fraction": 0.3
     },
+
     "description": "Restores 30% of maximum HP to its user."
   },
+
   {
     "id": "clarity-potion",
     "name": "Mana Potion",
@@ -1162,9 +1300,11 @@ export const POTION_ITEMS = [
       "resource": "mana",
       "fraction": 0.3
     },
+
     "description": "Restores 30% of maximum mana to its user."
   }
 ];
+
 export const POTION_BY_ID = Object.fromEntries(POTION_ITEMS.map(item => [item.id, item]));
 
 export const CRAFTING_MATERIALS = {
@@ -1176,6 +1316,7 @@ export const CRAFTING_MATERIALS = {
     "sellPrice": 5.0,
     "description": "Common material gathered in Caves Delves."
   },
+
   "MAT002": {
     "id": "MAT002",
     "name": "Iron Ingot",
@@ -1184,6 +1325,7 @@ export const CRAFTING_MATERIALS = {
     "sellPrice": 5.0,
     "description": "Common material gathered in Caves Delves."
   },
+
   "MAT003": {
     "id": "MAT003",
     "name": "Steel Ingot",
@@ -1192,6 +1334,7 @@ export const CRAFTING_MATERIALS = {
     "sellPrice": 15.0,
     "description": "Uncommon material gathered in Caves Delves."
   },
+
   "MAT004": {
     "id": "MAT004",
     "name": "Mithril Ingot",
@@ -1200,6 +1343,7 @@ export const CRAFTING_MATERIALS = {
     "sellPrice": 15.0,
     "description": "Uncommon material gathered in Caves Delves."
   },
+
   "MAT005": {
     "id": "MAT005",
     "name": "Pine Wood",
@@ -1208,6 +1352,7 @@ export const CRAFTING_MATERIALS = {
     "sellPrice": 5.0,
     "description": "Common material gathered in Forests Delves."
   },
+
   "MAT006": {
     "id": "MAT006",
     "name": "Maple Wood",
@@ -1216,6 +1361,7 @@ export const CRAFTING_MATERIALS = {
     "sellPrice": 5.0,
     "description": "Common material gathered in Forests Delves."
   },
+
   "MAT007": {
     "id": "MAT007",
     "name": "Ironwood",
@@ -1224,6 +1370,7 @@ export const CRAFTING_MATERIALS = {
     "sellPrice": 15.0,
     "description": "Uncommon material gathered in Forests Delves."
   },
+
   "MAT008": {
     "id": "MAT008",
     "name": "Oak Wood",
@@ -1232,6 +1379,7 @@ export const CRAFTING_MATERIALS = {
     "sellPrice": 15.0,
     "description": "Uncommon material gathered in Forests Delves."
   },
+
   "MAT009": {
     "id": "MAT009",
     "name": "Cured Leather",
@@ -1240,6 +1388,7 @@ export const CRAFTING_MATERIALS = {
     "sellPrice": 5.0,
     "description": "Common material gathered in Caves; Forests Delves."
   },
+
   "MAT010": {
     "id": "MAT010",
     "name": "Linen Cloth",
@@ -1248,6 +1397,7 @@ export const CRAFTING_MATERIALS = {
     "sellPrice": 5.0,
     "description": "Common material gathered in Humanoid Delves."
   },
+
   "MAT011": {
     "id": "MAT011",
     "name": "Wool Cloth",
@@ -1256,6 +1406,7 @@ export const CRAFTING_MATERIALS = {
     "sellPrice": 5.0,
     "description": "Common material gathered in Humanoid Delves."
   },
+
   "MAT012": {
     "id": "MAT012",
     "name": "Silk Cloth",
@@ -1264,6 +1415,7 @@ export const CRAFTING_MATERIALS = {
     "sellPrice": 15.0,
     "description": "Uncommon material gathered in Humanoid Delves."
   },
+
   "MAT013": {
     "id": "MAT013",
     "name": "Runethread Fiber",
@@ -1272,6 +1424,7 @@ export const CRAFTING_MATERIALS = {
     "sellPrice": 15.0,
     "description": "Uncommon material gathered in Humanoid Delves."
   },
+
   "MAT014": {
     "id": "MAT014",
     "name": "Arcane Ink",
@@ -1280,6 +1433,7 @@ export const CRAFTING_MATERIALS = {
     "sellPrice": 15.0,
     "description": "Uncommon material gathered in Humanoid Delves."
   },
+
   "MAT015": {
     "id": "MAT015",
     "name": "Moon-blessed Parchment",
@@ -1288,6 +1442,7 @@ export const CRAFTING_MATERIALS = {
     "sellPrice": 15.0,
     "description": "Uncommon material gathered in Humanoid Delves."
   },
+
   "MAT016": {
     "id": "MAT016",
     "name": "Canine Tooth",
@@ -1296,6 +1451,7 @@ export const CRAFTING_MATERIALS = {
     "sellPrice": 5.0,
     "description": "Common material gathered in Forests Delves."
   },
+
   "MAT017": {
     "id": "MAT017",
     "name": "Tuft of Fox Fur",
@@ -1304,6 +1460,7 @@ export const CRAFTING_MATERIALS = {
     "sellPrice": 5.0,
     "description": "Common material gathered in Forests Delves."
   },
+
   "MAT018": {
     "id": "MAT018",
     "name": "Owl Feather",
@@ -1312,6 +1469,7 @@ export const CRAFTING_MATERIALS = {
     "sellPrice": 5.0,
     "description": "Common material gathered in Forests Delves."
   },
+
   "MAT019": {
     "id": "MAT019",
     "name": "Feline Whiskers",
@@ -1320,6 +1478,7 @@ export const CRAFTING_MATERIALS = {
     "sellPrice": 5.0,
     "description": "Common material gathered in Forests Delves."
   },
+
   "MAT020": {
     "id": "MAT020",
     "name": "Quartz",
@@ -1328,6 +1487,7 @@ export const CRAFTING_MATERIALS = {
     "sellPrice": 5.0,
     "description": "Common material gathered in Caves Delves."
   },
+
   "MAT021": {
     "id": "MAT021",
     "name": "Iron Studs",
@@ -1336,6 +1496,7 @@ export const CRAFTING_MATERIALS = {
     "sellPrice": 2.0,
     "description": "Common material gathered in Crafted Delves."
   },
+
   "MAT022": {
     "id": "MAT022",
     "name": "Iron Links",
@@ -1344,6 +1505,7 @@ export const CRAFTING_MATERIALS = {
     "sellPrice": 3.0,
     "description": "Common material gathered in Crafted Delves."
   },
+
   "MAT023": {
     "id": "MAT023",
     "name": "Steel Scales",
@@ -1352,6 +1514,7 @@ export const CRAFTING_MATERIALS = {
     "sellPrice": 7.0,
     "description": "Uncommon material gathered in Crafted Delves."
   },
+
   "MAT024": {
     "id": "MAT024",
     "name": "Steel Plates",
@@ -1375,6 +1538,7 @@ const workbookCraftingRecipes = [
       "itemId": "BLS01",
       "count": 1
     },
+
     "ingredients": {
       "MAT001": 3
     },
@@ -1383,6 +1547,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Known at start",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RILS01",
     "name": "Recipe: Iron Longsword",
@@ -1393,6 +1558,7 @@ const workbookCraftingRecipes = [
       "itemId": "ILS01",
       "count": 1
     },
+
     "ingredients": {
       "MAT002": 3
     },
@@ -1401,6 +1567,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Sold item or recipe",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RSLS01",
     "name": "Recipe: Steel Longsword",
@@ -1411,6 +1578,7 @@ const workbookCraftingRecipes = [
       "itemId": "SLS01",
       "count": 1
     },
+
     "ingredients": {
       "MAT002": 2,
       "MAT003": 4
@@ -1420,6 +1588,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Sold item or recipe",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RMLS01",
     "name": "Recipe: Mithril Longsword",
@@ -1430,6 +1599,7 @@ const workbookCraftingRecipes = [
       "itemId": "MLS01",
       "count": 1
     },
+
     "ingredients": {
       "MAT003": 2,
       "MAT004": 4
@@ -1439,6 +1609,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Sold item or recipe",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RBSS01",
     "name": "Recipe: Bronze Shortsword",
@@ -1449,6 +1620,7 @@ const workbookCraftingRecipes = [
       "itemId": "BSS01",
       "count": 1
     },
+
     "ingredients": {
       "MAT001": 2
     },
@@ -1457,6 +1629,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Known at start",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RISS01",
     "name": "Recipe: Iron Shortsword",
@@ -1467,6 +1640,7 @@ const workbookCraftingRecipes = [
       "itemId": "ISS01",
       "count": 1
     },
+
     "ingredients": {
       "MAT002": 2
     },
@@ -1475,6 +1649,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Sold item or recipe",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RSSS01",
     "name": "Recipe: Steel Shortsword",
@@ -1485,6 +1660,7 @@ const workbookCraftingRecipes = [
       "itemId": "SSS01",
       "count": 1
     },
+
     "ingredients": {
       "MAT002": 1,
       "MAT003": 2
@@ -1494,6 +1670,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Sold item or recipe",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RMSS01",
     "name": "Recipe: Mithril Shortsword",
@@ -1504,6 +1681,7 @@ const workbookCraftingRecipes = [
       "itemId": "MSS01",
       "count": 1
     },
+
     "ingredients": {
       "MAT003": 1,
       "MAT004": 2
@@ -1513,6 +1691,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Sold item or recipe",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RBDS01",
     "name": "Recipe: Bronze Dagger",
@@ -1523,6 +1702,7 @@ const workbookCraftingRecipes = [
       "itemId": "BDS01",
       "count": 1
     },
+
     "ingredients": {
       "MAT001": 2
     },
@@ -1531,6 +1711,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Known at start",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RIDS01",
     "name": "Recipe: Iron Dagger",
@@ -1541,6 +1722,7 @@ const workbookCraftingRecipes = [
       "itemId": "IDS01",
       "count": 1
     },
+
     "ingredients": {
       "MAT002": 2
     },
@@ -1549,6 +1731,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Sold item or recipe",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RSDS01",
     "name": "Recipe: Steel Dagger",
@@ -1559,6 +1742,7 @@ const workbookCraftingRecipes = [
       "itemId": "SDS01",
       "count": 1
     },
+
     "ingredients": {
       "MAT002": 1,
       "MAT003": 2
@@ -1568,6 +1752,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Sold item or recipe",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RMDS01",
     "name": "Recipe: Mithril Dagger",
@@ -1578,6 +1763,7 @@ const workbookCraftingRecipes = [
       "itemId": "MDS01",
       "count": 1
     },
+
     "ingredients": {
       "MAT003": 1,
       "MAT004": 2
@@ -1587,6 +1773,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Sold item or recipe",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RPSS01",
     "name": "Recipe: Pine Staff",
@@ -1597,6 +1784,7 @@ const workbookCraftingRecipes = [
       "itemId": "PST01",
       "count": 1
     },
+
     "ingredients": {
       "MAT005": 3
     },
@@ -1605,6 +1793,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Known at start",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RMST01",
     "name": "Recipe: Maple Staff",
@@ -1615,6 +1804,7 @@ const workbookCraftingRecipes = [
       "itemId": "MST01",
       "count": 1
     },
+
     "ingredients": {
       "MAT006": 3
     },
@@ -1623,6 +1813,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Sold item or recipe",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "ROSS01",
     "name": "Recipe: Oak Staff",
@@ -1633,6 +1824,7 @@ const workbookCraftingRecipes = [
       "itemId": "OST01",
       "count": 1
     },
+
     "ingredients": {
       "MAT006": 2,
       "MAT008": 4
@@ -1642,6 +1834,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Sold item or recipe",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RIST01",
     "name": "Recipe: Ironwood Staff",
@@ -1652,6 +1845,7 @@ const workbookCraftingRecipes = [
       "itemId": "IST01",
       "count": 1
     },
+
     "ingredients": {
       "MAT008": 2,
       "MAT007": 4
@@ -1661,6 +1855,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Sold item or recipe",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RPBS01",
     "name": "Recipe: Pine Bow",
@@ -1671,6 +1866,7 @@ const workbookCraftingRecipes = [
       "itemId": "PBR01",
       "count": 1
     },
+
     "ingredients": {
       "MAT005": 3
     },
@@ -1679,6 +1875,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Known at start",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RMBS01",
     "name": "Recipe: Maple Bow",
@@ -1689,6 +1886,7 @@ const workbookCraftingRecipes = [
       "itemId": "MBR01",
       "count": 1
     },
+
     "ingredients": {
       "MAT006": 3
     },
@@ -1697,6 +1895,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Sold item or recipe",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "ROBS01",
     "name": "Recipe: Oak Bow",
@@ -1707,6 +1906,7 @@ const workbookCraftingRecipes = [
       "itemId": "OBR01",
       "count": 1
     },
+
     "ingredients": {
       "MAT006": 2,
       "MAT008": 4
@@ -1716,6 +1916,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Sold item or recipe",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RIBS01",
     "name": "Recipe: Ironwood Bow",
@@ -1726,6 +1927,7 @@ const workbookCraftingRecipes = [
       "itemId": "IBR01",
       "count": 1
     },
+
     "ingredients": {
       "MAT008": 2,
       "MAT007": 4
@@ -1735,6 +1937,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Sold item or recipe",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RPLVS01",
     "name": "Recipe: Padded Leather Vest",
@@ -1745,6 +1948,7 @@ const workbookCraftingRecipes = [
       "itemId": "PV01",
       "count": 1
     },
+
     "ingredients": {
       "MAT009": 3
     },
@@ -1753,6 +1957,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Known at start",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RSLAS01",
     "name": "Recipe: Studded Leather Armor",
@@ -1763,6 +1968,7 @@ const workbookCraftingRecipes = [
       "itemId": "SAR01",
       "count": 1
     },
+
     "ingredients": {
       "MAT009": 2,
       "MAT021": 4
@@ -1772,6 +1978,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Known at start",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RCSS01",
     "name": "Recipe: Chain Shirt",
@@ -1782,6 +1989,7 @@ const workbookCraftingRecipes = [
       "itemId": "CSH01",
       "count": 1
     },
+
     "ingredients": {
       "MAT022": 6
     },
@@ -1790,6 +1998,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Known at start",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RSMS01",
     "name": "Recipe: Scale Mail",
@@ -1800,6 +2009,7 @@ const workbookCraftingRecipes = [
       "itemId": "SM01",
       "count": 1
     },
+
     "ingredients": {
       "MAT022": 3,
       "MAT023": 4
@@ -1809,6 +2019,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Known at start",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RSBS01",
     "name": "Recipe: Steel Breastplate",
@@ -1819,6 +2030,7 @@ const workbookCraftingRecipes = [
       "itemId": "SBB01",
       "count": 1
     },
+
     "ingredients": {
       "MAT002": 2,
       "MAT024": 4
@@ -1828,6 +2040,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Sold item or recipe",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RSHPS01",
     "name": "Recipe: Steel Half Plate",
@@ -1838,6 +2051,7 @@ const workbookCraftingRecipes = [
       "itemId": "SPB01",
       "count": 1
     },
+
     "ingredients": {
       "MAT002": 2,
       "MAT024": 4
@@ -1847,6 +2061,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Sold item or recipe",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RRMS01",
     "name": "Recipe: Ring Mail",
@@ -1857,6 +2072,7 @@ const workbookCraftingRecipes = [
       "itemId": "RMD01",
       "count": 1
     },
+
     "ingredients": {
       "MAT022": 3,
       "MAT009": 2
@@ -1866,6 +2082,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Known at start",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RCMS01",
     "name": "Recipe: Chain Mail",
@@ -1876,6 +2093,7 @@ const workbookCraftingRecipes = [
       "itemId": "CMD01",
       "count": 1
     },
+
     "ingredients": {
       "MAT022": 3
     },
@@ -1884,6 +2102,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Known at start",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RSAS01",
     "name": "Recipe: Splint Armor",
@@ -1894,6 +2113,7 @@ const workbookCraftingRecipes = [
       "itemId": "SAD01",
       "count": 1
     },
+
     "ingredients": {
       "MAT002": 2,
       "MAT024": 4
@@ -1903,6 +2123,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Sold item or recipe",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RPAS01",
     "name": "Recipe: Plate Armor",
@@ -1913,6 +2134,7 @@ const workbookCraftingRecipes = [
       "itemId": "PAD01",
       "count": 1
     },
+
     "ingredients": {
       "MAT003": 2,
       "MAT024": 4
@@ -1922,6 +2144,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Sold item or recipe",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RLRS01",
     "name": "Recipe: Linen Robes",
@@ -1932,6 +2155,7 @@ const workbookCraftingRecipes = [
       "itemId": "LRO01",
       "count": 1
     },
+
     "ingredients": {
       "MAT010": 3
     },
@@ -1940,6 +2164,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Known at start",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RRWRS01",
     "name": "Recipe: Reinforced Wool Robes",
@@ -1950,6 +2175,7 @@ const workbookCraftingRecipes = [
       "itemId": "RWR01",
       "count": 1
     },
+
     "ingredients": {
       "MAT011": 2,
       "MAT009": 1
@@ -1959,6 +2185,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Known at start",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RSRS01",
     "name": "Recipe: Silk Robes",
@@ -1969,6 +2196,7 @@ const workbookCraftingRecipes = [
       "itemId": "SRO01",
       "count": 1
     },
+
     "ingredients": {
       "MAT011": 2,
       "MAT012": 4
@@ -1978,6 +2206,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Sold item or recipe",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RRRS01",
     "name": "Recipe: Runethread Robes",
@@ -1988,6 +2217,7 @@ const workbookCraftingRecipes = [
       "itemId": "RTR01",
       "count": 1
     },
+
     "ingredients": {
       "MAT012": 2,
       "MAT013": 4
@@ -1997,6 +2227,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Sold item or recipe",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RITS01",
     "name": "Recipe: Iron Studs",
@@ -2007,6 +2238,7 @@ const workbookCraftingRecipes = [
       "itemId": "MAT021",
       "count": 2
     },
+
     "ingredients": {
       "MAT002": 1
     },
@@ -2015,6 +2247,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Known at start",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RILK01",
     "name": "Recipe: Iron Links",
@@ -2025,6 +2258,7 @@ const workbookCraftingRecipes = [
       "itemId": "MAT022",
       "count": 3
     },
+
     "ingredients": {
       "MAT002": 2
     },
@@ -2033,6 +2267,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Known at start",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RSCS01",
     "name": "Recipe: Steel Scales",
@@ -2043,6 +2278,7 @@ const workbookCraftingRecipes = [
       "itemId": "MAT023",
       "count": 2
     },
+
     "ingredients": {
       "MAT002": 3
     },
@@ -2051,6 +2287,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Known at start",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "RSPS01",
     "name": "Recipe: Steel Plates",
@@ -2061,6 +2298,7 @@ const workbookCraftingRecipes = [
       "itemId": "MAT024",
       "count": 1
     },
+
     "ingredients": {
       "MAT003": 3,
       "MAT002": 1
@@ -2070,6 +2308,7 @@ const workbookCraftingRecipes = [
     "learnedFrom": "Known at start",
     "crafter": "Blacksmith"
   },
+
   {
     "id": "SCR001",
     "name": "Recipe: Scroll of Ferocity",
@@ -2080,6 +2319,7 @@ const workbookCraftingRecipes = [
       "itemId": "SCE001",
       "count": 1
     },
+
     "ingredients": {
       "MAT014": 2,
       "MAT015": 1,
@@ -2087,9 +2327,11 @@ const workbookCraftingRecipes = [
     },
     "fee": 150,
     "knownAtStart": false,
+
     "learnedFrom": "Sold scroll or recipe",
     "crafter": "Enchanter"
   },
+
   {
     "id": "SCR002",
     "name": "Recipe: Scroll of Intensity",
@@ -2100,6 +2342,7 @@ const workbookCraftingRecipes = [
       "itemId": "SCE002",
       "count": 1
     },
+
     "ingredients": {
       "MAT014": 2,
       "MAT015": 1,
@@ -2107,9 +2350,11 @@ const workbookCraftingRecipes = [
     },
     "fee": 150,
     "knownAtStart": false,
+
     "learnedFrom": "Sold scroll or recipe",
     "crafter": "Enchanter"
   },
+
   {
     "id": "SCR003",
     "name": "Recipe: Scroll of Foresight",
@@ -2120,6 +2365,7 @@ const workbookCraftingRecipes = [
       "itemId": "SCE003",
       "count": 1
     },
+
     "ingredients": {
       "MAT014": 2,
       "MAT015": 1,
@@ -2127,9 +2373,11 @@ const workbookCraftingRecipes = [
     },
     "fee": 150,
     "knownAtStart": false,
+
     "learnedFrom": "Sold scroll or recipe",
     "crafter": "Enchanter"
   },
+
   {
     "id": "SCR004",
     "name": "Recipe: Scroll of Cunning",
@@ -2140,6 +2388,7 @@ const workbookCraftingRecipes = [
       "itemId": "SCE004",
       "count": 1
     },
+
     "ingredients": {
       "MAT014": 2,
       "MAT015": 1,
@@ -2147,9 +2396,11 @@ const workbookCraftingRecipes = [
     },
     "fee": 150,
     "knownAtStart": false,
+
     "learnedFrom": "Sold scroll or recipe",
     "crafter": "Enchanter"
   },
+
   {
     "id": "SCR005",
     "name": "Recipe: Scroll of Health",
@@ -2160,6 +2411,7 @@ const workbookCraftingRecipes = [
       "itemId": "SCE005",
       "count": 1
     },
+
     "ingredients": {
       "MAT014": 2,
       "MAT015": 1,
@@ -2167,19 +2419,54 @@ const workbookCraftingRecipes = [
     },
     "fee": 150,
     "knownAtStart": false,
+
     "learnedFrom": "Sold scroll or recipe",
     "crafter": "Enchanter"
   }
 ];
+
 export const CRAFTING_RECIPES = [...workbookCraftingRecipes,
-  { id: 'health-potion', name: 'Health Potion Pack', category: 'alchemy', description: 'Brew a pack of three Health Potions.', output: { type: 'potion', itemId: 'mending-potion', count: 1 }, ingredients: { MAT014: 2, MAT010: 1 }, fee: 0, knownAtStart: true, learnedFrom: 'Known at start', crafter: 'Alchemist' },
-  { id: 'mana-potion', name: 'Mana Potion Pack', category: 'alchemy', description: 'Brew a pack of three Mana Potions.', output: { type: 'potion', itemId: 'clarity-potion', count: 1 }, ingredients: { MAT014: 1, MAT015: 2 }, fee: 0, knownAtStart: true, learnedFrom: 'Known at start', crafter: 'Alchemist' }
+  {
+    id: 'health-potion',
+    name: 'Health Potion Pack',
+    category: 'alchemy',
+    description: 'Brew a pack of three Health Potions.',
+    output: { type: 'potion', itemId: 'mending-potion', count: 1 },
+    ingredients: { MAT014: 2, MAT010: 1 },
+    fee: 0,
+    knownAtStart: true,
+    learnedFrom: 'Known at start',
+    crafter: 'Alchemist'
+  },
+
+  {
+    id: 'mana-potion',
+    name: 'Mana Potion Pack',
+    category: 'alchemy',
+    description: 'Brew a pack of three Mana Potions.',
+    output: { type: 'potion', itemId: 'clarity-potion', count: 1 },
+    ingredients: { MAT014: 1, MAT015: 2 },
+    fee: 0,
+    knownAtStart: true,
+    learnedFrom: 'Known at start',
+    crafter: 'Alchemist'
+  }
 ];
+
 export const CRAFTING_RECIPE_BY_ID = Object.fromEntries(CRAFTING_RECIPES.map(recipe => [recipe.id, recipe]));
 
+// Read the reusable gear catalog entry for this item ID.
 export function getEquipmentDefinition(id) { return EQUIPMENT_BY_ID[id] ?? null; }
+
+// Read the potion pack definition, including its resource effect and uses.
 export function getPotionDefinition(id) { return POTION_BY_ID[id] ?? null; }
+
+// Read the material catalog entry for this ID.
 export function getMaterialDefinition(id) {
+
+  // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
   return CRAFTING_MATERIALS[id] ?? CRAFTING_MATERIALS[MATERIAL_ID_ALIASES[id]] ?? null;
 }
+
+// Find the matching definition across the supported item catalogs.
 export function getCatalogItemDefinition(id) { return CATALOG_ITEMS.find(item => item.id === id) ?? null; }

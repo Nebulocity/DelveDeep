@@ -1,3 +1,8 @@
+// This encounter owns its artwork layers, waves and walkable floor outline. The polygon
+// points use original artwork pixels. LayeredEnvironment scales and positions them with
+// the art, then clips the lower edge above the party HUD. Foreground decoration can cover
+// sprites without becoming blocking terrain.
+
 export default {
   id: 'verdant-tear',
   name: 'The Verdant Tear',
@@ -24,6 +29,7 @@ export default {
           url: new URL('../../assets/environments/verdant-tear-pixel/knoll.png', import.meta.url).href,
           depth: -1000 }
       ],
+
       voidEffects: {
         portal: { x: 755, y: 159, radiusX: 128, radiusY: 108, particles: 18 },
         clouds: [
@@ -31,6 +37,7 @@ export default {
           { x: 969, y: 173, width: 102, height: 32, phase: 2.4 }
         ],
         flames: [],
+
         lightning: [
           { startX: 638, startY: 55, endX: 676, endY: 105 },
           { startX: 875, startY: 62, endX: 843, endY: 111 }

@@ -1,3 +1,7 @@
+// Encounter templates connect authored environments and waves to Delve entries. A reused
+// template keeps its environment's floor boundary and art. The world entry can still have
+// its own clear record and checkpoint.
+
 import { forgottenCavernWaves, voidPortalWaves } from './enemies.js';
 
 export const encounterWaveCounts = Object.freeze({
@@ -19,26 +23,47 @@ export const encounterEnemyCounts = Object.freeze({
   Unknown: 3
 });
 
+// Roll a whole-number count in the requested bounds using the supplied random source.
 function rollCount({ base = 0, dice = [] } = {}, random) {
+
+  // reduce carries an accumulated result from one entry to the next. The callback returns
+  // the accumulator for the next step; the final argument supplies its starting value.
   return base + dice.reduce((total, sides) => total + 1 + Math.floor(random() * sides), 0);
 }
 
+// Apply the difficulty's ordinary-wave enemy count while retaining authored boss groups.
 function standardizeWaveEnemies(enemies, targetCount) {
+
+  // ... expands these entries into the new list or call. It does not deep-copy the objects
+  // inside.
   const reduced = [...enemies];
   while (reduced.length > targetCount) {
+
+    // reduce carries an accumulated result from one entry to the next. The callback
+    // returns the accumulator for the next step; the final argument supplies its starting
+    // value. A Map pairs a key with a value. Unlike an array index, the key can be an ID
+    // or an object; get/set read and write that same key.
     const counts = reduced.reduce((totals, enemy) =>
       totals.set(enemy.type, (totals.get(enemy.type) ?? 0) + 1), new Map());
     let removeIndex = reduced.length - 1;
+
     for (let index = reduced.length - 2; index > 0; index--) {
       if (counts.get(reduced[index].type) > counts.get(reduced[removeIndex].type)) removeIndex = index;
     }
     reduced.splice(removeIndex, 1);
   }
+
   for (let index = reduced.length; index < targetCount; index++) {
+
+    // % gives the remainder. With a nonnegative index and positive list length, it wraps
+    // the index back to the start of the list.
     const source = enemies[(index - enemies.length) % enemies.length];
+
+    // Math.floor rounds toward the smaller whole number, so 3.8 becomes 3.
     reduced.push({ ...source, arenaX: 350 + (index % 4) * 235,
       arenaY: 760 + Math.floor(index / 4) * 75 });
   }
+
   return reduced;
 }
 
@@ -54,23 +79,27 @@ const finalWaves = {
       { type: 'denGuard', arenaX: 900, arenaY: 770 },
       { type: 'caveSlime', arenaX: 700, arenaY: 830 }
     ] },
+
     { boss: true, enemies: [
       { type: 'denColossus', arenaX: 700, arenaY: 820 },
       { type: 'denGuard', arenaX: 420, arenaY: 730 },
       { type: 'denGuard', arenaX: 980, arenaY: 730 }
     ] }
   ],
+
   Unknown: [
     { enemies: [
       { type: 'riftSentinel', arenaX: 450, arenaY: 760 },
       { type: 'riftSentinel', arenaX: 950, arenaY: 760 },
       { type: 'voidStalker', arenaX: 700, arenaY: 830 }
     ] },
+
     { enemies: [
       { type: 'voidWarden', arenaX: 700, arenaY: 810 },
       { type: 'riftSentinel', arenaX: 420, arenaY: 740 },
       { type: 'riftSentinel', arenaX: 980, arenaY: 740 }
     ] },
+
     { boss: true, enemies: [
       { type: 'abyssalSovereign', arenaX: 700, arenaY: 830 },
       { type: 'riftSentinel', arenaX: 350, arenaY: 760 },
@@ -85,6 +114,7 @@ const slimeCaveWaves = [
   { caveSlimes: 2, d2: 2 },
   { caveSlimes: 2, d2: 2, elderSlimes: 1 },
   { caveSlimes: 2, elderSlimes: 2 },
+
   { caveSlimes: 4, elderSlimes: 3 },
   { caveSlimes: 2, elderSlimes: 2, sovereigns: 1, boss: true }
 ];
@@ -94,6 +124,7 @@ const thornbriarWaves = [
   { ruffians: { base: 2, dice: [2, 2] }, lashers: { dice: [2, 2] } },
   { ruffians: { base: 2, dice: [2] }, lashers: { dice: [3] }, hedgeMages: 1 },
   { ruffians: { base: 3, dice: [3] }, lashers: { base: 1, dice: [3] }, hedgeMages: 2 },
+
   { ruffians: { base: 5, dice: [3] }, lashers: { base: 2, dice: [3] }, hedgeMages: 3 },
   { ruffians: { base: 4 }, lashers: { base: 3 }, hedgeMages: 2, rongar: 1, boss: true }
 ];
@@ -103,6 +134,7 @@ const dolmarkWaves = [
   { wardens: { base: 4, dice: [2, 2] } },
   { wardens: { base: 2, dice: [2, 2] }, protectors: 1 },
   { wardens: { base: 4 }, protectors: 2 },
+
   { wardens: { base: 4 }, protectors: 4 },
   { wardens: { base: 3 }, protectors: 2, silvanark: 1, boss: true }
 ];
@@ -113,16 +145,19 @@ const verdantTearWaves = [
     { type: 'voidStalker', arenaX: 940, arenaY: 770 },
     { type: 'riftSentinel', arenaX: 700, arenaY: 820 }
   ] },
+
   { enemies: [
     { type: 'voidWarden', arenaX: 700, arenaY: 800 },
     { type: 'voidStalker', arenaX: 420, arenaY: 750 },
     { type: 'voidStalker', arenaX: 980, arenaY: 750 }
   ] },
+
   { enemies: [
     { type: 'abyssalMaw', arenaX: 700, arenaY: 810 },
     { type: 'riftSentinel', arenaX: 400, arenaY: 750 },
     { type: 'riftSentinel', arenaX: 1000, arenaY: 750 }
   ] },
+
   { boss: true, enemies: [
     { type: 'abyssalSovereign', arenaX: 700, arenaY: 830 },
     { type: 'riftSentinel', arenaX: 430, arenaY: 760 },
@@ -131,14 +166,24 @@ const verdantTearWaves = [
 ];
 
 
+// Build the ordered Slime Cave groups from its weak, tough and boss enemy definitions.
 function buildSlimeCaveWaves(random) {
+
+  // map builds one output entry for each input entry, in the same order. The callback's
+  // return value becomes that output entry.
   return slimeCaveWaves.map(({ caveSlimes, d2 = 0, elderSlimes = 0, sovereigns = 0, boss = false }) => {
     const slimeCount = rollCount({ base: caveSlimes, dice: Array(d2).fill(2) }, random);
+
+    // ... expands these entries into the new list or call. It does not deep-copy the
+    // objects inside.
     const types = [
       ...Array(sovereigns).fill('slimeSovereign'),
       ...Array(elderSlimes).fill('elderSlime'),
       ...Array(slimeCount).fill('caveSlime')
     ];
+
+    // map builds one output entry for each input entry, in the same order. The callback's
+    // return value becomes that output entry.
     return {
       boss,
       enemies: types.map((type, index) => ({
@@ -148,16 +193,26 @@ function buildSlimeCaveWaves(random) {
   });
 }
 
+// Build the bandit camp groups while keeping the authored boss finale.
 function buildThornbriarWaves(random) {
+
+  // map builds one output entry for each input entry, in the same order. The callback's
+  // return value becomes that output entry.
   return thornbriarWaves.map(({ ruffians, lashers, hedgeMages = 0, rongar = 0, boss = false }) => {
     const ruffianCount = rollCount(ruffians, random);
     const lasherCount = rollCount(lashers, random);
+
+    // ... expands these entries into the new list or call. It does not deep-copy the
+    // objects inside.
     const types = [
       ...Array(rongar).fill('rongarTheCrusher'),
       ...Array(hedgeMages).fill('hedgeMage'),
       ...Array(lasherCount).fill('lasher'),
       ...Array(ruffianCount).fill('ruffian')
     ];
+
+    // map builds one output entry for each input entry, in the same order. The callback's
+    // return value becomes that output entry.
     return {
       boss,
       enemies: types.map((type, index) => ({
@@ -167,13 +222,23 @@ function buildThornbriarWaves(random) {
   });
 }
 
+// Build the den groups while keeping the authored boss finale.
 function buildDolmarkWaves(random) {
+
+  // map builds one output entry for each input entry, in the same order. The callback's
+  // return value becomes that output entry.
   return dolmarkWaves.map(({ wardens, protectors = 0, silvanark = 0, boss = false }) => {
+
+    // ... expands these entries into the new list or call. It does not deep-copy the
+    // objects inside.
     const types = [
       ...Array(silvanark).fill('silvanarkTheForestLord'),
       ...Array(protectors).fill('denProtector'),
       ...Array(rollCount(wardens, random)).fill('denWarden')
     ];
+
+    // map builds one output entry for each input entry, in the same order. The callback's
+    // return value becomes that output entry.
     return {
       boss,
       enemies: types.map((type, index) => ({
@@ -187,22 +252,32 @@ function buildDolmarkWaves(random) {
 
 
 
-// This function creates independent wave data for the selected delve.
-// Slime Cave, Thornbriar, and Dolmark have authored waves; other delves use difficulty waves.
+// This helper creates independent wave data for the selected delve. Slime Cave,
+// Thornbriar, and Dolmark have authored waves; other delves use difficulty waves.
 export function createEncounterWaves(delve = {}, arenaWidth = 1400, random = Math.random) {
 
   const isVoid = delve.type === 'void';
+
+  // The condition before ? chooses the first value when true and the value after : when
+  // false. ?? uses the fallback only for null or undefined. A real zero or false stays
+  // intact.
   const difficulty = isVoid ? 'Unknown' : delve.difficulty ?? 'Easy';
   const base = isVoid ? voidPortalWaves : forgottenCavernWaves;
   const finale = isVoid ? finalWaves.Unknown
     : difficulty === 'Easy' ? finalWaves.Easy : finalWaves.Difficult;
   const targetCount = isVoid ? base.length + finale.length
     : encounterWaveCounts[difficulty] ?? encounterWaveCounts.Easy;
+
+  // filter keeps entries whose callback returns true. It builds a new list and leaves the
+  // original list in place.
   const repeatable = base.filter(wave => !wave.boss);
   const openingCount = targetCount - finale.length;
   const difficultyWaves = Array.from({ length: openingCount }, (_, index) =>
     index < base.length ? base[index] : repeatable[(index - base.length) % repeatable.length]);
   const encounterId = delve.encounterId ?? delve.id;
+
+  // ... expands these entries into the new list or call. It does not deep-copy the objects
+  // inside.
   const waves = encounterId === 'slime-cave'
     ? buildSlimeCaveWaves(random)
     : encounterId === 'thornbriar-hollow'
@@ -213,8 +288,8 @@ export function createEncounterWaves(delve = {}, arenaWidth = 1400, random = Mat
           ? verdantTearWaves
           : [...difficultyWaves, ...finale];
 
-  // Preserve the fifth-depth guardian rule before the final boss so the
-  // difficulty's advertised boss group still closes the encounter.
+  // Preserve the fifth-depth guardian rule before the final boss so the difficulty's
+  // advertised boss group still closes the encounter.
   if ((delve.depth ?? 1) % 5 === 0) {
     waves.splice(waves.length - 1, 0, {
       boss: true, milestoneBoss: true,
@@ -225,7 +300,11 @@ export function createEncounterWaves(delve = {}, arenaWidth = 1400, random = Mat
       ]
     });
   }
+
   const centerOffset = (arenaWidth - 1400) / 2;
+
+  // map builds one output entry for each input entry, in the same order. The callback's
+  // return value becomes that output entry.
   return waves.map((wave) => ({
     ...wave, enemies: (wave.boss
       ? standardizeWaveEnemies(wave.enemies, Math.max(1, Math.round(wave.enemies.length * 0.8)))

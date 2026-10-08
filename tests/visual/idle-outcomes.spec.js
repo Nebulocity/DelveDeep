@@ -1,6 +1,12 @@
+// This is a browser check for the game. Playwright drives the page while the visual QA
+// bridge exposes live Phaser scenes. page.evaluate runs in the browser, not in this test
+// process, so values cross that boundary as plain serializable data. Wait for observable
+// state before checking it; asset loading and animations take time.
+
 import { test, expect } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 
+// Prepare the temporary dialog objects and blocker that the details view owns.
 async function start(page) {
   await page.goto('/?visualQa=1');
   await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__?.game.scene.getScene('TitleScene').sys.isActive());
@@ -10,6 +16,9 @@ async function start(page) {
 
 test('eight idle hours settle farm outcomes without scene replay and summarize once', async ({ page }) => {
   test.setTimeout(180000);
+
+  // on registers a callback for later events; it does not call that callback now.
+  // Long-lived emitters need matching listener cleanup.
   page.on('console', message => { if (message.text().startsWith('Idle benchmark debt:')) console.log(message.text()); });
   await page.setViewportSize({ width: 915, height: 412 });
   await start(page);
@@ -18,6 +27,9 @@ test('eight idle hours settle farm outcomes without scene replay and summarize o
     const scene = qa.game.scene.getScene('BattleScene');
     const progress = qa.game.backgroundProgress;
     progress.setHidden(true);
+
+    // The braces pull named fields into local variables. This reads those fields without
+    // copying the whole source object.
     const { resumeIdleBattle } = await import('/combat/IdleBattle.js');
     resumeIdleBattle(scene);
     scene.battleEvents.forEach(event => event.timer.remove(false));
@@ -25,6 +37,7 @@ test('eight idle hours settle farm outcomes without scene replay and summarize o
     scene.enemies.forEach(unit => unit.container.destroy());
     scene.enemies = [];
     scene.waveRetreating = false;
+
     scene.idleSummary = null;
     scene.partyUnits.forEach(unit => {
       unit.maxHp = unit.hp = 1000000;
@@ -32,23 +45,31 @@ test('eight idle hours settle farm outcomes without scene replay and summarize o
     });
     qa.state.delveCheckpoints[qa.state.currentDelve.id] = { nextWave: scene.bossWaveIndex, campUnlocked: true };
     qa.state.run.entry = 'farm';
+
     scene.startWave(scene.bossWaveIndex - 1);
     const gold = qa.state.gold;
     let steps = 0;
     const original = progress.originalUpdate;
-    progress.originalUpdate = function (...args) { if (progress.isReplaying) steps += 1; return original.apply(this, args); };
+    progress.originalUpdate = function (...args) {
+      if (progress.isReplaying) steps += 1;
+      return original.apply(this, args);
+    };
     const wall = progress.now();
     progress.now = () => wall + 8 * 3600000;
+
     const began = performance.now();
     const monitor = setInterval(() => console.log(`Idle benchmark debt: ${progress.pendingMs}; time ${scene.time.now}; hidden ${document.hidden}`), 5000);
     progress.pump();
     progress.setHidden(false);
+
     while (progress.pendingMs >= 50) await new Promise(resolve => setTimeout(resolve, 0));
     const elapsed = performance.now() - began;
     clearInterval(monitor);
+
     return { elapsed, steps, gold: qa.state.gold - gold, summary: scene.idleSummary,
       debt: progress.pendingMs, open: scene.idleSummaryOpen };
   });
+
   expect(outcome.steps).toBe(0);
   expect(outcome.debt).toBeLessThan(50);
   expect(outcome.elapsed).toBeLessThan(120000);
@@ -56,6 +77,7 @@ test('eight idle hours settle farm outcomes without scene replay and summarize o
   expect(outcome.gold).toBe(outcome.summary.gold);
   expect(outcome.summary.xp).toBe(outcome.summary.waves * 4);
   expect(outcome.summary.deaths).toEqual([]);
+
   expect(outcome.open).toBe(true);
   console.log(`Eight idle hours: ${outcome.summary.waves} waves in ${outcome.elapsed.toFixed(1)} ms; ${outcome.steps} scene replay steps.`);
   await mkdir('tests/visual/screenshots', { recursive: true });
@@ -65,20 +87,28 @@ test('eight idle hours settle farm outcomes without scene replay and summarize o
     const text = scene.children.getByName('idle-summary-text');
     return { y: text.y, bottom: text.getBounds().bottom, width: text.width, viewport: scene.scale.width };
   });
+
   expect(panel.width).toBeLessThan(panel.viewport * 0.71);
   const button = await page.evaluate(() => {
     const qa = window.__DELVE_DEEP_VISUAL_QA__;
+
+    // find returns the first matching entry, or undefined when none matches. Check for
+    // that missing result before using its fields.
     const label = qa.game.scene.getScene('BattleScene').children.list.find(object => object.text === 'CONTINUE');
     const rect = qa.game.canvas.getBoundingClientRect();
     return { x: rect.x + label.x * rect.width / qa.game.scale.width,
       y: rect.y + label.y * rect.height / qa.game.scale.height };
   });
+
   await page.mouse.click(button.x, button.y);
   expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene').idleSummary)).toBeNull();
 });
 
 test('idle deaths stop a lost run, persist the summary and do not repay on reload', async ({ page }) => {
   const errors = [];
+
+  // on registers a callback for later events; it does not call that callback now.
+  // Long-lived emitters need matching listener cleanup.
   page.on('pageerror', error => errors.push(error.message));
   await start(page);
   const result = await page.evaluate(async () => {
@@ -92,14 +122,17 @@ test('idle deaths stop a lost run, persist the summary and do not repay on reloa
       unit.attackPower = unit.spellDamage = unit.spellHealing = unit.basicHealPower = 0;
       unit.abilities = {};
     });
+
     const wall = progress.now();
     progress.now = () => wall + 3600000;
     progress.pump();
     progress.setHidden(false);
+
     while (progress.pendingMs >= 50) await new Promise(resolve => setTimeout(resolve, 0));
     await Promise.resolve();
     return { deaths: scene.idleSummary.deaths, over: scene.battleOver, gold: qa.state.gold };
   });
+
   expect(result.over).toBe(true);
   expect(result.deaths).toHaveLength(5);
   await page.screenshot({ path: 'tests/visual/screenshots/IdleDeaths-desktop.png' });
@@ -122,17 +155,23 @@ test('idle party loss keeps enemies for the Arise decision and grants no clear',
       unit.attackPower = unit.spellDamage = unit.spellHealing = unit.basicHealPower = 0;
       unit.abilities = {};
     });
+
     const gold = qa.state.gold;
     const wall = progress.now();
     progress.now = () => wall + 3600000;
     progress.pump();
+
     while (progress.pendingMs >= 50) {
       progress.pump();
       await new Promise(resolve => setTimeout(resolve, 0));
     }
+
+    // filter keeps entries whose callback returns true. It builds a new list and leaves
+    // the original list in place.
     return { waiting: scene.awaitingRevive, over: scene.battleOver,
       enemies: scene.enemies.filter(unit => unit.alive).length, gold: qa.state.gold - gold };
   });
+
   expect(result.waiting).toBe(true);
   expect(result.over).toBe(false);
   expect(result.enemies).toBeGreaterThan(0);

@@ -1,9 +1,13 @@
 import groovy.json.JsonSlurper
 
+// Read the same human-readable version used by npm. The Android update number is separate:
+// APP_VERSION_CODE must increase for distributed updates, regardless of branch or commit.
 def repositoryRoot = rootProject.projectDir.parentFile
 def packageJson = new JsonSlurper().parse(new File(repositoryRoot, 'package.json'))
 def version = packageJson.version.toString()
 def code = providers.gradleProperty('APP_VERSION_CODE').get().toInteger()
+
+// Android requires a positive version code within this range. Fail early on a bad setting.
 if (code < 1 || code > 2100000000) {
     throw new GradleException('APP_VERSION_CODE must be between 1 and 2100000000.')
 }
@@ -18,6 +22,9 @@ def gitOutput = { List<String> arguments ->
             commandLine(['git'] + arguments)
             ignoreExitValue = true
         }
+
+        // A nonzero exit means Git could not provide the requested value. Empty text lets
+        // the labels below use their fallback instead of blocking an exported source build.
         return result.result.get().exitValue == 0 ? result.standardOutput.asText.get().trim() : ''
     } catch (org.gradle.process.internal.ExecException ignored) {
         return ''
@@ -25,8 +32,14 @@ def gitOutput = { List<String> arguments ->
 }
 def branch = gitOutput(['branch', '--show-current'])
 def commit = gitOutput(['rev-parse', '--short=8', 'HEAD']) ?: 'unknown'
+
+// Groovy's ?: chooses a fallback for an empty value. A dirty suffix means local changes
+// exist, while the commit label still names the base commit, not those uncommitted edits.
 def dirty = gitOutput(['status', '--porcelain']) ? '-dirty' : ''
 def branchLabel = branch.startsWith(version + '-') ? branch.substring(version.length() + 1) : branch
+
+// Keep letters, digits, dots, underscores and hyphens so labels make safe filenames.
+// Strip outer hyphens after replacement. Detached checkouts use an explicit fallback.
 def safeBranch = branchLabel.replaceAll('[^A-Za-z0-9._-]+', '-').replaceAll('^-+|-+$', '')
 def apkBranch = (branch ?: 'detached').replaceAll('[^A-Za-z0-9._-]+', '-').replaceAll('^-+|-+$', '')
 def debugVersion = version + ((safeBranch && safeBranch != version) ? '-' + safeBranch : '') + '-' + commit + dirty
@@ -34,6 +47,9 @@ def debugVersion = version + ((safeBranch && safeBranch != version) ? '-' + safe
 // Use the variant API supported by this project's Android Gradle Plugin 8.13.
 android.applicationVariants.all { variant ->
     if (variant.buildType.name == 'debug') {
+
+        // Customize debug output only. The app's displayed version includes local state;
+        // the APK filename keeps the full branch and commit for a recognizable artifact.
         variant.outputs.all { output ->
             output.versionNameOverride = debugVersion
             output.outputFileName = "DelveDeep-" + apkBranch + "-" + commit + ".apk"

@@ -1,3 +1,16 @@
+// This catalog holds the authored ability rows used to build ranked skills. IDs connect
+// records to saved learned skills and handlers. Read Potency together with Unit: it can
+// describe damage, healing, threat or another bonus. The builder converts these rows
+// into the runtime skill format rather than executing the raw workbook row directly.
+
+// Role and Category group the skill; Target says who it can affect. Cast Range describes
+// reach. Area Shape and Area Anchor choose the affected shape and where it is centered;
+// Area Radius gives its size, and Maximum Targets caps the resulting target list.
+
+// Fields labeled (s) are seconds. Runtime cooldowns and status expiry use milliseconds,
+// so the skill builder converts them. Starter Ability determines the free initial kit;
+// learning later ranks and choosing battle slots are separate progression decisions.
+
 export const ABILITY_WORKBOOK = {
   "Gladiator": {
     "Roar": {
@@ -18,6 +31,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Throw Net": {
       "Role": "Tank",
       "Ability ID": "gladiator_net",
@@ -36,6 +50,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Whirling Cleave": {
       "Role": "Tank",
       "Ability ID": "gladiator_cleave",
@@ -54,6 +69,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 200,
       "Maximum Targets": "All"
     },
+
     "Kick Sand": {
       "Role": "Tank",
       "Ability ID": "gladiator_sand",
@@ -72,6 +88,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Arena Guard": {
       "Role": "Tank",
       "Ability ID": "gladiator_arena_guard",
@@ -90,6 +107,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Champion’s Shelter": {
       "Role": "Tank",
       "Ability ID": "gladiator_champion_s_shelter",
@@ -108,6 +126,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 240,
       "Maximum Targets": "All"
     },
+
     "Gore Rush": {
       "Role": "Tank",
       "Ability ID": "gladiator_gore_rush",
@@ -126,6 +145,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Pitfall Sweep": {
       "Role": "Tank",
       "Ability ID": "gladiator_pitfall_sweep",
@@ -144,6 +164,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 240,
       "Maximum Targets": "All"
     },
+
     "Second Wind": {
       "Role": "Tank",
       "Ability ID": "gladiator_second_wind",
@@ -162,6 +183,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Crowd Favorite": {
       "Role": "Tank",
       "Ability ID": "gladiator_crowd_favorite",
@@ -181,6 +203,7 @@ export const ABILITY_WORKBOOK = {
       "Maximum Targets": 1
     }
   },
+
   "Oathwarden": {
     "My Honor is My Life": {
       "Role": "Tank",
@@ -200,6 +223,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Solemn Vow": {
       "Role": "Tank",
       "Ability ID": "oathwarden_vow",
@@ -218,6 +242,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Staunch Defense": {
       "Role": "Tank",
       "Ability ID": "oathwarden_defense",
@@ -236,6 +261,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": "All"
     },
+
     "Parry": {
       "Role": "Tank",
       "Ability ID": "oathwarden_parry",
@@ -254,6 +280,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Shield of Honor": {
       "Role": "Tank",
       "Ability ID": "oathwarden_shield_of_honor",
@@ -272,6 +299,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Oathbound Circle": {
       "Role": "Tank",
       "Ability ID": "oathwarden_oathbound_circle",
@@ -290,6 +318,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 240,
       "Maximum Targets": "All"
     },
+
     "Judicator’s Blow": {
       "Role": "Tank",
       "Ability ID": "oathwarden_judicator_s_blow",
@@ -308,6 +337,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Reckoning Arc": {
       "Role": "Tank",
       "Ability ID": "oathwarden_reckoning_arc",
@@ -326,6 +356,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 240,
       "Maximum Targets": "All"
     },
+
     "Steadfast Heart": {
       "Role": "Tank",
       "Ability ID": "oathwarden_steadfast_heart",
@@ -344,6 +375,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Vigil Before Battle": {
       "Role": "Tank",
       "Ability ID": "oathwarden_vigil_before_battle",
@@ -363,6 +395,7 @@ export const ABILITY_WORKBOOK = {
       "Maximum Targets": 1
     }
   },
+
   "Barmaid": {
     "Frying Pan": {
       "Role": "Melee DPS",
@@ -382,6 +415,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Clumsy Swing": {
       "Role": "Melee DPS",
       "Ability ID": "barmaid_swing",
@@ -400,6 +434,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 100,
       "Maximum Targets": "All"
     },
+
     "Shield Bash": {
       "Role": "Melee DPS",
       "Ability ID": "barmaid_bash",
@@ -418,6 +453,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Last Call": {
       "Role": "Melee DPS",
       "Ability ID": "barmaid_lastCall",
@@ -436,6 +472,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": "All"
     },
+
     "Tray Toss": {
       "Role": "Melee DPS",
       "Ability ID": "barmaid_tray_toss",
@@ -454,6 +491,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Barroom Scramble": {
       "Role": "Melee DPS",
       "Ability ID": "barmaid_barroom_scramble",
@@ -472,6 +510,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 240,
       "Maximum Targets": "All"
     },
+
     "Cover the Regulars": {
       "Role": "Melee DPS",
       "Ability ID": "barmaid_cover_the_regulars",
@@ -490,6 +529,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Quick Sip": {
       "Role": "Melee DPS",
       "Ability ID": "barmaid_quick_sip",
@@ -508,6 +548,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Set the Table": {
       "Role": "Melee DPS",
       "Ability ID": "barmaid_set_the_table",
@@ -526,6 +567,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Find an Opening": {
       "Role": "Melee DPS",
       "Ability ID": "barmaid_find_an_opening",
@@ -545,6 +587,7 @@ export const ABILITY_WORKBOOK = {
       "Maximum Targets": 1
     }
   },
+
   "Scoundrel": {
     "Stealth": {
       "Role": "Melee DPS",
@@ -564,6 +607,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Surprise Attack": {
       "Role": "Melee DPS",
       "Ability ID": "scoundrel_surprise",
@@ -582,6 +626,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Poison": {
       "Role": "Melee DPS",
       "Ability ID": "scoundrel_poison",
@@ -600,6 +645,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Dagger Throw": {
       "Role": "Melee DPS",
       "Ability ID": "scoundrel_dagger",
@@ -618,6 +664,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Back Alley Cut": {
       "Role": "Melee DPS",
       "Ability ID": "scoundrel_back_alley_cut",
@@ -636,6 +683,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Smoke Bomb": {
       "Role": "Melee DPS",
       "Ability ID": "scoundrel_smoke_bomb",
@@ -654,6 +702,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 240,
       "Maximum Targets": "All"
     },
+
     "Slip Aside": {
       "Role": "Melee DPS",
       "Ability ID": "scoundrel_slip_aside",
@@ -672,6 +721,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Patch Up": {
       "Role": "Melee DPS",
       "Ability ID": "scoundrel_patch_up",
@@ -690,6 +740,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Coated Blades": {
       "Role": "Melee DPS",
       "Ability ID": "scoundrel_coated_blades",
@@ -708,6 +759,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "False Trail": {
       "Role": "Melee DPS",
       "Ability ID": "scoundrel_false_trail",
@@ -727,6 +779,7 @@ export const ABILITY_WORKBOOK = {
       "Maximum Targets": 1
     }
   },
+
   "Barbarian": {
     "Enrage": {
       "Role": "Melee DPS",
@@ -746,6 +799,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Charge": {
       "Role": "Melee DPS",
       "Ability ID": "barbarian_charge",
@@ -764,6 +818,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Heroic Strike": {
       "Role": "Melee DPS",
       "Ability ID": "barbarian_strike",
@@ -782,6 +837,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Agonizing Rend": {
       "Role": "Melee DPS",
       "Ability ID": "barbarian_rend",
@@ -800,6 +856,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Skullsplitter": {
       "Role": "Melee DPS",
       "Ability ID": "barbarian_skullsplitter",
@@ -818,6 +875,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Earthshaker": {
       "Role": "Melee DPS",
       "Ability ID": "barbarian_earthshaker",
@@ -836,6 +894,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 240,
       "Maximum Targets": "All"
     },
+
     "Unbroken": {
       "Role": "Melee DPS",
       "Ability ID": "barbarian_unbroken",
@@ -854,6 +913,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Battle Breath": {
       "Role": "Melee DPS",
       "Ability ID": "barbarian_battle_breath",
@@ -872,6 +932,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Blood Rush": {
       "Role": "Melee DPS",
       "Ability ID": "barbarian_blood_rush",
@@ -890,6 +951,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "War Cry": {
       "Role": "Melee DPS",
       "Ability ID": "barbarian_war_cry",
@@ -909,6 +971,7 @@ export const ABILITY_WORKBOOK = {
       "Maximum Targets": 1
     }
   },
+
   "Ranger": {
     "Hunter's Mark": {
       "Role": "Ranged DPS",
@@ -928,6 +991,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Rain of Arrows": {
       "Role": "Ranged DPS",
       "Ability ID": "ranger_rain",
@@ -946,6 +1010,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 200,
       "Maximum Targets": "All"
     },
+
     "Hunter's Trap": {
       "Role": "Ranged DPS",
       "Ability ID": "ranger_trap",
@@ -964,6 +1029,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Exploding Arrow": {
       "Role": "Ranged DPS",
       "Ability ID": "ranger_arrow",
@@ -982,6 +1048,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Pinning Shot": {
       "Role": "Ranged DPS",
       "Ability ID": "ranger_pinning_shot",
@@ -1000,6 +1067,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Volley": {
       "Role": "Ranged DPS",
       "Ability ID": "ranger_volley",
@@ -1018,6 +1086,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 200,
       "Maximum Targets": "All"
     },
+
     "Covering Fire": {
       "Role": "Ranged DPS",
       "Ability ID": "ranger_covering_fire",
@@ -1036,6 +1105,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Field Dressing": {
       "Role": "Ranged DPS",
       "Ability ID": "ranger_field_dressing",
@@ -1054,6 +1124,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Steady Aim": {
       "Role": "Ranged DPS",
       "Ability ID": "ranger_steady_aim",
@@ -1072,6 +1143,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Scout’s Route": {
       "Role": "Ranged DPS",
       "Ability ID": "ranger_scout_s_route",
@@ -1091,6 +1163,7 @@ export const ABILITY_WORKBOOK = {
       "Maximum Targets": 1
     }
   },
+
   "Dawnwarden": {
     "Challenge": {
       "Role": "Tank",
@@ -1110,6 +1183,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Defiant Stance": {
       "Role": "Tank",
       "Ability ID": "dawnwarden_defiant",
@@ -1128,6 +1202,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 3
     },
+
     "Sanctity Nova": {
       "Role": "Tank",
       "Ability ID": "dawnwarden_nova",
@@ -1146,6 +1221,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 240,
       "Maximum Targets": "All"
     },
+
     "Sunbrand Strike": {
       "Role": "Tank",
       "Ability ID": "dawnwarden_strike",
@@ -1164,6 +1240,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Sunlit Ward": {
       "Role": "Tank",
       "Ability ID": "dawnwarden_sunlit_ward",
@@ -1182,6 +1259,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Dawnwall": {
       "Role": "Tank",
       "Ability ID": "dawnwarden_dawnwall",
@@ -1200,6 +1278,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 240,
       "Maximum Targets": "All"
     },
+
     "Dawn Hammer": {
       "Role": "Tank",
       "Ability ID": "dawnwarden_dawn_hammer",
@@ -1218,6 +1297,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Corona Sweep": {
       "Role": "Tank",
       "Ability ID": "dawnwarden_corona_sweep",
@@ -1236,6 +1316,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 240,
       "Maximum Targets": "All"
     },
+
     "Renewed Resolve": {
       "Role": "Tank",
       "Ability ID": "dawnwarden_renewed_resolve",
@@ -1254,6 +1335,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Consecrated Stance": {
       "Role": "Tank",
       "Ability ID": "dawnwarden_consecrated_stance",
@@ -1273,6 +1355,7 @@ export const ABILITY_WORKBOOK = {
       "Maximum Targets": 1
     }
   },
+
   "Mage of the Umbral Veil": {
     "Umbral Grasp": {
       "Role": "Ranged DPS",
@@ -1292,6 +1375,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Nightbolt": {
       "Role": "Ranged DPS",
       "Ability ID": "mage_of_the_umbral_veil_nightbolt",
@@ -1310,6 +1394,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Gloomburst": {
       "Role": "Ranged DPS",
       "Ability ID": "mage_of_the_umbral_veil_gloom",
@@ -1328,6 +1413,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 240,
       "Maximum Targets": "All"
     },
+
     "Veilstep": {
       "Role": "Ranged DPS",
       "Ability ID": "mage_of_the_umbral_veil_veilstep",
@@ -1346,6 +1432,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Void Needle": {
       "Role": "Ranged DPS",
       "Ability ID": "mage_of_the_umbral_veil_void_needle",
@@ -1364,6 +1451,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Eclipse Field": {
       "Role": "Ranged DPS",
       "Ability ID": "mage_of_the_umbral_veil_eclipse_field",
@@ -1382,6 +1470,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 200,
       "Maximum Targets": "All"
     },
+
     "Veil Mantle": {
       "Role": "Ranged DPS",
       "Ability ID": "mage_of_the_umbral_veil_veil_mantle",
@@ -1400,6 +1489,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Siphon Breath": {
       "Role": "Ranged DPS",
       "Ability ID": "mage_of_the_umbral_veil_siphon_breath",
@@ -1418,6 +1508,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Night Focus": {
       "Role": "Ranged DPS",
       "Ability ID": "mage_of_the_umbral_veil_night_focus",
@@ -1436,6 +1527,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Shrouded Steps": {
       "Role": "Ranged DPS",
       "Ability ID": "mage_of_the_umbral_veil_shrouded_steps",
@@ -1455,6 +1547,7 @@ export const ABILITY_WORKBOOK = {
       "Maximum Targets": 1
     }
   },
+
   "Mage of the Crimson Spire": {
     "Arcane Stabilization": {
       "Role": "Ranged DPS",
@@ -1474,6 +1567,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Crimson Lash": {
       "Role": "Ranged DPS",
       "Ability ID": "mage_of_the_crimson_spire_lash",
@@ -1492,6 +1586,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 2
     },
+
     "Arcflare": {
       "Role": "Ranged DPS",
       "Ability ID": "mage_of_the_crimson_spire_arcflare",
@@ -1510,6 +1605,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 100,
       "Maximum Targets": "All"
     },
+
     "Spireburst": {
       "Role": "Ranged DPS",
       "Ability ID": "mage_of_the_crimson_spire_spire",
@@ -1528,6 +1624,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": "All"
     },
+
     "Crimson Lance": {
       "Role": "Ranged DPS",
       "Ability ID": "mage_of_the_crimson_spire_crimson_lance",
@@ -1546,6 +1643,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Shatter Pattern": {
       "Role": "Ranged DPS",
       "Ability ID": "mage_of_the_crimson_spire_shatter_pattern",
@@ -1564,6 +1662,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 200,
       "Maximum Targets": "All"
     },
+
     "Rune Shell": {
       "Role": "Ranged DPS",
       "Ability ID": "mage_of_the_crimson_spire_rune_shell",
@@ -1582,6 +1681,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Arcane Reweave": {
       "Role": "Ranged DPS",
       "Ability ID": "mage_of_the_crimson_spire_arcane_reweave",
@@ -1600,6 +1700,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Overcharge Sigil": {
       "Role": "Ranged DPS",
       "Ability ID": "mage_of_the_crimson_spire_overcharge_sigil",
@@ -1618,6 +1719,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Measured Casting": {
       "Role": "Ranged DPS",
       "Ability ID": "mage_of_the_crimson_spire_measured_casting",
@@ -1637,6 +1739,7 @@ export const ABILITY_WORKBOOK = {
       "Maximum Targets": 1
     }
   },
+
   "Mage of the Luminous Archive": {
     "Scripted Refuge": {
       "Role": "Ranged DPS",
@@ -1656,6 +1759,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Radiant Touch": {
       "Role": "Ranged DPS",
       "Ability ID": "mage_of_the_luminous_archive_touch",
@@ -1674,6 +1778,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Lumenspear": {
       "Role": "Ranged DPS",
       "Ability ID": "mage_of_the_luminous_archive_spear",
@@ -1692,6 +1797,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Libram of Knowledge": {
       "Role": "Ranged DPS",
       "Ability ID": "mage_of_the_luminous_archive_libram",
@@ -1710,6 +1816,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 200,
       "Maximum Targets": "All"
     },
+
     "Index of Light": {
       "Role": "Ranged DPS",
       "Ability ID": "mage_of_the_luminous_archive_index_of_light",
@@ -1728,6 +1835,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Prism Script": {
       "Role": "Ranged DPS",
       "Ability ID": "mage_of_the_luminous_archive_prism_script",
@@ -1746,6 +1854,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 200,
       "Maximum Targets": "All"
     },
+
     "Margin Ward": {
       "Role": "Ranged DPS",
       "Ability ID": "mage_of_the_luminous_archive_margin_ward",
@@ -1764,6 +1873,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Self Annotation": {
       "Role": "Ranged DPS",
       "Ability ID": "mage_of_the_luminous_archive_self_annotation",
@@ -1782,6 +1892,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Illuminated Thesis": {
       "Role": "Ranged DPS",
       "Ability ID": "mage_of_the_luminous_archive_illuminated_thesis",
@@ -1800,6 +1911,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Quick Reference": {
       "Role": "Ranged DPS",
       "Ability ID": "mage_of_the_luminous_archive_quick_reference",
@@ -1819,6 +1931,7 @@ export const ABILITY_WORKBOOK = {
       "Maximum Targets": 1
     }
   },
+
   "Cleric of the Everbright": {
     "Solar Aegis": {
       "Role": "Healer",
@@ -1838,6 +1951,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Blessing of the Dawn": {
       "Role": "Healer",
       "Ability ID": "cleric_of_the_everbright_blessing",
@@ -1856,6 +1970,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Ray of Benediction": {
       "Role": "Healer",
       "Ability ID": "cleric_of_the_everbright_ray",
@@ -1874,6 +1989,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Everbright Pulse": {
       "Role": "Healer",
       "Ability ID": "cleric_of_the_everbright_pulse",
@@ -1892,6 +2008,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 200,
       "Maximum Targets": "All"
     },
+
     "Judgement Spark": {
       "Role": "Healer",
       "Ability ID": "cleric_of_the_everbright_judgement",
@@ -1910,6 +2027,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Dawn Benediction": {
       "Role": "Healer",
       "Ability ID": "cleric_of_the_everbright_dawn_benediction",
@@ -1928,6 +2046,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Morning Chorus": {
       "Role": "Healer",
       "Ability ID": "cleric_of_the_everbright_morning_chorus",
@@ -1946,6 +2065,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 200,
       "Maximum Targets": "All"
     },
+
     "Halo Ward": {
       "Role": "Healer",
       "Ability ID": "cleric_of_the_everbright_halo_ward",
@@ -1964,6 +2084,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Sanctuary Light": {
       "Role": "Healer",
       "Ability ID": "cleric_of_the_everbright_sanctuary_light",
@@ -1982,6 +2103,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 240,
       "Maximum Targets": "All"
     },
+
     "Prayer of Clarity": {
       "Role": "Healer",
       "Ability ID": "cleric_of_the_everbright_prayer_of_clarity",
@@ -2000,6 +2122,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Kindled Faith": {
       "Role": "Healer",
       "Ability ID": "cleric_of_the_everbright_kindled_faith",
@@ -2019,6 +2142,7 @@ export const ABILITY_WORKBOOK = {
       "Maximum Targets": 1
     }
   },
+
   "Cleric of the Verdant Covenant": {
     "Rootbound Refuge": {
       "Role": "Healer",
@@ -2038,6 +2162,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Verdant Touch": {
       "Role": "Healer",
       "Ability ID": "cleric_of_the_verdant_covenant_touch",
@@ -2056,6 +2181,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Bramble Mend": {
       "Role": "Healer",
       "Ability ID": "cleric_of_the_verdant_covenant_mend",
@@ -2074,6 +2200,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Bloomfield Surge": {
       "Role": "Healer",
       "Ability ID": "cleric_of_the_verdant_covenant_bloom",
@@ -2092,6 +2219,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 240,
       "Maximum Targets": "All"
     },
+
     "Thornlance": {
       "Role": "Healer",
       "Ability ID": "cleric_of_the_verdant_covenant_thorn",
@@ -2110,6 +2238,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Seedling Mend": {
       "Role": "Healer",
       "Ability ID": "cleric_of_the_verdant_covenant_seedling_mend",
@@ -2128,6 +2257,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Spring Canopy": {
       "Role": "Healer",
       "Ability ID": "cleric_of_the_verdant_covenant_spring_canopy",
@@ -2146,6 +2276,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 200,
       "Maximum Targets": "All"
     },
+
     "Barkskin Oath": {
       "Role": "Healer",
       "Ability ID": "cleric_of_the_verdant_covenant_barkskin_oath",
@@ -2164,6 +2295,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Grove Shelter": {
       "Role": "Healer",
       "Ability ID": "cleric_of_the_verdant_covenant_grove_shelter",
@@ -2182,6 +2314,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 240,
       "Maximum Targets": "All"
     },
+
     "Living Sap": {
       "Role": "Healer",
       "Ability ID": "cleric_of_the_verdant_covenant_living_sap",
@@ -2200,6 +2333,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Rooted Patience": {
       "Role": "Healer",
       "Ability ID": "cleric_of_the_verdant_covenant_rooted_patience",
@@ -2219,6 +2353,7 @@ export const ABILITY_WORKBOOK = {
       "Maximum Targets": 1
     }
   },
+
   "Cleric of the Sanguine Song": {
     "Bloodsong Ascendance": {
       "Role": "Healer",
@@ -2238,6 +2373,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Sanguine Transfer": {
       "Role": "Healer",
       "Ability ID": "cleric_of_the_sanguine_song_transfer",
@@ -2256,6 +2392,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Hemoflow Beam": {
       "Role": "Healer",
       "Ability ID": "cleric_of_the_sanguine_song_beam",
@@ -2274,6 +2411,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Crimson Chorus": {
       "Role": "Healer",
       "Ability ID": "cleric_of_the_sanguine_song_chorus",
@@ -2292,6 +2430,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 240,
       "Maximum Targets": "All"
     },
+
     "Vessel Rend": {
       "Role": "Healer",
       "Ability ID": "cleric_of_the_sanguine_song_rend",
@@ -2310,6 +2449,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Pulse Exchange": {
       "Role": "Healer",
       "Ability ID": "cleric_of_the_sanguine_song_pulse_exchange",
@@ -2328,6 +2468,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Red Refrain": {
       "Role": "Healer",
       "Ability ID": "cleric_of_the_sanguine_song_red_refrain",
@@ -2346,6 +2487,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 200,
       "Maximum Targets": "All"
     },
+
     "Vein Ward": {
       "Role": "Healer",
       "Ability ID": "cleric_of_the_sanguine_song_vein_ward",
@@ -2364,6 +2506,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Chorus of Shelter": {
       "Role": "Healer",
       "Ability ID": "cleric_of_the_sanguine_song_chorus_of_shelter",
@@ -2382,6 +2525,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 240,
       "Maximum Targets": "All"
     },
+
     "Measured Pulse": {
       "Role": "Healer",
       "Ability ID": "cleric_of_the_sanguine_song_measured_pulse",
@@ -2400,6 +2544,7 @@ export const ABILITY_WORKBOOK = {
       "Area Radius": 0,
       "Maximum Targets": 1
     },
+
     "Quiet Cadence": {
       "Role": "Healer",
       "Ability ID": "cleric_of_the_sanguine_song_quiet_cadence",
@@ -2432,6 +2577,7 @@ export const STARTER_KITS = {
     "Parry",
     "Judicator’s Blow"
   ],
+
   "Barmaid": [
     "Frying Pan",
     "Clumsy Swing",
@@ -2442,6 +2588,7 @@ export const STARTER_KITS = {
     "Surprise Attack",
     "Patch Up"
   ],
+
   "Barbarian": [
     "Enrage",
     "Heroic Strike",
@@ -2452,6 +2599,7 @@ export const STARTER_KITS = {
     "Exploding Arrow",
     "Field Dressing"
   ],
+
   "Dawnwarden": [
     "Challenge",
     "Sunbrand Strike",
@@ -2462,6 +2610,7 @@ export const STARTER_KITS = {
     "Veilstep",
     "Siphon Breath"
   ],
+
   "Mage of the Crimson Spire": [
     "Arcane Stabilization",
     "Arcflare",
@@ -2472,6 +2621,7 @@ export const STARTER_KITS = {
     "Lumenspear",
     "Self Annotation"
   ],
+
   "Cleric of the Everbright": [
     "Blessing of the Dawn",
     "Everbright Pulse",
@@ -2482,6 +2632,7 @@ export const STARTER_KITS = {
     "Bloomfield Surge",
     "Barkskin Oath"
   ],
+
   "Cleric of the Sanguine Song": [
     "Hemoflow Beam",
     "Crimson Chorus",

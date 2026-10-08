@@ -1,3 +1,7 @@
+// These are plain-language descriptions for held stat details. They explain the
+// player-facing values; the actual growth and combat formulas live in the stat
+// configuration and game helpers.
+
 export const STAT_DESCRIPTIONS = {
   Level: 'Character level determines stat growth and skill training requirements. Adventurer XP advances the next level.',
   Health: 'The damage an adventurer can take before falling. Healing and Health Potions restore lost Health up to this maximum.',

@@ -74,7 +74,8 @@ export function loadProfile(baseRoster) {
   GameState.development = {
     unlockAll: saved?.development?.unlockAll === true,
     replayCleared: saved?.development?.replayCleared === true,
-    showArenaBorder: (saved?.development?.showArenaBorder ?? saved?.development?.showGridLines) === true
+    showArenaBorder: (saved?.development?.showArenaBorder ?? saved?.development?.showGridLines) === true,
+    musicEnabled: saved?.development?.musicEnabled === true
   };
   GameState.world = {
     layoutId: WORLD_LAYOUT_ID,

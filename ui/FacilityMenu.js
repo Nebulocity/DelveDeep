@@ -36,9 +36,9 @@ export const FACILITIES = {
 };
 
 const DETAIL_THEMES = {
-  Alchemist: { plaque: 'town-sign-alchemist', edge: 0x9fbd78, button: 0x315b3e, face: 0x20382e, text: '#eff9d7' },
-  Blacksmith: { plaque: 'town-sign-blacksmith', edge: 0xd58b55, button: 0x593728, face: 0x272b2c, text: '#fff0d8', square: true },
-  Enchanter: { plaque: 'town-sign-enchanter', edge: 0xb69ada, button: 0x463663, face: 0x28243b, text: '#f3eaff' }
+  Alchemist: { text: '#eff9d7' },
+  Blacksmith: { text: '#fff0d8' },
+  Enchanter: { text: '#f3eaff' }
 };
 
 export function renderFacilityMenu(scene, facility, selected, onSelect, onReturn, renderDetail) {

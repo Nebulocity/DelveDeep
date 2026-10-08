@@ -44,7 +44,9 @@ function start(scene, title, width, height, label, preserveEquipment = false) {
   };
   scene.selectionDetailsClose = close;
   scene.events.once('shutdown', close);
-  const first = scene.children.list.length;
+
+  // Scroll containers can remove earlier children, so modal ownership must use identity.
+  const existing = new Set(scene.children.list);
   const shade = scene.add.rectangle(x, y, screenWidth, screenHeight, 0x0c0805, 0.8).setDepth(depth).setInteractive();
   const panel = guildSurface(scene, x, y, width, height, 'panel').setDepth(depth + 1);
   const blocker = scene.add.rectangle(x, y, width, height, 0, 0).setDepth(depth + 2).setInteractive();
@@ -55,7 +57,7 @@ function start(scene, title, width, height, label, preserveEquipment = false) {
   guildCrest(scene, x + width / 2 - 96, top + 87, 70).setDepth(depth + 4);
   text(scene, x, top + 48, label, UI_FONT_SIZES.compact24, { color: '#cfaa70', letterSpacing: 4 }).setDepth(depth + 4);
   text(scene, x, top + 100, title, UI_FONT_SIZES.heading46, { color: GUILD.paper, fontFamily: UI_FONT_FAMILIES.serif, wordWrap: { width: width - 320 } }).setDepth(depth + 4);
-  return { x, top, width, height, depth, close, finish: (...extra) => objects.push(...scene.children.list.slice(first), ...extra.filter(Boolean)), panel };
+  return { x, top, width, height, depth, close, finish: (...extra) => objects.push(...scene.children.list.filter(object => !existing.has(object)), ...extra.filter(Boolean)), panel };
 }
 
 export function showGuildDetails(scene, details) {

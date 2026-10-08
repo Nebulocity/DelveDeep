@@ -22,7 +22,8 @@ const GameState = {
   development: {
     unlockAll: false,
     replayCleared: false,
-    showArenaBorder: false
+    showArenaBorder: false,
+    musicEnabled: false
   },
   world: {
     currentLocation: 'pineshire',

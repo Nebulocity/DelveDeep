@@ -61,7 +61,7 @@ export default class TitleScene extends Phaser.Scene {
     const panelHeight = Math.min(850, height * 0.84);
     const panelTop = (height - panelHeight) / 2;
     const panelLeft = (width - panelWidth) / 2;
-    const rowY = (index) => panelTop + 180 + index * 90;
+    const rowY = (index) => panelTop + 180 + index * 84;
     const labelX = panelLeft + 100;
     const firstX = panelLeft + 720;
     const secondX = panelLeft + 995;
@@ -152,8 +152,20 @@ export default class TitleScene extends Phaser.Scene {
         borderToggle.caption.setColor('#fff1d2');
       }, borderVisible ? '#1f2937' : '#ffffff');
 
-    addLabel(5, 'Reset progress');
-    addButton(firstX, rowY(5), 'RESET', 0x7f1d1d, 0xf87171, () => {
+    addLabel(5, 'Music');
+    const musicEnabled = GameState.development.musicEnabled === true;
+    const musicToggle = addButton(firstX, rowY(5), musicEnabled ? 'ON' : 'OFF',
+      0x08192e, 0x00f2fa, () => {
+        HapticsService.confirm();
+        this.game.music.setEnabled(GameState.development.musicEnabled !== true);
+        saveProfile();
+        const enabled = GameState.development.musicEnabled;
+        musicToggle.caption.setText(enabled ? 'ON' : 'OFF');
+        setRegionPanelState(this, musicToggle.button, enabled ? 'selected' : 'normal');
+      });
+
+    addLabel(6, 'Reset progress');
+    addButton(firstX, rowY(6), 'RESET', 0x7f1d1d, 0xf87171, () => {
       HapticsService.tap();
       destroy();
       this.showResetConfirmation();

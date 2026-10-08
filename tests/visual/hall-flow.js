@@ -42,9 +42,9 @@ export async function reviewHall(page, output, width) {
     if (hold) {
       await page.mouse.move(point.x, point.y);
       await page.mouse.down();
-      await page.waitForTimeout(650);
+      await page.waitForFunction(key => Boolean(window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene(key).selectionDetailsClose), key);
       await page.mouse.up();
-    } else await page.mouse.click(point.x, point.y);
+    } else await page.mouse.click(point.x, point.y, { delay: 70 });
     await page.waitForTimeout(50);
   };
   const capture = async (name) => page.screenshot({ path: `${output}/hall-${name}-${width}.png` });
@@ -170,9 +170,10 @@ export async function reviewHall(page, output, width) {
   await click('RosterScene', 'hall-skill-cleave', false, true);
   ensure(await page.evaluate(() => {
     const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene');
-    const text = scene.children.list.filter(object => object.depth >= 11000).map(object => object.text).join(' ');
-    return /Damage: \d+-\d+/.test(text) && !text.includes('Cooldown:') && !text.includes('Range:');
-  }), 'Skill details must show numeric potency without internal range/cooldown text');
+    const flatten = list => list.flatMap(object => [object, ...(object.list ? flatten(object.list) : [])]);
+    const text = flatten(scene.children.list).filter(object => object.depth >= 11000).map(object => object.text).join(' ');
+    return /Deal \d+-\d+ physical damage/.test(text) && text.includes('Range:') && text.includes('Cooldown:');
+  }), 'Skill details must show numeric damage, measured reach and cooldown');
   await capture('skill-potency');
   await click('RosterScene', 'CLOSE', true);
   await click('RosterScene', 'hall-nav-items'); await waitScene('ItemsScene');

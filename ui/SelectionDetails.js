@@ -7,6 +7,7 @@ import { bindButtonPress } from './ButtonPress.js';
 import { addRegionPanel, addRegionNotice, regionMessageBounds } from './RegionMapTheme.js';
 import { isGuildHall } from './GuildHallTheme.js';
 import { showGuildDetails } from './GuildHallDialogs.js';
+import { showShopDetails } from './ShopDetails.js';
 import { UI_FONT_SIZES, fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import { abilityDescription } from '../game/AbilityDescriptions.js';
 import { hallScroll } from './HallUI.js';
@@ -73,6 +74,7 @@ export function delveDetails(delve) {
 // Modal details block underlying controls while gameplay and timers continue.
 export function showSelectionDetails(scene, details) {
   if (isGuildHall(scene)) return showGuildDetails(scene, details);
+  if (details.shopTheme) return showShopDetails(scene, details);
   scene.selectionDetailsClose?.();
   const { width, height } = scene.scale;
   const hall = isHallMenu(scene);
@@ -81,8 +83,6 @@ export function showSelectionDetails(scene, details) {
   const messageBounds = regionMessageBounds(scene, regionMap ? details.messageScope : 'ui');
   const centerX = messageBounds.centerX;
   const warm = true;
-  const shopTheme = details.shopTheme;
-  const shop = Boolean(shopTheme);
   const objects = [];
   const close = () => {
     objects.forEach((object) => object.destroy());
@@ -96,11 +96,11 @@ export function showSelectionDetails(scene, details) {
   const panelWidth = Math.min(details.panelWidth ?? (details.gear ? 1760 : 1100), messageBounds.width - 120);
   const hasImage = Boolean(details.image && scene.textures.exists(details.image));
   const bodyMargin = 65;
-  const imageColumn = hasImage ? 300 : shop ? 220 : 0;
+  const imageColumn = hasImage ? 300 : 0;
   const bodyWidth = panelWidth - bodyMargin * 2 - imageColumn;
   const bodyCenter = centerX + imageColumn / 2;
   const body = scene.add.text(bodyCenter, 0, details.description, {
-    fontFamily: UI_FONT_FAMILIES.sans, fontSize: `${UI_FONT_SIZES.detailBody}px`, color: stone ? STONE.text : shop ? shopTheme.text : warm ? '#f1dfca' : '#e2e8f0',
+    fontFamily: UI_FONT_FAMILIES.sans, fontSize: `${UI_FONT_SIZES.detailBody}px`, color: stone ? STONE.text : warm ? '#f1dfca' : '#e2e8f0',
     wordWrap: { width: bodyWidth }, fixedWidth: bodyWidth, align: details.align ?? 'center'
   }).setOrigin(0.5, 0).setDepth(depth + 2);
   const panelHeight = Math.min(height - 140, Math.max(hasImage ? 540 : 340, body.height + (details.gear ? 480 : 210)));
@@ -114,10 +114,6 @@ export function showSelectionDetails(scene, details) {
   const panel = (stone ? addStonePanel : regionMap ? addRegionPanel : addWoodenPanel)(scene, centerX, height / 2, panelWidth + 36, panelHeight + 36, depth + 1);
   if (stone && scene.stoneTheme) objects.push(addStoneOrnaments(scene, centerX, top + 42, panelWidth, scene.stoneTheme, depth + 2));
   const conceptHeight = Math.min(368, panelHeight - 180);
-  const shopSign = shop && scene.textures.exists(shopTheme.plaque)
-    ? scene.add.image(centerX - panelWidth / 2 + 120, top + Math.min(190, panelHeight / 2), shopTheme.plaque)
-      .setDisplaySize(shopTheme.square ? 145 : 180, shopTheme.square ? 145 : 120).setDepth(depth + 2)
-    : null;
   const conceptImage = hasImage
     ? scene.add.image(centerX - panelWidth / 2 + 155, height / 2, details.image)
       .setDepth(depth + 2)
@@ -163,17 +159,16 @@ export function showSelectionDetails(scene, details) {
   }
   if (conceptImage) objects.push(conceptImage);
   if (town) objects.push(panelHit);
-  if (shopSign) objects.push(shopSign);
   objects.push(
     scene.add.text(details.titleAboveBody ? bodyCenter : centerX, top + 44, details.title, {
       fontFamily: town || stone ? UI_FONT_FAMILIES.serif : UI_FONT_FAMILIES.sans, fontSize: fontPx('body36'), fontStyle: UI_FONT_WEIGHTS.bold,
       wordWrap: { width: details.titleAboveBody ? bodyWidth : panelWidth - 170 }, align: 'center',
-      color: warm || shop ? (shop ? shopTheme.text : '#fff1d2') : '#bef264', stroke: town || shop ? '#24170f' : undefined,
-      strokeThickness: town || shop ? 3 : 0
+      color: warm ? '#fff1d2' : '#bef264', stroke: town ? '#24170f' : undefined,
+      strokeThickness: town ? 3 : 0
     }).setOrigin(0.5).setDepth(depth + 2),
     scene.add.text(centerX, button.y, stone ? '' : 'CLOSE', {
-      fontFamily: town || shop ? UI_FONT_FAMILIES.serif : UI_FONT_FAMILIES.sans, fontSize: fontPx('body32'), color: warm || shop ? (shop ? shopTheme.text : '#fff1d2') : '#ffffff',
-      stroke: town || shop ? '#24170f' : undefined, strokeThickness: town || shop ? 2 : 0
+      fontFamily: town ? UI_FONT_FAMILIES.serif : UI_FONT_FAMILIES.sans, fontSize: fontPx('body32'), color: warm ? '#fff1d2' : '#ffffff',
+      stroke: town ? '#24170f' : undefined, strokeThickness: town ? 2 : 0
     }).setOrigin(0.5).setDepth(depth + 4));
 }
 

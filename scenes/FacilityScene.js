@@ -15,9 +15,9 @@ import { canCraft, craftItem, recipeIngredientText } from '../game/Crafting.js';
 import { GEAR_STOCK, saleRows, sellOwnedItem, buyGear, inscribeEnchantment, applyEnchantment, disenchantItem } from '../game/ShopServices.js';
 
 const THEMES = {
-  Blacksmith: { panel: 0x1b2023, face: 0x353535, edge: 0xd58b55, text: '#fff0d8', plaque: 'town-sign-blacksmith' },
-  Alchemist: { panel: 0x14271f, face: 0x294b36, edge: 0x9fbd78, text: '#eff9d7', plaque: 'town-sign-alchemist' },
-  Enchanter: { panel: 0x201a31, face: 0x403152, edge: 0xb69ada, text: '#f3eaff', plaque: 'town-sign-enchanter' }
+  Blacksmith: { panel: 0x1b2023, face: 0x353535, edge: 0xd58b55, text: '#fff0d8' },
+  Alchemist: { panel: 0x14271f, face: 0x294b36, edge: 0x9fbd78, text: '#eff9d7' },
+  Enchanter: { panel: 0x201a31, face: 0x403152, edge: 0xb69ada, text: '#f3eaff' }
 };
 const CATEGORIES = {
   all: ['All items', 'satchel'], weapon: ['Weapons', 'sword'], armor: ['Armor', 'shield'],

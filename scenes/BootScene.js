@@ -29,6 +29,7 @@ import townCastleUrl from '../assets/screens/town-concepts/castle-town.png?url';
 import { trackLoading } from '../ui/LoadingScreen.js';
 import delves from '../data/delves.js';
 import pineshireMapUrl from '../assets/world-map/illustrated-regions-v1/01-pineshire-reach-v4.png?url';
+import { preloadMusic } from '../services/MusicService.js';
 
 export default class BootScene extends Phaser.Scene {
 
@@ -43,6 +44,7 @@ export default class BootScene extends Phaser.Scene {
   preload() {
 
     trackLoading(this);
+    preloadMusic(this);
     this.load.image('world-pineshire-final', pineshireMapUrl);
     this.load.spritesheet('world-party-idle', partyIdleUrl, { frameWidth: 256, frameHeight: 256 });
     this.load.spritesheet('world-party-walk', partyWalkUrl, { frameWidth: 256, frameHeight: 256 });

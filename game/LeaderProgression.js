@@ -38,7 +38,7 @@ export const leaderAbilities = [
     name: 'Lunar Assault!',
     shortName: 'LUNAR',
     branch: 'Command',
-    description: 'Mages damage enemies within a 400-unit radius of the target and root them for 8 seconds. Once per encounter.',
+    description: 'Mages damage enemies within 4 paces of the target and root them for 8 seconds. Once per encounter.',
     cost: 1,
     oncePerEncounter: true
   },

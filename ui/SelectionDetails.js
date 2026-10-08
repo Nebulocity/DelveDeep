@@ -14,7 +14,7 @@ import { isGuildHall } from './GuildHallTheme.js';
 import { showGuildDetails } from './GuildHallDialogs.js';
 import { showShopDetails } from './ShopDetails.js';
 import { UI_FONT_SIZES, fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
-import { abilityDescription } from '../game/AbilityDescriptions.js';
+import { abilitySummary } from '../game/AbilityDescriptions.js';
 import { hallScroll } from './HallUI.js';
 
 export const DETAILS_HINT = 'Long-press or hold-click a selection for details.';
@@ -57,7 +57,7 @@ function isTownMenu(scene) {
   return scene.scene?.key === 'TownScene';
 }
 
-// Build the inspected character's current gear-adjusted stats and known-skill details.
+// Build the inspected character's current resources and equipped-skill details.
 // unit is the live combatant, with current resources and arena position.
 export function characterDetails(unit) {
   if (unit.isEnemy) {
@@ -90,15 +90,16 @@ export function characterDetails(unit) {
   // false. Math.floor rounds toward the smaller whole number, so 3.8 becomes 3.
   // Object.entries turns own fields into [key, value] pairs so we can visit or transform
   // them.
+
+  // BattleUnit already contains only equipped, ranked skills. Keep this header short;
+  // calculated damage and healing appear beside each skill instead of a separate stat list.
   return {
     title: unit.name,
+    align: 'left',
     description: [
-      `${unit.className ?? 'Monster'} | ${unit.role ?? 'Enemy'}${unit.level ? ` | Level ${unit.level}` : ''}`,
-      `HP: ${unit.hp ?? unit.maxHp}/${unit.maxHp} | Attack: ${unit.attackPower}`,
-      (unit.maxMana ?? 0) > 0 ? `Mana: ${Math.floor(unit.mana ?? unit.maxMana)}/${unit.maxMana}` : '',
-      unit.description ?? '',
+      `${unit.className ?? 'Monster'} | ${unit.role ?? 'Enemy'}${unit.level ? ` | Level ${unit.level}` : ''}\nHP: ${Math.floor(unit.hp ?? unit.maxHp)}/${unit.maxHp}${(unit.maxMana ?? 0) > 0 ? ` | Mana: ${Math.floor(unit.mana ?? unit.maxMana)}/${unit.maxMana}` : ''}`,
       Object.entries(unit.abilities ?? {}).filter(([key]) => !unit.abilityRanks || unit.abilityRanks[key] > 0)
-        .map(([, ability]) => `${ability.name}\n${abilityDescription(unit, ability)}`).join('\n\n')
+        .map(([, ability]) => abilitySummary(unit, ability)).join('\n\n') || 'No skills equipped.'
     ].filter(Boolean).join('\n\n')
   };
 }

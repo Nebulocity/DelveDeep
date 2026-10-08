@@ -3,13 +3,22 @@
 // base damage still precedes random critical hits and the target's mitigation.
 
 import { abilityPower, linkedHealing } from './CharacterStats.js';
-import { ADJACENT_DISTANCE, ARENA_RANGE, rangeLabel } from '../config/combatRanges.js';
+import { ARENA_RANGE, rangeLabel } from '../config/combatRanges.js';
 
 const number = value => Number((value ?? 0).toFixed(2));
 const percent = value => `${number(value * 100)}%`;
 const seconds = value => `${number(value / 1000)} seconds`;
-const distance = value => `${number(value * ADJACENT_DISTANCE)} units`;
-const amountRange = (low, high = low) => `${Math.round(Math.min(low, high))}-${Math.round(Math.max(low, high))}`;
+
+// One pace is the game's Adjacent reach (100 logical arena units). Ability data already
+// measures distances in that scale, so this wording never changes combat coordinates.
+const distance = value => `${number(value)} ${value === 1 ? 'pace' : 'paces'}`;
+const amountRange = (low, high = low) => {
+  const minimum = Math.round(Math.min(low, high));
+  const maximum = Math.round(Math.max(low, high));
+
+  // A fixed amount reads as 90 rather than 90-90. Conditional potency keeps both bounds.
+  return minimum === maximum ? `${minimum}` : `${minimum}-${maximum}`;
+};
 
 // Describe the skill's target group in words for held details. ability is the selected
 // skill data, including its current rank values.
@@ -22,14 +31,14 @@ function recipients(ability) {
   if (ability.effect === 'protect' && ability.target === 'allies') {
 
     // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
-    return `all allies within a ${distance(ability.radius ?? 2)} radius of you`;
+    return `all allies within ${distance(ability.radius ?? 2)} of you`;
   }
 
-  if (ability.effect === 'trap') return 'the first enemy within 60 units of the trap';
-  if (ability.beam) return 'enemies in a 100-unit-wide line toward the target';
-  if (ability.zone || ability.splash) return `all ${side} within a ${distance(ability.zone ?? ability.splash)} radius of the target`;
+  if (ability.effect === 'trap') return `the first enemy within ${distance(0.6)} of the trap`;
+  if (ability.beam) return 'enemies in a line 1 pace wide toward the target';
+  if (ability.zone || ability.splash) return `all ${side} within ${distance(ability.zone ?? ability.splash)} of the target`;
 
-  if (ability.radius) return `all ${side} within a ${distance(ability.radius)} radius of you`;
+  if (ability.radius) return `all ${side} within ${distance(ability.radius)} of you`;
   if (ability.target === 'self') return 'yourself';
   if (ability.targets === Infinity) return 'all enemies in range';
 
@@ -39,10 +48,14 @@ function recipients(ability) {
 
 // Describe the current ranked skill with concrete results, without exposing stat
 // calculations.
-export function abilityDescription(unit, ability) {
+export function abilityDescription(unit, ability, { compact = false } = {}) {
   const a = ability;
   const lines = [];
   const targets = recipients(a);
+
+  // Battle bullets use short times and keep every effect in one wrapped paragraph.
+  // Hall skill details keep their spaced paragraphs for individual skill inspection.
+  const seconds = value => `${number(value / 1000)}${compact ? 's' : ' seconds'}`;
 
   // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
   let low = a.power ?? 0;
@@ -75,7 +88,7 @@ export function abilityDescription(unit, ability) {
       // The condition before ? chooses the first value when true and the value after :
       // when false.
       const scope = a.healScope === 'lowest' ? 'your most wounded ally'
-        : a.healScope === 'near' ? 'all allies within 100 units of the target' : 'all living allies';
+        : a.healScope === 'near' ? 'all allies within 1 pace of the target' : 'all living allies';
       lines.push(`Heal ${scope} for up to ${amountRange(linkedHealing(unit, a, minimum), linkedHealing(unit, a, maximum))} Health per enemy hit. Healing depends on damage dealt.`);
     }
 
@@ -167,11 +180,17 @@ export function abilityDescription(unit, ability) {
 
   if (a.targetThreatReduction) lines.push(`Generate ${percent(a.targetThreatReduction)} less threat for ${duration}.`);
   lines.push(!a.range ? 'Range: Self.' : a.range >= ARENA_RANGE || !Number.isFinite(a.range)
-    ? 'Range: Anywhere in the arena.' : `Range: ${rangeLabel(a.range)} (${distance(a.range)}).`);
+    ? `Range: ${compact ? 'Anywhere' : 'Anywhere in the arena'}.` : `Range: ${rangeLabel(a.range)} (${distance(a.range)}).`);
 
   if (a.cooldown) lines.push(`Cooldown: ${seconds(a.cooldown)}.`);
   if (a.manaCost) lines.push(`Costs ${a.manaCost} Mana.`);
-  return lines.join('\n\n');
+  return lines.join(compact ? ' ' : '\n\n');
+}
+
+// Reuse the ranked, stat-aware description for a compact ability list. Keep the name and
+// its effect together so wrapping and scrolling do not separate a skill from its details.
+export function abilitySummary(unit, ability) {
+  return `- ${ability.name}: ${abilityDescription(unit, ability, { compact: true })}`;
 }
 
 // Describe a leader tactic using its authored effect and duration. ability is the selected
@@ -208,7 +227,7 @@ export function leaderAbilityDescription(ability, party = []) {
     if (!attackers.length) return `${ability.description} Range: Anywhere in the arena. Requires a living mage; affected enemies must be engaged.`;
     const damage = attackers.reduce((total, hero) => total + hero.spellDamage, 0) * 3;
 
-    return `Mages deal ${amountRange(damage)} spell damage to enemies within a 400-unit radius of a target anywhere in the arena and root them for 8 seconds. Requires a living mage; affected enemies must be engaged. Once per encounter.`;
+    return `Mages deal ${amountRange(damage)} spell damage to enemies within ${distance(4)} of a target anywhere in the arena and root them for 8 seconds. Requires a living mage; affected enemies must be engaged. Once per encounter.`;
   }
 
   return `${ability.description}${ability.cooldown ? `\n\nCooldown: ${seconds(ability.cooldown)}.` : ''}`;

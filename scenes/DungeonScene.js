@@ -18,7 +18,7 @@ import { CHARACTER_SPRITES } from '../data/characterSprites.js';
 import { preloadEnvironment } from '../combat/LayeredEnvironment.js';
 import { bindButtonPress } from '../ui/ButtonPress.js';
 
-import { abilityDescription, leaderAbilityDescription } from '../game/AbilityDescriptions.js';
+import { abilitySummary, leaderAbilityDescription } from '../game/AbilityDescriptions.js';
 import { rankedAbility } from '../game/AdventurerAbilities.js';
 
 export default class DungeonScene extends Phaser.Scene {
@@ -156,7 +156,7 @@ export default class DungeonScene extends Phaser.Scene {
     // true. It builds a new list and leaves the original list in place. ?? uses the
     // fallback only for null or undefined. A real zero or false stays intact.
     const skills = (hero.abilityLoadout ?? []).filter(key => hero.abilities?.[key] && (hero.abilityRanks?.[key] ?? 0) > 0)
-      .map(key => `${hero.abilities[key].name}\n${abilityDescription(stats, rankedAbility(hero.abilities[key], hero.abilityRanks[key]))}`);
+      .map(key => abilitySummary(stats, rankedAbility(hero.abilities[key], hero.abilityRanks[key])));
 
     // The condition before ? chooses the first value when true and the value after : when
     // false.

@@ -8,6 +8,8 @@ import { createPixelEnvironmentEffects } from './PixelEnvironmentEffects.js';
 import { createForestEnvironmentEffects } from './ForestEnvironmentEffects.js';
 import { createVoidEnvironmentEffects } from './VoidEnvironmentEffects.js';
 import { createDenEnvironmentEffects } from './DenEnvironmentEffects.js';
+import { createWatchEnvironmentEffects } from './WatchEnvironmentEffects.js';
+import { createQuarryEnvironmentEffects } from './QuarryEnvironmentEffects.js';
 
 // All artwork, ambient effects and the walkable arena share one camera-space transform.
 export function getEnvironmentTransform(environment, width, height) {
@@ -128,13 +130,17 @@ export function createEnvironment(scene, environment) {
 
   // The condition before ? chooses the first value when true and the value after : when
   // false.
-  const effects = environment.denEffects
-    ? createDenEnvironmentEffects(scene, environment.denEffects, t)
-    : environment.voidEffects
-      ? createVoidEnvironmentEffects(scene, environment.voidEffects, t)
-      : environment.forestEffects
-        ? createForestEnvironmentEffects(scene, environment.forestEffects, t)
-        : createPixelEnvironmentEffects(scene, environment.pixelEffects, t);
+  const effects = environment.quarryEffects
+    ? createQuarryEnvironmentEffects(scene, environment.quarryEffects, t)
+    : environment.watchEffects
+      ? createWatchEnvironmentEffects(scene, environment.watchEffects, t)
+      : environment.denEffects
+        ? createDenEnvironmentEffects(scene, environment.denEffects, t)
+        : environment.voidEffects
+          ? createVoidEnvironmentEffects(scene, environment.voidEffects, t)
+          : environment.forestEffects
+            ? createForestEnvironmentEffects(scene, environment.forestEffects, t)
+            : createPixelEnvironmentEffects(scene, environment.pixelEffects, t);
 
   const a = environment.ambient;
   let video;

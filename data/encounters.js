@@ -3,6 +3,7 @@
 // its own clear record and checkpoint.
 
 import { forgottenCavernWaves, voidPortalWaves } from './enemies.js';
+import { catalogWaves, expandCatalogWaves } from './catalogWaves.js';
 
 export const encounterWaveCounts = Object.freeze({
   Easy: 6,
@@ -133,10 +134,10 @@ const dolmarkWaves = [
   { wardens: { base: 4, dice: [2] } },
   { wardens: { base: 4, dice: [2, 2] } },
   { wardens: { base: 2, dice: [2, 2] }, protectors: 1 },
-  { wardens: { base: 4 }, protectors: 2 },
+  { wardens: { base: 4 }, protectors: 2, colossi: 1 },
 
-  { wardens: { base: 4 }, protectors: 4 },
-  { wardens: { base: 3 }, protectors: 2, silvanark: 1, boss: true }
+  { wardens: { base: 4 }, protectors: 4, colossi: 2 },
+  { wardens: { base: 3 }, protectors: 2, colossi: 1, silvanark: 1, boss: true }
 ];
 
 const verdantTearWaves = [
@@ -165,8 +166,8 @@ const verdantTearWaves = [
   ] }
 ];
 
-// Keep the Abyss at six waves with its existing difficulty count and final boss rules.
-// Only this encounter replaces placeholder creatures with the supplied void roster.
+// These six authored stages seed the longer Abyss run. Difficulty expansion below keeps
+// its guardian stage inside the progression and reserves the final Sovereign stage.
 const murmuringAbyssWaves = [
   { enemies: [
     { type: 'voidCrawler', arenaX: 360, arenaY: 770 },
@@ -266,12 +267,13 @@ function buildDolmarkWaves(random) {
 
   // map builds one output entry for each input entry, in the same order. The callback's
   // return value becomes that output entry.
-  return dolmarkWaves.map(({ wardens, protectors = 0, silvanark = 0, boss = false }) => {
+  return dolmarkWaves.map(({ wardens, protectors = 0, colossi = 0, silvanark = 0, boss = false }) => {
 
     // ... expands these entries into the new list or call. It does not deep-copy the
     // objects inside.
     const types = [
       ...Array(silvanark).fill('silvanarkTheForestLord'),
+      ...Array(colossi).fill('denColossus'),
       ...Array(protectors).fill('denProtector'),
       ...Array(rollCount(wardens, random)).fill('denWarden')
     ];
@@ -326,11 +328,12 @@ export function createEncounterWaves(delve = {}, arenaWidth = 1400, random = Mat
   // The condition before ? chooses the first value when true and the value after : when
   // false. ?? uses the fallback only for null or undefined. A real zero or false stays
   // intact.
-  const difficulty = isVoid ? 'Unknown' : delve.difficulty ?? 'Easy';
+  const difficulty = isVoid && (delve.encounterId ?? delve.id) !== 'murmuring-abyss'
+    ? 'Unknown' : delve.difficulty ?? 'Easy';
   const base = isVoid ? voidPortalWaves : forgottenCavernWaves;
   const finale = isVoid ? finalWaves.Unknown
     : difficulty === 'Easy' ? finalWaves.Easy : finalWaves.Difficult;
-  const targetCount = isVoid ? base.length + finale.length
+  const targetCount = isVoid && difficulty === 'Unknown' ? base.length + finale.length
     : encounterWaveCounts[difficulty] ?? encounterWaveCounts.Easy;
 
   // filter keeps entries whose callback returns true. It builds a new list and leaves the
@@ -347,7 +350,8 @@ export function createEncounterWaves(delve = {}, arenaWidth = 1400, random = Mat
 
   // ... expands these entries into the new list or call. It does not deep-copy the objects
   // inside.
-  const waves = encounterId === 'slime-cave'
+  const catalogGroups = catalogWaves(encounterId);
+  let waves = catalogGroups ?? (encounterId === 'slime-cave'
     ? buildSlimeCaveWaves(random)
     : encounterId === 'thornbriar-hollow'
       ? buildThornbriarWaves(random)
@@ -361,11 +365,17 @@ export function createEncounterWaves(delve = {}, arenaWidth = 1400, random = Mat
               ? verdantTearWaves
               : encounterId === 'murmuring-abyss'
                 ? murmuringAbyssWaves
-                : [...difficultyWaves, ...finale];
+                : [...difficultyWaves, ...finale]);
+
+  // Authored encounters keep their own monsters when difficulty extends the run.
+  // Their farm group stays second-to-last, and their final boss is never duplicated.
+  const authored = ['slime-cave', 'thornbriar-hollow', 'dolmark-den', 'old-quarry',
+    'sunken-watch', 'murmuring-abyss'].includes(encounterId);
+  if (authored) waves = expandCatalogWaves(waves, targetCount);
 
   // Preserve the fifth-depth guardian rule before the final boss so the difficulty's
   // advertised boss group still closes the encounter.
-  if ((delve.depth ?? 1) % 5 === 0) {
+  if (!authored && (delve.depth ?? 1) % 5 === 0) {
     waves.splice(waves.length - 1, 0, {
       boss: true, milestoneBoss: true,
       enemies: [
@@ -381,7 +391,7 @@ export function createEncounterWaves(delve = {}, arenaWidth = 1400, random = Mat
   // map builds one output entry for each input entry, in the same order. The callback's
   // return value becomes that output entry.
   return waves.map((wave) => ({
-    ...wave, enemies: (wave.boss
+    ...wave, enemies: (catalogGroups ? wave.enemies : wave.boss
       ? standardizeWaveEnemies(wave.enemies, Math.max(1, Math.round(wave.enemies.length * 0.8)))
       : standardizeWaveEnemies(wave.enemies, encounterEnemyCounts[difficulty] ?? encounterEnemyCounts.Easy))
       .map((enemy) => ({ ...enemy, arenaX: enemy.arenaX + centerOffset }))

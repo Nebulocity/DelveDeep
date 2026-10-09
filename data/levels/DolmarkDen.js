@@ -8,7 +8,7 @@ export default {
   name: 'Dolmark Den',
   mapLabel: 'Dolmark Den',
   subtitle: 'An old den carved into the mountains beyond Duskfall.',
-  difficulty: 'Easy', recommendedLevel: 2, depth: 3, type: 'delve',
+  difficulty: 'Difficult', recommendedLevel: 6, depth: 3, type: 'delve',
   materialEnvironments: ['Caves'],
   prerequisites: ['thornbriar-hollow'],
   requiresLocation: 'duskfall',

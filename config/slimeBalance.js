@@ -28,20 +28,20 @@ export const SLIME_BALANCE = {
   slimeSovereign: {
     maxHp: 24000, armor: 160, attackPower: 230,
     abilities: {
-      primary: { name: 'Crushing Slime Slam', cooldown: 5400, telegraph: 1350, radius: 165,
-        power: 180, ...physicalPotency },
+      primary: { name: 'Crushing Slime Slam', cooldown: 1500, windup: 400,
+        castRange: 82, animation: 'attack', power: 100, ...physicalPotency },
 
-      secondary: { name: 'Toxic Glob', cooldown: 7200, windup: 750,
-        power: 120, ...physicalPotency },
+      secondary: { name: 'Toxic Glob', cooldown: 5400, windup: 1350, telegraph: 1350,
+        radius: 165, castRange: 220, power: 180, ...physicalPotency },
 
       // Timing is in milliseconds; range and radius are logical arena units. The six-
-      // second windup is the warning phase itself. At 230 Attack Power, 200% deals 460
+      // second windup is the warning phase itself. At 230 Attack Power, 300% deals 690
       // before physical defenses. Ground attacks cannot critically hit.
       // autoAvoid: false keeps the party from solving this warning automatically; the
       // player must interrupt or manually move adventurers outside the circle.
-      tertiary: { name: 'Consume', cooldown: 30000, windup: 6000, telegraph: 6000,
-        radius: 300, castRange: 300, areaCenter: 'caster', autoAvoid: false, manaCost: 0,
-        power: 200, ...physicalPotency }
+      tertiary: { name: 'Consume', cooldown: 16000, windup: 6000, telegraph: 6000,
+        radius: 500, castRange: Number.MAX_SAFE_INTEGER, areaCenter: 'caster', autoAvoid: false, manaCost: 0,
+        power: 300, ...physicalPotency }
     }
   }
 };

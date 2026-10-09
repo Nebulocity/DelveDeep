@@ -11,8 +11,8 @@ import { SUNKEN_WATCH_SPRITES, preloadSunkenWatchSprites } from '../data/sunkenW
 const identities = ['sunkenWatcher', 'deepTongue', 'drownedKnell', 'earthsinker'];
 const delve = getDelveById('sunken-watch');
 const waves = createEncounterWaves(delve, 1400, () => 0);
-assert.equal(waves.length, 6);
-assert.ok(waves.slice(0, -1).every(wave => wave.enemies.length === 3));
+assert.equal(waves.length, 24);
+assert.ok(waves.slice(0, -1).every(wave => wave.enemies.length === 6));
 assert.equal(waves.at(-1).boss, true);
 assert.equal(waves.at(-1).enemies[0].type, 'earthsinker');
 const seen = new Set(waves.flatMap(wave => wave.enemies.map(enemy => enemy.type)));
@@ -24,11 +24,12 @@ assert.deepEqual(createEncounterWaves(legacy, 1400, () => 0), waves);
 assert.equal(getDelveById('verge-delves').id, 'verge-delves');
 assert.deepEqual(createEncounterWaves(getDelveById('verge-delves'), 1400, () => 0), waves);
 assert.equal(pois.find(poi => poi.id === 'verge-delves').template, 'sunken-watch');
-assert.deepEqual(delve.visuals, getDelveById('thornbriar-hollow').visuals);
+assert.notDeepEqual(delve.visuals, getDelveById('thornbriar-hollow').visuals);
+assert.deepEqual(getDelveById('verge-delves').visuals, delve.visuals);
 assert.equal(createEncounterWaves(getDelveById('thornbriar-hollow'), 1400, () => 0)[0].enemies[0].type, 'ruffian');
 
 for (const id of identities) {
-  assert.deepEqual(enemies[id].abilities, {}, 'special skills await the supplied list');
+  assert.ok(Object.keys(enemies[id].abilities).length >= 2, 'catalog skills are authored');
   const sprite = SUNKEN_WATCH_SPRITES[id];
   const layout = JSON.parse(fs.readFileSync(new URL(`../assets/enemies/sunken-watch/${id}/sheets/layout.json`, import.meta.url)));
   assert.deepEqual(layout.directions, ['south-east', 'south-west', 'north-east', 'north-west']);
@@ -60,4 +61,4 @@ preloadSunkenWatchSprites({ textures: { exists: () => false }, load: { spriteshe
 assert.equal(loaded.length, 28);
 assert.equal(new Set(loaded).size, loaded.length);
 preloadSunkenWatchSprites({ textures: { exists: () => true }, load: { spritesheet: () => assert.fail('cached texture reloaded') } });
-console.log('Sunken Watch roster, six waves, old saves, floor inheritance and RGBA clips passed.');
+console.log('Sunken Watch roster, 24 waves, old saves, dedicated chamber and RGBA clips passed.');

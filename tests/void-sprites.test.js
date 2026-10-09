@@ -46,7 +46,7 @@ assert.equal(VOID_SPRITES.voidWarden, VOID_SPRITES.voidKeeper);
 assert.equal(VOID_SPRITES.abyssalMaw, VOID_SPRITES.voidKeeper);
 assert.equal(VOID_SPRITES.riftSentinel, VOID_SPRITES.voidStalker);
 assert.equal(VOID_SPRITES.voidKeeperGuardian, VOID_SPRITES.voidKeeper);
-assert.equal(enemies.voidKeeperGuardian.maxHp, enemies.abyssalMaw.maxHp);
+assert.equal(enemies.voidKeeperGuardian.maxHp, enemies.voidKeeper.maxHp);
 
 // Shared bolt sheets and legacy aliases must not queue duplicate texture keys.
 const loaded = [];
@@ -55,11 +55,11 @@ assert.equal(loaded.length, new Set(loaded).size);
 preloadVoidSprites({ textures: { exists: () => true }, load: { spritesheet: () => assert.fail('cached textures reloaded') } });
 
 const waves = createEncounterWaves(getDelveById('murmuring-abyss'));
-assert.equal(waves.length, 6);
-assert.equal(waves[2].boss, true, 'the existing third-wave guardian pacing stays intact');
+assert.equal(waves.length, 34);
+assert.ok(waves.slice(0, -2).some(wave => wave.boss), 'guardian pacing stays inside the opening progression');
 assert.equal(waves.at(-1).boss, true);
 assert.equal(waves.at(-1).enemies[0].type, 'abyssalSovereign');
 const seen = new Set(waves.flatMap(wave => wave.enemies.map(spawn => spawn.type)));
 for (const id of identities) assert.ok(seen.has(id), `${id} appears in the Abyss`);
 for (const wave of waves) for (const spawn of wave.enemies) assert.ok(VOID_SPRITES[spawn.type]);
-console.log('Void roster, standalone RGBA sheets, action clips, save aliases and six-wave integration passed.');
+console.log('Void roster, standalone RGBA sheets, action clips, save aliases and 34-wave integration passed.');

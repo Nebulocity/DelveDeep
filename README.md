@@ -8,7 +8,7 @@ The playable region is Pineshire Reach, with traced road travel, five sequential
 
 Drag the map to explore, tap a destination to travel, and hold it for details. Visit towns to manage your roster, train abilities and tactics, craft gear, and buy or brew potion packs. Choose five adventurers before entering a Delve. Cleared waves bank rewards; camp lets you farm, return to town, or challenge the boss. HOW TO PLAY explains the loop, FIND PARTY recenters the map, and NEW GAME asks before resetting progress.
 
-Progress is stored locally on the current device and origin. Each newly built version starts fresh; subsequent sessions of the same build preserve progress. Dev Tools are directly available from the region map, including in production. Resetting progress requires confirmation.
+Progress is stored locally on the current device and origin and persists across sessions, rebuilt versions, and installed updates. Dev Tools are directly available from the region map, including in production. Resetting progress requires confirmation.
 
 ## Development
 
@@ -23,7 +23,7 @@ npm run build
 
 `npm ci` installs the locked dependencies. Vite serves development on port 5173;
 `npm run build` creates the production game in `dist/`. `npm run preview` serves that
-build locally. Builds use a unique save generation, so rebuilding starts fresh progress.
+build locally. Build IDs are diagnostic metadata and do not reset saved progress.
 
 `npm test` runs every maintained Node check in its own process. Run one check directly
 with `node tests/world-map.test.js`. Browser checks run separately:

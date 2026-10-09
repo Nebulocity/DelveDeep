@@ -1239,6 +1239,11 @@ export default class BattleScene extends Phaser.Scene {
     } else if (this.commandMode === 'INTERRUPT') {
       if (enemy.pendingAction) {
         enemy.finishAction();
+
+        // Remove canceled area warnings immediately so the floor shows current danger.
+        // The delayed hit also checks the canceled action before doing any damage.
+        this.activeTelegraphs.filter(telegraph => telegraph.attacker === enemy)
+          .forEach(telegraph => this.removeTelegraph(telegraph));
         this.showBattleMessage(`INTERRUPTED: ${enemy.name}`, '#fde68a');
       } else {
         this.showBattleMessage(`${enemy.name} is not casting`, '#a8a29e');
@@ -2144,6 +2149,10 @@ export default class BattleScene extends Phaser.Scene {
       if (enemy.distanceTo(target) > (ability.castRange ?? 220)) return false;
       this.beginGroundSlam(enemy, target, time, ability, key);
     } else {
+
+      // Explicit cast reach gates short strikes. Skills without it still track a target
+      // anywhere in the arena, as the workbook's no-range-gate attacks request.
+      if (enemy.distanceTo(target) > (ability.castRange ?? Number.MAX_SAFE_INTEGER)) return false;
       this.beginEnemyAbility(enemy, target, key, time);
     }
 
@@ -2258,6 +2267,10 @@ export default class BattleScene extends Phaser.Scene {
     // This chooses only the visible clip; the existing windup and damage still apply.
     attacker.spriteVisual?.play(ability.animation ?? 'attack', target);
     this.announceAbility(attacker, ability.name, '#c084fc');
+
+    // Authored boss prompts explain the command while the normal cast bar counts down.
+    // Skills without a hint retain their existing announcement and targeting behavior.
+    if (ability.responseHint) this.showBattleMessage(`${ability.name}: ${ability.responseHint}`, '#fde68a');
     this.setEnemyTarget(attacker, target, 'highest threat');
     this.logActionStart(attacker, target, ability.name);
     attacker.markAbilityUsed(key, time);
@@ -2303,6 +2316,9 @@ export default class BattleScene extends Phaser.Scene {
     // Monsters without a separate area sheet keep their established attack clip.
     attacker.spriteVisual?.play(ability.animation ?? 'attack', target);
     this.announceAbility(attacker, ability.name, '#f87171');
+
+    // Keep the response instructions separate from the ability name used in combat logs.
+    if (ability.responseHint) this.showBattleMessage(`${ability.name}: ${ability.responseHint}`, '#fde68a');
     this.setEnemyTarget(attacker, target, 'highest threat');
     this.logActionStart(attacker, target, ability.name);
 
@@ -2340,8 +2356,8 @@ export default class BattleScene extends Phaser.Scene {
       arenaY: center.arenaY,
       radius: ability.radius,
 
-      // Most warnings allow normal mechanic avoidance. Consume asks for a player
-      // response; its ability data disables automatic dodging but keeps manual movement.
+      // Most warnings allow normal mechanic avoidance. Authored boss mechanics can ask
+      // for a player response by disabling automatic dodging while keeping manual movement.
       autoAvoid: ability.autoAvoid ?? true,
       warning,
       inner,
@@ -2379,7 +2395,14 @@ export default class BattleScene extends Phaser.Scene {
         // The condition before ? chooses the first value when true and the value after :
         // when false.
         this.resolveDamage(attacker, unit, abilityPower(attacker, ability),
-          ability.damageType === 'physical' ? 'enemy' : 'spell', 1, ability.name, false);
+          ability.damageType === 'physical' ? 'enemy' : 'spell', 1, ability.name, ability.allowCrit ?? false);
+
+        // Stomp and Belch stun surviving characters for three seconds. Use the unit's
+        // shared status timer so pause, saved battles and idle catch-up see the same stun.
+        if (unit.alive && ability.stunDuration) {
+          unit.status.stunnedUntil = Math.max(unit.status.stunnedUntil ?? 0, this.time.now + ability.stunDuration);
+          unit.finishAction();
+        }
       }
     });
 

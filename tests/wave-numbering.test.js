@@ -28,19 +28,18 @@ for (const delve of [
 
     // every requires all entries to pass the check; an empty list gives true.
     assert.ok(wave.enemies.every(spawn => enemies[spawn.type]?.name), 'Monsters retain their own names');
-    if (!wave.boss) {
+    if (!wave.boss && !['slime-cave', 'thornbriar-hollow'].includes(delve.id)) {
       assert.equal(wave.enemies.length, encounterEnemyCounts[delve.type === 'void' ? 'Unknown' : delve.difficulty]);
     }
   }
 }
 
-// Check the restored pre-trial groups at both random extremes. Easy waves contain three
-// monsters; the boss group's existing reduction leaves one Sovereign, two Elders and one
-// Cave Slime. This protects the user's requested rollback from a future count bypass.
+// Check the authored workbook compositions at both random extremes. Explicit counts
+// remain intact even when the difficulty's generic enemy count is smaller.
 const slimeGroups = [
   ['caveSlime', 'caveSlime', 'caveSlime'],
-  ['caveSlime', 'caveSlime', 'caveSlime'],
-  ['elderSlime', 'caveSlime', 'caveSlime'],
+  ['caveSlime', 'caveSlime', 'caveSlime', 'caveSlime', 'caveSlime'],
+  ['elderSlime', 'caveSlime', 'caveSlime', 'caveSlime'],
   ['elderSlime', 'elderSlime', 'caveSlime'],
   ['elderSlime', 'elderSlime', 'caveSlime'],
   ['slimeSovereign', 'elderSlime', 'elderSlime', 'caveSlime']

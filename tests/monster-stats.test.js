@@ -23,8 +23,8 @@ assert.equal(abilityPower(legacySlime, legacySlime.abilities.primary), 20);
 // ... copies the source's own fields into this object; fields listed later replace earlier
 // ones. This is a shallow copy, so nested objects are still shared.
 assert.equal(abilityPower({ ...legacySlime, attackPower: 22 }, legacySlime.abilities.primary), 40);
-assert.equal(abilityPower(enemies.denColossus, enemies.denColossus.abilities.primary), 27,
-  'Slime tuning must not change inherited non-slime archetype skills');
+assert.equal(abilityPower(enemies.denColossus, enemies.denColossus.abilities.primary), 76 * 27 / 17,
+  'Authored potency scales with the revised Colossus Attack Power');
 const caster = monsterStats({ attackPower: 10, spellDamage: 80, spellHealing: 60, maxMana: 100,
   abilities: { secondary: { power: 25, powerUnit: 'percent', damageType: 'spell' } } });
 caster.abilities = monsterAbilities(caster);

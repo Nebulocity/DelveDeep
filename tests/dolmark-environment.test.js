@@ -18,7 +18,7 @@ const environment = dolmark.visuals.environment;
 assert.equal(dolmark.depth, 3);
 assert.deepEqual(dolmark.prerequisites, ['thornbriar-hollow']);
 assert.equal(dolmark.requiresLocation, 'duskfall');
-assert.equal(dolmark.rooms, 6);
+assert.equal(dolmark.rooms, 10);
 assert.equal(environment.pixelArt, true);
 assert.ok(fs.existsSync(new URL(environment.layers[0].url)));
 const image = fs.readFileSync(new URL(environment.layers[0].url));

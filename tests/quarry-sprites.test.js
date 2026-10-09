@@ -18,18 +18,19 @@ const keys = new Set();
 // The retained map ID must select Quarry even when an old snapshot names Dolmark.
 const delve = getDelveById('old-quarry');
 const waves = createEncounterWaves(delve, 1400, () => 0);
-assert.equal(waves.length, 6);
-assert.ok(waves.slice(0, -1).every(wave => wave.enemies.length === 3));
+assert.equal(waves.length, 16);
+assert.equal(waves.at(-2).enemies.length, 10);
 assert.equal(waves.at(-1).boss, true);
 assert.equal(waves.at(-1).enemies[0].type, 'depthsSovereign');
 assert.deepEqual([...new Set(waves.flatMap(wave => wave.enemies.map(enemy => enemy.type)))].sort(), [...ids].sort());
 assert.deepEqual(createEncounterWaves({ ...delve, id: 'march-west-delves', encounterId: 'dolmark-den' }, 1400, () => 0), waves);
 assert.deepEqual(createEncounterWaves(getDelveById('march-west-delves'), 1400, () => 0), waves);
 assert.equal(pois.find(poi => poi.id === 'march-west-delves').template, 'old-quarry');
-assert.deepEqual(delve.visuals, getDelveById('dolmark-den').visuals);
+assert.notDeepEqual(delve.visuals, getDelveById('dolmark-den').visuals);
+assert.deepEqual(delve.visuals, getDelveById('march-west-delves').visuals);
 assert.equal(createEncounterWaves(getDelveById('dolmark-den'), 1400, () => 0)[0].enemies[0].type, 'denWarden');
 for (const id of ids) {
-  assert.deepEqual(enemies[id].abilities, {});
+  assert.ok(Object.keys(enemies[id].abilities).length >= 2);
   assert.equal(UnitSprite.definitionFor({ isEnemy: true, spriteId: id,
     scene: { textures: { exists: () => true } } }), QUARRY_SPRITES[id]);
 }

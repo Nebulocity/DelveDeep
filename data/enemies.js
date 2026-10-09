@@ -4,6 +4,7 @@
 
 import { monsterStats, monsterAbilities } from '../game/MonsterStats.js';
 import { SLIME_BALANCE } from '../config/slimeBalance.js';
+import { MONSTER_CATALOG, MONSTER_SKILLS } from '../config/monsterCatalog.js';
 
 
 // maxHp and attackPower are authored resource/power values. attackRange and moveSpeed
@@ -311,8 +312,28 @@ enemies.abyssalMaw.abilities = {
   secondary: { ...enemies.abyssalMaw.abilities.secondary, animation: 'cast' }
 };
 enemies.abyssalSovereign.abilities = {
-  primary: { ...enemies.abyssalSovereign.abilities.primary, animation: 'area' },
-  secondary: { ...enemies.abyssalSovereign.abilities.secondary, animation: 'cast' }
+
+  // These warnings give the leader time to select allies and issue movement or Interrupt.
+  // Timings are milliseconds; circles and cast reach use logical arena units. Flat damage
+  // is converted to shared percentage potency below, just like the other monster skills.
+  // Damage is provisional: missing a response should hurt, with phone balance still needed.
+  primary: { name: 'Abyssal Collapse', animation: 'area', cooldown: 12000,
+    windup: 3000, telegraph: 3000, radius: 190, castRange: 300, autoAvoid: false,
+    power: 120, damageType: 'physical', manaCost: 0,
+    responseHint: 'MOVE out of the circle or INTERRUPT' },
+
+  // Soul Rend follows its threat target rather than a floor position. Walking away does
+  // not evade this hit, so the cast bar and prompt ask the player to stop the cast.
+  secondary: { name: 'Soul Rend', animation: 'cast', cooldown: 18000, windup: 4000,
+    power: 180, damageType: 'spell', manaCost: 0,
+    responseHint: 'INTERRUPT the cast' },
+
+  // The larger blast stays at the boss's cast-start position, leaving the rest of the
+  // authored arena available for escape. autoAvoid prevents automatic warning dodges.
+  tertiary: { name: "Sovereign's Ruin", animation: 'area', cooldown: 30000,
+    windup: 6000, telegraph: 6000, radius: 300, castRange: 300, areaCenter: 'caster',
+    autoAvoid: false, power: 240, damageType: 'spell', manaCost: 0,
+    responseHint: 'MOVE away from the boss or INTERRUPT' }
 };
 
 
@@ -414,6 +435,19 @@ export const voidPortalWaves = [
 for (const [type, profile] of Object.entries(SLIME_BALANCE)) {
   enemies[type] = { ...enemies[type], ...profile };
 }
+
+// Apply the revised authored roster after legacy copies and Slime tuning. Keeping this
+// step before normalization makes percentage damage agree with the new stat totals.
+for (const [type, [maxHp, armor, attackPower, reach, level]] of Object.entries(MONSTER_CATALOG)) {
+  enemies[type] = { ...enemies[type], maxHp, armor, attackPower, level,
+    spellDamage: attackPower, attackRange: reach === 'Ranged' ? 210 : Math.min(100, enemies[type].attackRange),
+    abilities: MONSTER_SKILLS[type] ?? enemies[type].abilities };
+}
+
+// Colossus is an ordinary Dolmark monster in the catalog. Keeper's older guardian key
+// stays valid for saved spawns but shares the current Keeper totals for new encounters.
+enemies.denColossus.boss = false;
+enemies.voidKeeperGuardian = { ...enemies.voidKeeper, id: 'void-keeper-guardian' };
 
 // Object.entries turns own fields into [key, value] pairs so we can visit or transform
 // them.

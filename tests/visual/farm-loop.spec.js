@@ -88,7 +88,7 @@ test('Farm repeats and queues cancellation until the current wave is cleared', a
   const repeat = await finishRound();
   expect(repeat.entry).toBe('farm');
   expect(repeat.index).toBe(repeat.farmIndex);
-  expect(repeat.gold).toBe(initialGold + 24);
+  expect(repeat.gold).toBe(initialGold + 1);
   expect(repeat.visible).toBe(true);
   const clickModal = async (label) => {
     const point = await page.evaluate(label => {
@@ -129,7 +129,7 @@ test('Farm repeats and queues cancellation until the current wave is cleared', a
   const stopped = await finishRound();
   expect(stopped.entry).toBe('camp');
 
-  expect(stopped.gold).toBe(initialGold + 48);
+  expect(stopped.gold).toBe(initialGold + 2);
   expect(stopped.visible).toBe(false);
   await clickButton(1200, 599);
   expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene').farmStopRequested)).toBe(false);

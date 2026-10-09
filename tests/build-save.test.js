@@ -27,8 +27,8 @@ globalThis.localStorage = {
 };
 
 prepareBuildSave('build-one');
-assert.equal(saved.has(PROFILE_STORAGE_KEY), false);
-assert.equal(saved.has(LEADER_STORAGE_KEY), false);
+assert.equal(saved.get(PROFILE_STORAGE_KEY), 'old party');
+assert.equal(saved.get(LEADER_STORAGE_KEY), 'old tactics');
 assert.equal(saved.get('other.app.preference'), 'keep');
 
 saved.set(PROFILE_STORAGE_KEY, 'current party');
@@ -38,8 +38,17 @@ assert.equal(saved.get(PROFILE_STORAGE_KEY), 'current party');
 assert.equal(saved.get(LEADER_STORAGE_KEY), 'current tactics');
 
 prepareBuildSave('build-two');
-assert.equal(saved.has(PROFILE_STORAGE_KEY), false);
-assert.equal(saved.has(LEADER_STORAGE_KEY), false);
+assert.equal(saved.get(PROFILE_STORAGE_KEY), 'current party');
+assert.equal(saved.get(LEADER_STORAGE_KEY), 'current tactics');
+assert.equal(saved.get('delveDeep.buildId.v1'), 'build-two');
 assert.equal(saved.get('other.app.preference'), 'keep');
 
-console.log('Build save generation reset passed.');
+// Even a failed metadata write must leave the existing progression bytes untouched.
+globalThis.localStorage.setItem = () => { throw new Error('storage unavailable'); };
+const warn = console.warn;
+console.warn = () => {};
+prepareBuildSave('build-three');
+console.warn = warn;
+assert.equal(saved.get(PROFILE_STORAGE_KEY), 'current party');
+assert.equal(saved.get(LEADER_STORAGE_KEY), 'current tactics');
+console.log('Profile and leader data persist across builds and metadata storage failures.');

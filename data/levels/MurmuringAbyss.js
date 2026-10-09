@@ -8,7 +8,7 @@ export default {
   name: 'The Murmuring Abyss',
   mapLabel: 'The Murmuring Abyss',
   subtitle: 'A tear in the world. Something on the other side is whispering.',
-  difficulty: 'Unknown', recommendedLevel: 2, depth: 4, type: 'void',
+  difficulty: 'Incredibly Tough', recommendedLevel: 20, depth: 4, type: 'void',
   possibleDrops: ['Gold', 'Adventurer XP'],
   prerequisites: ['slime-cave', 'thornbriar-hollow', 'dolmark-den'],
   requiresLocation: 'duskfall',

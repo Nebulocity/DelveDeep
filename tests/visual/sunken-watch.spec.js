@@ -24,10 +24,18 @@ for (const width of [915, 1920]) {
       scene.waveRetreating = false;
       scene.clearWaveAnnouncement();
 
+      // Review replacements discard the old fight. Cancel its timers and actions before
+      // destroying display objects so a newly authored skill cannot touch retired labels.
+      for (const event of scene.battleEvents ?? []) event.timer?.remove(false);
+      scene.battleEvents.clear();
+      for (const unit of [...scene.partyUnits, ...scene.enemies]) unit.finishAction();
+
       // Pending ally casts can still hold an old target reference. Mark review targets
       // dead before destroying them, matching ordinary combat cleanup's alive guard.
       for (const enemy of scene.enemies) {
         enemy.alive = false;
+        scene.tweens.killTweensOf(enemy.container);
+        scene.tweens.killTweensOf(enemy.spriteVisual?.image ?? enemy.body);
         enemy.container.destroy();
       }
       const types = ['sunkenWatcher', 'deepTongue', 'drownedKnell', 'earthsinker'];
@@ -93,15 +101,20 @@ for (const width of [915, 1920]) {
     // Confirm the real finale creates the rock boss and gives every spawn a sprite.
     await page.evaluate(() => {
       const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
+      for (const event of scene.battleEvents ?? []) event.timer?.remove(false);
+      scene.battleEvents.clear();
+      for (const unit of [...scene.partyUnits, ...scene.enemies]) unit.finishAction();
       for (const enemy of scene.enemies) {
         enemy.alive = false;
+        scene.tweens.killTweensOf(enemy.container);
+        scene.tweens.killTweensOf(enemy.spriteVisual?.image ?? enemy.body);
         enemy.container.destroy();
       }
       scene.combatPaused = true;
       scene.waveRetreating = false;
-      scene.currentWaveIndex = 5;
+      scene.currentWaveIndex = scene.waves.length - 1;
       scene.updateEncounterStatus();
-      scene.spawnWave(5);
+      scene.spawnWave(scene.currentWaveIndex);
 
       // Settle the static review's landing tween while combat stays paused. Separate
       // maintained landing tests cover timing; this screenshot needs stable floor poses.

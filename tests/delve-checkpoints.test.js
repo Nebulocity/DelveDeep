@@ -79,7 +79,7 @@ const ordinary = delves.filter(entry => entry.type === 'delve');
 
 // Reused encounters inherit their environment's pool. Sharing cave materials is valid;
 // a short run need not award every entry in the possible-drop list.
-assert.deepEqual(delveMaterialIds(getDelveById('dolmark-den')), delveMaterialIds(delve));
+assert.deepEqual(delveMaterialIds({ ...getDelveById('dolmark-den'), difficulty: 'Easy' }), delveMaterialIds(delve));
 for (const entry of ordinary) {
   GameState.world.clearedDelves = [];
   GameState.delveCheckpoints = {};

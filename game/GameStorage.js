@@ -18,6 +18,8 @@ import { roads, pois, nodes, WORLD_LAYOUT_ID } from '../data/worldMap.js';
 
 const STORAGE_KEY = PROFILE_STORAGE_KEY;
 let battleSaveProvider = null;
+let battleReplayActive = () => false;
+let lastBattleSaveAt = -Infinity;
 
 // pendingSave coalesces requests from one synchronous action. saveGeneration identifies
 // the current save lifecycle, allowing a reset to invalidate an already queued callback
@@ -26,8 +28,10 @@ let pendingSave = false;
 let saveGeneration = 0;
 
 // A single profile write commits resources, progression and the battle position together.
-export function setBattleSaveProvider(provider) {
+export function setBattleSaveProvider(provider, isReplaying = () => false) {
   battleSaveProvider = provider;
+  battleReplayActive = isReplaying;
+  lastBattleSaveAt = -Infinity;
 }
 
 // This helper restores character and shared world progress into GameState. Adventurer
@@ -169,6 +173,11 @@ export function loadProfile(baseRoster) {
 // and a restorable active battle snapshot.
 export function saveProfile() {
   if (battleSaveProvider) {
+
+    // A long catch-up may clear many waves in one real second. Capture the complete
+    // battle at most once every two seconds during replay, matching normal autosaves.
+    // Lifecycle saves and the final settled save run outside replay and stay immediate.
+    if (battleReplayActive() && Date.now() - lastBattleSaveAt < 2000) return;
     if (!pendingSave) {
       pendingSave = true;
       const generation = saveGeneration;
@@ -193,7 +202,10 @@ export function saveProfile() {
 // battle snapshot.
 function writeProfile() {
   try {
-    if (battleSaveProvider) GameState.activeBattle = battleSaveProvider();
+    if (battleSaveProvider) {
+      GameState.activeBattle = battleSaveProvider();
+      lastBattleSaveAt = Date.now();
+    }
   } catch (error) {
     console.warn('Could not capture the active Delve Deep battle.', error);
     return;

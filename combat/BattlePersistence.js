@@ -21,7 +21,7 @@ export function installBattlePersistence(scene) {
     return captureBattle(scene, GameState, savedAtMs);
   };
 
-  setBattleSaveProvider(provider);
+  setBattleSaveProvider(provider, () => scene.game.backgroundProgress?.isReplaying === true);
   const checkpoint = () => {
     const phase = [scene.currentWaveIndex, GameState.run.entry, scene.battleOver,
       scene.waveRetreating, scene.waveTransitioning, scene.combatPaused, scene.awaitingRevive,

@@ -4,6 +4,8 @@
 // changes come from the browser and Android, and the same callbacks must be removed during
 // cleanup.
 
+import { fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
+
 export const BACKGROUND_STEP_MS = 50;
 
 // Account for suspended time through scene settlement, with a small-step fallback.
@@ -28,6 +30,8 @@ export default class BackgroundProgress {
     this.isReplaying = false;
     this.replayDirty = false;
     this.catchUpTimer = null;
+    this.catchUpTotalMs = 0;
+    this.catchUpPercent = -1;
     this.hidden = page.hidden;
 
     this.originalUpdate = game.scene.update;
@@ -57,13 +61,19 @@ export default class BackgroundProgress {
     // Accumulate real time not yet processed. Clamp negative elapsed time to zero because
     // the device clock can move backward. Then remember this wall time as the starting
     // point for the next accounting pass.
-    this.pendingMs += Math.max(0, wallTime - this.lastWallTime);
+    const elapsedMs = Math.max(0, wallTime - this.lastWallTime);
+    this.pendingMs += elapsedMs;
+
+    // Include time spent calculating in the displayed workload. The bar measures game
+    // time processed, rather than guessing how many real seconds the phone needs.
+    if (this.notice) this.catchUpTotalMs += elapsedMs;
     this.lastWallTime = wallTime;
   }
 
   // Restore the gameplay clock and calculate missed work from the saved timestamp and
   // pause state.
   restore(time, savedAtMs, paused = false) {
+    this.showCatchUp(false);
     this.time = time;
     this.lastWallTime = this.now();
 
@@ -126,6 +136,7 @@ export default class BackgroundProgress {
     // false, alone.
     this.time ??= this.game.loop.time || 0;
     this.onBackground(true);
+    this.showCatchUp(!this.hidden && this.pendingMs >= BACKGROUND_STEP_MS);
     const started = this.budgetNow();
 
     // ?. only follows this link when the value exists; a missing optional value gives
@@ -230,19 +241,57 @@ export default class BackgroundProgress {
   // processed.
   showCatchUp(show) {
     if (show && !this.notice) {
+      this.catchUpTotalMs = this.pendingMs;
       this.notice = this.page.createElement('div');
-      this.notice.setAttribute('role', 'status');
-      this.notice.style.cssText = 'position:fixed;inset:0;z-index:99999;display:grid;place-items:center;background:#10131aee;color:#f5f5dc;font:bold 24px Arial;touch-action:none';
+      this.notice.id = 'idle-catch-up';
+
+      // This overlay uses browser pixels, so its 24-pixel text stays readable without
+      // Phaser's canvas scaling. Safe-area padding keeps it clear of Android system UI.
+      this.notice.style.cssText = `position:fixed;inset:0;z-index:99999;display:grid;place-items:center;box-sizing:border-box;padding:max(24px,env(safe-area-inset-top)) max(24px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(24px,env(safe-area-inset-left));background:#10131aee;color:#f5f5dc;font:${UI_FONT_WEIGHTS.bold} ${fontPx('compact24')} ${UI_FONT_FAMILIES.sans};touch-action:none`;
+      const panel = this.page.createElement('div');
+      panel.style.cssText = 'width:min(520px,100%);display:grid;gap:16px;text-align:center';
+      const title = this.page.createElement('div');
+      title.textContent = 'Resolving idle progress…';
+      this.noticeProgress = this.page.createElement('div');
+      this.noticeProgress.setAttribute('role', 'progressbar');
+      this.noticeProgress.setAttribute('aria-label', 'Idle progress processed');
+      this.noticeProgress.setAttribute('aria-valuemin', '0');
+      this.noticeProgress.setAttribute('aria-valuemax', '100');
+      this.noticeProgress.style.cssText = 'height:20px;border:2px solid #8e7955;border-radius:6px;background:#222936;overflow:hidden';
+      this.noticeFill = this.page.createElement('div');
+      this.noticeFill.style.cssText = 'height:100%;width:0%;background:linear-gradient(90deg,#96753d,#dfbe75)';
+      this.noticePercent = this.page.createElement('div');
+      this.noticePercent.setAttribute('aria-hidden', 'true');
+      this.noticeProgress.appendChild(this.noticeFill);
+      panel.appendChild(title);
+      panel.appendChild(this.noticeProgress);
+      panel.appendChild(this.noticePercent);
+      this.notice.appendChild(panel);
       this.page.body.appendChild(this.notice);
     }
 
-    if (show) this.notice.textContent = 'Resolving idle progress…';
-    else {
+    if (show) {
+
+      // Keep 100% for completed work: even a tiny remaining batch still needs to run.
+      // Update only on whole percentage changes to keep DOM work out of the hot loop.
+      const percent = Math.min(99, Math.max(0,
+        Math.floor((1 - this.pendingMs / Math.max(1, this.catchUpTotalMs)) * 100)));
+      if (percent === this.catchUpPercent) return;
+      this.catchUpPercent = percent;
+      this.noticeFill.style.width = `${percent}%`;
+      this.noticePercent.textContent = `${percent}%`;
+      this.noticeProgress.setAttribute('aria-valuenow', String(percent));
+    } else {
 
       // ?. only follows this link when the value exists; a missing optional value gives
       // undefined.
       this.notice?.remove();
       this.notice = null;
+      this.noticeProgress = null;
+      this.noticeFill = null;
+      this.noticePercent = null;
+      this.catchUpTotalMs = 0;
+      this.catchUpPercent = -1;
     }
   }
 

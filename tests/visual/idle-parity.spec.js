@@ -75,7 +75,9 @@ test('the reported party uses identical live and hidden combat rules', async ({ 
     scene.startWave(scene.bossWaveIndex - 1);
     const { captureBattle } = await import('/game/BattleSnapshot.js');
 
-    return captureBattle(scene, qa.state);
+    // Both runs share this page. Restore roster progression as well as battle units so
+    // the first run's earned Happiness and XP cannot leak into the second run.
+    return { ...captureBattle(scene, qa.state), testRoster: structuredClone(qa.state.roster) };
   });
 
   const run = async (target, hidden) => target.evaluate(async ({ snapshot, hidden }) => {
@@ -96,6 +98,7 @@ test('the reported party uses identical live and hidden combat rules', async ({ 
     scene.enemies = [];
     const { default: BattleUnit } = await import('/combat/BattleUnit.js');
     const { unpackBattleValue, captureBattle } = await import('/game/BattleSnapshot.js');
+    qa.state.roster = structuredClone(snapshot.testRoster);
     qa.state.activeParty = unpackBattleValue(snapshot.partyTemplates);
     scene.partyUnits.forEach(unit => unit.container.destroy());
 

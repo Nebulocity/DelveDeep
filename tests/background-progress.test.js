@@ -32,11 +32,16 @@ const surface = {
   // We bring interval up to date here. The assignments below are the new values other code
   // will read after this step.
   setInterval() { return 1; }, clearInterval() {},
+  setTimeout() { return 2; }, clearTimeout() {},
   body: { appendChild() {} },
 
   // We build or display element using the current inputs. The objects and values made
   // below are the pieces this part of the screen needs.
-  createElement() { return { style: {}, setAttribute() {}, remove() {} }; }
+  createElement() {
+    return { style: {}, attributes: {}, children: [],
+      setAttribute(name, value) { this.attributes[name] = value; },
+      appendChild(child) { this.children.push(child); }, remove() {} };
+  }
 };
 
 const tween = { getDelta: () => 17 };
@@ -138,6 +143,36 @@ assert.equal(listeners.size, 0);
 assert.equal(muted, false);
 
 console.log('Background elapsed time, suspension, pause, tween clocks and lifecycle checks passed.');
+
+// Use known amounts of processed game time to check the bar independently of machine
+// speed. New elapsed time joins the workload, and each restored catch-up starts fresh.
+const barScene = { advanceIdleProgress: duration => ({ consumedMs: Math.min(250, duration) }) };
+const barGame = { loop: { time: 0 }, events: { once() {} }, scene: {
+  scenes: [], getScenes: () => [barScene], update() {}
+} };
+const barProgress = new BackgroundProgress(barGame, {
+  now: () => wallTime, budgetNow: () => 0, document: surface, window: surface
+});
+barProgress.restore(0, wallTime - 1000);
+assert.equal(barProgress.noticeProgress.attributes['aria-valuenow'], '0');
+barProgress.drain();
+assert.equal(barProgress.noticeFill.style.width, '25%');
+assert.equal(barProgress.noticePercent.textContent, '25%');
+wallTime += 250;
+barProgress.account();
+barProgress.drain();
+assert.equal(barProgress.noticeProgress.attributes['aria-valuenow'], '40');
+barProgress.drain();
+barProgress.drain();
+barProgress.drain();
+assert.equal(barProgress.notice, null);
+assert.equal(barProgress.catchUpTotalMs, 0);
+barProgress.restore(0, wallTime - 2000);
+assert.equal(barProgress.noticePercent.textContent, '0%');
+barProgress.restore(0, wallTime - 2000, true);
+assert.equal(barProgress.notice, null);
+barProgress.destroy();
+console.log('Idle progress percentage, added elapsed time, completion and restored pause passed.');
 
 // Exercise real Phaser clocks and tween completion, including timers added by callbacks.
 const events = new EventEmitter();

@@ -164,6 +164,42 @@ export default class BattlefieldGeometry {
   // project the point onto each edge and measure the distance to it. This also rejects a
   // foot position too close to the edge, even if its center is inside.
   containsArenaPoint(x, y, padding = 0) {
+
+    // A 64-unit square safely inside the floor can answer repeated foot queries without
+    // walking every polygon edge. The enclosing circle reaches every corner, so checking
+    // its center with that extra clearance proves the entire square is legal. Positions
+    // near an edge still use the exact original test below, with no coordinate rounding.
+    if (padding >= 0 && padding <= 64 && x >= 0 && y >= 0
+      && x < this.logicalWidth && y < this.logicalHeight) {
+      if (this.floorQueryPolygon !== this.logicalBoundary) {
+        this.floorQueryPolygon = this.logicalBoundary;
+        this.floorQueryCache = new Map();
+      }
+      let cells = this.floorQueryCache.get(padding);
+      if (!cells) {
+
+        // Bound memory even if a future ability asks for many different clearances.
+        if (this.floorQueryCache.size >= 8) this.floorQueryCache.clear();
+        cells = new Map();
+        this.floorQueryCache.set(padding, cells);
+      }
+      const column = Math.floor(x / 64);
+      const row = Math.floor(y / 64);
+      const key = row * Math.ceil(this.logicalWidth / 64) + column;
+      let safe = cells.get(key);
+      if (safe === undefined) {
+        safe = this.containsArenaPointExact(column * 64 + 32, row * 64 + 32,
+          padding + Math.SQRT2 * 32 + 0.000001);
+        cells.set(key, safe);
+      }
+      if (safe) return true;
+    }
+
+    return this.containsArenaPointExact(x, y, padding);
+  }
+
+  // Keep the full polygon test for edge squares and unusually large clearance queries.
+  containsArenaPointExact(x, y, padding = 0) {
     const polygon = this.logicalBoundary;
     let inside = false;
     for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
@@ -177,6 +213,10 @@ export default class BattlefieldGeometry {
       // the right of x, flip the inside/outside result.
       if ((a.y > y) !== (b.y > y) && x < (b.x - a.x) * (y - a.y) / (b.y - a.y) + a.x) inside = !inside;
 
+      // An unpadded query only needs the ray crossing. Navigation makes many of these
+      // checks, so skip the distance calculation when it cannot affect the answer.
+      if (padding <= 0) continue;
+
       // dx/dy are the edge's direction. The dot product in t measures how far along that
       // edge the point projects. Divide by squared edge length, then clamp t to 0..1 so
       // the nearest point stays on the segment rather than its infinite line.
@@ -188,7 +228,12 @@ export default class BattlefieldGeometry {
 
       // a + t * direction is the nearest point on this edge. If our position is closer
       // than padding, the feet would crowd the boundary, so reject it.
-      if (padding > 0 && Math.hypot(x - a.x - t * dx, y - a.y - t * dy) < padding) return false;
+      const edgeDistanceX = x - a.x - t * dx;
+      const edgeDistanceY = y - a.y - t * dy;
+
+      // Compare squared distances in arena units. This avoids a square root for every
+      // edge while keeping the same strict clearance rule.
+      if (edgeDistanceX * edgeDistanceX + edgeDistanceY * edgeDistanceY < padding * padding) return false;
     }
 
     return inside;

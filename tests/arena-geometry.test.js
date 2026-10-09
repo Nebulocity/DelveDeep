@@ -39,6 +39,17 @@ for (const [width, height] of [[2400, 1080], [960, 432]]) {
     });
     const terrain = new context.BattlefieldTerrain({}, geometry);
 
+    // Interior-square shortcuts must agree with the full polygon test, including
+    // concave corners, points outside the floor and different foot clearances.
+    for (const padding of [0, 12, 38, 64, 80]) {
+      for (let sample = 0; sample < 2000; sample += 1) {
+        const x = (random() * 1.2 - 0.1) * geometry.logicalWidth;
+        const y = (random() * 1.2 - 0.1) * geometry.logicalHeight;
+        assert.equal(geometry.containsArenaPoint(x, y, padding),
+          geometry.containsArenaPointExact(x, y, padding), `${delve.name} cached floor query`);
+      }
+    }
+
     // every requires all entries to pass the check; an empty list gives true.
     assert.ok(geometry.boundary.every(point => point.y < height * 0.78));
     assert.equal(geometry.bottomY, height * 0.78 - 12, `${delve.name} reaches the HUD frame`);

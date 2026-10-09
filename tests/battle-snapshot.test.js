@@ -72,6 +72,41 @@ assert.equal(committed.activeBattle.scene.waveRetreating, true);
 assert.equal(committed.activeBattle.scene.waveTransitioning, true);
 setBattleSaveProvider(null);
 
+// Replay batches keep atomic rewards but avoid serializing the full battle after every
+// short batch. Two-second checkpoints and the final foreground write still persist.
+const realNow = Date.now;
+let saveTime = 10000;
+let replaying = true;
+let captures = 0;
+Date.now = () => saveTime;
+setBattleSaveProvider(() => { captures += 1; return snapshot; }, () => replaying);
+try {
+  saveProfile();
+  await Promise.resolve();
+  for (let batch = 0; batch < 50; batch += 1) {
+    GameState.gold += 1;
+    saveTime += 20;
+    saveProfile();
+    await Promise.resolve();
+  }
+  assert.equal(captures, 1);
+  saveTime += 1000;
+  saveProfile();
+  await Promise.resolve();
+  assert.equal(captures, 2);
+  GameState.gold += 1;
+  replaying = false;
+  saveProfile();
+  await Promise.resolve();
+  assert.equal(captures, 3);
+  assert.equal(JSON.parse(storage.get(PROFILE_STORAGE_KEY)).gold, 85);
+} finally {
+  Date.now = realNow;
+  setBattleSaveProvider(null);
+}
+
+// Restore the original fixture for the legacy-save checks below.
+storage.set(PROFILE_STORAGE_KEY, JSON.stringify(committed));
 loadProfile(adventurers);
 assert.equal(GameState.gold, 34);
 assert.equal(GameState.activeBattle.events[0].remainingMs, 150);

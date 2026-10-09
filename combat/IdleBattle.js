@@ -84,37 +84,16 @@ function beginIdleBattle(scene) {
   const feet = new WeakMap();
   scene.terrain.getUnitFootPoint = function (unit, x = unit.arenaX, y = unit.arenaY) {
     let cache = feet.get(unit);
-    if (!cache) {
-      cache = new Map();
-      feet.set(unit, cache);
-    }
 
-    // This string identifies one requested foot position. Reusing its result avoids
-    // projecting unchanged feet repeatedly during thousands of catch-up steps. The cache
-    // cap bounds how much memory one unit can retain.
-    const key = `${x}:${y}`;
-
-    if (cache.has(key)) return cache.get(key);
+    // Most moving positions are used once. Remember only the last exact position,
+    // avoiding millions of decimal strings and Map entries during a long absence.
+    if (cache && cache.x === x && cache.y === y) return cache.point;
 
     // call runs this function with the supplied first argument as its this value.
     const point = simulation.getFootPoint.call(this, unit, x, y);
-    if (cache.size >= 256) cache.clear();
-    cache.set(key, point);
+    feet.set(unit, { x, y, point });
 
     return point;
-  };
-
-  const terrainChecks = new Map();
-  scene.terrain.isBlocked = function (x, y, padding = 0) {
-    const key = `${x}:${y}:${padding}`;
-    if (terrainChecks.has(key)) return terrainChecks.get(key);
-
-    // call runs this function with the supplied first argument as its this value.
-    const result = simulation.isBlocked.call(this, x, y, padding);
-    if (terrainChecks.size >= 8192) terrainChecks.clear();
-    terrainChecks.set(key, result);
-
-    return result;
   };
 
   simulation.membershipMethods = new Map();

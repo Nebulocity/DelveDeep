@@ -10,11 +10,13 @@ import { mkdir } from 'node:fs/promises';
 async function start(page) {
   await page.goto('/?visualQa=1');
   await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__?.game.scene.getScene('TitleScene').sys.isActive());
+  await page.locator('#loading-screen').waitFor({ state: 'hidden' });
   await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.activate('BattleScene'));
   await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene').sys.isActive());
+  await page.locator('#loading-screen').waitFor({ state: 'hidden' });
 }
 
-test('eight idle hours settle farm outcomes without scene replay and summarize once', async ({ page }) => {
+test('fourteen idle hours settle farm outcomes without scene replay and summarize once', async ({ page }) => {
   test.setTimeout(180000);
 
   // on registers a callback for later events; it does not call that callback now.
@@ -55,7 +57,7 @@ test('eight idle hours settle farm outcomes without scene replay and summarize o
       return original.apply(this, args);
     };
     const wall = progress.now();
-    progress.now = () => wall + 8 * 3600000;
+    progress.now = () => wall + 14 * 3600000;
 
     const began = performance.now();
     const monitor = setInterval(() => console.log(`Idle benchmark debt: ${progress.pendingMs}; time ${scene.time.now}; hidden ${document.hidden}`), 5000);
@@ -67,19 +69,20 @@ test('eight idle hours settle farm outcomes without scene replay and summarize o
     clearInterval(monitor);
 
     return { elapsed, steps, gold: qa.state.gold - gold, summary: scene.idleSummary,
-      debt: progress.pendingMs, open: scene.idleSummaryOpen };
+      debt: progress.pendingMs, open: scene.idleSummaryOpen, difficulty: qa.state.currentDelve.difficulty };
   });
 
+  console.log(`Fourteen idle hours: ${outcome.summary.waves} waves in ${outcome.elapsed.toFixed(1)} ms; ${outcome.steps} scene replay steps.`);
   expect(outcome.steps).toBe(0);
   expect(outcome.debt).toBeLessThan(50);
-  expect(outcome.elapsed).toBeLessThan(120000);
+  expect(outcome.elapsed).toBeLessThan(60000);
   expect(outcome.summary.waves).toBeGreaterThan(1000);
   expect(outcome.gold).toBe(outcome.summary.gold);
-  expect(outcome.summary.xp).toBe(outcome.summary.waves * 4);
+  const xpPerWave = { Easy: 1, Difficult: 2, Tough: 3, 'Very Tough': 4, 'Incredibly Tough': 5, Impossible: 6 };
+  expect(outcome.summary.xp).toBe(outcome.summary.waves * xpPerWave[outcome.difficulty]);
   expect(outcome.summary.deaths).toEqual([]);
 
   expect(outcome.open).toBe(true);
-  console.log(`Eight idle hours: ${outcome.summary.waves} waves in ${outcome.elapsed.toFixed(1)} ms; ${outcome.steps} scene replay steps.`);
   await mkdir('output/qa/screenshots', { recursive: true });
   await page.screenshot({ path: 'output/qa/screenshots/IdleReturn-phone.png' });
   const panel = await page.evaluate(() => {

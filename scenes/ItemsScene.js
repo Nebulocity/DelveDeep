@@ -6,7 +6,7 @@ import { ownedEquipment, equipmentOwner, equipmentStatsText } from '../game/Equi
 import { HALL, hallText, hallPanel, hallButton, hallDetails, hallIcon, addHallFrame } from '../ui/HallUI.js';
 import GameState from '../game/GameState.js';
 import { ENCHANTMENTS } from '../data/enchantments.js';
-import { CRAFTING_MATERIALS, CRAFTING_RECIPES, getMaterialDefinition, getPotionDefinition } from '../data/items.js';
+import { CRAFTING_RECIPES, getMaterialDefinition, getPotionDefinition } from '../data/items.js';
 import { canCraft, recipeIngredientText } from '../game/Crafting.js';
 
 import { guildSurface } from '../ui/GuildHallTheme.js';

@@ -4,9 +4,11 @@
 // materials.
 
 import { CRAFTING_MATERIALS, MATERIAL_ID_ALIASES } from '../data/items.js';
+import { FARM_MATERIAL_CHANCES } from '../config/farmMaterialDrops.js';
 
-// Resolve the actual material pool from this encounter's environment and difficulty.
-export function delveMaterialIds(delve) {
+// Resolve this encounter's environment pool. Without an override, use first-clear
+// difficulty rules; farming supplies allowedRarities to check one chart rarity at a time.
+export function delveMaterialIds(delve, allowedRarities = null) {
 
   // ?. only follows this link when the value exists; a missing optional value gives
   // undefined.
@@ -15,7 +17,7 @@ export function delveMaterialIds(delve) {
 
   // The condition before ? chooses the first value when true and the value after : when
   // false.
-  const rarities = higherTier ? ['common', 'uncommon'] : ['common'];
+  const rarities = allowedRarities ?? (higherTier ? ['common', 'uncommon'] : ['common']);
   if (delve.materialEnvironments?.length) {
 
     // map builds one output entry for each input entry, in the same order. The callback's
@@ -42,8 +44,14 @@ export function delveMaterialIds(delve) {
 // Turn the eligible material IDs into readable names for Delve information.
 export function delveDropNames(delve) {
 
+  // Delve Info includes both first-clear and farm possibilities. Easy farming now has
+  // a small Uncommon chance even though its first-clear pool remains Common only.
+  const chances = FARM_MATERIAL_CHANCES[delve?.difficulty] ?? FARM_MATERIAL_CHANCES.Easy;
+  const farmRarities = Object.keys(chances).filter(rarity => chances[rarity] > 0);
+  const ids = [...new Set([...delveMaterialIds(delve), ...delveMaterialIds(delve, farmRarities)])];
+
   // ... expands these entries into the new list or call. It does not deep-copy the objects
   // inside. map builds one output entry for each input entry, in the same order. The
   // callback's return value becomes that output entry.
-  return ['Gold / Adventurer XP', ...delveMaterialIds(delve).map(id => CRAFTING_MATERIALS[id].name)];
+  return ['Gold / Adventurer XP', ...ids.map(id => CRAFTING_MATERIALS[id].name)];
 }

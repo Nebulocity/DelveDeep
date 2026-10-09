@@ -5,6 +5,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import * as typography from '../config/uiTypography.js';
 
 const frames = [];
 const starts = [];
@@ -43,7 +44,7 @@ class Scene {
   }
 }
 
-const context = vm.createContext({
+const context = vm.createContext({ ...typography,
   Phaser: { Scene },
   GameState: { currentDelve: { name: 'Slime Cave' }, activeParty: [], leader: { battleLoadout: [] } },
   HapticsService: { tap() {}, confirm() {} },
@@ -78,10 +79,6 @@ const context = vm.createContext({
   requestAnimationFrame(callback) { frames.push(callback); }
 });
 
-vm.runInContext(fs.readFileSync(new URL('../ui/WoodenPanel.js', import.meta.url), 'utf8').replaceAll('export function ', 'function '), context);
-vm.runInContext(fs.readFileSync(new URL('../ui/ReturnButton.js', import.meta.url), 'utf8')
-  .replace(/^import .*;\r?\n/gm, '')
-  .replace('export function addReturnButton', 'globalThis.addReturnButton = function addReturnButton'), context);
 const source = fs.readFileSync(new URL('../scenes/DungeonScene.js', import.meta.url), 'utf8')
   .replace(/^import .*;\r?\n/gm, '')
   .replace('export default class DungeonScene', 'globalThis.DungeonScene = class DungeonScene');

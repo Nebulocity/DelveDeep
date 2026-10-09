@@ -5,8 +5,6 @@
 export const TILE = 64;
 export const WORLD_COLUMNS = 60;
 export const WORLD_ROWS = 33.75;
-export const AREA_COLUMNS = WORLD_COLUMNS;
-export const AREA_ROWS = WORLD_ROWS;
 export const WORLD_WIDTH = WORLD_COLUMNS * TILE;
 export const WORLD_HEIGHT = WORLD_ROWS * TILE;
 export const WORLD_LAYOUT_ID = 'illustrated-pineshire-v1';
@@ -15,8 +13,6 @@ export const regions = [{ id: 'pineshire-reach', name: 'Pineshire Reach', levelR
 
 export const areas = [{ id: 'pineshire-reach', name: 'Pineshire Reach', column: 0, row: 0 }];
 
-export const seams = [];
-export const ORDINARY_DELVES = ['slime-cave', 'thornbriar-hollow', 'dolmark-den', 'march-west-delves', 'verge-delves'];
 
 // Keep established encounter IDs so prior boss clears and checkpoints remain attached.
 export const pois = [
@@ -31,9 +27,9 @@ export const pois = [
     type: 'delve',
     position: [0.46, 0.54],
     label: [0.46, 0.37],
-    template: 'dolmark-den',
+    template: 'old-quarry',
     requiresClear: 'dolmark-den',
-    subtitle: 'An abandoned excavation reclaimed by the creatures of the forest.'
+    subtitle: 'An abandoned excavation haunted by creatures of stone and crystal.'
   },
 
   {
@@ -42,9 +38,9 @@ export const pois = [
     type: 'delve',
     position: [0.60, 0.775],
     label: [0.59, 0.59],
-    template: 'thornbriar-hollow',
+    template: 'sunken-watch',
     requiresClear: 'march-west-delves',
-    subtitle: 'Outlaws shelter within a ruined watchtower beside the river.'
+    subtitle: 'Drowned guardians haunt a ruined watchtower beside the river.'
   },
 
   { id: 'everdeep', name: 'The Everdeep', type: 'everdeep', position: [0.875, 0.34], label: [0.88, 0.09], regionId: 'pineshire-reach', requiresClear: 'verge-delves' },

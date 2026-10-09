@@ -4,6 +4,7 @@
 // shared. The checkpoint guard prevents paying an ordinary first-clear reward twice.
 
 import { delveMaterialIds } from './DelveDrops.js';
+import { FARM_MATERIAL_CHANCES } from '../config/farmMaterialDrops.js';
 import GameState from './GameState.js';
 import { grantMaterial } from './Equipment.js';
 import { grantAdventurerXp, adjustHappiness } from './AdventurerProgression.js';
@@ -20,13 +21,13 @@ export const WAVE_REWARDS = {
 };
 
 export const FARM_REWARDS = {
-  Easy: { gold: 1, xp: 1, happiness: 1, materialCount: 1 },
-  Difficult: { gold: 2, xp: 2, happiness: 2, materialCount: 2 },
-  Tough: { gold: 3, xp: 3, happiness: 3, materialCount: 2 },
-  'Very Tough': { gold: 4, xp: 4, happiness: 4, materialCount: 3 },
+  Easy: { gold: 1, xp: 1, happiness: 1 },
+  Difficult: { gold: 2, xp: 2, happiness: 2 },
+  Tough: { gold: 3, xp: 3, happiness: 3 },
+  'Very Tough': { gold: 4, xp: 4, happiness: 4 },
 
-  'Incredibly Tough': { gold: 5, xp: 5, happiness: 5, materialCount: 3 },
-  Impossible: { gold: 6, xp: 6, happiness: 6, materialCount: 3 }
+  'Incredibly Tough': { gold: 5, xp: 5, happiness: 5 },
+  Impossible: { gold: 6, xp: 6, happiness: 6 }
 };
 
 
@@ -90,13 +91,30 @@ export function awardOrdinaryWave(delve, waveIndex, bossIndex, farming = false, 
   const pool = delveMaterialIds(delve);
   const materials = {};
 
-  for (let index = 0; index < values.materialCount && pool.length; index += 1) {
+  if (farming) {
 
-    // Farm rolls each material independently: random() * pool.length spans the list, and
-    // floor turns it into an index. Ordinary rewards use a stable index from Delve ID
-    // length plus wave index, wrapped with % pool.length.
-    const id = pool[farming ? Math.floor(random() * pool.length) : (delve.id.length + waveIndex) % pool.length];
-    materials[id] = (materials[id] ?? 0) + 1;
+    // Percentages are divided by 100 because random() returns a fraction from 0 to 1.
+    // Each rarity rolls once, so a wave can pay no materials or several different ones.
+    // Use the supplied combat random source for both visible play and idle catch-up.
+    const chances = FARM_MATERIAL_CHANCES[delve.difficulty] ?? FARM_MATERIAL_CHANCES.Easy;
+    for (const [rarity, percent] of Object.entries(chances)) {
+      if (percent <= 0) continue;
+      const eligible = delveMaterialIds(delve, [rarity]);
+
+      // Missing catalog tiers award nothing; never substitute a lower rarity or a
+      // crafted material. New catalog materials automatically join their environment.
+      if (!eligible.length || random() >= percent / 100) continue;
+      const id = eligible[Math.floor(random() * eligible.length)];
+      materials[id] = 1;
+    }
+  } else {
+
+    // First clears retain their guaranteed quantity and stable selection. The remainder
+    // operator (%) wraps the Delve ID length plus wave index into this pool's bounds.
+    for (let index = 0; index < values.materialCount && pool.length; index += 1) {
+      const id = pool[(delve.id.length + waveIndex) % pool.length];
+      materials[id] = (materials[id] ?? 0) + 1;
+    }
   }
 
   GameState.gold += gold;

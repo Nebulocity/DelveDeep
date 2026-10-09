@@ -64,7 +64,7 @@ for (const width of [915, 1920]) {
     // false.
     expect(content.buttons.some(label => label?.includes('<'))).toBe(false);
     expect(content.labels).toEqual(['Level', 'Health', 'Mana', 'Armor', 'Dodge', 'Block', 'Speed', 'Strength', 'Agility', 'Constitution', 'Intellect', 'Wisdom', 'Hit Chance', 'Crit Chance', 'Crit Multiplier', 'Attack Power', 'Spell Damage', 'Spell Healing', 'Happiness', 'Delves Cleared']);
-    await page.screenshot({ path: `project-backup/character-review/stats-${width}.png` });
+    await page.screenshot({ path: `output/qa/character-review/stats-${width}.png` });
     const blockPoint = await page.evaluate(() => {
       const qa = window.__DELVE_DEEP_VISUAL_QA__, scene = qa.game.scene.getScene('RosterScene');
 
@@ -81,11 +81,11 @@ for (const width of [915, 1920]) {
     await page.mouse.up();
     const explanation = await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene').children.list.filter(object => object.depth >= 11000).map(object => object.text).join(' '));
     expect(explanation).toContain('40% total');
-    await page.screenshot({ path: `project-backup/character-review/block-explanation-${width}.png` });
+    await page.screenshot({ path: `output/qa/character-review/block-explanation-${width}.png` });
     await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene').selectionDetailsClose());
 
     await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene').equipmentModalClose());
-    await page.screenshot({ path: `project-backup/character-review/skills-${width}.png` });
+    await page.screenshot({ path: `output/qa/character-review/skills-${width}.png` });
     const rect = await page.locator('canvas').boundingBox();
     await page.mouse.move(rect.x + 273 * rect.width / 2400, rect.y + 513 * rect.height / 1080);
     await page.mouse.down();
@@ -96,6 +96,6 @@ for (const width of [915, 1920]) {
     expect(registry).toContain('Roar (Rank 2)');
 
     expect(registry).not.toContain('Throw Net');
-    await page.screenshot({ path: `project-backup/character-review/known-skills-${width}.png` });
+    await page.screenshot({ path: `output/qa/character-review/known-skills-${width}.png` });
   });
 }

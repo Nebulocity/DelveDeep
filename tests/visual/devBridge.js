@@ -10,8 +10,8 @@ import { getDelveById } from '../../data/delves.js';
 // duplicate entries.
 const SCENES = new Set([
   'TitleScene', 'TownScene', 'AdventurersHallScene', 'BlacksmithScene',
-  'FacilityScene', 'ItemsScene', 'RosterScene', 'RaidLeaderScene',
-  'ShopScene', 'DelveSelectScene', 'PartySelectScene', 'DungeonScene',
+  'FacilityScene', 'ItemsScene', 'RosterScene', 'PartyLeaderScene',
+  'DelveSelectScene', 'PartySelectScene', 'DungeonScene',
   'BattleScene'
 ]);
 

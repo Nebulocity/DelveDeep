@@ -5,30 +5,30 @@
 
 const sheets = {
   caveSlime: [
-    new URL('../assets/enemies/slime-cave/caveSlime/reference-v2/sheets/idle.png', import.meta.url).href,
-    new URL('../assets/enemies/slime-cave/caveSlime/reference-v2/sheets/walk.png', import.meta.url).href,
-    new URL('../assets/enemies/slime-cave/caveSlime/reference-v2/sheets/attack.png', import.meta.url).href,
-    new URL('../assets/enemies/slime-cave/caveSlime/reference-v2/sheets/block.png', import.meta.url).href,
-    new URL('../assets/enemies/slime-cave/caveSlime/reference-v2/sheets/hit.png', import.meta.url).href,
-    new URL('../assets/enemies/slime-cave/caveSlime/reference-v2/sheets/death.png', import.meta.url).href
+    new URL('../assets/enemies/slime-cave/caveSlime/sheets/idle.png', import.meta.url).href,
+    new URL('../assets/enemies/slime-cave/caveSlime/sheets/walk.png', import.meta.url).href,
+    new URL('../assets/enemies/slime-cave/caveSlime/sheets/attack.png', import.meta.url).href,
+    new URL('../assets/enemies/slime-cave/caveSlime/sheets/block.png', import.meta.url).href,
+    new URL('../assets/enemies/slime-cave/caveSlime/sheets/hit.png', import.meta.url).href,
+    new URL('../assets/enemies/slime-cave/caveSlime/sheets/death.png', import.meta.url).href
   ],
 
   elderSlime: [
-    new URL('../assets/enemies/slime-cave/elderSlime/reference-v2/sheets/idle.png', import.meta.url).href,
-    new URL('../assets/enemies/slime-cave/elderSlime/reference-v2/sheets/walk.png', import.meta.url).href,
-    new URL('../assets/enemies/slime-cave/elderSlime/reference-v2/sheets/attack.png', import.meta.url).href,
-    new URL('../assets/enemies/slime-cave/elderSlime/reference-v2/sheets/block.png', import.meta.url).href,
-    new URL('../assets/enemies/slime-cave/elderSlime/reference-v2/sheets/hit.png', import.meta.url).href,
-    new URL('../assets/enemies/slime-cave/elderSlime/reference-v2/sheets/death.png', import.meta.url).href
+    new URL('../assets/enemies/slime-cave/elderSlime/sheets/idle.png', import.meta.url).href,
+    new URL('../assets/enemies/slime-cave/elderSlime/sheets/walk.png', import.meta.url).href,
+    new URL('../assets/enemies/slime-cave/elderSlime/sheets/attack.png', import.meta.url).href,
+    new URL('../assets/enemies/slime-cave/elderSlime/sheets/block.png', import.meta.url).href,
+    new URL('../assets/enemies/slime-cave/elderSlime/sheets/hit.png', import.meta.url).href,
+    new URL('../assets/enemies/slime-cave/elderSlime/sheets/death.png', import.meta.url).href
   ],
 
   slimeSovereign: [
-    new URL('../assets/enemies/slime-cave/slimeSovereign/reference-v2/sheets/idle.png', import.meta.url).href,
-    new URL('../assets/enemies/slime-cave/slimeSovereign/reference-v2/sheets/walk.png', import.meta.url).href,
-    new URL('../assets/enemies/slime-cave/slimeSovereign/reference-v2/sheets/attack.png', import.meta.url).href,
-    new URL('../assets/enemies/slime-cave/slimeSovereign/reference-v2/sheets/block.png', import.meta.url).href,
-    new URL('../assets/enemies/slime-cave/slimeSovereign/reference-v2/sheets/hit.png', import.meta.url).href,
-    new URL('../assets/enemies/slime-cave/slimeSovereign/reference-v2/sheets/death.png', import.meta.url).href
+    new URL('../assets/enemies/slime-cave/slimeSovereign/sheets/idle.png', import.meta.url).href,
+    new URL('../assets/enemies/slime-cave/slimeSovereign/sheets/walk.png', import.meta.url).href,
+    new URL('../assets/enemies/slime-cave/slimeSovereign/sheets/attack.png', import.meta.url).href,
+    new URL('../assets/enemies/slime-cave/slimeSovereign/sheets/block.png', import.meta.url).href,
+    new URL('../assets/enemies/slime-cave/slimeSovereign/sheets/hit.png', import.meta.url).href,
+    new URL('../assets/enemies/slime-cave/slimeSovereign/sheets/death.png', import.meta.url).href
   ]
 };
 

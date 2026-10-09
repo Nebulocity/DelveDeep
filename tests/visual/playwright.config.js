@@ -14,7 +14,10 @@ export default defineConfig({
   workers: 2,
   use: {
     ...devices['Desktop Chrome'],
-    viewport: { width: 1920, height: 1080 },
+
+    // Override these browser-pixel dimensions for phone landscape checks. Phaser still
+    // draws on its unchanged 2400 by 1080 logical canvas.
+    viewport: { width: Number(process.env.DELVE_QA_WIDTH ?? 1920), height: Number(process.env.DELVE_QA_HEIGHT ?? 1080) },
     baseURL: `http://127.0.0.1:${port}`,
     trace: 'retain-on-failure'
   },
@@ -26,5 +29,5 @@ export default defineConfig({
     timeout: 120000
   },
   reporter: [['list']],
-  outputDir: './test-results'
+  outputDir: '../../output/qa/test-results'
 });

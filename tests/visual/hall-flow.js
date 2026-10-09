@@ -273,20 +273,20 @@ export async function reviewHall(page, output, width) {
   ensure(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('ItemsScene').children.list.filter((object) => object.name?.startsWith('hall-item-')).length) === 1, 'Inventory must hide zero-count materials');
   await capture('items');
   await click('ItemsScene', 'hall-nav-tactics');
-  await waitScene('RaidLeaderScene');
+  await waitScene('PartyLeaderScene');
 
-  await click('RaidLeaderScene', 'hall-tactic-brace');
-  await click('RaidLeaderScene', 'CONFIRM', true);
-  await click('RaidLeaderScene', 'hall-tactic-brace');
+  await click('PartyLeaderScene', 'hall-tactic-brace');
+  await click('PartyLeaderScene', 'CONFIRM', true);
+  await click('PartyLeaderScene', 'hall-tactic-brace');
   ensure(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.state.leader.battleLoadout.includes('brace')), 'Tactic unlock/equip did not persist');
   await capture('tactics');
-  await click('RaidLeaderScene', 'hall-tactic-brace', false, true);
-  ensure(await page.evaluate(() => Boolean(window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RaidLeaderScene').selectionDetailsClose)),
+  await click('PartyLeaderScene', 'hall-tactic-brace', false, true);
+  ensure(await page.evaluate(() => Boolean(window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('PartyLeaderScene').selectionDetailsClose)),
     'Holding a tactic must open its larger detail popup');
   await capture('tactics-details');
 
-  await click('RaidLeaderScene', 'CLOSE', true);
-  await click('RaidLeaderScene', 'hall-nav-adventurers');
+  await click('PartyLeaderScene', 'CLOSE', true);
+  await click('PartyLeaderScene', 'hall-nav-adventurers');
   await waitScene('RosterScene');
   ensure((await snapshot()).tab === 'skills' && (await snapshot()).id === saved.id, 'Navigation lost character or detail tab');
   await page.reload();

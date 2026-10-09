@@ -15,11 +15,16 @@ for (const name of names) {
   const sprite = CHARACTER_SPRITES[name];
   assert.ok(sprite, `missing sprite for ${name}`);
   assert.equal(sprite.textures.length, states.length);
+  const layout = JSON.parse(fs.readFileSync(new URL(`../assets/characters/${name}/sheets/layout.json`, import.meta.url), 'utf8'));
+  assert.equal(layout.frameWidth, 256);
+  assert.equal(layout.frameHeight, 256);
+  assert.deepEqual(layout.directions, ['south-east', 'south-west', 'north-east', 'north-west']);
 
   // A Set keeps each value once. has checks membership without searching a list for
   // duplicate entries.
   const keys = new Set();
-  for (const texture of sprite.textures) {
+  const capacities = new Map();
+  for (const [index, texture] of sprite.textures.entries()) {
     assert.ok(!keys.has(texture.key));
     keys.add(texture.key);
     const png = fs.readFileSync(new URL(texture.url));
@@ -27,9 +32,13 @@ for (const name of names) {
     // function toString() { [native code] }
     assert.equal(png.subarray(1, 4).toString(), 'PNG');
     assert.equal(png.readUInt32BE(20), 1024, 'four direction rows');
-    assert.ok(png.readUInt32BE(16) >= 1024, 'at least four frame columns');
+    assert.equal(png.readUInt32BE(16), layout.states[states[index]].columns * 256);
     assert.equal(png[25], 6, 'sprite sheet keeps RGBA transparency');
     assert.equal(png.subarray(-8, -4).toString(), 'IEND');
+
+    // Four authored rows fill each atlas. Clip indices must stay inside those cells,
+    // including the aliases used for the extra four movement headings.
+    capacities.set(texture.key, layout.states[states[index]].columns * layout.directions.length);
   }
 
   // Object.entries turns own fields into [key, value] pairs so we can visit or transform
@@ -45,6 +54,7 @@ for (const name of names) {
       for (const frame of clip.frames) {
         assert.ok(keys.has(frame.key));
         assert.ok(Number.isInteger(frame.frame));
+        assert.ok(frame.frame >= 0 && frame.frame < capacities.get(frame.key), 'frame stays inside its atlas');
         assert.ok(frame.originY > 0 && frame.originY <= 1);
         assert.equal(frame.flipX, false, 'no equipment mirroring');
       }

@@ -2,6 +2,9 @@
 // sizes and origins come from the supplied sheets. An origin marks the anchor inside a
 // frame, not a battlefield position. Direction and clip counts keep animation from
 // stepping into unused cells at the end of a sheet.
+
+// These completed palette variants are pending content. Current encounter catalogs do
+// not import them yet; retain them for future integration rather than preloading them.
 export const MONSTER_VARIANT_SHEETS = {
   caveSlimeTurquoise: [
     new URL('../assets/enemies/slime-cave/caveSlime/variants/turquoise/sheets/idle.png', import.meta.url).href,

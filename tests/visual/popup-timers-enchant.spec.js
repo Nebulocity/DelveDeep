@@ -18,7 +18,7 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
     await page.goto('/?visualQa=1');
     await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__?.game.scene.getScene('TitleScene').sys.isActive());
     await page.locator('#loading-screen').waitFor({ state: 'hidden' });
-    await mkdir('tests/visual/screenshots', { recursive: true });
+    await mkdir('output/qa/screenshots', { recursive: true });
     const activate = async (key, options) => {
       await page.evaluate(({ key, options }) => window.__DELVE_DEEP_VISUAL_QA__.activate(key, options), { key, options });
       await page.waitForFunction(key => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene(key).sys.isActive(), key);
@@ -48,7 +48,7 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
       return Boolean(s.selectionDetailsClose) && !s.combatPaused && !s.time.paused;
     })).toBe(true);
 
-    await page.screenshot({ path: `tests/visual/screenshots/popup-timers-${viewport.width}.png` });
+    await page.screenshot({ path: `output/qa/screenshots/popup-timers-${viewport.width}.png` });
     for (const paused of [false, true]) {
       await page.evaluate(async paused => {
         const s = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
@@ -114,7 +114,7 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
     expect(descriptions.some(text => text.includes(`Equipped by ${owner}`))).toBe(true);
     expect(descriptions.some(text => text.startsWith('Unequipped'))).toBe(true);
     expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.inspect('FacilityScene').warnings)).toEqual([]);
-    await page.screenshot({ path: `tests/visual/screenshots/enchant-owner-${viewport.width}.png` });
+    await page.screenshot({ path: `output/qa/screenshots/enchant-owner-${viewport.width}.png` });
     const point = await page.evaluate(() => {
       const qa = window.__DELVE_DEEP_VISUAL_QA__, rect = qa.game.canvas.getBoundingClientRect();
 
@@ -139,7 +139,7 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
     })).toBe(true);
 
     await activate('ItemsScene');
-    await page.screenshot({ path: `tests/visual/screenshots/item-type-${viewport.width}.png` });
+    await page.screenshot({ path: `output/qa/screenshots/item-type-${viewport.width}.png` });
     expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.inspect('ItemsScene').warnings)).toEqual([]);
     expect(errors).toEqual([]);
   });

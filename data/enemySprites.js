@@ -3,68 +3,70 @@
 // frame, not a battlefield position. Direction and clip counts keep animation from
 // stepping into unused cells at the end of a sheet. Explicit URLs let Vite include every
 // supplied sheet in the production build.
+import { BAAZ_SPRITES } from './baazSprites.js';
+
 const sheets = {
   lasher: [
-    new URL('../assets/enemies/thornbriar-hollow/lasher/reference-v2/sheets/idle.png', import.meta.url).href,
-    new URL('../assets/enemies/thornbriar-hollow/lasher/reference-v2/sheets/walk.png', import.meta.url).href,
-    new URL('../assets/enemies/thornbriar-hollow/lasher/reference-v2/sheets/attack.png', import.meta.url).href,
-    new URL('../assets/enemies/thornbriar-hollow/lasher/reference-v2/sheets/block.png', import.meta.url).href,
-    new URL('../assets/enemies/thornbriar-hollow/lasher/reference-v2/sheets/hit.png', import.meta.url).href,
-    new URL('../assets/enemies/thornbriar-hollow/lasher/reference-v2/sheets/death.png', import.meta.url).href
+    new URL('../assets/enemies/thornbriar-hollow/lasher/sheets/idle.png', import.meta.url).href,
+    new URL('../assets/enemies/thornbriar-hollow/lasher/sheets/walk.png', import.meta.url).href,
+    new URL('../assets/enemies/thornbriar-hollow/lasher/sheets/attack.png', import.meta.url).href,
+    new URL('../assets/enemies/thornbriar-hollow/lasher/sheets/block.png', import.meta.url).href,
+    new URL('../assets/enemies/thornbriar-hollow/lasher/sheets/hit.png', import.meta.url).href,
+    new URL('../assets/enemies/thornbriar-hollow/lasher/sheets/death.png', import.meta.url).href
   ],
 
   ruffian: [
-    new URL('../assets/enemies/thornbriar-hollow/ruffian/reference-v2/sheets/idle.png', import.meta.url).href,
-    new URL('../assets/enemies/thornbriar-hollow/ruffian/reference-v2/sheets/walk.png', import.meta.url).href,
-    new URL('../assets/enemies/thornbriar-hollow/ruffian/reference-v2/sheets/attack.png', import.meta.url).href,
-    new URL('../assets/enemies/thornbriar-hollow/ruffian/reference-v2/sheets/block.png', import.meta.url).href,
-    new URL('../assets/enemies/thornbriar-hollow/ruffian/reference-v2/sheets/hit.png', import.meta.url).href,
-    new URL('../assets/enemies/thornbriar-hollow/ruffian/reference-v2/sheets/death.png', import.meta.url).href
+    new URL('../assets/enemies/thornbriar-hollow/ruffian/sheets/idle.png', import.meta.url).href,
+    new URL('../assets/enemies/thornbriar-hollow/ruffian/sheets/walk.png', import.meta.url).href,
+    new URL('../assets/enemies/thornbriar-hollow/ruffian/sheets/attack.png', import.meta.url).href,
+    new URL('../assets/enemies/thornbriar-hollow/ruffian/sheets/block.png', import.meta.url).href,
+    new URL('../assets/enemies/thornbriar-hollow/ruffian/sheets/hit.png', import.meta.url).href,
+    new URL('../assets/enemies/thornbriar-hollow/ruffian/sheets/death.png', import.meta.url).href
   ],
 
   hedgeMage: [
-    new URL('../assets/enemies/thornbriar-hollow/hedgeMage/reference-v2/sheets/idle.png', import.meta.url).href,
-    new URL('../assets/enemies/thornbriar-hollow/hedgeMage/reference-v2/sheets/walk.png', import.meta.url).href,
-    new URL('../assets/enemies/thornbriar-hollow/hedgeMage/reference-v2/sheets/attack.png', import.meta.url).href,
-    new URL('../assets/enemies/thornbriar-hollow/hedgeMage/reference-v2/sheets/block.png', import.meta.url).href,
-    new URL('../assets/enemies/thornbriar-hollow/hedgeMage/reference-v2/sheets/hit.png', import.meta.url).href,
-    new URL('../assets/enemies/thornbriar-hollow/hedgeMage/reference-v2/sheets/death.png', import.meta.url).href
+    new URL('../assets/enemies/thornbriar-hollow/hedgeMage/sheets/idle.png', import.meta.url).href,
+    new URL('../assets/enemies/thornbriar-hollow/hedgeMage/sheets/walk.png', import.meta.url).href,
+    new URL('../assets/enemies/thornbriar-hollow/hedgeMage/sheets/attack.png', import.meta.url).href,
+    new URL('../assets/enemies/thornbriar-hollow/hedgeMage/sheets/block.png', import.meta.url).href,
+    new URL('../assets/enemies/thornbriar-hollow/hedgeMage/sheets/hit.png', import.meta.url).href,
+    new URL('../assets/enemies/thornbriar-hollow/hedgeMage/sheets/death.png', import.meta.url).href
   ],
 
   rongarTheCrusher: [
-    new URL('../assets/enemies/thornbriar-hollow/rongarTheCrusher/reference-v2/sheets/idle.png', import.meta.url).href,
-    new URL('../assets/enemies/thornbriar-hollow/rongarTheCrusher/reference-v2/sheets/walk.png', import.meta.url).href,
-    new URL('../assets/enemies/thornbriar-hollow/rongarTheCrusher/reference-v2/sheets/attack.png', import.meta.url).href,
-    new URL('../assets/enemies/thornbriar-hollow/rongarTheCrusher/reference-v2/sheets/block.png', import.meta.url).href,
-    new URL('../assets/enemies/thornbriar-hollow/rongarTheCrusher/reference-v2/sheets/hit.png', import.meta.url).href,
-    new URL('../assets/enemies/thornbriar-hollow/rongarTheCrusher/reference-v2/sheets/death.png', import.meta.url).href
+    new URL('../assets/enemies/thornbriar-hollow/rongarTheCrusher/sheets/idle.png', import.meta.url).href,
+    new URL('../assets/enemies/thornbriar-hollow/rongarTheCrusher/sheets/walk.png', import.meta.url).href,
+    new URL('../assets/enemies/thornbriar-hollow/rongarTheCrusher/sheets/attack.png', import.meta.url).href,
+    new URL('../assets/enemies/thornbriar-hollow/rongarTheCrusher/sheets/block.png', import.meta.url).href,
+    new URL('../assets/enemies/thornbriar-hollow/rongarTheCrusher/sheets/hit.png', import.meta.url).href,
+    new URL('../assets/enemies/thornbriar-hollow/rongarTheCrusher/sheets/death.png', import.meta.url).href
   ],
 
   denWarden: [
-    new URL('../assets/enemies/dolmark-den/denWarden/reference-v2/sheets/idle.png', import.meta.url).href,
-    new URL('../assets/enemies/dolmark-den/denWarden/reference-v2/sheets/walk.png', import.meta.url).href,
-    new URL('../assets/enemies/dolmark-den/denWarden/reference-v2/sheets/attack.png', import.meta.url).href,
-    new URL('../assets/enemies/dolmark-den/denWarden/reference-v2/sheets/block.png', import.meta.url).href,
-    new URL('../assets/enemies/dolmark-den/denWarden/reference-v2/sheets/hit.png', import.meta.url).href,
-    new URL('../assets/enemies/dolmark-den/denWarden/reference-v2/sheets/death.png', import.meta.url).href
+    new URL('../assets/enemies/dolmark-den/denWarden/sheets/idle.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/denWarden/sheets/walk.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/denWarden/sheets/attack.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/denWarden/sheets/block.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/denWarden/sheets/hit.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/denWarden/sheets/death.png', import.meta.url).href
   ],
 
   denProtector: [
-    new URL('../assets/enemies/dolmark-den/denProtector/reference-v2/sheets/idle.png', import.meta.url).href,
-    new URL('../assets/enemies/dolmark-den/denProtector/reference-v2/sheets/walk.png', import.meta.url).href,
-    new URL('../assets/enemies/dolmark-den/denProtector/reference-v2/sheets/attack.png', import.meta.url).href,
-    new URL('../assets/enemies/dolmark-den/denProtector/reference-v2/sheets/block.png', import.meta.url).href,
-    new URL('../assets/enemies/dolmark-den/denProtector/reference-v2/sheets/hit.png', import.meta.url).href,
-    new URL('../assets/enemies/dolmark-den/denProtector/reference-v2/sheets/death.png', import.meta.url).href
+    new URL('../assets/enemies/dolmark-den/denProtector/sheets/idle.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/denProtector/sheets/walk.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/denProtector/sheets/attack.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/denProtector/sheets/block.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/denProtector/sheets/hit.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/denProtector/sheets/death.png', import.meta.url).href
   ],
 
   silvanarkTheForestLord: [
-    new URL('../assets/enemies/dolmark-den/silvanarkTheForestLord/reference-v2/sheets/idle.png', import.meta.url).href,
-    new URL('../assets/enemies/dolmark-den/silvanarkTheForestLord/reference-v2/sheets/walk.png', import.meta.url).href,
-    new URL('../assets/enemies/dolmark-den/silvanarkTheForestLord/reference-v2/sheets/attack.png', import.meta.url).href,
-    new URL('../assets/enemies/dolmark-den/silvanarkTheForestLord/reference-v2/sheets/block.png', import.meta.url).href,
-    new URL('../assets/enemies/dolmark-den/silvanarkTheForestLord/reference-v2/sheets/hit.png', import.meta.url).href,
-    new URL('../assets/enemies/dolmark-den/silvanarkTheForestLord/reference-v2/sheets/death.png', import.meta.url).href
+    new URL('../assets/enemies/dolmark-den/silvanarkTheForestLord/sheets/idle.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/silvanarkTheForestLord/sheets/walk.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/silvanarkTheForestLord/sheets/attack.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/silvanarkTheForestLord/sheets/block.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/silvanarkTheForestLord/sheets/hit.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/silvanarkTheForestLord/sheets/death.png', import.meta.url).href
   ]
 };
 
@@ -123,6 +125,10 @@ function createSprite(id, urls) {
 export const ENEMY_SPRITES = Object.fromEntries(
   Object.entries(sheets).map(([id, urls]) => [id, createSprite(id, urls)])
 );
+
+// Register the finished Baaz set for ordinary combat loading. Its encounter placement
+// can be authored separately without changing texture keys or the enemy definition.
+Object.assign(ENEMY_SPRITES, BAAZ_SPRITES);
 
 // Queue the enemy sprite sheets needed by the current catalog. scene is the Phaser screen
 // that owns the objects, clock and input used here.

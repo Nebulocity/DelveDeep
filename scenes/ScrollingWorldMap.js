@@ -11,7 +11,7 @@ import delves from '../data/delves.js';
 import { saveProfile } from '../game/GameStorage.js';
 
 import HapticsService from '../services/HapticsService.js';
-import { bindSelectionDetails, addDetailsHint, delveDetails, showSelectionDetails } from '../ui/SelectionDetails.js';
+import { bindSelectionDetails, addDetailsHint, delveDetails } from '../ui/SelectionDetails.js';
 import { TILE, WORLD_COLUMNS, WORLD_ROWS, regions, nodes, roads, pois, nodePoint, roadPoint, mapPoint, branchLock, regionExit, routeBetween, routeFromEdge, nearestTown } from '../data/worldMap.js';
 import { everdeepUnlocked, settleEverdeep } from '../game/Everdeep.js';
 

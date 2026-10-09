@@ -18,7 +18,7 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
     await page.goto('/?visualQa=1');
     await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__?.game.scene.getScene('TitleScene').sys.isActive());
     await page.locator('#loading-screen').waitFor({ state: 'hidden' });
-    await mkdir('outputs/detail-dialogs', { recursive: true });
+    await mkdir('output/qa/detail-dialogs', { recursive: true });
     const activate = async (key, data) => {
       await page.evaluate(({ key, data }) => window.__DELVE_DEEP_VISUAL_QA__.activate(key, data), { key, data });
       await page.waitForFunction(key => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene(key).sys.isActive(), key);
@@ -94,7 +94,7 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
       });
 
       await press('FacilityScene', action, true);
-      await page.screenshot({ path: `outputs/detail-dialogs/${facility}-action-${viewport.width}.png` });
+      await page.screenshot({ path: `output/qa/detail-dialogs/${facility}-action-${viewport.width}.png` });
       await press('FacilityScene', 'shop-details-close');
       await checkClosed('FacilityScene');
       await press('FacilityScene', action);
@@ -113,7 +113,7 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
           wood: scene.children.list.some(object => object.depth >= 10000 && object.texture?.key?.includes('town-')) };
       })).toEqual({ panel: true, wood: false });
 
-      await page.screenshot({ path: `outputs/detail-dialogs/${facility}-item-${viewport.width}.png` });
+      await page.screenshot({ path: `output/qa/detail-dialogs/${facility}-item-${viewport.width}.png` });
       await press('FacilityScene', 'shop-details-close');
       await checkClosed('FacilityScene');
       await press('FacilityScene', item, true);
@@ -130,7 +130,7 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
 
     for (let repeat = 0; repeat < 3; repeat++) {
       await press('RosterScene', skill, true);
-      if (repeat === 0) await page.screenshot({ path: `outputs/detail-dialogs/hall-skill-${viewport.width}.png` });
+      if (repeat === 0) await page.screenshot({ path: `output/qa/detail-dialogs/hall-skill-${viewport.width}.png` });
       await press('RosterScene', 'CLOSE');
       await checkClosed('RosterScene');
     }
@@ -157,7 +157,7 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
     await press('RosterScene', 'Done');
     await press('RosterScene', 'hall-tab-gear');
     expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene').tab)).toBe('gear');
-    await page.screenshot({ path: `outputs/detail-dialogs/hall-restored-${viewport.width}.png` });
+    await page.screenshot({ path: `output/qa/detail-dialogs/hall-restored-${viewport.width}.png` });
     expect(errors).toEqual([]);
   });
 }

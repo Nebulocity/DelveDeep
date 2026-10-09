@@ -7,7 +7,7 @@ import { test, expect } from '@playwright/test';
 import { mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-const screenshotDir = path.resolve('tests/visual/screenshots');
+const screenshotDir = path.resolve('output/qa/screenshots');
 test.beforeEach(async ({ page }) => {
   if (!process.env.REGION_MAP_QA_ASSETS) return;
   const root = path.resolve(process.env.REGION_MAP_QA_ASSETS);

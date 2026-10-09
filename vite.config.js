@@ -24,6 +24,13 @@ const buildName = branch + '-' + commit;
 
 export default defineConfig({
   define: { __DELVE_DEEP_BUILD_ID__: JSON.stringify(randomUUID()) },
+
+  // The repository root is also the source root. Keep generated screenshots, traces,
+  // and archived art out of the development watcher so writing a report cannot reload
+  // the game halfway through a gesture or spend time watching thousands of old frames.
+  server: {
+    watch: { ignored: ['**/output/**', '**/outputs/**', '**/project-backup/**', '**/work/**', '**/.tmp/**'] }
+  },
   plugins: [{
     name: 'delve-build-name',
 

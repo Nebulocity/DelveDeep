@@ -11,8 +11,6 @@ AGENTS.md*
 
 # Local development work and generated reports.
 /work/
-/tests/*
-!/tests/visual/
 /tests/visual/screenshots/*
 /tests/visual/test-results/
 !/tests/visual/README.md

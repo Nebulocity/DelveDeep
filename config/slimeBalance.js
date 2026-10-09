@@ -32,7 +32,16 @@ export const SLIME_BALANCE = {
         power: 180, ...physicalPotency },
 
       secondary: { name: 'Toxic Glob', cooldown: 7200, windup: 750,
-        power: 120, ...physicalPotency }
+        power: 120, ...physicalPotency },
+
+      // Timing is in milliseconds; range and radius are logical arena units. The six-
+      // second windup is the warning phase itself. At 230 Attack Power, 200% deals 460
+      // before physical defenses. Ground attacks cannot critically hit.
+      // autoAvoid: false keeps the party from solving this warning automatically; the
+      // player must interrupt or manually move adventurers outside the circle.
+      tertiary: { name: 'Consume', cooldown: 30000, windup: 6000, telegraph: 6000,
+        radius: 300, castRange: 300, areaCenter: 'caster', autoAvoid: false, manaCost: 0,
+        power: 200, ...physicalPotency }
     }
   }
 };

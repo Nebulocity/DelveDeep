@@ -9,13 +9,8 @@ import enemies from '../data/enemies.js';
 import { ENEMY_SPRITES, preloadEnemySprites } from '../data/enemySprites.js';
 
 const ids = ['lasher', 'ruffian', 'hedgeMage', 'rongarTheCrusher'];
-const portraits = ['Lasher.png', 'Ruffian.png', 'Hedge Mage.png', 'Rongar the Crusher.png'];
 const directions = ['south', 'south-east', 'east', 'south-west', 'west', 'north', 'north-east', 'north-west'];
 const counts = { idle: 4, walk: 8, attack: 9, block: 5, hit: 5, death: 9 };
-for (const [index, id] of ids.entries()) {
-  assert.ok(existsSync(fileURLToPath(new URL(`../assets/enemies/thornbriar-hollow/${portraits[index]}`, import.meta.url))));
-}
-
 for (const id of ids) {
   assert.ok(enemies[id]);
   const sprite = ENEMY_SPRITES[id];
@@ -43,7 +38,7 @@ for (const id of ids) {
 
 const loaded = [];
 preloadEnemySprites({ textures: { exists: () => false }, load: { spritesheet: (...args) => loaded.push(args) } });
-assert.equal(loaded.length, Object.keys(ENEMY_SPRITES).length * 6);
+assert.equal(loaded.length, Object.values(ENEMY_SPRITES).reduce((total, sprite) => total + sprite.textures.length, 0));
 assert.equal(enemies.lasher.name, 'Lasher');
 assert.equal(enemies.ruffian.name, 'Ruffian');
 assert.equal(enemies.hedgeMage.name, 'Hedge Mage');

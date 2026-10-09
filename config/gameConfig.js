@@ -9,8 +9,7 @@ import BootScene from '../scenes/BootScene.js';
 import TitleScene from '../scenes/TitleScene.js';
 import TownScene from '../scenes/TownScene.js';
 import RosterScene from '../scenes/RosterScene.js';
-import RaidLeaderScene from '../scenes/RaidLeaderScene.js';
-import ShopScene from '../scenes/ShopScene.js';
+import PartyLeaderScene from '../scenes/PartyLeaderScene.js';
 
 import DelveSelectScene from '../scenes/DelveSelectScene.js';
 import PartySelectScene from '../scenes/PartySelectScene.js';
@@ -45,8 +44,7 @@ const gameConfig = {
     BlacksmithScene,
     ItemsScene,
     RosterScene,
-    RaidLeaderScene,
-    ShopScene,
+    PartyLeaderScene,
     DelveSelectScene,
     PartySelectScene,
     DungeonScene,

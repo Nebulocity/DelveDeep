@@ -1,6 +1,6 @@
 # Delve Deep
 
-You are the raid leader. Pick five adventurers, send them into dangerous delves, and keep the party together when the monsters stop playing nice.
+You are the party leader. Pick five adventurers, send them into dangerous delves, and keep the party together when the monsters stop playing nice.
 
 Delve Deep is a tactical, party-based RPG built around real-time battles. Tanks hold attention, healers keep the run alive, and melee and ranged fighters look for openings. You call the shots with movement, positioning, attack orders and leadership tactics while your adventurers use their own class abilities.
 
@@ -10,35 +10,46 @@ Drag the map to explore, tap a destination to travel, and hold it for details. V
 
 Progress is stored locally on the current device and origin. Each newly built version starts fresh; subsequent sessions of the same build preserve progress. Dev Tools are directly available from the region map, including in production. Resetting progress requires confirmation.
 
-## Screenshots
-
-### World Map
-
-> Screenshot coming soon.
-
-### Combat
-
-> Screenshot coming soon.
-
-### Party Selection
-
-> Screenshot coming soon.
-
-### Delves
-
-> Screenshot coming soon.
-
 ## Development
 
 Requires Node.js and npm.
 
 ```bash
-npm install
+npm ci
 npm run dev
+npm test
 npm run build
 ```
 
-For Android builds and full setup, see [Build and deploy](docs/BUILD_AND_DEPLOY.md).
+`npm ci` installs the locked dependencies. Vite serves development on port 5173;
+`npm run build` creates the production game in `dist/`. `npm run preview` serves that
+build locally. Builds use a unique save generation, so rebuilding starts fresh progress.
+
+`npm test` runs every maintained Node check in its own process. Run one check directly
+with `node tests/world-map.test.js`. Browser checks run separately:
+
+```bash
+npx playwright install chromium
+npm run test:visual
+```
+
+Browser setup and scene capture instructions are in [tests/visual/README.md](tests/visual/README.md).
+
+## Android builds
+
+Install Android Studio, its Android SDK, and JDK 21. Select that JDK with `JAVA_HOME`
+before running Gradle. From the project root in PowerShell:
+
+```powershell
+npm run build
+npx cap sync android
+.\android\gradlew.bat -p android assembleDebug
+```
+
+`npm run build:android` performs those three steps. The resulting debug APK is under
+`android/app/build/outputs/apk/debug/`. `npm run deploy` builds, syncs Android, and opens
+Android Studio; it does not publish a store release. Rebuild normally before Android
+sync if a previous web build used a GitHub Pages base path.
 
 ## Reading the code for the first time
 
@@ -64,3 +75,33 @@ Most Phaser timestamps and delays are milliseconds. Movement usually needs secon
 `GameState` holds current in-memory progress. Changing it is not the same as saving it. Catalog definitions describe a kind of item or character, while live battle units and owned gear copies have their own current state. Keep stable IDs intact when experimenting so a save can still reconnect the right records. Comments beside Maps, Sets, callbacks, spread copies, save conversion, and geometry explain those less familiar steps where they are used.
 
 Try changing a displayed label or one named text size first, run the game, and see what changed. Keep a small edit focused, run `npm run build`, and follow the nearby test before changing a rule. Generated `dist/`, dependencies, and Capacitor-generated plugin files are build products, not places to edit gameplay.
+
+## Scene flow and asset layout
+
+`BootScene` loads art and restores progress. `TitleScene` is the world map despite its
+historical name. Town facilities lead to roster, skills, tactics, inventory, and shops.
+A delve follows `DelveSelectScene` → `PartySelectScene` → `DungeonScene` → `BattleScene`.
+`DungeonScene` is the battle overview; `AdventurersHallScene` is a routing entry into
+the Hall workspace. [PartyLeaderScene.js](scenes/PartyLeaderScene.js) is the Hall's
+tactics workspace, reached from its Tactics navigation button.
+
+Finished character art is under `assets/characters/<id>/sheets/`. Enemy sheets use
+the same structure below their encounter folder. Each set includes animation PNGs and
+`layout.json`; runtime catalogs select frames, facings, timings, and foot origins.
+Baaz Draconian, creature samples, palette variants, and Regions 2–9 remain pending
+content. A missing runtime reference does not automatically make that art obsolete.
+
+## Sharing a source copy
+
+For Git review, share this repository and keep generated files ignored. For a folder
+handoff, include the current tracked files and intended new source files shown by
+`git status`; copying the working files includes local changes that are not committed
+yet. Keep the locked dependencies, maintained tests, finished assets, and native host
+source in the handoff.
+
+Exclude `.git/`, `node_modules/`, `dist/`, native build/cache output, `.tmp/`, `work/`,
+`output/`, `outputs/`, `project-backup/`, local attachments, credentials, and private
+tooling folders. The receiver can install dependencies and rebuild. Local authoring
+scripts, project notes, sprite source frames, generation records, and Blender source
+are separately backed up; they are not required to run the game. Preserve them if
+further art editing is expected. Generated QA reports belong under `output/qa/`.

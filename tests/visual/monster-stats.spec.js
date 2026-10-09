@@ -50,6 +50,6 @@ for (const width of [915, 1920]) {
 
     expect(result.bounds.bottom).toBeLessThan(1000);
     expect(parseFloat(result.fontSize) * result.scale).toBeGreaterThanOrEqual(28);
-    await page.screenshot({ path: `project-backup/monster-review/stats-${width}.png` });
+    await page.screenshot({ path: `output/qa/monster-review/stats-${width}.png` });
   });
 }

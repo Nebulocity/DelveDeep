@@ -80,8 +80,8 @@ test('eight idle hours settle farm outcomes without scene replay and summarize o
 
   expect(outcome.open).toBe(true);
   console.log(`Eight idle hours: ${outcome.summary.waves} waves in ${outcome.elapsed.toFixed(1)} ms; ${outcome.steps} scene replay steps.`);
-  await mkdir('tests/visual/screenshots', { recursive: true });
-  await page.screenshot({ path: 'tests/visual/screenshots/IdleReturn-phone.png' });
+  await mkdir('output/qa/screenshots', { recursive: true });
+  await page.screenshot({ path: 'output/qa/screenshots/IdleReturn-phone.png' });
   const panel = await page.evaluate(() => {
     const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
     const text = scene.children.getByName('idle-summary-text');
@@ -135,7 +135,7 @@ test('idle deaths stop a lost run, persist the summary and do not repay on reloa
 
   expect(result.over).toBe(true);
   expect(result.deaths).toHaveLength(5);
-  await page.screenshot({ path: 'tests/visual/screenshots/IdleDeaths-desktop.png' });
+  await page.screenshot({ path: 'output/qa/screenshots/IdleDeaths-desktop.png' });
   await page.reload();
   await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__?.game.scene.getScene('BattleScene').idleSummaryOpen);
   expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.state.gold)).toBe(result.gold);

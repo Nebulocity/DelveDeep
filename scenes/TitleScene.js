@@ -5,7 +5,6 @@ import { fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypograph
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
 import HapticsService from '../services/HapticsService.js';
-import { formatDuration } from '../game/ExpeditionProgression.js';
 import { saveProfile, clearSavedProfile } from '../game/GameStorage.js';
 import { clearLeaderProgression, grantLeaderLevels } from '../game/LeaderProgression.js';
 
@@ -40,37 +39,6 @@ export default class TitleScene extends Phaser.Scene {
     for (const object of this.children.list) {
       if (object.depth >= 1000 && object.scrollFactorX !== 0) object.setScrollFactor(0);
     }
-  }
-
-  // This helper exposes testing controls and shows whether testing mode is active.
-  createDevelopmentButton(width, height) {
-
-    const enabled = GameState.development.unlockAll && GameState.development.replayCleared;
-    const x = 190;
-    const y = height - 52;
-
-    // Depth is drawing order, not distance or size. Higher-depth objects draw on top of
-    // lower-depth objects. This gives the display object an input hit area. Visible
-    // artwork alone does not make an object respond to a tap. The condition before ?
-    // chooses the first value when true and the value after : when false.
-    const button = addRegionPanel(this, x, y, 300, 64, 1000, enabled ? 'selected' : 'normal')
-      .setInteractive({ useHandCursor: true })
-      .setDepth(1000);
-
-    // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the center
-    // and 1 is the right/bottom edge. x/y place that anchor, not necessarily the object's
-    // corner.
-    this.add.text(x, y, enabled ? 'DEV MODE: ON' : 'DEV TOOLS', {
-      fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('support28'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff1d2'
-    }).setOrigin(0.5).setDepth(1001);
-
-    // on registers a callback for later events; it does not call that callback now.
-    // Long-lived emitters need matching listener cleanup.
-    button.on('pointerdown', () => {
-
-      HapticsService.tap();
-      this.showDevelopmentTools();
-    });
   }
 
   // This helper opens the development controls in labeled rows. Grants and display
@@ -299,42 +267,5 @@ export default class TitleScene extends Phaser.Scene {
       text.destroy();
       if (this.activeToast === toast) this.activeToast = null;
     } });
-  }
-
-  // This helper lets the player review a cleared delve best time and latest loot.
-  showClearedReview(delve) {
-
-    // The braces pull named fields into local variables. This reads those fields without
-    // copying the whole source object.
-    const { width, height } = this.scale;
-    const { centerX, width: mapWidth } = regionMessageBounds(this, 'map');
-
-    // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
-    const record = GameState.records[delve.id] ?? {};
-
-    // map builds one output entry for each input entry, in the same order. The callback's
-    // return value becomes that output entry.
-    const loot = (record.lastRewards ?? []).map((reward) => reward.type === 'gold' ? `${reward.amount} Gold` : reward.label ?? reward.type).join(', ') || 'No recorded loot';
-    const overlay = addRegionPanel(this, centerX, height / 2, mapWidth * 0.8, height * 0.48, 3000);
-
-    // Depth is drawing order, not distance or size. Higher-depth objects draw on top of
-    // lower-depth objects. Origin is the anchor within the object: 0 is the left/top edge,
-    // 0.5 is the center and 1 is the right/bottom edge. x/y place that anchor, not
-    // necessarily the object's corner.
-    this.add.text(centerX, height * 0.34, `${delve.name} - CLEARED`, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('display52'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#bef264' })
-      .setOrigin(0.5).setDepth(3001);
-    this.add.text(centerX, height * 0.43, `Waves: ${record.waves ?? delve.rooms}   Best: ${formatDuration(record.bestTimeMs)}`, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body32'), color: '#e2e8f0' })
-      .setOrigin(0.5).setDepth(3001);
-    this.add.text(centerX, height * 0.51, `Last haul: ${loot}`, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body32'), color: '#fbbf24', wordWrap: { width: mapWidth * 0.68 }, align: 'center' })
-      .setOrigin(0.5).setDepth(3001);
-
-    // This gives the display object an input hit area. Visible artwork alone does not make
-    // an object respond to a tap.
-    const close = addRegionPanel(this, centerX, height * 0.64, 360, 78, 3001).setInteractive({ useHandCursor: true });
-    this.add.text(centerX, height * 0.64, 'CLOSE', { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body32'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#ffffff' }).setOrigin(0.5).setDepth(3002);
-
-    // on registers a callback for later events; it does not call that callback now.
-    // Long-lived emitters need matching listener cleanup.
-    close.on('pointerdown', () => this.scene.restart());
   }
 }

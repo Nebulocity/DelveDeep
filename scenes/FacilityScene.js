@@ -18,7 +18,7 @@ import { hallScroll } from '../ui/HallUI.js';
 import HapticsService from '../services/HapticsService.js';
 import { canCraft, craftItem, recipeIngredientText } from '../game/Crafting.js';
 
-import { GEAR_STOCK, saleRows, sellOwnedItem, buyGear, inscribeEnchantment, applyEnchantment, disenchantItem } from '../game/ShopServices.js';
+import { GEAR_STOCK, saleRows, sellOwnedItem, sellAllOwnedItem, buyGear, inscribeEnchantment, applyEnchantment, disenchantItem } from '../game/ShopServices.js';
 
 const THEMES = {
   Blacksmith: { panel: 0x1b2023, face: 0x353535, edge: 0xd58b55, text: '#fff0d8' },
@@ -88,7 +88,10 @@ export default class FacilityScene extends Phaser.Scene {
   // Build the item rows for this facility's selected action and category.
   rowsFor(choice) {
     const state = GameState;
-    if (choice.id === 'sell') return saleRows().map(row => ({ ...row, action: `SELL ${row.value}g`, run: () => sellOwnedItem(row.id) }));
+    if (choice.id === 'sell') return saleRows().map(row => ({
+      ...row, action: `SELL: ${row.value}g`, run: () => sellOwnedItem(row.id),
+      allAction: `SELL ALL: ${row.allValue}g`, runAll: () => sellAllOwnedItem(row.id)
+    }));
     if (choice.id === 'craft' || choice.id === 'brew') return CRAFTING_RECIPES.filter(recipe => choice.id === 'brew'
       ? recipe.category === 'alchemy' : ['equipment', 'material'].includes(recipe.category)).map(recipe => ({
       id: recipe.id,
@@ -249,6 +252,19 @@ export default class FacilityScene extends Phaser.Scene {
         color: row.enabled ? '#fff3c4' : '#d4c8b0' }).setOrigin(0.5);
 
       if (row.enabled) bindSelectionDetails(this, button, details, () => this.transact(row.run));
+
+      // Keep the single-sale control on the right and place bulk selling on the left.
+      // Both controls travel with the card inside the existing masked scroll region.
+      if (row.runAll) {
+        const allButton = this.add.rectangle(x - 224, y + 82, 376, 68, theme.face)
+          .setStrokeStyle(3, theme.edge).setAlpha(row.enabled ? 1 : 0.45).setName(`shop-sell-all-${row.id}`);
+        this.add.text(x - 224, y + 82, row.allAction, {
+          fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('shopCost'), fontStyle: UI_FONT_WEIGHTS.bold,
+          color: row.enabled ? '#fff3c4' : '#d4c8b0'
+        }).setOrigin(0.5);
+
+        if (row.enabled) bindSelectionDetails(this, allButton, details, () => this.transact(row.runAll));
+      }
     });
 
     const surface = (scene, x, y, width, height, variant) => scene.add.rectangle(x, y, width, height,

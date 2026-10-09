@@ -40,7 +40,7 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
       .find(object => /^\d of 5$/.test(object.text))?.text);
     await click(640, 1015);
     await ready();
-    await mkdir('tests/visual/screenshots', { recursive: true });
+    await mkdir('output/qa/screenshots', { recursive: true });
 
     for (let i = 0; i < 5; i++) {
       expect(await count()).toBe(`${i + 1} of 5`);
@@ -57,7 +57,7 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
         });
       })).toBe(true);
 
-      await page.screenshot({ path: `tests/visual/screenshots/tutorial-${viewport.width}-${i + 1}.png` });
+      await page.screenshot({ path: `output/qa/screenshots/tutorial-${viewport.width}-${i + 1}.png` });
       if (i < 4) await click(1950, 944);
     }
 

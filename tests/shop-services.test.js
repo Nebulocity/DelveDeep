@@ -2,8 +2,8 @@
 // resource changes, ownership guards and save round trips instead of retired item data.
 
 import assert from 'node:assert/strict';
-import { grantEquipment, grantPotionPack, restoreEquipment, getEquippedAdventurer } from '../game/Equipment.js';
-import { buyGear, saleRows, sellOwnedItem, inscribeEnchantment, applyEnchantment, disenchantItem } from '../game/ShopServices.js';
+import { grantEquipment, grantPotionPack, grantEnchantmentScroll, restoreEquipment, getEquippedAdventurer } from '../game/Equipment.js';
+import { buyGear, saleRows, sellOwnedItem, sellAllOwnedItem, inscribeEnchantment, applyEnchantment, disenchantItem } from '../game/ShopServices.js';
 import { ENCHANTMENTS, ENCHANTMENT_BY_ID } from '../data/enchantments.js';
 import { CRAFTING_MATERIALS, CRAFTING_RECIPES, ENCHANTMENT_ITEMS, getEquipmentDefinition, getPotionDefinition } from '../data/items.js';
 import { rebuildCharacterStats } from '../game/CharacterStats.js';
@@ -33,6 +33,53 @@ const beforeMaterial = s.gold;
 assert.equal(sellOwnedItem('MAT002', s).ok, true);
 assert.equal(s.gold, beforeMaterial + CRAFTING_MATERIALS.MAT002.sellPrice);
 assert.equal(s.inventory.materials.MAT002, 19);
+
+// Bulk sales quote and pay the whole stack, then reject a second sale of that stack.
+assert.equal(saleRows(s).find(row => row.id === 'MAT002').allValue, 19 * CRAFTING_MATERIALS.MAT002.sellPrice);
+const beforeStack = s.gold;
+assert.equal(sellAllOwnedItem('MAT002', s).ok, true);
+assert.equal(s.gold, beforeStack + 19 * CRAFTING_MATERIALS.MAT002.sellPrice);
+assert.equal(s.inventory.materials.MAT002, undefined);
+assert.equal(sellAllOwnedItem('MAT002', s).ok, false);
+
+// Selling duplicate gear keeps equipped copies, other catalog items, and differently
+// enchanted versions. A stale card must not pay again after its owned copy is gone.
+s = state();
+const duplicates = [grantEquipment('PBR01', s), grantEquipment('PBR01', s)];
+const equippedBow = grantEquipment('PBR01', s);
+const enchantedBow = grantEquipment('PBR01', s);
+enchantedBow.enchantmentId = 'SCE001';
+const otherGear = grantEquipment('PV01', s);
+s.roster = [{ name: 'Hero', equipment: { weapon: equippedBow.id } }];
+assert.equal(saleRows(s).find(row => row.id === duplicates[0].id).allValue, 2 * bow.sellPrice);
+assert.equal(sellAllOwnedItem(equippedBow.id, s).ok, false);
+assert.equal(sellAllOwnedItem(duplicates[0].id, s).ok, true);
+assert.equal(s.gold, 5000 + 2 * bow.sellPrice);
+assert.deepEqual(s.inventory.equipment.map(item => item.id), [equippedBow.id, enchantedBow.id, otherGear.id]);
+assert.equal(sellAllOwnedItem(duplicates[0].id, s).ok, false);
+
+// Partial packs contribute their individually rounded remaining-charge prices. Scroll
+// bulk selling likewise removes only copies of the selected enchantment scroll.
+s = state();
+const fullPack = grantPotionPack(potionDefinition.id, s);
+const partialPack = grantPotionPack(potionDefinition.id, s);
+partialPack.charges = 1;
+const equippedPack = grantPotionPack(potionDefinition.id, s);
+s.roster = [{ equipment: { potion: equippedPack.id } }];
+const packTotal = Math.floor(potionDefinition.price / 2)
+  + Math.floor(potionDefinition.price / 2 / potionDefinition.uses);
+assert.equal(saleRows(s).find(row => row.id === fullPack.id).allValue, packTotal);
+assert.equal(sellAllOwnedItem(fullPack.id, s).ok, true);
+assert.equal(s.gold, 5000 + packTotal);
+assert.deepEqual(s.inventory.equipment.map(item => item.id), [equippedPack.id]);
+const firstScroll = grantEnchantmentScroll('SCE001', s);
+grantEnchantmentScroll('SCE001', s);
+const differentScroll = grantEnchantmentScroll('SCE002', s);
+const scrollTotal = 2 * Math.floor(ENCHANTMENT_BY_ID.SCE001.price * 0.3);
+assert.equal(saleRows(s).find(row => row.id === firstScroll.id).allValue, scrollTotal);
+assert.equal(sellAllOwnedItem(firstScroll.id, s).ok, true);
+assert.equal(s.gold, 5000 + packTotal + scrollTotal);
+assert.deepEqual(s.inventory.equipment.map(item => item.id), [equippedPack.id, differentScroll.id]);
 
 for (const definition of ENCHANTMENTS) {
   s = state();

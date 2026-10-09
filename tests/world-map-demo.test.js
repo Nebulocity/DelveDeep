@@ -5,6 +5,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import * as typography from '../config/uiTypography.js';
 import * as map from '../data/worldMap.js';
 import delves from '../data/delves.js';
 import { createEncounterWaves } from '../data/encounters.js';
@@ -22,7 +23,7 @@ loadProfile([]);
 
 // ... copies the source's own fields into this object; fields listed later replace earlier
 // ones. This is a shallow copy, so nested objects are still shared.
-const context = vm.createContext({ ...map, GameState, delves, saveProfile,
+const context = vm.createContext({ ...typography, ...map, GameState, delves, saveProfile,
   HapticsService: { tap() {} }, everdeepUnlocked, settleEverdeep() {} });
 vm.runInContext(fs.readFileSync(new URL('../ui/RegionMapUI.js', import.meta.url), 'utf8')
   .replace(/^import [\s\S]*?;\r?\n/gm, '').replaceAll('export function ', 'function ').replaceAll('export const ', 'const '), context);

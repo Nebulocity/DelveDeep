@@ -5,6 +5,9 @@
 import { SLIME_SPRITES } from '../data/slimeSprites.js';
 import { CHARACTER_SPRITES } from '../data/characterSprites.js';
 import { ENEMY_SPRITES } from '../data/enemySprites.js';
+import { VOID_SPRITES } from '../data/voidSprites.js';
+import { SUNKEN_WATCH_SPRITES } from '../data/sunkenWatchSprites.js';
+import { QUARRY_SPRITES } from '../data/quarrySprites.js';
 import { SpriteMotion, movementDirection } from './SpriteMotion.js';
 import { slimePose, monsterDeathPose, criticalHitPose, criticalHitDirection, CRITICAL_RECOIL_MS } from './SpritePresentation.js';
 
@@ -34,7 +37,11 @@ export default class UnitSprite {
     // The condition before ? chooses the first value when true and the value after : when
     // false. ?? uses the fallback only for null or undefined. A real zero or false stays
     // intact.
-    const definition = unit.isEnemy ? (SLIME_SPRITES[unit.spriteId] ?? ENEMY_SPRITES[unit.spriteId]) : CHARACTER_SPRITES[unit.id];
+    const definition = unit.isEnemy
+      ? (SLIME_SPRITES[unit.spriteId] ?? ENEMY_SPRITES[unit.spriteId]
+        ?? VOID_SPRITES[unit.spriteId] ?? SUNKEN_WATCH_SPRITES[unit.spriteId]
+        ?? QUARRY_SPRITES[unit.spriteId])
+      : CHARACTER_SPRITES[unit.id];
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
@@ -70,7 +77,7 @@ export default class UnitSprite {
     const elapsed = this.action?.elapsed ?? this.motion.elapsed;
 
     // Math.floor rounds toward the smaller whole number, so 3.8 becomes 3.
-    const index = Math.floor(elapsed / clip.frameMs);
+    const index = Math.floor(elapsed / (this.action?.frameMs ?? clip.frameMs));
 
     // The condition before ? chooses the first value when true and the value after : when
     // false. Math.min chooses the smallest value; pairing it with Math.max can keep a
@@ -93,6 +100,15 @@ export default class UnitSprite {
     // Repeated hits must not pin a reaction forever on its first frame.
     if (this.action?.state === state) return;
     this.action = { state, elapsed: 0 };
+
+    // A void cast, leap or area pose spans the actual action windup in milliseconds.
+    // Dividing by the playable frame count shows its whole clip before the hit, even
+    // when two monsters use the same artwork with different authored cast times.
+    const duration = this.unit.pendingAction?.duration;
+    if (['cast', 'leap', 'area'].includes(state) && duration > 0) {
+      const clip = this.definition.clips[state][this.motion.direction];
+      this.action.frameMs = duration / clip.frames.length;
+    }
     this.applyFrame(this.currentFrame());
     this.applyPose();
   }
@@ -133,7 +149,7 @@ export default class UnitSprite {
 
     // The condition before ? chooses the first value when true and the value after : when
     // false.
-    const duration = clip ? clip.frameMs * clip.frames.length : 1;
+    const duration = clip ? (this.action?.frameMs ?? clip.frameMs) * clip.frames.length : 1;
     const pose = slimePose(this.definition.motion, state, elapsed, duration);
     const death = this.unit.isEnemy && state === 'death' ? monsterDeathPose(elapsed) : null;
     const size = death?.scale ?? 1;
@@ -192,7 +208,8 @@ export default class UnitSprite {
       if (!frozen) this.action.elapsed += Math.max(0, delta);
       const clip = this.definition.clips[this.action.state][this.motion.direction];
 
-      if (this.action.state !== 'death' && this.action.elapsed >= clip.frameMs * clip.frames.length) {
+      if (this.action.state !== 'death'
+        && this.action.elapsed >= (this.action.frameMs ?? clip.frameMs) * clip.frames.length) {
         this.action = null;
         this.motion.reset(unit.arenaX, unit.arenaY);
       }

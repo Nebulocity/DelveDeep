@@ -5,6 +5,11 @@
 
 import { test, expect } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
+
+// Explicit screenshots cover the layouts below. Automatic trace screenshots can slow
+// a pressed mouse enough to open held details before the intended drag is delivered.
+test.use({ trace: { mode: 'retain-on-failure', screenshots: false, snapshots: false } });
+
 for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080 }]) {
   test(`shops at ${viewport.width}`, async ({ page }) => {
     await page.setViewportSize(viewport);
@@ -16,7 +21,7 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
     await page.goto('/?visualQa=1');
     await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__?.game.scene.getScene('TitleScene').sys.isActive());
     await page.locator('#loading-screen').waitFor({ state: 'hidden' });
-    await mkdir('outputs/shops', { recursive: true });
+    await mkdir('output/qa/shops', { recursive: true });
 
     for (const facility of ['Blacksmith', 'Alchemist', 'Enchanter']) {
       await page.evaluate(facility => window.__DELVE_DEEP_VISUAL_QA__.activate('FacilityScene', { facility }), facility);
@@ -45,7 +50,7 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
 
         // ?? uses the fallback only for null or undefined. A real zero or false stays
         // intact.
-        await page.screenshot({ path: `outputs/shops/${facility.toLowerCase()}-${choice ?? 'menu'}-${viewport.width}.png` });
+        await page.screenshot({ path: `output/qa/shops/${facility.toLowerCase()}-${choice ?? 'menu'}-${viewport.width}.png` });
         const bounds = await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.inspect('FacilityScene'));
         expect(bounds.warnings).toEqual([]);
 
@@ -71,15 +76,19 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
 
             await page.mouse.move(begin.x, begin.y);
             await page.mouse.down();
+
+            // Cross the 24-logical-pixel drag threshold on the first move. Tiny steps
+            // can become a 550 ms hold when software-rendered phone frames are slow.
             await page.mouse.move(end.x, end.y);
-            await page.waitForTimeout(1000);
-            await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('FacilityScene').itemOffset > 0);
+            await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('FacilityScene').itemOffset > 0,
+              null, { timeout: 10000 });
             await page.mouse.up();
             expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.state.gold)).toBe(10000);
             expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('FacilityScene').itemOffset)).toBeGreaterThan(0);
 
             await page.mouse.wheel(0, 600);
-            await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('FacilityScene').itemOffset > 400);
+            await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('FacilityScene').itemOffset > 400,
+              null, { timeout: 10000 });
             expect(await page.evaluate(() => {
               const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('FacilityScene');
 
@@ -98,5 +107,73 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
     }
 
     expect(errors).toEqual([]);
+  });
+
+  test(`single and bulk selling in every shop at ${viewport.width}`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await page.goto('/?visualQa=1');
+    await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__?.game.scene.getScene('TitleScene').sys.isActive());
+    await page.locator('#loading-screen').waitFor({ state: 'hidden' });
+    await mkdir('output/qa/shops', { recursive: true });
+
+    // Click the actual card control after translating Phaser coordinates to browser pixels.
+    const clickAction = async name => {
+      const point = await page.evaluate(name => {
+        const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('FacilityScene');
+        const button = scene.itemList.container.getByName(name);
+        return { x: button.x, y: button.y + scene.itemList.container.y };
+      }, name);
+      const canvas = await page.locator('canvas').boundingBox();
+      await page.mouse.click(canvas.x + point.x * canvas.width / 2400,
+        canvas.y + point.y * canvas.height / 1080, { delay: 70 });
+    };
+
+    for (const facility of ['Blacksmith', 'Alchemist', 'Enchanter']) {
+      await page.evaluate(facility => window.__DELVE_DEEP_VISUAL_QA__.activate('FacilityScene', { facility }), facility);
+      await page.waitForFunction(facility => {
+        const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('FacilityScene');
+        return scene.sys.isActive() && scene.facility.name === facility;
+      }, facility);
+      const seed = await page.evaluate(async () => {
+        const qa = window.__DELVE_DEEP_VISUAL_QA__;
+        const { grantEquipment } = await import('/game/Equipment.js');
+        const { getEquipmentDefinition, getMaterialDefinition } = await import('/data/items.js');
+        qa.state.gold = 1000;
+        qa.state.inventory.equipment = [];
+        qa.state.inventory.materials = { MAT002: 4 };
+        qa.state.roster.forEach(hero => { hero.equipment = {}; });
+        const copies = [grantEquipment('BLS01'), grantEquipment('BLS01')];
+        const equipped = grantEquipment('BLS01');
+        qa.state.roster[0].equipment.weapon = equipped.id;
+        const scene = qa.game.scene.getScene('FacilityScene');
+        scene.selection = 'sell';
+        scene.category = 'all';
+        scene.itemOffset = 0;
+        scene.render();
+        const row = scene.rowsFor({ id: 'sell' }).find(row => row.id === copies[0].id);
+        const disabled = scene.itemList.container.getByName(`shop-sell-all-${equipped.id}`);
+        return { id: copies[0].id, equippedId: equipped.id, price: getEquipmentDefinition('BLS01').sellPrice,
+          materialPrice: getMaterialDefinition('MAT002').sellPrice, label: row.allAction,
+          disabled: !disabled.input?.enabled, warnings: qa.inspect('FacilityScene').warnings };
+      });
+      expect(seed.label).toBe(`SELL ALL: ${2 * seed.price}g`);
+      expect(seed.disabled).toBe(true);
+      expect(seed.warnings).toEqual([]);
+      await page.screenshot({ path: `output/qa/shops/${facility.toLowerCase()}-bulk-${viewport.width}.png` });
+      await clickAction(`shop-sell-all-${seed.id}`);
+      expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.state.inventory.equipment.map(item => item.id)))
+        .toEqual([seed.equippedId]);
+      await page.evaluate(() => {
+        const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('FacilityScene');
+        scene.category = 'material';
+        scene.render();
+      });
+      await clickAction('shop-action-MAT002');
+      expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.state.inventory.materials.MAT002)).toBe(3);
+      await clickAction('shop-sell-all-MAT002');
+      expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.state.gold))
+        .toBe(1000 + 2 * seed.price + 4 * seed.materialPrice);
+      expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.state.inventory.materials.MAT002)).toBeUndefined();
+    }
   });
 }

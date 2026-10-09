@@ -23,10 +23,15 @@ assert.equal(map.routeBetween('pineshire', 'murmuring-abyss'), null);
 // A Set keeps each value once. has checks membership without searching a list for
 // duplicate entries.
 const clears = new Set();
-for (const [index, id] of map.ORDINARY_DELVES.entries()) {
+
+// The live destination list supplies the sequence; a separate runtime constant should
+// not be needed just for this check. Keep the authored five-delve order explicit here.
+const ordinaryDelves = map.pois.filter(poi => poi.type === 'delve').map(poi => poi.id);
+assert.deepEqual(ordinaryDelves, ['slime-cave', 'thornbriar-hollow', 'dolmark-den', 'march-west-delves', 'verge-delves']);
+for (const [index, id] of ordinaryDelves.entries()) {
   assert.ok(map.routeBetween('pineshire', id, (gate) => clears.has(gate)));
   assert.equal(map.routeBetween('pineshire', 'everdeep', (gate) => clears.has(gate)), null);
-  if (index < 4) assert.equal(map.routeBetween('pineshire', map.ORDINARY_DELVES[index + 1], (gate) => clears.has(gate)), null);
+  if (index < 4) assert.equal(map.routeBetween('pineshire', ordinaryDelves[index + 1], (gate) => clears.has(gate)), null);
   clears.add(id);
 }
 
@@ -65,7 +70,7 @@ assert.equal(GameState.records['verge-delves'].clears, 1);
 assert.equal(GameState.world.travel, null);
 assert.equal(everdeepUnlocked(), true);
 GameState.records = {};
-GameState.world.clearedDelves = map.ORDINARY_DELVES.slice(0, 3);
+GameState.world.clearedDelves = ordinaryDelves.slice(0, 3);
 
 assert.equal(everdeepUnlocked(), false);
 GameState.world.clearedDelves.push('verge-delves');

@@ -192,3 +192,18 @@ assert.equal(UnitSprite.create(enemyUnit)?.definition, SLIME_SPRITES.caveSlime);
 assert.equal(enemyTexture.filter, 1);
 assert.equal(UnitSprite.create({ ...enemyUnit, spriteId: 'unknown' }), null);
 SLIME_SPRITES.caveSlime = originalCaveSprite;
+
+// A distinct cast sheet must play every pose within its authored gameplay windup.
+definition.clips.cast = definition.clips.attack;
+unit.pendingAction = { duration: 600 };
+visual.play('cast');
+assert.equal(visual.action.frameMs, 600 / definition.clips.cast[visual.motion.direction].frames.length);
+visual.update(300);
+assert.equal(visual.action.state, 'cast');
+unit.scene.combatPaused = true;
+visual.update(1000);
+assert.equal(visual.action.elapsed, 300, 'Pause freezes synchronized casting');
+unit.scene.combatPaused = false;
+visual.update(300);
+assert.equal(visual.action, null, 'cast recovery ends with the action windup');
+delete unit.pendingAction;

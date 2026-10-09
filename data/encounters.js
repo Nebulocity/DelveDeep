@@ -165,6 +165,42 @@ const verdantTearWaves = [
   ] }
 ];
 
+// Keep the Abyss at six waves with its existing difficulty count and final boss rules.
+// Only this encounter replaces placeholder creatures with the supplied void roster.
+const murmuringAbyssWaves = [
+  { enemies: [
+    { type: 'voidCrawler', arenaX: 360, arenaY: 770 },
+    { type: 'voidCrawler', arenaX: 650, arenaY: 800 },
+    { type: 'voidWisp', arenaX: 520, arenaY: 845 }
+  ] },
+  { enemies: [
+    { type: 'voidStalker', arenaX: 500, arenaY: 790 },
+    { type: 'voidCrawler', arenaX: 310, arenaY: 750 },
+    { type: 'voidWisp', arenaX: 710, arenaY: 750 }
+  ] },
+  { boss: true, enemies: [
+    { type: 'voidKeeperGuardian', arenaX: 520, arenaY: 810 },
+    { type: 'voidStalker', arenaX: 300, arenaY: 745 },
+    { type: 'voidWisp', arenaX: 735, arenaY: 745 }
+  ] },
+  { enemies: [
+    { type: 'voidKeeper', arenaX: 700, arenaY: 830 },
+    { type: 'voidCrawler', arenaX: 450, arenaY: 760 },
+    { type: 'voidStalker', arenaX: 950, arenaY: 760 }
+  ] },
+  { enemies: [
+    { type: 'voidKeeper', arenaX: 700, arenaY: 810 },
+    { type: 'voidStalker', arenaX: 420, arenaY: 740 },
+    { type: 'voidWisp', arenaX: 980, arenaY: 740 }
+  ] },
+  { boss: true, enemies: [
+    { type: 'abyssalSovereign', arenaX: 700, arenaY: 830 },
+    { type: 'voidKeeper', arenaX: 350, arenaY: 760 },
+    { type: 'voidStalker', arenaX: 1050, arenaY: 760 },
+    { type: 'voidWisp', arenaX: 700, arenaY: 620 }
+  ] }
+];
+
 
 // Build the ordered Slime Cave groups from its weak, tough and boss enemy definitions.
 function buildSlimeCaveWaves(random) {
@@ -172,6 +208,9 @@ function buildSlimeCaveWaves(random) {
   // map builds one output entry for each input entry, in the same order. The callback's
   // return value becomes that output entry.
   return slimeCaveWaves.map(({ caveSlimes, d2 = 0, elderSlimes = 0, sovereigns = 0, boss = false }) => {
+
+    // Restore the earlier dice-based authored counts. Difficulty normalization below
+    // still trims ordinary Easy waves to three monsters before they enter combat.
     const slimeCount = rollCount({ base: caveSlimes, dice: Array(d2).fill(2) }, random);
 
     // ... expands these entries into the new list or call. It does not deep-copy the
@@ -252,8 +291,34 @@ function buildDolmarkWaves(random) {
 
 
 
+
+// Keep Sunken Watch's existing wave progression while replacing the bandit identities.
+// The inherited arena positions are logical game units, not sprite-sheet pixels.
+function buildSunkenWatchWaves(random) {
+  const roster = { ruffian: 'sunkenWatcher', lasher: 'deepTongue',
+    hedgeMage: 'drownedKnell', rongarTheCrusher: 'earthsinker' };
+
+  // Copy each wave and spawn before changing its type so Thornbriar keeps its own data.
+  return buildThornbriarWaves(random).map(wave => ({
+    ...wave,
+    enemies: wave.enemies.map(enemy => ({ ...enemy, type: roster[enemy.type] }))
+  }));
+}
+
+// Preserve Quarry's six-wave progression and inherited arena coordinates. The Reaver
+// joins the later waves; ordering keeps it visible after Easy's three-enemy limit.
+function buildOldQuarryWaves(random) {
+  const roster = { denWarden: 'quarryWorm', denProtector: 'quarryBehemoth',
+    silvanarkTheForestLord: 'depthsSovereign' };
+  return buildDolmarkWaves(random).map((wave, index) => {
+    const spawns = wave.enemies.map(enemy => ({ ...enemy, type: roster[enemy.type] }));
+    if (index >= 3) spawns[wave.boss ? 1 : 0].type = 'quarryReaver';
+    return { ...wave, enemies: spawns };
+  });
+}
+
 // This helper creates independent wave data for the selected delve. Slime Cave,
-// Thornbriar, and Dolmark have authored waves; other delves use difficulty waves.
+// Thornbriar, Dolmark, Quarry and Sunken Watch have authored waves; others use difficulty waves.
 export function createEncounterWaves(delve = {}, arenaWidth = 1400, random = Math.random) {
 
   const isVoid = delve.type === 'void';
@@ -274,7 +339,11 @@ export function createEncounterWaves(delve = {}, arenaWidth = 1400, random = Mat
   const openingCount = targetCount - finale.length;
   const difficultyWaves = Array.from({ length: openingCount }, (_, index) =>
     index < base.length ? base[index] : repeatable[(index - base.length) % repeatable.length]);
-  const encounterId = delve.encounterId ?? delve.id;
+
+  // Older Sunken Watch saves stored Thornbriar as their template. Its persistent map ID
+  // now selects the new roster while keeping clears, checkpoints and camp progress.
+  const encounterId = delve.id === 'verge-delves' ? 'sunken-watch'
+    : delve.id === 'march-west-delves' ? 'old-quarry' : delve.encounterId ?? delve.id;
 
   // ... expands these entries into the new list or call. It does not deep-copy the objects
   // inside.
@@ -282,11 +351,17 @@ export function createEncounterWaves(delve = {}, arenaWidth = 1400, random = Mat
     ? buildSlimeCaveWaves(random)
     : encounterId === 'thornbriar-hollow'
       ? buildThornbriarWaves(random)
-      : encounterId === 'dolmark-den'
-        ? buildDolmarkWaves(random)
-        : encounterId === 'verdant-tear'
-          ? verdantTearWaves
-          : [...difficultyWaves, ...finale];
+      : encounterId === 'sunken-watch'
+        ? buildSunkenWatchWaves(random)
+        : encounterId === 'old-quarry'
+          ? buildOldQuarryWaves(random)
+          : encounterId === 'dolmark-den'
+            ? buildDolmarkWaves(random)
+            : encounterId === 'verdant-tear'
+              ? verdantTearWaves
+              : encounterId === 'murmuring-abyss'
+                ? murmuringAbyssWaves
+                : [...difficultyWaves, ...finale];
 
   // Preserve the fifth-depth guardian rule before the final boss so the difficulty's
   // advertised boss group still closes the encounter.

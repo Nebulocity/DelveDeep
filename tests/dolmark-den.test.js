@@ -17,7 +17,7 @@ for (const id of ids) {
   const sprite = ENEMY_SPRITES[id];
   assert.equal(sprite.textures.length, 6);
   const layout = JSON.parse(readFileSync(
-    new URL(`../assets/enemies/dolmark-den/${id}/reference-v2/sheets/layout.json`, import.meta.url), 'utf8'));
+    new URL(`../assets/enemies/dolmark-den/${id}/sheets/layout.json`, import.meta.url), 'utf8'));
   assert.deepEqual(layout.directions, directions);
 
   // Object.entries turns own fields into [key, value] pairs so we can visit or transform
@@ -30,13 +30,16 @@ for (const id of ids) {
     assert.equal(png.readUInt32BE(16), count * 256);
     assert.equal(png.readUInt32BE(20), 4 * 256);
 
-    for (const direction of directions) {
-      assert.equal(sprite.clips[state][direction].frames.length, count);
-      for (let index = 0; index < count; index++) {
-        assert.ok(existsSync(fileURLToPath(new URL(
-          `../assets/enemies/dolmark-den/${id}/reference-v2/${state}/${direction}/frame-${index}.png`,
-          import.meta.url))));
-      }
+    for (const [row, direction] of directions.entries()) {
+      const clip = sprite.clips[state][direction];
+      assert.equal(clip.frames.length, count);
+
+      // Source frames are archived locally. Check that each runtime clip still selects
+      // the correct row and stays within the finished atlas instead.
+      assert.equal(layout.states[state].counts[direction], count);
+      assert.equal(clip.frames[0].frame, row * count);
+      assert.equal(clip.frames.at(-1).frame, row * count + count - 1);
+      assert.ok(clip.frames.every(frame => frame.key === sprite.textures[Object.keys(states).indexOf(state)].key));
     }
   }
 }

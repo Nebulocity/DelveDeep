@@ -1,0 +1,134 @@
+{
+  "id": "quarryReaver",
+  "name": "Quarry Reaver",
+  "frameWidth": 256,
+  "frameHeight": 256,
+  "directions": [
+    "south-east",
+    "south-west",
+    "north-east",
+    "north-west"
+  ],
+  "scale": 1.55,
+  "footY": 0,
+  "origins": {
+    "south-east": {
+      "x": 0.5,
+      "y": 0.80078125
+    },
+    "south-west": {
+      "x": 0.5,
+      "y": 0.80078125
+    },
+    "north-east": {
+      "x": 0.5,
+      "y": 0.8125
+    },
+    "north-west": {
+      "x": 0.5,
+      "y": 0.8125
+    }
+  },
+  "states": {
+    "facing": {
+      "frameMs": 1000,
+      "loop": false,
+      "file": "facing.png",
+      "columns": 1,
+      "counts": {
+        "south-east": 1,
+        "south-west": 1,
+        "north-east": 1,
+        "north-west": 1
+      }
+    },
+    "idle": {
+      "frameMs": 150,
+      "loop": true,
+      "file": "idle.png",
+      "columns": 4,
+      "counts": {
+        "south-east": 4,
+        "south-west": 4,
+        "north-east": 4,
+        "north-west": 4
+      }
+    },
+    "walk": {
+      "frameMs": 85,
+      "loop": true,
+      "file": "walk.png",
+      "columns": 8,
+      "counts": {
+        "south-east": 8,
+        "south-west": 8,
+        "north-east": 8,
+        "north-west": 8
+      }
+    },
+    "attack": {
+      "frameMs": 85,
+      "loop": false,
+      "file": "attack.png",
+      "columns": 9,
+      "counts": {
+        "south-east": 9,
+        "south-west": 9,
+        "north-east": 9,
+        "north-west": 9
+      }
+    },
+    "cast": {
+      "frameMs": 95,
+      "loop": false,
+      "file": "cast.png",
+      "columns": 9,
+      "counts": {
+        "south-east": 9,
+        "south-west": 9,
+        "north-east": 9,
+        "north-west": 9
+      }
+    },
+    "block": {
+      "frameMs": 85,
+      "loop": false,
+      "file": "block.png",
+      "columns": 5,
+      "counts": {
+        "south-east": 5,
+        "south-west": 5,
+        "north-east": 5,
+        "north-west": 5
+      }
+    },
+    "hit": {
+      "frameMs": 65,
+      "loop": false,
+      "file": "hit.png",
+      "columns": 5,
+      "counts": {
+        "south-east": 5,
+        "south-west": 5,
+        "north-east": 5,
+        "north-west": 5
+      }
+    },
+    "death": {
+      "frameMs": 110,
+      "loop": false,
+      "file": "death.png",
+      "columns": 9,
+      "counts": {
+        "south-east": 9,
+        "south-west": 9,
+        "north-east": 9,
+        "north-west": 9
+      }
+    }
+  },
+  "effects": [
+    "crystalProjectile",
+    "crystalImpact"
+  ]
+}

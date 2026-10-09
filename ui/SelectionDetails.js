@@ -15,6 +15,7 @@ import { showGuildDetails } from './GuildHallDialogs.js';
 import { showShopDetails } from './ShopDetails.js';
 import { UI_FONT_SIZES, fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import { abilitySummary } from '../game/AbilityDescriptions.js';
+import GameState from '../game/GameState.js';
 import { hallScroll } from './HallUI.js';
 
 export const DETAILS_HINT = 'Long-press or hold-click a selection for details.';
@@ -45,7 +46,7 @@ function isHallMenu(scene) {
 
   // ?. only follows this link when the value exists; a missing optional value gives
   // undefined.
-  return ['AdventurersHallScene', 'RosterScene', 'ItemsScene', 'RaidLeaderScene', 'FacilityScene', 'BlacksmithScene']
+  return ['AdventurersHallScene', 'RosterScene', 'ItemsScene', 'PartyLeaderScene', 'FacilityScene', 'BlacksmithScene']
     .includes(scene.scene?.key);
 }
 
@@ -91,13 +92,18 @@ export function characterDetails(unit) {
   // Object.entries turns own fields into [key, value] pairs so we can visit or transform
   // them.
 
+  // Wave XP updates the saved roster while the battle unit keeps its starting stats.
+  // Read the current level by ID, including after restoring an older battle snapshot.
+  // If no roster record exists, use the supplied unit's level instead.
+  const level = GameState.roster.find(hero => hero.id === unit.id)?.level ?? unit.level;
+
   // BattleUnit already contains only equipped, ranked skills. Keep this header short;
   // calculated damage and healing appear beside each skill instead of a separate stat list.
   return {
     title: unit.name,
     align: 'left',
     description: [
-      `${unit.className ?? 'Monster'} | ${unit.role ?? 'Enemy'}${unit.level ? ` | Level ${unit.level}` : ''}\nHP: ${Math.floor(unit.hp ?? unit.maxHp)}/${unit.maxHp}${(unit.maxMana ?? 0) > 0 ? ` | Mana: ${Math.floor(unit.mana ?? unit.maxMana)}/${unit.maxMana}` : ''}`,
+      `${unit.className ?? 'Monster'} | ${unit.role ?? 'Enemy'}${level ? ` | Level ${level}` : ''}\nHP: ${Math.floor(unit.hp ?? unit.maxHp)}/${unit.maxHp}${(unit.maxMana ?? 0) > 0 ? ` | Mana: ${Math.floor(unit.mana ?? unit.maxMana)}/${unit.maxMana}` : ''}`,
       Object.entries(unit.abilities ?? {}).filter(([key]) => !unit.abilityRanks || unit.abilityRanks[key] > 0)
         .map(([, ability]) => abilitySummary(unit, ability)).join('\n\n') || 'No skills equipped.'
     ].filter(Boolean).join('\n\n')

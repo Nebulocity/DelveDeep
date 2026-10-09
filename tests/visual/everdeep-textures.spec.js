@@ -54,7 +54,7 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 2048, height: 922 
     expect(surfaces.types.every(type => type === 'Image')).toBe(true);
     expect(surfaces.colors).toBeGreaterThan(10);
     expect(errors).toEqual([]);
-    await page.screenshot({ path: `tests/visual/screenshots/everdeep-textured-${viewport.width}.png` });
+    await page.screenshot({ path: `output/qa/screenshots/everdeep-textured-${viewport.width}.png` });
   });
 }
 
@@ -103,7 +103,7 @@ test('All five authored delves render real stone textures', async ({ page }) => 
 
     // every requires all entries to pass the check; an empty list gives true.
     expect(surfaces.every(surface => surface.type === 'Image' && surface.key.startsWith('carved-stone-surface-') && surface.colors > 10)).toBe(true);
-    await page.screenshot({ path: `tests/visual/screenshots/stone-fixed-${id}.png` });
+    await page.screenshot({ path: `output/qa/screenshots/stone-fixed-${id}.png` });
   }
 
   expect(errors).toEqual([]);

@@ -9,7 +9,7 @@ export function isGuildHall(scene) {
 
   // ?. only follows this link when the value exists; a missing optional value gives
   // undefined.
-  return ['AdventurersHallScene', 'RosterScene', 'ItemsScene', 'RaidLeaderScene'].includes(scene.scene?.key);
+  return ['AdventurersHallScene', 'RosterScene', 'ItemsScene', 'PartyLeaderScene'].includes(scene.scene?.key);
 }
 
 // Small deterministic material tiles are shared by every Hall surface.

@@ -16,7 +16,7 @@ const base = new URL('../assets/enemies/slime-cave/', import.meta.url);
 
 for (const id of ids) {
   const sprite = SLIME_SPRITES[id];
-  const layout = JSON.parse(readFileSync(new URL(`${id}/reference-v2/sheets/layout.json`, base), 'utf8'));
+  const layout = JSON.parse(readFileSync(new URL(`${id}/sheets/layout.json`, base), 'utf8'));
   assert.equal(sprite.textures.length, 6);
   assert.equal(layout.frameWidth, 192);
   assert.equal(layout.frameHeight, 192);

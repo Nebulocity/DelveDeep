@@ -29,6 +29,14 @@ export function saleValue(item) {
   return definition?.sellPrice ?? Math.floor((definition?.price ?? 0) * 0.3);
 }
 
+// Find saleable copies of the same catalog item and enchantment. Equipped copies stay
+// with their adventurers, and a different enchantment remains a separate item variant.
+function matchingSaleItems(item, state) {
+  return state.inventory.equipment.filter(entry => entry.itemId === item.itemId
+    && entry.slot === item.slot && entry.enchantmentId === item.enchantmentId
+    && !equipmentOwner(entry.id, state));
+}
+
 // Build eligible sell-list entries from actual owned inventory. state is the game data to
 // read or change; a default can point at shared GameState.
 export function saleRows(state = GameState) {
@@ -44,6 +52,9 @@ export function saleRows(state = GameState) {
       name: item.name,
       description: equipmentOwner(item.id, state) ? `Equipped by ${equipmentOwner(item.id, state).name}. Unequip to sell.` : item.slot === 'potion' ? `${item.charges}/3 uses remaining` : 'One owned item',
       value: saleValue(item),
+
+      // reduce adds each matching copy's price to a running total that starts at zero.
+      allValue: matchingSaleItems(item, state).reduce((total, entry) => total + saleValue(entry), 0),
       enabled: !equipmentOwner(item.id, state),
       item
     })),
@@ -51,8 +62,9 @@ export function saleRows(state = GameState) {
       id,
       category: 'material',
       name: getMaterialDefinition(id)?.name ?? id,
-      description: `Owned: ${count} | Sell one at a time`,
+      description: `Owned: ${count}`,
       value: getMaterialDefinition(id)?.sellPrice ?? 0,
+      allValue: count * (getMaterialDefinition(id)?.sellPrice ?? 0),
       enabled: true
     }))
   ];
@@ -76,6 +88,30 @@ export function sellOwnedItem(id, state = GameState) {
   state.inventory.equipment = state.inventory.equipment.filter(entry => entry.id !== id);
   state.gold += value;
   return { ok: true, message: `Sold ${item.name} for ${value} Gold.` };
+}
+
+// Recheck inventory when pressed, then sell the full material stack or matching copies.
+// We use the existing single-sale rules so potion charges and ownership guards still apply.
+export function sellAllOwnedItem(id, state = GameState) {
+  const item = state.inventory.equipment.find(entry => entry.id === id);
+  if (!item) return sellMaterial(id, state.inventory.materials?.[id] ?? 0, state);
+  if (equipmentOwner(id, state)) return { ok: false, message: 'Unequip this item before selling it.' };
+
+  // Collect copies before removing any. Each potion pack contributes its own rounded
+  // remaining-charge price, rather than treating every pack as full.
+  const copies = matchingSaleItems(item, state);
+  let value = 0;
+  let sold = 0;
+  for (const copy of copies) {
+    const copyValue = saleValue(copy);
+    const result = sellOwnedItem(copy.id, state);
+    if (result.ok) {
+      value += copyValue;
+      sold += 1;
+    }
+  }
+
+  return { ok: sold > 0, message: `Sold ${sold}x ${item.name} for ${value} Gold.` };
 }
 
 // Check the current Gold balance before creating an owned copy of the catalog gear. state

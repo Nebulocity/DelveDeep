@@ -12,7 +12,7 @@ import path from 'node:path';
 // order. The callback's return value becomes that output entry. ?? uses the fallback only
 // for null or undefined. A real zero or false stays intact.
 const scenes = (process.env.VISUAL_SCENES ?? 'TitleScene').split(',').map((name) => name.trim()).filter(Boolean);
-const screenshotDir = path.resolve('tests/visual/screenshots');
+const screenshotDir = path.resolve('output/qa/scenes');
 
 for (const sceneName of scenes) {
   test(`capture ${sceneName}`, async ({ page }, testInfo) => {
@@ -64,9 +64,9 @@ for (const sceneName of scenes) {
     expect(metrics.phaser.active).toBe(true);
 
     await mkdir(screenshotDir, { recursive: true });
-    const screenshot = path.join(screenshotDir, `${sceneName}.png`);
+    const screenshot = path.join(screenshotDir, `${sceneName}-${metrics.viewport.width}.png`);
     await page.screenshot({ path: screenshot });
-    await writeFile(path.join(screenshotDir, `${sceneName}.json`), JSON.stringify(metrics, null, 2));
+    await writeFile(path.join(screenshotDir, `${sceneName}-${metrics.viewport.width}.json`), JSON.stringify(metrics, null, 2));
     await testInfo.attach(sceneName, { path: screenshot, contentType: 'image/png' });
 
     if (metrics.phaser.warnings.length) {

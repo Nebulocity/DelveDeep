@@ -1,7 +1,7 @@
 // These tables describe skill ranks, costs and requirements. A learned rank is progression
 // data; an equipped slot is a choice of which learned skill enters combat.
 
-import { NEAR_DISTANCE, ADJACENT_DISTANCE, ARENA_RANGE } from '../config/combatRanges.js';
+import { ADJACENT_DISTANCE, ARENA_RANGE } from '../config/combatRanges.js';
 import { ABILITY_WORKBOOK, STARTER_KITS } from './abilityWorkbook.js';
 
 const A = (category, name, target, effect, value, unit, duration, cooldown) => ({ category, name, target, effect, value, unit, duration, cooldown });

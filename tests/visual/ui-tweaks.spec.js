@@ -18,10 +18,10 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
     await page.goto('/?visualQa=1');
     await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__?.game.scene.getScene('TitleScene').sys.isActive());
     await page.locator('#loading-screen').waitFor({ state: 'hidden' });
-    await mkdir('tests/visual/screenshots', { recursive: true });
+    await mkdir('output/qa/screenshots', { recursive: true });
     const capture = async name => {
       await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-      await page.screenshot({ path: `tests/visual/screenshots/tweaks-${name}-${viewport.width}.png` });
+      await page.screenshot({ path: `output/qa/screenshots/tweaks-${name}-${viewport.width}.png` });
     };
 
     const activate = async name => {
@@ -148,7 +148,7 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
     });
     await capture('camp');
 
-    expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene').children.list.some(o => o.text?.includes('Gold + Materials')))).toBe(true);
+    expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene').children.list.some(o => o.text?.includes('Gold + Material chances')))).toBe(true);
     expect(errors).toEqual([]);
   });
 }

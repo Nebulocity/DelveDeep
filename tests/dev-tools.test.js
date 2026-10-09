@@ -5,6 +5,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import * as typography from '../config/uiTypography.js';
 import GameState from '../game/GameState.js';
 import { grantAdventurerLevels } from '../game/AdventurerProgression.js';
 import adventurers from '../data/adventurers.js';
@@ -75,7 +76,7 @@ class Scene {
 const source = fs.readFileSync(new URL('../scenes/TitleScene.js', import.meta.url), 'utf8')
   .replace(/^import [\s\S]*?;\r?\n/gm, '')
   .replace('export default class TitleScene', 'globalThis.TitleScene = class TitleScene');
-const context = vm.createContext({
+const context = vm.createContext({ ...typography,
   Phaser: { Scene }, GameState,
   HapticsService: { tap() {}, confirm() {} },
   saveProfile, grantAdventurerLevels, grantLeaderLevels(leader, amount) {
@@ -87,7 +88,7 @@ const context = vm.createContext({
   }
 });
 
-vm.runInContext(fs.readFileSync(new URL('../ui/RegionMapTheme.js', import.meta.url), 'utf8').replaceAll('export function ', 'function '), context);
+vm.runInContext(fs.readFileSync(new URL('../ui/RegionMapTheme.js', import.meta.url), 'utf8').replace(/^import [\s\S]*?;\r?\n/gm, '').replaceAll('export function ', 'function '), context);
 vm.runInContext(source, context);
 const scene = new context.TitleScene();
 scene.currencyText = { setText(value) { this.value = value; } };
@@ -117,10 +118,10 @@ function tap(label, y) {
 }
 
 const panelTop = (1080 - 850) / 2;
-const row = (index) => panelTop + 180 + index * 90;
+const row = (index) => panelTop + 180 + index * 84;
 const primaryButtons = [
   getButton('OFF', row(0)), getButton('+1', row(1)), getButton('+100', row(3)),
-  getButton('ON', row(4)), getButton('RESET', row(5))
+  getButton('ON', row(4)), getButton('RESET', row(6))
 ];
 const secondaryButtons = [getButton('+5', row(1)), getButton('+500', row(3))];
 const closeButton = getButton('CLOSE', panelTop + 850 - 52);

@@ -25,8 +25,8 @@ test('Slime Cave has safe pre-boss progression and lethal unattended boss pressu
     candidates: [{ name: 'authored-slimes', stats: {} }]
   });
 
-  await fs.mkdir('project-backup/slime-review', { recursive: true });
-  await fs.writeFile('project-backup/slime-review/authored-results.json', JSON.stringify(results, null, 2));
+  await fs.mkdir('output/qa/slime-review', { recursive: true });
+  await fs.writeFile('output/qa/slime-review/authored-results.json', JSON.stringify(results, null, 2));
 
   // flatMap builds callback results and flattens one array level. Returning [] removes an
   // entry; returning [value] keeps one result.

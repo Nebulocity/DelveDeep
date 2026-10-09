@@ -47,7 +47,7 @@ Object.assign(scene, {
   waveReturnPositions: new Map([['hero', { x: 0, y: 0 }]]),
   manualTargets: new Map(), heldUnitIds: new Set(), attackTargets: new Map(), activeTelegraphs: [], enemies: [],
   movement: { getWaveReturnPointClearOfFallenAllies: (u, home) => home, getSafeArenaPoint: (x, y) => ({ x, y }) },
-  game: {}, combatRandom: () => 0.5, battleEvents: new Set(),
+  game: {}, combatRandom: () => 0.25, battleEvents: new Set(),
   time: { now: 10000, delayedCall() {} }, tweens: { add() {} },
   scale: { width: 2400, height: 1080 },
 

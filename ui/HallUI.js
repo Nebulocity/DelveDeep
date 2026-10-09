@@ -1,7 +1,7 @@
 // Shared Hall builders keep navigation, roster cards and text consistent. A returned
 // display object can still need selection handlers and cleanup from its caller.
 
-import { UI_FONT_SIZES, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
+import { UI_FONT_SIZES, UI_FONT_FAMILIES } from '../config/uiTypography.js';
 import { addHallBackground } from './HallBackground.js';
 import { bindSelectionDetails } from './SelectionDetails.js';
 import { bindButtonPress } from './ButtonPress.js';
@@ -122,7 +122,7 @@ export function addHallFrame(scene, active, message = '') {
   hallButton(scene, 200, 63, 290, 112, 'TOWN', () => scene.scene.start('TownScene'), { size: UI_FONT_SIZES.hallNavigation });
   hallText(scene, width - 60, 67, `${GameState.gold} GOLD`, UI_FONT_SIZES.heading38, { color: '#e6bd70' }).setOrigin(1, 0.5);
   guildSurface(scene, width / 2, 186, width, 120, 'beam');
-  [['Adventurers', 'RosterScene'], ['Items', 'ItemsScene'], ['Tactics', 'RaidLeaderScene']].forEach(([label, destination], index) => {
+  [['Adventurers', 'RosterScene'], ['Items', 'ItemsScene'], ['Tactics', 'PartyLeaderScene']].forEach(([label, destination], index) => {
     hallButton(scene, 225 + index * 350, 186, 330, 112, label, () => {
       if (destination !== scene.scene.key) scene.scene.start(destination);
     }, { selected: label === active, size: UI_FONT_SIZES.hallNavigation, name: `hall-nav-${label.toLowerCase()}` });

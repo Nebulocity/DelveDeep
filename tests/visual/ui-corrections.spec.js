@@ -18,7 +18,7 @@ test(`requested map, shop and wooden dialog corrections at ${viewport.width}`, a
   await page.goto('/?visualQa=1');
   await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__?.game.scene.getScene('TitleScene').sys.isActive());
   await page.locator('#loading-screen').waitFor({ state: 'hidden' });
-  const output = path.resolve('tests/visual/screenshots');
+  const output = path.resolve('output/qa/screenshots');
   await mkdir(output, { recursive: true });
   const capture = async (name) => {
     await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));

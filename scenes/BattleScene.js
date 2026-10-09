@@ -10,6 +10,7 @@ import { abilityPower, hitAccuracy } from '../game/CharacterStats.js';
 import { leaderAbilityDescription } from '../game/AbilityDescriptions.js';
 import { showConfirmation } from '../ui/ConfirmationDialog.js';
 import { bindButtonPress } from '../ui/ButtonPress.js';
+import { hallScroll } from '../ui/HallUI.js';
 import { preloadCarvedStone, addStonePanel, addStoneButton, addStoneOrnaments, stoneText, stoneIcon, campStoneIcon, delveStoneTheme, STONE } from '../ui/CarvedStone.js';
 import { preloadSlimeSprites } from '../data/slimeSprites.js';
 
@@ -19,6 +20,9 @@ import Phaser from 'phaser';
 import ClassAbilitySystem from '../combat/ClassAbilitySystem.js';
 import { preloadCharacterSprites } from '../data/characterSprites.js';
 import { preloadEnemySprites } from '../data/enemySprites.js';
+import { preloadVoidSprites } from '../data/voidSprites.js';
+import { preloadSunkenWatchSprites } from '../data/sunkenWatchSprites.js';
+import { preloadQuarrySprites } from '../data/quarrySprites.js';
 import GameState from '../game/GameState.js';
 
 import { getEquippedAdventurer, equippedItem, consumePotionCharge } from '../game/Equipment.js';
@@ -34,6 +38,7 @@ import BattlefieldTerrain from '../combat/BattlefieldTerrain.js';
 import BattlefieldTerrainEditor from '../combat/BattlefieldTerrainEditor.js';
 import TacticsController from '../combat/TacticsController.js';
 import CombatMovement from '../combat/CombatMovement.js';
+import { createVoidProjectile, updateVoidProjectiles } from '../combat/VoidProjectile.js';
 import combatSpacing from '../config/combatSpacing.js';
 import CombatLog from '../combat/CombatLog.js';
 
@@ -66,6 +71,21 @@ export default class BattleScene extends Phaser.Scene {
     preloadCarvedStone(this);
     preloadCharacterSprites(this);
     preloadEnemySprites(this);
+
+    // These larger void atlases are only needed by portal encounters. Ordinary delves
+    // avoid allocating their texture memory until the party enters a void battlefield.
+    if (GameState.currentDelve?.type === 'void') preloadVoidSprites(this);
+
+    // The persistent map ID also covers older saves that still name Thornbriar's template.
+    const delve = GameState.currentDelve;
+    if (delve?.id === 'verge-delves' || (delve?.encounterId ?? delve?.id) === 'sunken-watch') {
+      preloadSunkenWatchSprites(this);
+    }
+
+    // Load Quarry sheets for both its current template and its persistent saved map ID.
+    if (delve?.id === 'march-west-delves' || (delve?.encounterId ?? delve?.id) === 'old-quarry') {
+      preloadQuarrySprites(this);
+    }
     preloadSlimeSprites(this);
 
     // ?. only follows this link when the value exists; a missing optional value gives
@@ -1841,6 +1861,9 @@ export default class BattleScene extends Phaser.Scene {
     // undefined.
     const replaying = this.game.backgroundProgress?.isReplaying === true;
 
+    // Sheet bolts use combat time, including Pause and background cleanup.
+    updateVoidProjectiles(this, delta, replaying);
+
     this.classAbilitySystem?.syncChargeTweens?.(this.combatPaused);
 
     // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
@@ -1974,7 +1997,9 @@ export default class BattleScene extends Phaser.Scene {
     // positive puts it after; zero keeps them tied.
     return living.sort((a, b) => {
 
-      const bossPriority = Number(b.isBoss || ['elderSlime', 'abyssalMaw'].includes(b.enemyType)) - Number(a.isBoss || ['elderSlime', 'abyssalMaw'].includes(a.enemyType));
+      const guardians = ['elderSlime', 'abyssalMaw', 'voidKeeperGuardian'];
+      const bossPriority = Number(b.isBoss || guardians.includes(b.enemyType))
+        - Number(a.isBoss || guardians.includes(a.enemyType));
       if (bossPriority !== 0) {
         return bossPriority;
       }
@@ -2078,34 +2103,12 @@ export default class BattleScene extends Phaser.Scene {
         return;
       }
 
-      // ?. only follows this link when the value exists; a missing optional value gives
-      // undefined.
-      const primary = enemy.abilities?.primary;
-      if (primary?.telegraph && enemy.abilityReady('primary', time) && enemy.distanceTo(target) <= 220) {
-        this.setEnemyTarget(enemy, target, 'highest threat');
-        this.beginGroundSlam(enemy, target, time, primary);
-        return;
-      }
 
-      const secondary = enemy.abilities?.secondary;
-      if (secondary && !enemy.isBusy(time) && enemy.abilityReady('secondary', time)) {
-        if (secondary.effect === 'heal') {
-
-          // sort rearranges this array in place. A negative comparator result puts a
-          // before b; positive puts it after; zero keeps them tied. filter keeps entries
-          // whose callback returns true. It builds a new list and leaves the original list
-          // in place.
-          const injured = this.getLivingEnemies().filter(unit => unit.hp < unit.maxHp)
-            .sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0];
-          if (injured) {
-            this.beginEnemyAbility(enemy, injured, 'secondary', time);
-            return;
-          }
-        } else {
-          this.setEnemyTarget(enemy, target, 'highest threat');
-          this.beginEnemyAbility(enemy, target, 'secondary', time);
-          return;
-        }
+      // Check skills in priority order. Only a monster with the authored boss flag gets
+      // the third slot. A skipped or cooling-down skill lets the next slot be considered.
+      const abilityKeys = enemy.isBoss ? ['primary', 'secondary', 'tertiary'] : ['primary', 'secondary'];
+      for (const key of abilityKeys) {
+        if (this.tryEnemyAbility(enemy, target, key, time)) return;
       }
 
       this.movement.moveToCombatPosition(enemy, target, time, deltaSeconds);
@@ -2117,6 +2120,34 @@ export default class BattleScene extends Phaser.Scene {
         this.beginBasicAttack(enemy, target, time, enemy.basicAttackDamageType === 'spell' ? 'spell' : 'enemy');
       }
     });
+  }
+
+  // Start one ready monster skill using its effect and targeting data. Returning true
+  // prevents the enemy from starting another skill or a basic attack in the same update.
+  tryEnemyAbility(enemy, target, key, time) {
+    const ability = enemy.abilities?.[key];
+    if (!ability || !enemy.abilityReady(key, time)) return false;
+
+    if (ability.effect === 'heal') {
+
+      // Compare injured health fractions, so a large boss is not favored just because
+      // its missing health is a bigger number. Full-health and dead enemies are skipped.
+      // filter builds the injured list; sort puts the smallest hp / maxHp fraction first.
+      const injured = this.getLivingEnemies().filter(unit => unit.hp < unit.maxHp)
+        .sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0];
+      if (!injured) return false;
+      this.beginEnemyAbility(enemy, injured, key, time);
+    } else if (ability.telegraph) {
+
+      // castRange is measured in logical arena units. Existing ground attacks keep their
+      // 220-unit reach when no override is authored. Each slot pays its own cooldown.
+      if (enemy.distanceTo(target) > (ability.castRange ?? 220)) return false;
+      this.beginGroundSlam(enemy, target, time, ability, key);
+    } else {
+      this.beginEnemyAbility(enemy, target, key, time);
+    }
+
+    return true;
   }
 
   // This helper checks the exact action instance before a delayed effect resolves. Dead
@@ -2222,7 +2253,10 @@ export default class BattleScene extends Phaser.Scene {
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
-    attacker.spriteVisual?.play('attack', target);
+
+    // The supplied void boards distinguish ranged casting and leaping from melee.
+    // This chooses only the visible clip; the existing windup and damage still apply.
+    attacker.spriteVisual?.play(ability.animation ?? 'attack', target);
     this.announceAbility(attacker, ability.name, '#c084fc');
     this.setEnemyTarget(attacker, target, 'highest threat');
     this.logActionStart(attacker, target, ability.name);
@@ -2237,7 +2271,10 @@ export default class BattleScene extends Phaser.Scene {
   resolveEnemyAbility(attacker, action, target, ability) {
 
     if (!this.isActionCurrent(attacker, action, target)) return;
-    this.createProjectile(attacker, target, 0xa855f7);
+
+    // A leaping strike uses close impact feedback; casts keep their traveling bolt.
+    if (ability.animation === 'leap') this.createMeleePulse(target, 0xa855f7);
+    else this.createProjectile(attacker, target, 0xa855f7, ability.projectile);
     if (ability.effect === 'heal') {
       this.resolveHeal(attacker, target, abilityPower(attacker, ability, ability.power, true), ability.name);
     } else {
@@ -2251,10 +2288,9 @@ export default class BattleScene extends Phaser.Scene {
     attacker.finishAction();
   }
 
-  // This helper starts an enemy area attack and draws a warning at the target's current
-  // position. After the warning delay, it damages living party members still inside that
-  // fixed area and removes the warning.
-  beginGroundSlam(attacker, target, time, ability) {
+  // Start an enemy area attack and draw a warning at its authored center. After the
+  // warning delay, damage living party members still inside that fixed area.
+  beginGroundSlam(attacker, target, time, ability, key = 'primary') {
 
     if (!attacker.startAction(ability.name, time, ability.telegraph)) {
       return;
@@ -2262,15 +2298,23 @@ export default class BattleScene extends Phaser.Scene {
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
-    attacker.spriteVisual?.play('attack', target);
+
+    // Area clips show the creature gathering energy while the warning is active.
+    // Monsters without a separate area sheet keep their established attack clip.
+    attacker.spriteVisual?.play(ability.animation ?? 'attack', target);
     this.announceAbility(attacker, ability.name, '#f87171');
     this.setEnemyTarget(attacker, target, 'highest threat');
     this.logActionStart(attacker, target, ability.name);
-    attacker.markAbilityUsed('primary', time);
 
-    // Capture the target location at cast start so the warning stays fixed and can be
-    // dodged.
-    const center = { arenaX: target.arenaX, arenaY: target.arenaY };
+    // Existing callers default to primary. Other slots must record their own cooldown
+    // and mana cost so they remain independent during visible and saved idle combat.
+    attacker.markAbilityUsed(key, time);
+
+    // areaCenter: 'caster' surrounds the monster, as Consume does. The default still
+    // surrounds the threat target. Capture the cast-start position so players can leave
+    // the warning. Windup and telegraph describe this same cast, not two added waits.
+    const origin = ability.areaCenter === 'caster' ? attacker : target;
+    const center = { arenaX: origin.arenaX, arenaY: origin.arenaY };
     const telegraph = this.createSlamTelegraph(attacker, ability, center, ability.telegraph);
     const action = attacker.pendingAction;
     this.scheduleBattleEvent(ability.telegraph, this.actionEvent('groundSlam', attacker, null, { center, ability }),
@@ -2295,6 +2339,10 @@ export default class BattleScene extends Phaser.Scene {
       arenaX: center.arenaX,
       arenaY: center.arenaY,
       radius: ability.radius,
+
+      // Most warnings allow normal mechanic avoidance. Consume asks for a player
+      // response; its ability data disables automatic dodging but keeps manual movement.
+      autoAvoid: ability.autoAvoid ?? true,
       warning,
       inner,
       attacker
@@ -2366,7 +2414,9 @@ export default class BattleScene extends Phaser.Scene {
 
     // find returns the first matching entry, or undefined when none matches. Check for
     // that missing result before using its fields.
-    const danger = this.activeTelegraphs.find((telegraph) => unit.distanceToPoint(telegraph.arenaX, telegraph.arenaY) < telegraph.radius + 40);
+    // Missing autoAvoid fields in older saved warnings retain the usual avoidance rule.
+    const danger = this.activeTelegraphs.find((telegraph) => telegraph.autoAvoid !== false
+      && unit.distanceToPoint(telegraph.arenaX, telegraph.arenaY) < telegraph.radius + 40);
     if (!danger) {
       return false;
     }
@@ -2852,7 +2902,10 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   // This helper connects attacker and target with a brief traveling effect.
-  createProjectile(attacker, target, color) {
+  createProjectile(attacker, target, color, kind = 'bolt') {
+
+    // Accepted void sprites supply an animated bolt instead of the shared circle.
+    if (createVoidProjectile(this, attacker, target, kind)) return;
 
     // Depth is drawing order, not distance or size. Higher-depth objects draw on top of
     // lower-depth objects.
@@ -3320,10 +3373,10 @@ export default class BattleScene extends Phaser.Scene {
     }, 0x1f2937);
 
     // bossWaveIndex is zero-based. Its numeric value is also the one-based number of the
-    // preceding farm wave. FARM_REWARDS supplies the shown Gold/material totals and each
+    // preceding farm wave. FARM_REWARDS supplies the shown Gold and each
     // living adventurer's XP/Happiness.
     choice(1, `FARM WAVE ${this.bossWaveIndex}`,
-      `${values.gold} Gold + ${values.materialCount} Materials\n${values.xp} XP + ${values.happiness} Happiness\nper living adventurer\nRepeats until cancelled`, () => {
+      `${values.gold} Gold + Material chances\n${values.xp} XP + ${values.happiness} Happiness\nper living adventurer\nRepeats until cancelled`, () => {
         GameState.run.entry = 'farm';
         this.startWave(farmIndex);
       }, 0x50432e);
@@ -3524,10 +3577,39 @@ export default class BattleScene extends Phaser.Scene {
     const lines = idleRewardLines(summary, GameState.activeParty,
       id => getMaterialDefinition(id)?.name ?? id);
 
+    // Measure the readable text first so short reports do not need a screen-wide panel.
+    // These dimensions are logical canvas pixels, before scaling to the phone display.
+
+    // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the center
+    // and 1 is the right/bottom edge. x/y place that anchor, not necessarily the object's
+    // corner. Both text objects use their left edges so the bullets line up with the W.
+    const title = stoneText(this, 0, 0, 'While you were away:', UI_FONT_SIZES.heading46, 13002)
+      .setOrigin(0, 0).setName('idle-summary-title');
+    const text = this.add.text(0, 0, lines.join('\n'), {
+      fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body30'), color: '#f5f5dc',
+      align: 'left', lineSpacing: 8, wordWrap: { width: Math.min(1040, width - 200) }
+    }).setOrigin(0, 0).setDepth(13002).setName('idle-summary-text');
+    const buttonHeight = 80;
+    const continueWidth = 300;
+    const deathWidth = 360;
+    const buttonGap = 24;
+    const buttonsWidth = casualtyLines.length ? continueWidth + buttonGap + deathWidth : continueWidth;
+    const contentWidth = Math.max(title.width, text.width, buttonsWidth);
+    const panelWidth = contentWidth + 84;
+
+    // Reserve top/bottom padding, the heading, and the button row. Only unusually long
+    // reward lists scroll; their reading size stays the same.
+    // The 64 is 32 pixels of padding at each edge; 20 and 24 are the gaps between rows.
+    const reservedHeight = 64 + title.height + 20 + 24 + buttonHeight;
+
     // Math.min chooses the smallest value; pairing it with Math.max can keep a result
     // inside both a lower and an upper bound.
-    const panelHeight = Math.min(height - 100, 270 + lines.length * 46);
+    const panelHeight = Math.min(height - 100, reservedHeight + text.height);
     const centerY = height / 2;
+    const top = centerY - panelHeight / 2;
+    const contentLeft = (width - contentWidth) / 2;
+    title.setPosition(contentLeft, top + 32);
+    text.setPosition(contentLeft, title.y + title.height + 20);
 
     // This gives the display object an input hit area. Visible artwork alone does not make
     // an object respond to a tap. Depth is drawing order, not distance or size.
@@ -3538,26 +3620,31 @@ export default class BattleScene extends Phaser.Scene {
     // on registers a callback for later events; it does not call that callback now.
     // Long-lived emitters need matching listener cleanup.
     blocker.on('pointerdown', (pointer, x, y, event) => event?.stopPropagation?.());
-    const panel = addStonePanel(this, width / 2, centerY, width * 0.78, panelHeight, 13001);
-    const title = stoneText(this, width / 2, centerY - panelHeight / 2 + 62,
-      'While you were away:', UI_FONT_SIZES.heading46, 13002);
+    const panel = addStonePanel(this, width / 2, centerY, panelWidth, panelHeight, 13001)
+      .setName('idle-summary-panel');
+    const bodyHeight = panelHeight - reservedHeight;
+    let bodyScroll = null;
+    if (text.height > bodyHeight) {
+      bodyScroll = hallScroll(this, { x: contentLeft, y: text.y, width: contentWidth, height: bodyHeight },
+        [text], text.height, 0, () => {},
+        (scene, x, y, w, h) => addStonePanel(scene, x, y, w, h, 13002),
+        () => Boolean(this.selectionDetailsClose));
+      bodyScroll.container.setDepth(13002);
+    }
 
-    // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the center
-    // and 1 is the right/bottom edge. x/y place that anchor, not necessarily the object's
-    // corner.
-    const text = this.add.text(width / 2, centerY - panelHeight / 2 + 122, lines.join('\n'), {
-      fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body30'), color: '#f5f5dc',
-      align: 'left', fixedWidth: width * 0.7, lineSpacing: 10, wordWrap: { width: width * 0.7 }
-    }).setOrigin(0.5, 0).setDepth(13002).setName('idle-summary-text');
-    const buttonY = centerY + panelHeight / 2 - 72;
-    const continueX = casualtyLines.length ? width * 0.34 : width / 2;
-    const button = addStoneButton(this, continueX, buttonY, width * (casualtyLines.length ? 0.28 : 0.5), 96, 13002);
+    // Center the compact button row inside the panel, including space for death details.
+    const buttonY = top + panelHeight - 32 - buttonHeight / 2;
+    const continueX = casualtyLines.length ? (width - buttonsWidth + continueWidth) / 2 : width / 2;
+    const button = addStoneButton(this, continueX, buttonY, continueWidth, buttonHeight, 13002)
+      .setName('idle-summary-continue');
 
     const label = stoneText(this, continueX, buttonY, 'CONTINUE', UI_FONT_SIZES.heading38, 13003);
     const deathViews = [];
     if (casualtyLines.length) {
-      const deathButton = addStoneButton(this, width * 0.66, buttonY, width * 0.28, 96, 13002);
-      const deathLabel = stoneText(this, width * 0.66, buttonY, 'DEATH DETAILS', UI_FONT_SIZES.heading38, 13003);
+      const deathX = continueX + continueWidth / 2 + buttonGap + deathWidth / 2;
+      const deathButton = addStoneButton(this, deathX, buttonY, deathWidth, buttonHeight, 13002)
+        .setName('idle-summary-death-details');
+      const deathLabel = stoneText(this, deathX, buttonY, 'DEATH DETAILS', UI_FONT_SIZES.heading38, 13003);
       deathViews.push(deathButton, deathLabel);
       bindButtonPress(this, deathButton, [deathLabel], () => showSelectionDetails(this, {
         title: 'Death details', description: casualtyLines.join('\n'), align: 'left',
@@ -3570,6 +3657,9 @@ export default class BattleScene extends Phaser.Scene {
       // ?. only follows this link when the value exists; a missing optional value gives
       // undefined.
       this.selectionDetailsClose?.();
+
+      // Destroying the scroll container also removes its mask and input listeners.
+      bodyScroll?.destroy();
 
       // ... expands these entries into the new list or call. It does not deep-copy the
       // objects inside.

@@ -262,6 +262,102 @@ enemies.riftSentinel = {
   goldMin: 18, goldMax: 25
 };
 
+// Add the supplied void identities using existing stat profiles. Old enemy keys remain
+// available for saved encounters and The Verdant Tear, so those records still restore.
+enemies.voidCrawler = {
+  ...enemies.voidStalker,
+  id: 'void-crawler', name: 'Void Crawler',
+  abilities: {
+    secondary: { ...enemies.voidStalker.abilities.secondary, name: 'Void Bolt', animation: 'cast' }
+  }
+};
+enemies.voidKeeper = {
+  ...enemies.voidWarden,
+  id: 'void-keeper', name: 'Void Keeper',
+  abilities: {
+    primary: { ...enemies.voidWarden.abilities.primary, name: 'Void Spirals', animation: 'area' },
+    secondary: { ...enemies.voidWarden.abilities.secondary, name: 'Void Beam', animation: 'cast', projectile: 'beam' }
+  }
+};
+enemies.voidWisp = {
+  ...enemies.voidStalker,
+  id: 'void-wisp', name: 'Void Wisp',
+  abilities: {
+    secondary: { ...enemies.voidStalker.abilities.secondary, name: 'Void Bolt', animation: 'cast' }
+  }
+};
+
+// The third Abyss wave keeps its existing durable guardian profile. It uses the
+// supplied Keeper artwork without replacing the older saved Abyssal Maw identity.
+enemies.voidKeeperGuardian = {
+  ...enemies.abyssalMaw,
+  id: 'void-keeper-guardian', name: 'Void Keeper',
+  abilities: {
+    primary: { ...enemies.abyssalMaw.abilities.primary, animation: 'area' },
+    secondary: { ...enemies.abyssalMaw.abilities.secondary, animation: 'cast' }
+  }
+};
+
+// Keep powers, cooldowns and targeting intact while matching the boards' action poses.
+enemies.voidStalker.abilities.secondary = {
+  ...enemies.voidStalker.abilities.secondary, animation: 'leap'
+};
+enemies.voidWarden.abilities = {
+  primary: { ...enemies.voidWarden.abilities.primary, animation: 'area' },
+  secondary: { ...enemies.voidWarden.abilities.secondary, animation: 'cast' }
+};
+enemies.abyssalMaw.abilities = {
+  primary: { ...enemies.abyssalMaw.abilities.primary, animation: 'area' },
+  secondary: { ...enemies.abyssalMaw.abilities.secondary, animation: 'cast' }
+};
+enemies.abyssalSovereign.abilities = {
+  primary: { ...enemies.abyssalSovereign.abilities.primary, animation: 'area' },
+  secondary: { ...enemies.abyssalSovereign.abilities.secondary, animation: 'cast' }
+};
+
+
+// Use the replaced roster's ordinary attack stats until the supplied ability list arrives.
+// Empty abilities prevent inherited bandit spells from becoming invented monster skills.
+// Existing enemy keys remain available so saved battles can finish with their old roster.
+enemies.sunkenWatcher = {
+  ...enemies.ruffian, id: 'sunken-watcher', name: 'Sunken Watcher',
+  color: 0x43bdd0, abilities: {}
+};
+enemies.deepTongue = {
+  ...enemies.lasher, id: 'deep-tongue', name: 'The Deep Tongue',
+  color: 0x32b6cb, abilities: {}
+};
+enemies.drownedKnell = {
+  ...enemies.hedgeMage, id: 'drowned-knell', name: 'Drowned Knell',
+  attackRange: 90, color: 0x91aa32, abilities: {}
+};
+enemies.earthsinker = {
+  ...enemies.rongarTheCrusher, id: 'earthsinker', name: 'The Earthsinker',
+  color: 0x388d91, abilities: {}
+};
+
+// These provisional profiles reuse the replaced encounter's basic combat totals.
+// Special abilities await authored data rather than inheriting unrelated forest spells.
+// Keep the old definitions above so battles already in progress can still restore them.
+enemies.quarryWorm = {
+  ...enemies.denWarden, id: 'quarry-worm', name: 'Quarry Worm', abilities: {}
+};
+
+// Baaz has a provisional melee profile and no invented petrification combat effect.
+// Its stone death is presentation only; an encounter assignment remains to be authored.
+enemies.baazDraconian = {
+  ...enemies.ruffian, id: 'baaz-draconian', name: 'Baaz Draconian', abilities: {}
+};
+enemies.quarryBehemoth = {
+  ...enemies.denProtector, id: 'quarry-behemoth', name: 'Quarry Behemoth', abilities: {}
+};
+enemies.quarryReaver = {
+  ...enemies.denProtector, id: 'quarry-reaver', name: 'Quarry Reaver', abilities: {}
+};
+enemies.depthsSovereign = {
+  ...enemies.silvanarkTheForestLord, id: 'depths-sovereign', name: 'Depths Sovereign', abilities: {}
+};
+
 export const forgottenCavernWaves = [
   {
     enemies: [

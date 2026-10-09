@@ -28,8 +28,27 @@ for (const delve of [
 
     // every requires all entries to pass the check; an empty list gives true.
     assert.ok(wave.enemies.every(spawn => enemies[spawn.type]?.name), 'Monsters retain their own names');
-    if (!wave.boss) assert.equal(wave.enemies.length, encounterEnemyCounts[delve.type === 'void' ? 'Unknown' : delve.difficulty]);
+    if (!wave.boss) {
+      assert.equal(wave.enemies.length, encounterEnemyCounts[delve.type === 'void' ? 'Unknown' : delve.difficulty]);
+    }
   }
+}
+
+// Check the restored pre-trial groups at both random extremes. Easy waves contain three
+// monsters; the boss group's existing reduction leaves one Sovereign, two Elders and one
+// Cave Slime. This protects the user's requested rollback from a future count bypass.
+const slimeGroups = [
+  ['caveSlime', 'caveSlime', 'caveSlime'],
+  ['caveSlime', 'caveSlime', 'caveSlime'],
+  ['elderSlime', 'caveSlime', 'caveSlime'],
+  ['elderSlime', 'elderSlime', 'caveSlime'],
+  ['elderSlime', 'elderSlime', 'caveSlime'],
+  ['slimeSovereign', 'elderSlime', 'elderSlime', 'caveSlime']
+];
+for (const random of [() => 0, () => 0.999]) {
+  const waves = createEncounterWaves({ id: 'slime-cave', difficulty: 'Easy' }, 1750, random);
+  assert.deepEqual(waves.map(wave => wave.enemies.map(enemy => enemy.type)), slimeGroups);
+  assert.deepEqual(waves.map(wave => wave.boss), [false, false, false, false, false, true]);
 }
 
 const context = vm.createContext({ Phaser: { Scene: class {} }, GameState: {} });

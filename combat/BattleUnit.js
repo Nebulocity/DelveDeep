@@ -342,13 +342,6 @@ export default class BattleUnit {
     return time >= (this.status.spellLockUntil ?? 0);
   }
 
-  // This helper checks whether a timed combat effect is still active.
-  hasStatus(key, time) {
-
-    // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
-    return time < (this.status[key] ?? 0);
-  }
-
   // This helper begins an available action and shows its windup to the player.
   startAction(name, time, duration) {
 
@@ -512,15 +505,6 @@ export default class BattleUnit {
         this.scene.movement?.config.terrainFootRadius)
         ?? { x: this.arenaX + dx, y: this.arenaY + dy };
     this.setArenaPosition(point.x, point.y);
-  }
-
-  // This helper brings the unit back inside the playable arena bounds.
-  clampToBattlefield(paddingX = 0, paddingY = 0) {
-
-    const clamped = this.battlefield.clampPoint(this.arenaX, this.arenaY, paddingX, paddingY);
-    this.arenaX = clamped.x;
-    this.arenaY = clamped.y;
-    this.syncPresentation();
   }
 
   // This helper checks whether the unit can begin another basic attack.

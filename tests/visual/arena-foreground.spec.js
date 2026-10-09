@@ -93,4 +93,84 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
 
     expect(errors).toEqual([]);
   });
+
+  // Sample the rendered cave, because checking depth alone cannot catch a mask that
+  // accidentally draws open floor over a character's boots.
+  test(`Cave foreground hides rocks while leaving floor gaps visible at ${viewport.width}`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    await page.goto('/?visualQa=1');
+    await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__?.game.scene.getScene('TitleScene').sys.isActive());
+    await page.locator('#loading-screen').waitFor({ state: 'hidden' });
+    await page.evaluate(() => {
+      const qa = window.__DELVE_DEEP_VISUAL_QA__;
+
+      // The QA bridge uses the first five roster members. Put the reported lineup first
+      // in this isolated browser session so the screenshot includes Flint's actual art.
+      const ids = ['flint', 'fistandantilus', 'caramon-gladiator', 'tika', 'tasslehoff'];
+      qa.state.roster = [...ids.map(id => qa.state.roster.find(unit => unit.id === id)),
+        ...qa.state.roster.filter(unit => !ids.includes(unit.id))];
+      qa.activate('BattleScene', { delve: 'slime-cave' });
+    });
+    await page.waitForFunction(() => {
+      const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
+      return scene.sys.isActive() && scene.partyHud?.length === 5;
+    });
+    await page.locator('#loading-screen').waitFor({ state: 'hidden' });
+    await mkdir('output/qa/cave-clipping', { recursive: true });
+
+    const samples = await page.evaluate(async () => {
+      const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
+      if (!scene.combatPaused) scene.togglePause();
+      const t = scene.battlefieldVisualLayers.transform;
+
+      // Coordinates are measured in the original 1672 by 941 cave artwork. A bright
+      // rectangle stands in for a sprite behind the rocks and should show through gaps.
+      const marker = scene.add.rectangle(t.x + 835 * t.scale, t.y + 800 * t.scale,
+        1050 * t.scale, 140 * t.scale, 0xff00ff).setDepth(4200);
+      const floor = [[390, 780], [450, 805], [470, 805], [500, 785], [540, 760],
+        [790, 820], [870, 780], [940, 760], [950, 785], [1200, 810], [1310, 780]];
+      const rocks = [[340, 790], [420, 805], [565, 775], [610, 790],
+        [895, 780], [920, 780], [1240, 815]];
+      const result = { floor: [], rocks: [] };
+
+      // Phaser reads one canvas pixel after the next frame renders. Await each read so
+      // another sample cannot replace the pending snapshot in that same frame.
+      for (const [kind, points] of Object.entries({ floor, rocks })) {
+        for (const [x, y] of points) {
+          const color = await new Promise(resolve => scene.game.renderer.snapshotPixel(
+            t.x + x * t.scale, t.y + y * t.scale, resolve));
+          result[kind].push({ point: [x, y], markerVisible: color.red === 255
+            && color.green === 0 && color.blue === 255 });
+        }
+      }
+      marker.destroy();
+
+      // Put Flint above the left-hand gap from the reported clipping. Keep his gameplay
+      // position on the same walkable floor and use an ordinary idle frame for review.
+      const flint = scene.partyUnits.find(unit => unit.id === 'flint');
+      const position = scene.battlefield.screenToArenaUnchecked(t.x + 450 * t.scale,
+        t.y + 770 * t.scale);
+      flint.setArenaPosition(position.x, position.y);
+      flint.spriteVisual.action = null;
+      flint.spriteVisual.motion.state = 'idle';
+      flint.spriteVisual.motion.direction = 'south-east';
+      flint.spriteVisual.applyFrame(flint.spriteVisual.currentFrame());
+      flint.spriteVisual.applyPose();
+
+      // Dismiss the paused opening-wave announcement so the review shows his whole body.
+      scene.clearWaveAnnouncement();
+      return result;
+    });
+
+    await page.screenshot({ path: `output/qa/cave-clipping/flint-${viewport.width}.png` });
+    for (const sample of samples.floor) {
+      expect(sample.markerVisible, `Open floor at artwork ${sample.point}`).toBe(true);
+    }
+    for (const sample of samples.rocks) {
+      expect(sample.markerVisible, `Foreground rock at artwork ${sample.point}`).toBe(false);
+    }
+    expect(errors).toEqual([]);
+  });
 }

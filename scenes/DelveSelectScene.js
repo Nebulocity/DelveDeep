@@ -5,6 +5,7 @@ import { UI_FONT_SIZES, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTy
 import { delveDropNames } from '../game/DelveDrops.js';
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
+import { addBgmToggle } from '../ui/BgmToggle.js';
 import HapticsService from '../services/HapticsService.js';
 import { getDelveCheckpoint } from '../game/DelveCheckpoints.js';
 import { bindSelectionDetails, addDetailsHint, delveDetails } from '../ui/SelectionDetails.js';
@@ -41,6 +42,7 @@ export default class DelveSelectScene extends Phaser.Scene {
     // The condition before ? chooses the first value when true and the value after : when
     // false.
     preparationFrame(this, delve, delve.type === 'void' ? 'VOID PORTAL' : 'DELVE OVERVIEW', 'WORLD MAP', () => this.scene.start('TitleScene'));
+    this.bgmToggle = addBgmToggle(this, width - 165, 64);
     stoneText(this, width / 2, 181, delve.subtitle, UI_FONT_SIZES.delveDescription, 3, {
       fontFamily: UI_FONT_FAMILIES.sans, fontStyle: UI_FONT_WEIGHTS.normal, color: STONE.muted, align: 'center', wordWrap: { width: width - 180 }
     });
@@ -77,8 +79,12 @@ export default class DelveSelectScene extends Phaser.Scene {
     stoneText(this, difficultyX, panelY - 120, 'DIFFICULTY', UI_FONT_SIZES.delveInfoLabel, 3, { color: STONE.muted });
 
     stoneText(this, difficultyX, panelY - 65, delve.difficulty, UI_FONT_SIZES.delveInfoDifficulty, 3);
-    stoneText(this, difficultyX, panelY + 8, `Recommended Level ${delve.recommendedLevel}`, UI_FONT_SIZES.delveInfoBody, 3, { fontFamily: UI_FONT_FAMILIES.sans });
+    stoneText(this, difficultyX, panelY + 8, `Starting Level ${delve.recommendedLevel}`, UI_FONT_SIZES.delveInfoBody, 3, { fontFamily: UI_FONT_FAMILIES.sans });
     stoneText(this, difficultyX, panelY + 58, `${delve.rooms} waves expected`, UI_FONT_SIZES.delveInfoBody, 3, { fontFamily: UI_FONT_FAMILIES.sans });
+
+    // The held Delve details explain the Common gear and ability ranks for this target.
+    if (delve.bossPreparation) stoneText(this, difficultyX, panelY + 108,
+      `Boss Level ${delve.bossPreparation.level}`, UI_FONT_SIZES.delveInfoBody, 3, { fontFamily: UI_FONT_FAMILIES.sans });
     stoneText(this, dropsX, panelY - 120, 'POSSIBLE DROPS', UI_FONT_SIZES.delveInfoLabel, 3, { color: STONE.muted });
 
     // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the center

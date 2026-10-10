@@ -8,6 +8,7 @@
 import { abilityPower, linkedHealing } from '../game/CharacterStats.js';
 
 import { arenaDistance, ADJACENT_DISTANCE } from '../config/combatRanges.js';
+import { findAbilityEffect } from '../data/abilityEffects.js';
 
 // Convert logical arena distance into the skill system's 100-unit reach measures. scene is
 // the Phaser screen that owns the objects, clock and input used here.
@@ -541,6 +542,10 @@ export default class ClassAbilitySystem {
     scene.logActionStart(unit,target===unit||a.zone?null:target,a.name);
     const action=unit.pendingAction;
 
+    // Volley warns and supplied projectiles fly during this existing windup. Drawing
+    // is optional so saved and headless combat retain the same timing and targeting.
+    scene.createAbilityTelegraph?.(unit, target, a, action);
+
     // Recheck action identity and range after windup because targets may move or die.
     const schedule = scene.scheduleBattleEvent?.bind(scene) ?? ((delay, data, callback) => scene.time.delayedCall(delay, callback));
     schedule(windup, scene.actionEvent?.('classAbility', unit, target, { ability: a }),
@@ -551,6 +556,7 @@ export default class ClassAbilitySystem {
   // is the live combatant, with current resources and arena position.
   resolveCast(unit, action, target, a) {
     const scene = this.scene;
+    scene.clearAbilityTelegraph?.(unit, action);
     if(!scene.isActionCurrent(unit,action)) return;
 
     // some stops with true as soon as one entry passes the check; an empty list gives
@@ -700,6 +706,11 @@ export default class ClassAbilitySystem {
     if(a.effect==='mark') {
       target.status.damageTakenBoost=a.damageTakenBoost;
       target.status.damageTakenBoostUntil=time+a.duration;
+
+      // This optional saved flag keeps the artwork until death. It does not extend
+      // the damage bonus above, and also records marks applied during idle catch-up.
+      if (unit.className === 'Ranger' && a.name === "Hunter's Mark") target.status.huntersMarkVisual = true;
+      scene.createAbilityEffect?.(unit, target, a);
     }
     if(a.effect==='trap') {
       this.traps=this.traps.filter(t=>t.owner!==unit);
@@ -767,6 +778,13 @@ export default class ClassAbilitySystem {
         }
 
         ally.status.abilityProtectionUntil = time + protectionDuration;
+
+        // Ward art follows this recipient's shield, using the actual duration after
+        // preparation bonuses. The shared temporary-HP pool remains unchanged.
+        if (unit.className === 'Dawnwarden' && a.name === 'Sunlit Ward') {
+          ally.status.sunlitWardVisualUntil = time + protectionDuration;
+          scene.createAbilityEffect?.(unit, ally, { ...a, duration: protectionDuration });
+        }
         if (a.targetThreatReduction) {
           ally.status.threatReduction = a.targetThreatReduction;
           ally.status.threatReductionUntil = time + protectionDuration;
@@ -854,7 +872,12 @@ export default class ClassAbilitySystem {
 
       for(const t of targets) {
         const before=t.hp;
-        scene.resolveHeal(unit,t,power,a.name);
+
+        // These area heals play a short column on each actual recipient. The visual
+        // uses individual sprite size; it does not enlarge into a second healing zone.
+        const hasArtwork = Boolean(findAbilityEffect(unit, a));
+        scene.resolveHeal(unit,t,power,a.name,true,hasArtwork);
+        scene.createAbilityEffect?.(unit, t, a);
         if(a.temporaryHp && t.hp>before) t.status.temporaryHp=(t.status.temporaryHp??0)+a.temporaryHp;
 
         if(a.retaliation) t.status.bramble={caster:unit,power:abilityPower(unit, { ...a, damageType: 'nature' }, a.retaliation)};
@@ -885,6 +908,10 @@ export default class ClassAbilitySystem {
     else if(a.targets) targets=[target,...targets.filter(t=>t!==target&&this.distance(unit,t)<=a.range)].slice(0,a.targets);
     else targets=[target];
 
+    // A resolved area skill gets one cosmetic effect at its center, rather than a copy
+    // for every victim. Optional drawing keeps headless background combat compatible.
+    if (targets.length > 0 && a.name !== 'Exploding Arrow') scene.createAbilityEffect?.(unit, target, a, targets);
+
     // Work from the ranked potency and apply the skill's situational modifiers.
     // abilityPower converts that potency to the caster's current stat-based amount. The
     // target's defenses are applied later by resolveDamage.
@@ -908,9 +935,14 @@ export default class ClassAbilitySystem {
       // Poison schedules later ticks instead of dealing an immediate hit here. For other
       // skills, resolveDamage returns actual damage after hit checks and defenses. An
       // undefined result indicates no landed hit.
-      const dealt=a.poison ? 0 : scene.resolveDamage(unit,t,power,a.damageType==='physical'?'melee':['holy','radiant'].includes(a.damageType)?'holy':'spell',a.totalThreat?0:(a.threatMultiplier ?? 1),a.name);
+      const contact = { hasArtwork: Boolean(findAbilityEffect(unit, a) || findAbilityEffect(unit, a, true)) };
+      const dealt=a.poison ? 0 : scene.resolveDamage(unit,t,power,a.damageType==='physical'?'melee':['holy','radiant'].includes(a.damageType)?'holy':'spell',a.totalThreat?0:(a.threatMultiplier ?? 1),a.name,true,contact);
       total+=dealt??0;
       if (dealt === undefined && !a.poison) continue;
+
+      // Use confirmed contact rather than damage: dodges return zero too, while
+      // shields can absorb a landed arrow completely. Only contact makes it explode.
+      if (a.name === 'Exploding Arrow' && contact.hit) scene.createAbilityEffect?.(unit, t, a);
 
       if(a.stun&&t.alive) {
         t.status.stunnedUntil=Math.max(t.status.stunnedUntil??0,time+a.stun);

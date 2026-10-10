@@ -18,7 +18,7 @@ const keys = new Set();
 // The retained map ID must select Quarry even when an old snapshot names Dolmark.
 const delve = getDelveById('old-quarry');
 const waves = createEncounterWaves(delve, 1400, () => 0);
-assert.equal(waves.length, 16);
+assert.equal(waves.length, 24);
 assert.equal(waves.at(-2).enemies.length, 10);
 assert.equal(waves.at(-1).boss, true);
 assert.equal(waves.at(-1).enemies[0].type, 'depthsSovereign');

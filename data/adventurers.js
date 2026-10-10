@@ -54,7 +54,7 @@ const adventurers = [
     maxHp: 89,
     attackPower: 14,
     moveSpeed: 215,
-    critChance: 0.28,
+    critChance: 100.00,
     happiness: 84
   }),
 

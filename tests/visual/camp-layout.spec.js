@@ -12,14 +12,19 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
     await page.locator('#loading-screen').waitFor({ state: 'hidden' });
 
     for (const cleared of [false, true]) {
-      await page.evaluate(cleared => {
+      await page.evaluate(cleared => new Promise(resolve => {
         const qa = window.__DELVE_DEEP_VISUAL_QA__;
+
+        // Wait for this restart's create event, not the previous scene's active flag.
+        // Otherwise a fast fixture can inspect a camp that is about to be destroyed.
+        qa.game.scene.getScene('BattleScene').events.once('create', () => resolve());
+        qa.state.activeBattle = null;
 
         // A world clear with no checkpoint is the format used by older saves.
         qa.state.world.clearedDelves = cleared ? ['slime-cave'] : [];
         qa.state.delveCheckpoints = {};
         qa.activate('BattleScene', { delve: 'slime-cave' });
-      }, cleared);
+      }), cleared);
       await page.waitForFunction(() => {
         const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
         return scene.sys.isActive() && scene.partyUnits?.length === 5 && scene.encounterStatusText;
@@ -27,6 +32,8 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
       await page.locator('#loading-screen').waitFor({ state: 'hidden' });
       const cards = await page.evaluate(() => {
         const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
+        const state = window.__DELVE_DEEP_VISUAL_QA__.state;
+        state.delveCheckpoints[state.currentDelve.id] = { nextWave: scene.bossWaveIndex, campUnlocked: true };
         scene.togglePause();
         scene.showDelveCamp();
         return [672, 1200, 1728].map(x => {
@@ -38,10 +45,12 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
         });
       });
       expect(cards[0].enabled).toBe(true);
+      expect(cards[0].labels).toContain('LEAVE DELVE');
       expect(cards[1].enabled).toBe(true);
+      expect(cards[1].labels).toContain('Gold, XP, Happiness, and Materials');
       expect(cards[2].enabled).toBe(!cleared);
       expect(cards[2].alpha).toBe(cleared ? 0.45 : 1);
-      expect(cards[2].labels).toContain(cleared ? 'Boss already defeated' : 'Boss rewards and Delve completion');
+      expect(cards[2].labels).toContain(cleared ? 'Boss already defeated' : 'Challenge the boss of this Delve to earn better rewards and unlock the next Delve!');
 
       const canvas = await page.locator('canvas').boundingBox();
       await page.mouse.click(canvas.x + 1728 * canvas.width / 2400, canvas.y + 650 * canvas.height / 1080);
@@ -63,11 +72,13 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
     // A fresh scene for each difficulty removes the previous overlay. Changing only the
     // test's Delve copy checks every reward label without modifying the authored catalog.
     for (const difficulty of ['Easy', 'Difficult', 'Tough', 'Very Tough', 'Incredibly Tough', 'Impossible']) {
-      await page.evaluate(difficulty => {
+      await page.evaluate(difficulty => new Promise(resolve => {
         const qa = window.__DELVE_DEEP_VISUAL_QA__;
+        qa.game.scene.getScene('BattleScene').events.once('create', () => resolve());
+        qa.state.activeBattle = null;
         qa.activate('BattleScene', { delve: 'slime-cave' });
         qa.state.currentDelve = { ...qa.state.currentDelve, difficulty };
-      }, difficulty);
+      }), difficulty);
 
       await page.waitForFunction(() => {
         const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
@@ -78,12 +89,13 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
       const cards = await page.evaluate(() => {
         const qa = window.__DELVE_DEEP_VISUAL_QA__;
         const scene = qa.game.scene.getScene('BattleScene');
+        qa.state.delveCheckpoints[qa.state.currentDelve.id] = { nextWave: scene.bossWaveIndex, campUnlocked: true };
         scene.togglePause();
         scene.showDelveCamp();
 
         // Match each description to the card at the same x. getBounds includes actual
         // font measurement, wrapping and origin, which is what caused the original overlap.
-        return ['RETURN TO TOWN', `FARM WAVE ${scene.bossWaveIndex}`, 'FACE THE BOSS'].map(title => {
+        return ['LEAVE DELVE', `FARM WAVE ${scene.bossWaveIndex}`, 'FACE THE BOSS'].map(title => {
           const label = scene.children.list.find(object => object.text === title);
           const detail = scene.children.list.find(object => object.type === 'Text'
             && object.x === label.x && object.depth === label.depth && object.y > label.y);
@@ -112,5 +124,20 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
         await page.screenshot({ path: `output/qa/camp-layout-${viewport.width}.png` });
       }
     }
+
+    // Leaving camp opens the map without moving the party or losing its checkpoint.
+    const before = await page.evaluate(() => {
+      const state = window.__DELVE_DEEP_VISUAL_QA__.state;
+      return { location: state.world.currentLocation, gold: state.gold, checkpoints: state.delveCheckpoints };
+    });
+    const canvas = await page.locator('canvas').boundingBox();
+    await page.mouse.click(canvas.x + 672 * canvas.width / 2400, canvas.y + 650 * canvas.height / 1080);
+    await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('TitleScene').sys.isActive());
+    const after = await page.evaluate(() => {
+      const state = window.__DELVE_DEEP_VISUAL_QA__.state;
+      return { location: state.world.currentLocation, gold: state.gold, checkpoints: state.delveCheckpoints,
+        party: state.activeParty, battle: state.activeBattle };
+    });
+    expect(after).toEqual({ ...before, party: [], battle: null });
   });
 }

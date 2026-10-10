@@ -9,6 +9,7 @@ import { CHARACTER_SPRITES } from '../data/characterSprites.js';
 import { bindSelectionDetails, addDetailsHint, showSelectionDetails } from '../ui/SelectionDetails.js';
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
+import { addBgmToggle } from '../ui/BgmToggle.js';
 
 import { getEquippedAdventurer } from '../game/Equipment.js';
 import HapticsService from '../services/HapticsService.js';
@@ -77,6 +78,7 @@ export default class PartySelectScene extends Phaser.Scene {
     this.columns = [];
     this.lastTap.clear();
     preparationFrame(this, GameState.currentDelve, 'PARTY SELECT', 'DELVE OVERVIEW', () => this.scene.start('DelveSelectScene'));
+    this.bgmToggle = addBgmToggle(this, width - 165, 64);
     this.partyCountText = stoneText(this, width / 2, 171, '', UI_FONT_SIZES.partyCount, 3, { fontFamily: UI_FONT_FAMILIES.sans, color: STONE.muted });
     const columnWidth = (width - 130) / 4;
 

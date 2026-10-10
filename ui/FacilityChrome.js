@@ -15,6 +15,12 @@ export function addFacilityReturnButton(scene, facilityName, onReturn, { x = 312
   // The braces pull named fields into local variables. This reads those fields without
   // copying the whole source object.
   const { art, theme } = addFacilityPlate(scene, facilityName, x, y, width, height);
+
+  // Highlight the upper bevel and deepen the lower lip to match the shop action faces.
+  art.lineStyle(3, theme.glow, 0.75);
+  art.lineBetween(-width / 2 + 14, -height / 2 + 5, width / 2 - 14, -height / 2 + 5);
+  art.lineStyle(5, theme.shadow, 0.95);
+  art.lineBetween(-width / 2 + 14, height / 2 - 4, width / 2 - 14, height / 2 - 4);
   art.lineStyle(4, theme.glow, 0.95);
   art.lineBetween(-width / 2 + 38, 0, -width / 2 + 66, 0);
   art.lineBetween(-width / 2 + 38, 0, -width / 2 + 49, -11);

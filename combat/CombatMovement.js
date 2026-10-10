@@ -117,7 +117,8 @@ export default class CombatMovement {
   // spacing is a chord: radius = spacing / (2 * sin(PI / count)). We pad the center by
   // that radius before adding offsets, so clamping cannot push several slots onto the same
   // edge. Cosine supplies x; sine supplies y.
-  getFormationPositions(units, center, mode = 'normal') {
+  getFormationPositions(units, center, mode = 'normal', anchor = null) {
+    if (mode === 'spread') return this.getSpreadPositions(units, center, anchor);
     const formationSpacing = this.config[mode];
 
     // The condition before ? chooses the first value when true and the value after : when
@@ -154,6 +155,49 @@ export default class CombatMovement {
         y: formationCenter.y + Math.sin(slotAngle) * formationRadius
       };
     });
+  }
+
+  // Try a ten-pace ring first, then sample the authored floor when that ring will not fit.
+  // Greedy spacing picks the point farthest from the center and every assigned ally.
+  getSpreadPositions(units, center, anchor = null) {
+    const desired = this.config.spreadDistance;
+    const placed = [{ x: center.x, y: center.y }];
+    const positions = new Map();
+    if (anchor && units.includes(anchor)) positions.set(anchor, placed[0]);
+
+    for (const unit of units.filter(unit => unit !== anchor)) {
+      const candidates = [];
+
+      // Angles use radians. These 48 points retain the chosen center whenever a ring fits.
+      for (let index = 0; index < 48; index++) {
+        const angle = index * Math.PI * 2 / 48;
+        candidates.push(this.getSafeArenaPoint(center.x + Math.cos(angle) * desired,
+          center.y + Math.sin(angle) * desired, unit));
+      }
+
+      // Sample continuous floor coordinates, without introducing tactical cells or snapping movement.
+      for (let x = this.config.edgePadding; x < this.scene.battlefield.logicalWidth; x += 100) {
+        for (let y = this.config.edgePadding; y < this.scene.battlefield.logicalHeight; y += 100) {
+          candidates.push(this.getSafeArenaPoint(x, y, unit));
+        }
+      }
+
+      let best = this.getSafeArenaPoint(center.x, center.y, unit);
+      let bestSpacing = -1;
+      let bestCenterError = Infinity;
+      for (const point of candidates) {
+        const spacing = Math.min(desired, ...placed.map(other => Math.hypot(point.x - other.x, point.y - other.y)));
+        const centerError = Math.abs(Math.hypot(point.x - center.x, point.y - center.y) - desired);
+        if (spacing > bestSpacing + 0.01 || (Math.abs(spacing - bestSpacing) <= 0.01 && centerError < bestCenterError)) {
+          best = point;
+          bestSpacing = spacing;
+          bestCenterError = centerError;
+        }
+      }
+      positions.set(unit, best);
+      placed.push(best);
+    }
+    return units.map(unit => positions.get(unit));
   }
 
   // Soften steps that run into other units, then give crowded walkers room to pass.
@@ -938,6 +982,7 @@ export default class CombatMovement {
     }
 
     for (const unit of livingUnits) {
+      if (unit.criticalKnockback) continue;
 
       // ?. only follows this link when the value exists; a missing optional value gives
       // undefined. Math.max chooses the largest value; pairing it with Math.min can keep a

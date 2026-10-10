@@ -1,14 +1,16 @@
 // These authored totals follow the revised monster catalog. Unlisted fields keep the
 // existing movement, critical-hit and shared stat defaults; monsters do not gain hero growth.
 // Each row is [Health, Armor, Attack Power, basic reach category, destination level].
+
+// An optional sixth entry supplies separate spell stats when a monster needs them.
 export const MONSTER_CATALOG = {
   caveSlime: [2400, 80, 25, 'Adjacent', 1],
   elderSlime: [7000, 120, 28, 'Adjacent', 1],
   slimeSovereign: [24000, 160, 230, 'Adjacent', 1],
-  ruffian: [2600, 250, 32, 'Adjacent', 3],
-  lasher: [4200, 275, 48, 'Ranged', 3],
-  hedgeMage: [5800, 200, 64, 'Ranged', 3],
-  rongarTheCrusher: [36000, 310, 275, 'Adjacent', 3],
+  ruffian: [3360, 96, 35, 'Adjacent', 3],
+  lasher: [9800, 144, 39, 'Ranged', 3],
+  hedgeMage: [9800, 144, 64, 'Ranged', 3, { spellDamage: 128, spellHealing: 64 }],
+  rongarTheCrusher: [30000, 200, 275, 'Adjacent', 3],
   denWarden: [3000, 285, 38, 'Adjacent', 6],
   denProtector: [4600, 310, 52, 'Adjacent', 6],
   denColossus: [6200, 375, 76, 'Adjacent', 6],
@@ -46,9 +48,9 @@ function circle(name, potency, cooldown, warning, radius, damageType = 'physical
 // Missing named skills use provisional 120-180% attacks and 300% boss finales. All costs
 // stay at zero mana until a mana economy is authored for these monsters.
 export const MONSTER_SKILLS = {
-  lasher: { primary: strike('Whip Lash', 100, 2, 0.5, 'physical', { animation: 'attack' }) },
+  lasher: { primary: strike('Whip Lash', 200, 2, 0.5, 'physical', { animation: 'attack' }) },
   hedgeMage: {
-    primary: strike('Bramble Shroud', 100, 5, 2, 'spell', { animation: 'attack' }),
+    primary: strike('Bramble Shroud', 180, 5, 2, 'spell', { animation: 'attack' }),
     secondary: strike('Briar Bolt', 214.2857142857143, 3, 1, 'spell', { animation: 'attack' })
   },
   rongarTheCrusher: {

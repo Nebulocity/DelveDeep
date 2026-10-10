@@ -7,6 +7,10 @@ export default {
   normal: 52,
   stack: 28,
   spread: 105,
+
+  // One pace is 100 logical units. Destination planning aims for ten paces;
+  // personal-space separation stays small so an arena edge cannot push held units forever.
+  spreadDistance: 1000,
   tankRange: 52,
   meleeRange: 65,
   personalSpaceGap: 18,

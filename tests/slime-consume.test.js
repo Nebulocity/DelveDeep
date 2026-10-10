@@ -24,6 +24,7 @@ const battle = Object.assign(Object.create(Battle.prototype), {
   activeTelegraphs: [],
   idleSimulating: true, battleOver: false, time: { now: 1000 },
   announceAbility() {}, setEnemyTarget() {}, logActionStart() {},
+  showBattleMessage(text) { assert.ok(text.includes('Consume')); },
   scheduleBattleEvent(delay, data, callback) { events.push({ delay, data, callback }); },
   createSlamTelegraph(actor, ability, center, duration) {
     const warning = { attacker: actor, ...center, radius: ability.radius, duration };

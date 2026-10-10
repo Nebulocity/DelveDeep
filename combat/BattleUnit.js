@@ -325,13 +325,14 @@ export default class BattleUnit {
     return this.pendingAction !== null && time < this.busyUntil;
   }
 
-  // This helper requires a living, unstunned unit with no unfinished action.
+  // A living, unstunned unit can act after its current action and knockback finish.
   canStartAction(time) {
 
     // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
     return this.alive
       && time >= (this.status.stunnedUntil ?? 0)
       && !this.isBusy(time)
+      && !this.criticalKnockback
       && this.pendingAction === null;
   }
 
@@ -490,6 +491,7 @@ export default class BattleUnit {
   // Combat movement shares personal-space steering. Wave returns ignore living allies
   // while still steering around fallen characters and terrain.
   moveBy(dx, dy, avoidUnits = true) {
+    if (this.criticalKnockback) return;
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined. Math.max chooses the largest value; pairing it with Math.min can keep a
@@ -662,24 +664,44 @@ export default class BattleUnit {
     return false;
   }
 
-  // Sprite-backed units use their normal animation wrapper. A combatant without a
-  // supplied sheet gets the same shock on its circle body, so every unit can react.
-  // Store fallback state on the display object: it is cosmetic and excluded from saves.
+  // Knockback belongs to the gameplay unit, so saves and background combat retain it.
+  // Screen projection makes the push look equally long in every attack direction.
   playCriticalHit(attacker) {
-    if (this.scene.idleSimulating) return;
-    if (this.spriteVisual) this.spriteVisual.playCriticalHit(attacker);
-    else this.body.criticalRecoil = { elapsed: 0, ...criticalHitDirection(this, attacker) };
+    const direction = criticalHitDirection(this, attacker);
+    const floor = this.battlefield;
+    const start = floor.arenaToScreen(this.arenaX, this.arenaY);
+
+    // Body diameter is our established character width, without transparent sheet
+    // padding or weapons. Perspective scale converts that width to screen pixels.
+    const distance = this.bodyRadius * 2 * 2.5 * floor.getUnitScale(this.arenaY);
+    const end = floor.screenToArenaUnchecked(start.x + direction.awayX * distance,
+      start.y + direction.awayY * distance);
+    this.criticalKnockback = { elapsed: 0, travel: 0,
+      dx: end.x - this.arenaX, dy: end.y - this.arenaY };
   }
 
-  // Update only the fallback body; UnitSprite advances its own shock clock. The scene
-  // calls this beside the ordinary sprite update and skips it during background replay.
+  // Advance once per combat frame, even during background simulation. Only the feet
+  // move in arena space; the sprite or fallback body adds the vertical hop visually.
   updateCriticalRecoil(delta) {
-    const recoil = this.body?.criticalRecoil;
+    const recoil = this.criticalKnockback;
     if (!recoil || this.scene.combatPaused) return;
-    recoil.elapsed += Math.max(0, delta);
-    const pose = criticalHitPose(recoil.elapsed, recoil.awayX, recoil.awayY);
-    this.body.setPosition(pose.x, pose.y);
-    if (recoil.elapsed >= CRITICAL_RECOIL_MS) this.body.criticalRecoil = null;
+
+    // Limit a slow frame to half a hop so each arc remains visible.
+    recoil.elapsed += Math.min(CRITICAL_RECOIL_MS / 6, Math.max(0, delta));
+    const pose = criticalHitPose(recoil.elapsed);
+    const step = pose.travel - recoil.travel;
+    const desired = { x: this.arenaX + recoil.dx * step, y: this.arenaY + recoil.dy * step };
+
+    // Use the authored floor and terrain for every step. A wall shortens the push,
+    // while decorative foreground scenery continues to allow movement underneath it.
+    const padding = this.scene.movement?.config.edgePadding ?? 0;
+    const clamped = this.battlefield.clampPoint(desired.x, desired.y, padding, padding);
+    const safe = this.scene.terrain?.resolveStep(this, clamped.x, clamped.y,
+      this.scene.movement?.config.terrainFootRadius) ?? clamped;
+    this.setArenaPosition(safe.x, safe.y);
+    recoil.travel = pose.travel;
+    if (!this.scene.idleSimulating && !this.spriteVisual) this.body.setPosition(0, pose.y);
+    if (recoil.elapsed >= CRITICAL_RECOIL_MS) this.criticalKnockback = null;
   }
 
   // Mark this combatant fallen, end its action and update the death lifecycle.
@@ -693,6 +715,13 @@ export default class BattleUnit {
     }
     this.hp = 0;
     this.alive = false;
+
+    // These optional flags save cosmetic effects only. Death clears them before idle
+    // replay or revival can accidentally restore an old mark or shield bubble.
+    if (this.status) {
+      this.status.huntersMarkVisual = false;
+      this.status.sunlitWardVisualUntil = 0;
+    }
     this.finishAction();
 
     if (this.scene.idleSimulating) {
@@ -762,13 +791,13 @@ export default class BattleUnit {
     });
 
     this.seekingRestealth = false;
+    this.criticalKnockback = null;
     this.setStealthed(false);
 
     // The condition before ? chooses the first value when true and the value after : when
     // false.
     this.body.setFillStyle(this.color, this.spriteVisual ? 0 : 1);
     this.spriteVisual?.reset();
-    this.body.criticalRecoil = null;
     this.body.setPosition(0, 0);
     this.container.setAlpha(1);
 

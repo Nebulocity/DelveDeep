@@ -14,6 +14,7 @@ import { ACTIVE_ENCHANTMENTS, ENCHANTMENT_BY_ID } from '../data/enchantments.js'
 import { bindSelectionDetails } from '../ui/SelectionDetails.js';
 import { addCategoryIcon } from '../ui/FacilityChoiceArt.js';
 import { addFacilityDetailsHint } from '../ui/FacilityChrome.js';
+import { addShopButton, addShopButtonFace, bindShopButtonFeedback } from '../ui/ShopButton.js';
 import { hallScroll } from '../ui/HallUI.js';
 import HapticsService from '../services/HapticsService.js';
 import { canCraft, craftItem, recipeIngredientText } from '../game/Crafting.js';
@@ -201,21 +202,23 @@ export default class FacilityScene extends Phaser.Scene {
       const [label, icon] = CATEGORIES[category];
       const active = category === this.category;
 
-      // The condition before ? chooses the first value when true and the value after :
-      // when false.
-      const button = this.add.rectangle(255, y, 330, 68, theme.face, active ? 1 : 0.25).setStrokeStyle(active ? 3 : 1, theme.edge, active ? 1 : 0.25);
-      addCategoryIcon(this, icon, 118, y, theme.edge);
+      // Highlight the selected category while keeping every category visibly pressable.
+      const control = addShopButton(this, theme, 255, y, 330, 68, label,
+        { prominent: active, fontSize: fontPx('shopCategory') });
+      const button = control.target;
+      const emblem = addCategoryIcon(this, icon, 118, y, active ? 0x171319 : theme.edge);
 
       // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the center
       // and 1 is the right/bottom edge. x/y place that anchor, not necessarily the
       // object's corner.
-      this.add.text(154, y, label, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('shopCategory'), color: theme.text }).setOrigin(0, 0.5);
+      control.label.setX(154).setOrigin(0, 0.5);
       bindSelectionDetails(this, button, { title: label, description: `Browse ${label.toLowerCase()}.`, shopTheme: theme }, () => {
         HapticsService.tap();
         this.category = category;
         this.itemOffset = 0;
         this.render();
       });
+      bindShopButtonFeedback(this, control, [emblem]);
     });
 
     if (!rows.length) this.add.text(1400, 520, choice.id === 'sell' ? 'No owned items in this category.' : choice.id === 'disenchant' ? 'No gear with known enchantments.' : choice.id === 'enchant' ? this.selectedScroll ? 'No compatible gear without an enchantment.\nChoose Enchant again to select another scroll.' : 'Buy or inscribe a scroll to begin.' : 'Nothing available.', { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body34'), color: theme.text, align: 'center', wordWrap: { width: 1450 } }).setOrigin(0.5);
@@ -245,30 +248,33 @@ export default class FacilityScene extends Phaser.Scene {
       const details = { title: row.name, description: row.detailsDescription ?? row.description, shopTheme: theme };
       bindSelectionDetails(this, card, details);
 
-      // The condition before ? chooses the first value when true and the value after :
-      // when false.
-      const button = this.add.rectangle(x + 247, y + 82, 330, 68, theme.face).setStrokeStyle(3, theme.edge).setAlpha(row.enabled ? 1 : 0.45).setName(`shop-action-${row.id}`);
-      this.add.text(x + 247, y + 82, row.action, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('shopCost'), fontStyle: UI_FONT_WEIGHTS.bold,
-        color: row.enabled ? '#fff3c4' : '#d4c8b0' }).setOrigin(0.5);
+      // Boolean converts an unavailable recipe's missing value into an explicit false.
+      // Only actions allowed by the existing rules get a bright face and input binding.
+      const control = addShopButton(this, theme, x + 247, y + 82, 330, 68, row.action,
+        { enabled: Boolean(row.enabled), prominent: true });
+      const button = control.target.setName(`shop-action-${row.id}`);
 
-      if (row.enabled) bindSelectionDetails(this, button, details, () => this.transact(row.run));
+      if (row.enabled) {
+        bindSelectionDetails(this, button, details, () => this.transact(row.run));
+        bindShopButtonFeedback(this, control);
+      }
 
       // Keep the single-sale control on the right and place bulk selling on the left.
       // Both controls travel with the card inside the existing masked scroll region.
       if (row.runAll) {
-        const allButton = this.add.rectangle(x - 224, y + 82, 376, 68, theme.face)
-          .setStrokeStyle(3, theme.edge).setAlpha(row.enabled ? 1 : 0.45).setName(`shop-sell-all-${row.id}`);
-        this.add.text(x - 224, y + 82, row.allAction, {
-          fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('shopCost'), fontStyle: UI_FONT_WEIGHTS.bold,
-          color: row.enabled ? '#fff3c4' : '#d4c8b0'
-        }).setOrigin(0.5);
+        const allControl = addShopButton(this, theme, x - 224, y + 82, 376, 68, row.allAction,
+          { enabled: Boolean(row.enabled), prominent: true });
+        const allButton = allControl.target.setName(`shop-sell-all-${row.id}`);
 
-        if (row.enabled) bindSelectionDetails(this, allButton, details, () => this.transact(row.runAll));
+        if (row.enabled) {
+          bindSelectionDetails(this, allButton, details, () => this.transact(row.runAll));
+          bindShopButtonFeedback(this, allControl);
+        }
       }
     });
 
-    const surface = (scene, x, y, width, height, variant) => scene.add.rectangle(x, y, width, height,
-      variant === 'thumb' ? theme.edge : theme.face, variant === 'thumb' ? 1 : 0.65).setStrokeStyle(2, theme.edge, 0.7);
+    const surface = (scene, x, y, width, height, variant) => addShopButtonFace(scene, theme, x, y, width, height,
+      { prominent: variant === 'thumb', enabled: variant === 'thumb' });
 
     // Math.ceil rounds upward to the next integer, including when the value has a
     // fractional part.

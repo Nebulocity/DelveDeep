@@ -9,6 +9,7 @@ export default {
   mapLabel: 'The Slime Cave',
   subtitle: 'A damp, abandoned cave consumed by living slime.',
   difficulty: 'Easy', recommendedLevel: 1, depth: 1, type: 'delve',
+  bossPreparation: { level: 5, gearRarity: 'common', abilityCount: 2, abilityRank: 2 },
   materialEnvironments: ['Caves'],
   prerequisites: [],
   map: { x: 0.307, y: 0.475, radius: 0.055 },

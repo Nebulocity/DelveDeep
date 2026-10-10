@@ -4,7 +4,7 @@
 
 const TAU = Math.PI * 2;
 
-export const CRITICAL_RECOIL_MS = 420;
+export const CRITICAL_RECOIL_MS = 660;
 
 // Work out the on-screen direction away from the attacker. Projection matters because
 // arena y grows toward the back while screen y grows downward. Dividing each difference
@@ -20,23 +20,21 @@ export function criticalHitDirection(unit, attacker) {
   return { awayX: length ? dx / length : 1, awayY: length ? dy / length : 0 };
 }
 
-// A critical hit gives three short hops, each smaller than the previous one. elapsed
-// is milliseconds since the hit, and awayX/awayY form a unit-length screen direction
-// away from the attacker. These are local sprite offsets, never arena destinations.
-export function criticalHitPose(elapsed, awayX = 1, awayY = 0) {
-  if (elapsed <= 0 || elapsed >= CRITICAL_RECOIL_MS) return { x: 0, y: 0 };
+// Three forward hops spend 55%, 30% and 15% of the total knockback distance.
+// Travel never reverses. Only the height returns to zero at each landing.
+export function criticalHitPose(elapsed) {
+  const time = Math.max(0, Math.min(CRITICAL_RECOIL_MS, elapsed));
+  if (time >= CRITICAL_RECOIL_MS) return { travel: 1, y: 0 };
 
-  // Divide the 420 ms reaction into three 140 ms hops. sin(PI * progress) starts
-  // and ends each hop at zero; its midpoint is one. The final factor fades each
-  // later hop, so the sprite settles rather than snapping out of a full bounce.
+  // Each hop lasts 220 milliseconds. A sine arch lifts the feet in local pixels,
+  // with smaller heights of 32, 20 and 10 pixels on successive hops.
   const hopTime = CRITICAL_RECOIL_MS / 3;
-  const hop = Math.floor(elapsed / hopTime);
-  const progress = (elapsed % hopTime) / hopTime;
-  const pulse = Math.sin(Math.PI * progress) * (1 - hop * 0.28);
-
-  // Eighteen local pixels recoil away, and eight lift the feet. Negative screen y
-  // goes upward. The container still applies the unit's normal perspective scale.
-  return { x: awayX * pulse * 18, y: awayY * pulse * 18 - pulse * 8 };
+  const hop = Math.floor(time / hopTime);
+  const progress = (time % hopTime) / hopTime;
+  const distances = [0.55, 0.30, 0.15];
+  const starts = [0, 0.55, 0.85];
+  return { travel: starts[hop] + distances[hop] * progress,
+    y: -Math.sin(Math.PI * progress) * [32, 20, 10][hop] };
 }
 
 // Return offsets from the sheet pose so the same animation can vary by slime type.

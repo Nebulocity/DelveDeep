@@ -17,7 +17,7 @@ test('Revised catalog waves, farm positions and Rongar stun in the live game', a
       return { id, count: waves.length, farmBoss: !!waves.at(-2).boss, boss: waves.at(-1).enemies[0].type };
     });
   });
-  expect(counts.map(d => d.count)).toEqual([6, 6, 10, 16, 24, 34]);
+  expect(counts.map(d => d.count)).toEqual([6, 10, 16, 24, 24, 34]);
   expect(counts.every(d => !d.farmBoss)).toBe(true);
   await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.activate('BattleScene', { delve: 'thornbriar-hollow' }));
   await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene').enemies?.length > 0);
@@ -38,8 +38,8 @@ test('Revised catalog waves, farm positions and Rongar stun in the live game', a
       damage: before - target.hp, stun: target.status.stunnedUntil - scene.time.now,
       pending: boss.pendingAction, warningRemoved: !scene.activeTelegraphs.includes(warning) };
   });
-  expect(result.health).toBe(36000);
-  expect(result.armor).toBe(310);
+  expect(result.health).toBe(30000);
+  expect(result.armor).toBe(200);
   expect(result.name).toBe('Intimidating Stomp');
   expect(result.damage).toBeGreaterThan(0);
   expect(result.stun).toBeCloseTo(3000, 6);

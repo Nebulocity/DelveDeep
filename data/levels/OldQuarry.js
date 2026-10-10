@@ -1,4 +1,4 @@
-// Keep Dolmark's difficulty and rewards, but use the Quarry's approved underground art.
+// Reuse Dolmark's material pool with the Quarry's own difficulty and underground art.
 // The world map keeps its older ID so checkpoints and saved travel remain compatible.
 import dolmarkDen from './DolmarkDen.js';
 
@@ -8,7 +8,8 @@ export default {
   name: 'The Old Quarry',
   mapLabel: 'The Old Quarry',
   subtitle: 'An abandoned excavation haunted by creatures of stone and crystal.',
-  difficulty: 'Tough', recommendedLevel: 12,
+  difficulty: 'Very Tough', recommendedLevel: 15,
+  bossPreparation: { level: 20, gearRarity: 'common', abilityCount: 3, abilityRank: 3 },
   prerequisites: ['dolmark-den'],
   visuals: {
     environment: {

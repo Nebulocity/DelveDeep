@@ -438,9 +438,14 @@ for (const [type, profile] of Object.entries(SLIME_BALANCE)) {
 
 // Apply the revised authored roster after legacy copies and Slime tuning. Keeping this
 // step before normalization makes percentage damage agree with the new stat totals.
-for (const [type, [maxHp, armor, attackPower, reach, level]] of Object.entries(MONSTER_CATALOG)) {
+for (const [type, [maxHp, armor, attackPower, reach, level, spellStats = {}]] of Object.entries(MONSTER_CATALOG)) {
+
+  // Most monsters use Attack Power for Spell Damage. Spread any authored spell stats
+  // afterward so Hedge Mage keeps its separate damage and healing totals. Older rows
+  // omit this object, so the = {} fallback preserves their existing behavior.
   enemies[type] = { ...enemies[type], maxHp, armor, attackPower, level,
-    spellDamage: attackPower, attackRange: reach === 'Ranged' ? 210 : Math.min(100, enemies[type].attackRange),
+    spellDamage: attackPower, ...spellStats,
+    attackRange: reach === 'Ranged' ? 210 : Math.min(100, enemies[type].attackRange),
     abilities: MONSTER_SKILLS[type] ?? enemies[type].abilities };
 }
 

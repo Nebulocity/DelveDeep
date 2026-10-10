@@ -59,7 +59,7 @@ assert.deepEqual(getDelveCheckpoint(delve, 5), { nextWave: 5, campUnlocked: true
 const beforeFarm = GameState.gold;
 const farm = awardOrdinaryWave(delve, 4, 5, true);
 
-assert.equal(farm.xp, 1);
+assert.equal(farm.xp, 0);
 assert.equal(GameState.gold, beforeFarm + farm.gold);
 assert.ok(awardOrdinaryWave(delve, 4, 5, true));
 assert.deepEqual(getDelveCheckpoint(delve, 5), { nextWave: 5, campUnlocked: true });

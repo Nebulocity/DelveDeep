@@ -12,7 +12,7 @@ export function delveMaterialIds(delve, allowedRarities = null) {
 
   // ?. only follows this link when the value exists; a missing optional value gives
   // undefined.
-  if (delve?.type !== 'delve') return [];
+  if (delve?.type !== 'delve' && !delve?.campWaves?.length) return [];
   const higherTier = ['Difficult', 'Tough', 'Very Tough', 'Incredibly Tough', 'Impossible'].includes(delve.difficulty);
 
   // The condition before ? chooses the first value when true and the value after : when

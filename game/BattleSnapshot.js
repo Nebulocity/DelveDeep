@@ -109,6 +109,10 @@ export function captureBattle(scene, state, savedAtMs = Date.now()) {
   // original list in place.
   return {
     version: 1, delveId: state.currentDelve.id, savedAtMs, time: scene.time.now,
+
+    // Optional metadata lets updated Delves distinguish older encounter lengths while
+    // retaining version-1 snapshots and every recorded unit's combat totals.
+    encounterWaveCount: scene.waves?.length,
     partyIds: state.activeParty.map(hero => hero.id),
     partyTemplates: packBattleValue(state.activeParty), leader: packBattleValue(state.leader),
     run: packBattleValue(state.run), rewards: packBattleValue(state.rewards), tactics: packBattleValue(state.tactics),

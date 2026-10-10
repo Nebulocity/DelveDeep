@@ -58,6 +58,9 @@ const context = vm.createContext({ ...typography,
   // Build the selected encounter's shared preparation workspace frame.
   preparationFrame() {}, preparationNotice() {}, addStonePanel() {},
 
+  // This scene now includes a BGM control. Its rendering is covered by the browser check.
+  addBgmToggle() {},
+
   // Create centered, outlined stone-interface text. options can override the shared
   // defaults.
   stoneText() { return { setOrigin() {} }; },

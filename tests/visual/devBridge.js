@@ -12,7 +12,7 @@ const SCENES = new Set([
   'TitleScene', 'TownScene', 'AdventurersHallScene', 'BlacksmithScene',
   'FacilityScene', 'ItemsScene', 'RosterScene', 'PartyLeaderScene',
   'DelveSelectScene', 'PartySelectScene', 'DungeonScene',
-  'BattleScene'
+  'BattleScene', 'EncounterSummaryScene'
 ]);
 
 // Expose controlled scene activation and inspection only in a requested development QA
@@ -43,6 +43,17 @@ export function installVisualQaBridge(game) {
         // map builds one output entry for each input entry, in the same order. The
         // callback's return value becomes that output entry.
         GameState.activeParty = GameState.roster.slice(0, 5).map((member) => ({ ...member }));
+      }
+
+      // Give the outcome capture a representative retreat instead of an empty fallback.
+      if (sceneName === 'EncounterSummaryScene') {
+        const defeated = options.result === 'defeat';
+        GameState.run.summary = {
+          result: defeated ? 'defeat' : 'fled', title: defeated ? 'DEFEAT' : 'PARTY FLED', elapsedMs: 65000,
+          message: defeated
+            ? 'The party was driven back. Cleared wave rewards and the camp checkpoint remain saved.'
+            : 'Cleared wave rewards remain banked. Tactics Points was reduced.'
+        };
       }
 
       GameState.run.entry = 'progress';

@@ -6,6 +6,7 @@ import { fontPx, UI_FONT_SIZES, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../con
 import { bindSelectionDetails } from '../ui/SelectionDetails.js';
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
+import { addBgmToggle } from '../ui/BgmToggle.js';
 import { equippedItem, equipmentStatsText, getEquippedAdventurer } from '../game/Equipment.js';
 import HapticsService from '../services/HapticsService.js';
 import { beginExpedition } from '../game/ExpeditionProgression.js';
@@ -71,6 +72,7 @@ export default class DungeonScene extends Phaser.Scene {
       this.hideTacticDescription();
     });
     preparationFrame(this, GameState.currentDelve, 'BATTLE OVERVIEW', 'PARTY SELECT', () => this.scene.start('PartySelectScene'));
+    this.bgmToggle = addBgmToggle(this, width - 615, 64);
     preparationButton(this, width - 240, 64, 430, 94, 'WORLD MAP >', () => this.scene.start('TitleScene'), { size: UI_FONT_SIZES.body32 });
 
     addStonePanel(this, width * 0.28, 541, 1020, 726, 0);

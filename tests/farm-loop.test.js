@@ -6,12 +6,12 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import GameState from '../game/GameState.js';
-import { awardOrdinaryWave, isOrdinaryDelve } from '../game/DelveCheckpoints.js';
+import { awardOrdinaryWave, isOrdinaryDelve, delveCampWaves, delveFarmWaveIndex } from '../game/DelveCheckpoints.js';
 import { getDelveById } from '../data/delves.js';
 import { fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 
 globalThis.localStorage = { getItem: () => null, setItem() {} };
-const context = { Phaser: { Scene: class {} }, GameState, awardOrdinaryWave, isOrdinaryDelve,
+const context = { Phaser: { Scene: class {} }, GameState, awardOrdinaryWave, isOrdinaryDelve, delveCampWaves, delveFarmWaveIndex,
   HapticsService: { tap() {} }, fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS, Math };
 const source = readFileSync(new URL('../scenes/BattleScene.js', import.meta.url), 'utf8')
   .replace(/^import .*;\r?$/gm, '').replace('export default class BattleScene', 'class BattleScene');

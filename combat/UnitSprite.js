@@ -9,7 +9,7 @@ import { VOID_SPRITES } from '../data/voidSprites.js';
 import { SUNKEN_WATCH_SPRITES } from '../data/sunkenWatchSprites.js';
 import { QUARRY_SPRITES } from '../data/quarrySprites.js';
 import { SpriteMotion, movementDirection } from './SpriteMotion.js';
-import { slimePose, monsterDeathPose, criticalHitPose, criticalHitDirection, CRITICAL_RECOIL_MS } from './SpritePresentation.js';
+import { slimePose, monsterDeathPose, criticalHitPose } from './SpritePresentation.js';
 
 // Presentation only: animation never changes arena positions, reach, or stats. Combat
 // drives the frame clock, so Pause and inspection freeze the animation.
@@ -93,7 +93,10 @@ export default class UnitSprite {
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
     if (!this.definition.clips[state] || this.action?.state === 'death') return;
-    if (target && target !== this.unit) {
+    if (target && target !== this.unit && !['hit', 'block'].includes(state)) {
+
+      // Incoming hits from different sides keep our facing. Turning on every hit made
+      // crowded melee characters swivel even while pursuing the same enemy.
       this.motion.direction = movementDirection(target.arenaX - this.unit.arenaX, target.arenaY - this.unit.arenaY);
     }
 
@@ -110,13 +113,6 @@ export default class UnitSprite {
       this.action.frameMs = duration / clip.frames.length;
     }
     this.applyFrame(this.currentFrame());
-    this.applyPose();
-  }
-
-  // Keep critical shock separate from the sheet animation. A normal hit, attack or
-  // death clip can continue while these three small hops move only its visible image.
-  playCriticalHit(attacker) {
-    this.criticalRecoil = { elapsed: 0, ...criticalHitDirection(this.unit, attacker) };
     this.applyPose();
   }
 
@@ -154,16 +150,17 @@ export default class UnitSprite {
     const death = this.unit.isEnemy && state === 'death' ? monsterDeathPose(elapsed) : null;
     const size = death?.scale ?? 1;
 
-    // Add the shock offsets to the existing slime/sheet pose. We leave the container,
-    // health bars and gameplay feet where they belong. Hit-zone alignment below follows
-    // the displayed sprite without changing collision or ability distance checks.
-    const recoil = this.criticalRecoil;
-    const shock = recoil ? criticalHitPose(recoil.elapsed, recoil.awayX, recoil.awayY) : { x: 0, y: 0 };
-    this.image.setPosition(pose.x + shock.x, this.definition.footY + pose.y + shock.y);
+    // The unit moves its real feet away from the attacker. Add only the height here,
+    // so the sprite lands at the new position rather than snapping back after each hop.
+    const recoil = this.unit.criticalKnockback;
+    const shock = recoil ? criticalHitPose(recoil.elapsed) : { y: 0 };
+    this.image.setPosition(pose.x, this.definition.footY + pose.y + shock.y);
     this.image.setScale(this.definition.scale * pose.scaleX * size,
       this.definition.scale * pose.scaleY * size);
 
-    if (death) this.image.setAlpha(death.alpha);
+    // Reapply the live stealth state on every pose, including after reset and catch-up.
+    // Death fading takes priority for monsters already in their death animation.
+    this.image.setAlpha(death?.alpha ?? (this.unit.stealthed ? 0.55 : 1));
     this.syncHitZone();
   }
 
@@ -194,14 +191,6 @@ export default class UnitSprite {
     const scene = unit.scene;
     const frozen = scene.combatPaused || (this.action?.state !== 'death' && scene.battleOver);
 
-    // Advance on the same frame clock as the sprite, so Pause freezes the shock too.
-    // Once it ends, clearing the record restores the original pose exactly. A lethal
-    // hit can finish its hops alongside the death clip, including at battle end.
-    if (this.criticalRecoil && !frozen) {
-      this.criticalRecoil.elapsed += Math.max(0, delta);
-      if (this.criticalRecoil.elapsed >= CRITICAL_RECOIL_MS) this.criticalRecoil = null;
-    }
-
     if (this.action) {
       this.motion.x = unit.arenaX;
       this.motion.y = unit.arenaY;
@@ -221,7 +210,7 @@ export default class UnitSprite {
 
     // The condition before ? chooses the first value when true and the value after : when
     // false.
-    this.motion.update(unit.arenaX, unit.arenaY, delta, unit.moveSpeed * (scene.waveRetreating ? 2 : 1), unit.alive, frozen);
+    this.motion.update(unit.arenaX, unit.arenaY, delta, unit.moveSpeed * (scene.waveRetreating ? 2 : 1), unit.alive, frozen || !!unit.criticalKnockback);
 
     // Idle allies face the incoming wave from their current screen lane.
     if (!unit.isEnemy && unit.alive && !frozen && scene.waveTransitioning
@@ -267,11 +256,9 @@ export default class UnitSprite {
   // Return this animation state to its initial timing and facing.
   reset() {
     this.action = null;
-    this.criticalRecoil = null;
     this.motion.reset(this.unit.arenaX, this.unit.arenaY);
     this.image.clearTint();
     this.applyFrame(this.currentFrame());
-    this.image.setAlpha(1);
     this.applyPose();
   }
 }

@@ -95,6 +95,12 @@ export function addFacilityChoiceCard(scene, facilityName, entry, x, y, width, a
   art.lineStyle(2, theme.edge, 0.45);
   art.strokeRoundedRect(left + 9, top + 9, width - 18, height - 18, 10);
 
+  // The light upper edge and dark lower lip give the whole action card a raised face.
+  art.lineStyle(3, theme.glow, active ? 0.9 : 0.6);
+  art.lineBetween(left + 19, top + 5, left + width - 19, top + 5);
+  art.lineStyle(5, theme.shadow, 0.9);
+  art.lineBetween(left + 19, top + height - 4, left + width - 19, top + height - 4);
+
   for (let i = 0; i < 9; i++) {
 
     // % gives the remainder. With a nonnegative index and positive list length, it wraps
@@ -144,20 +150,22 @@ export function addFacilityChoiceCard(scene, facilityName, entry, x, y, width, a
   // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the center and
   // 1 is the right/bottom edge. x/y place that anchor, not necessarily the object's
   // corner.
-  scene.add.text(showSubtitle ? x : x + 28, showSubtitle ? compact ? y + 14 : y - 24 : y, entry.label, {
+  const label = scene.add.text(showSubtitle ? x : x + 28, showSubtitle ? compact ? y + 14 : y - 24 : y, entry.label, {
     fontFamily: UI_FONT_FAMILIES.serif, fontSize: width < 500 ? fontPx('body34') : entry.label.length > 10 ? fontPx('heading38') : fontPx('heading42'),
     fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff1d2',
     stroke: theme.shadow === 0x100d1a ? '#100d1a' : '#170f0a', strokeThickness: 3
   }).setOrigin(0.5);
 
-  if (showSubtitle) scene.add.text(x, compact ? y + 53 : y + 34, entry.subtitle, {
+  const subtitle = showSubtitle ? scene.add.text(x, compact ? y + 53 : y + 34, entry.subtitle, {
     fontFamily: UI_FONT_FAMILIES.sans, fontSize: compact ? fontPx('support28') : fontPx('support29'), color: '#e8d6bc', align: 'center',
     wordWrap: { width: compact ? width - 30 : width - 185 }
-  }).setOrigin(0.5);
+  }).setOrigin(0.5) : null;
 
   // This gives the display object an input hit area. Visible artwork alone does not make
   // an object respond to a tap.
-  return scene.add.rectangle(x, y, width, height, 0x000000, 0).setInteractive({ useHandCursor: true });
+  const target = scene.add.rectangle(x, y, width, height, 0x000000, 0).setInteractive({ useHandCursor: true });
+  target.pressVisuals = [art, emblem, label, ...(subtitle ? [subtitle] : [])];
+  return target;
 }
 
 // Draw a small matching symbol beside the item category control.

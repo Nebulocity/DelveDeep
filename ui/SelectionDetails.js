@@ -113,12 +113,17 @@ export function characterDetails(unit) {
 // Build the selected Delve's actual difficulty, rewards, materials and entry information.
 export function delveDetails(delve) {
 
+  // These are preparation targets for every adventurer, not entry locks. Keep them in
+  // the scrollable details so the full gear and skill advice fits at phone text sizes.
+  const preparation = delve.bossPreparation;
+  const bossAdvice = preparation ? `\n\nBoss preparation per adventurer: Level ${preparation.level}, fully equipped Common gear, and at least ${preparation.abilityCount} equipped abilities at rank ${preparation.abilityRank} or higher.\n\nDelve level cap: ${preparation.level}. Capped members earn no XP or Happiness and reduce shared Gold. When everyone is capped, farming earns materials only.` : '';
+
   // map builds one output entry for each input entry, in the same order. The callback's
   // return value becomes that output entry. ?. only follows this link when the value
   // exists; a missing optional value gives undefined.
   return {
     title: delve.name,
-    description: `${delve.subtitle}\n\n${delve.difficulty} | Recommended level ${delve.recommendedLevel} | ${delve.rooms} waves\n\nPossible Drops:\n${delveDropNames(delve).map(name => `• ${name}`).join('\n')}`,
+    description: `${delve.subtitle}\n\n${delve.difficulty} | Starting level ${delve.recommendedLevel} | ${delve.rooms} waves${bossAdvice}\n\nPossible Drops:\n${delveDropNames(delve).map(name => `• ${name}`).join('\n')}`,
     image: delve.visuals?.environment?.layers[0]?.key,
     align: 'left',
     titleAboveBody: true,

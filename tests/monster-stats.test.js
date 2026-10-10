@@ -93,13 +93,16 @@ attacker.role = 'Tank';
 
 victim.dodge = 0.3;
 random.random = () => 0.1;
-battle.resolveDamage(attacker, victim, 100, 'melee');
+const contact = {};
+battle.resolveDamage(attacker, victim, 100, 'melee', 1, 'Exploding Arrow', true, contact);
 assert.equal(victim.hp, 500, 'Monsters can dodge incoming attacks');
+assert.equal(contact.hit, false, 'A dodge must not confirm arrow contact');
 victim.dodge = 0;
 victim.block = 0.35;
-battle.resolveDamage(attacker, victim, 100, 'melee');
+battle.resolveDamage(attacker, victim, 100, 'melee', 1, 'Exploding Arrow', true, contact);
 
 assert.equal(victim.hp, 440, 'Monsters can block physical attacks');
+assert.equal(contact.hit, true, 'A blocked hit still confirms arrow contact');
 
 const delayed = [];
 battle.time.delayedCall = (delay, callback) => delayed.push(callback);

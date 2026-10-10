@@ -9,6 +9,7 @@ import { bindSelectionDetails } from './SelectionDetails.js';
 import { addFacilityReturnButton, addFacilityDetailsHint } from './FacilityChrome.js';
 import { addFacilityChoiceCard } from './FacilityChoiceArt.js';
 import { addWoodenPanel } from './WoodenPanel.js';
+import { bindButtonPress } from './ButtonPress.js';
 
 export const FACILITIES = {
   Alchemist: {
@@ -155,6 +156,7 @@ export function renderFacilityMenu(scene, facility, selected, onSelect, onReturn
       HapticsService.tap();
       onSelect(entry.id);
     });
+    bindButtonPress(scene, card);
   });
 
   if (!choice) addFacilityDetailsHint(scene, facility.name, height - 202);

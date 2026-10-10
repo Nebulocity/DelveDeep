@@ -5,6 +5,7 @@
 // membership when units spawn or die, and keep gameplay charge tweens while dropping
 // cosmetic work.
 
+import { criticalHitPose } from './SpritePresentation.js';
 import GameState from '../game/GameState.js';
 import { deferUnitPresentation, deferredDisplay, UNIT_VIEWS } from './DeferredPresentation.js';
 import { notifyIdleDeath } from '../services/DeathNotifications.js';
@@ -260,13 +261,10 @@ export function resumeIdleBattle(scene) {
     }
     unit.syncPresentation();
 
-    // A recoil that began before the app was hidden belongs to that old frame. Clear
-    // it when restoring views, so returning from hours away cannot replay that shock.
-    if (unit.spriteVisual) unit.spriteVisual.criticalRecoil = null;
-    if (unit.body) {
-      unit.body.criticalRecoil = null;
-      if (!unit.spriteVisual) unit.body.setPosition(0, 0);
-    }
+    // Gameplay knockback has already advanced during catch-up. Draw its current hop
+    // height rather than replaying an old cosmetic recoil from the restored views.
+    if (!unit.spriteVisual) unit.body.setPosition(0,
+      unit.criticalKnockback ? criticalHitPose(unit.criticalKnockback.elapsed).y : 0);
     unit.setStealthed(unit.stealthed);
 
     unit.updateHealthBar();

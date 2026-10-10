@@ -196,7 +196,7 @@ export default class TitleScene extends Phaser.Scene {
         borderToggle.caption.setColor('#fff1d2');
       }, borderVisible ? '#1f2937' : '#ffffff');
 
-    addLabel(5, 'Music');
+    addLabel(5, 'BGM');
     const musicEnabled = GameState.development.musicEnabled === true;
     const musicToggle = addButton(firstX, rowY(5), musicEnabled ? 'ON' : 'OFF',
       0x08192e, 0x00f2fa, () => {

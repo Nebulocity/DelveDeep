@@ -22,6 +22,14 @@ motion.update(798,500,16,140,true,true); assert.equal(motion.elapsed,before,'pau
 motion.update(798,500,16,140,false); assert.equal(motion.elapsed,before,'death freezes presentation');
 motion.reset(200,200); assert.equal(motion.state,'idle'); assert.equal(motion.elapsed,0);
 motion.update(200.02,200.02,16,140); assert.equal(motion.state,'idle','small separation does not animate walking');
+
+// Rapid alternating steps keep one facing, while an intentional turn still takes effect.
+motion.reset(0, 0, 'east');
+motion.update(2, 0, 16, 140);
+for (let frame = 0; frame < 20; frame++) motion.update(frame % 2 ? 2 : 0, 0, 16, 140);
+assert.equal(motion.direction, 'east');
+for (let frame = 0; frame < 12; frame++) motion.update(motion.x - 2, 0, 16, 140);
+assert.equal(motion.direction, 'west');
 const time = { now: 0 };
 const minor = { arenaX: -100, arenaY: 0, maxHp: 100, isBoss: false };
 const boss = { arenaX: 100, arenaY: 0, maxHp: 500, isBoss: true };

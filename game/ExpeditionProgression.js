@@ -6,7 +6,7 @@ import GameState from './GameState.js';
 import { grantAdventurerXp, adjustHappiness } from './AdventurerProgression.js';
 import { recordDepthClear, saveLeaderProgression } from './LeaderProgression.js';
 import { saveProfile } from './GameStorage.js';
-import { isOrdinaryDelve } from './DelveCheckpoints.js';
+import { isOrdinaryDelve, delveRewardEligibility } from './DelveCheckpoints.js';
 
 // This helper snapshots the run start so timing and retreat costs stay consistent.
 export function beginExpedition() {
@@ -30,12 +30,13 @@ export function completeExpedition() {
   // Award experience and happiness only to roster members who participated in this
   // expedition.
   const partyIds = new Set(GameState.activeParty.map((entry) => entry.id));
+  const eligibility = delveRewardEligibility();
   const adventurerResults = [];
   GameState.roster.forEach((adventurer) => {
 
     if (!partyIds.has(adventurer.id)) return;
-    const xpResult = grantAdventurerXp(adventurer, 35);
-    adjustHappiness(adventurer, 5);
+    const xpResult = grantAdventurerXp(adventurer, 35, eligibility.cap);
+    if (eligibility.eligibleIds.has(adventurer.id)) adjustHappiness(adventurer, 5);
 
     // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
     adventurer.delvesCompleted = (adventurer.delvesCompleted ?? 0) + 1;

@@ -24,11 +24,14 @@ import { preloadVoidSprites } from '../data/voidSprites.js';
 import { preloadSunkenWatchSprites } from '../data/sunkenWatchSprites.js';
 import { preloadQuarrySprites } from '../data/quarrySprites.js';
 import GameState from '../game/GameState.js';
+import { addBgmToggle } from '../ui/BgmToggle.js';
 
 import { getEquippedAdventurer, equippedItem, consumePotionCharge } from '../game/Equipment.js';
 import { getPotionDefinition, getMaterialDefinition } from '../data/items.js';
 import { battleAbilities } from '../game/AdventurerAbilities.js';
 import enemies from '../data/enemies.js';
+import { thornbriarEnemyDefinition } from '../config/thornbriarBalance.js';
+import { delveEnemyDefinition } from '../config/delveBalance.js';
 import { createEncounterWaves } from '../data/encounters.js';
 import { leaderAbilities } from '../game/LeaderProgression.js';
 import BattleUnit from '../combat/BattleUnit.js';
@@ -39,13 +42,15 @@ import BattlefieldTerrainEditor from '../combat/BattlefieldTerrainEditor.js';
 import TacticsController from '../combat/TacticsController.js';
 import CombatMovement from '../combat/CombatMovement.js';
 import { createVoidProjectile, updateVoidProjectiles } from '../combat/VoidProjectile.js';
+import { preloadAbilityEffects } from '../data/abilityEffects.js';
+import { createAbilityEffect, updateAbilityEffects, createAbilityTelegraph, clearAbilityTelegraph } from '../combat/AbilityEffect.js';
 import combatSpacing from '../config/combatSpacing.js';
 import CombatLog from '../combat/CombatLog.js';
 
 import HapticsService from '../services/HapticsService.js';
 import { completeExpedition, failExpedition, fleeExpedition, formatDuration } from '../game/ExpeditionProgression.js';
 import { saveProfile } from '../game/GameStorage.js';
-import { awardOrdinaryWave, getDelveCheckpoint, isOrdinaryDelve, FARM_REWARDS } from '../game/DelveCheckpoints.js';
+import { awardOrdinaryWave, getDelveCheckpoint, isOrdinaryDelve, delveCampWaves, delveFarmWaveIndex, delveRewardEligibility, cappedDelveGold } from '../game/DelveCheckpoints.js';
 import { getBattleLayout } from '../ui/Layout.js';
 import { preloadEnvironment, createEnvironment, getDelveArena } from '../combat/LayeredEnvironment.js';
 import { trackLoading, hideLoadingScreenAfterRender } from '../ui/LoadingScreen.js';
@@ -55,6 +60,7 @@ import { cappedChance } from '../config/characterProgression.js';
 import { advanceIdleBattle, resumeIdleBattle, recordIdleEvent } from '../combat/IdleBattle.js';
 import { prepareDeathNotifications } from '../services/DeathNotifications.js';
 import { idleRewardLines } from '../game/IdleSummary.js';
+import { migrateEncounterSnapshot, legacyPortalCheckpoint } from '../game/EncounterSaveMigration.js';
 
 export default class BattleScene extends Phaser.Scene {
 
@@ -71,6 +77,7 @@ export default class BattleScene extends Phaser.Scene {
     preloadCarvedStone(this);
     preloadCharacterSprites(this);
     preloadEnemySprites(this);
+    preloadAbilityEffects(this);
 
     // These larger void atlases are only needed by portal encounters. Ordinary delves
     // avoid allocating their texture memory until the party enters a void battlefield.
@@ -211,9 +218,23 @@ export default class BattleScene extends Phaser.Scene {
 
     // Math.max chooses the largest value; pairing it with Math.min can keep a result
     // inside both a lower and an upper bound.
-    this.bossWaveIndex = Math.max(0, this.waves.findIndex((wave) => wave.boss));
+    // Abyss guardian waves also carry boss mechanics. Camp progression must aim at the
+    // last boss, the Sovereign, rather than stopping at the first guardian stage.
+    this.bossWaveIndex = Math.max(0, this.waves.findLastIndex((wave) => wave.boss));
     this.createFarmControls();
     void prepareDeathNotifications();
+
+    if (GameState.activeBattle) {
+
+      // The old Abyss portal had no checkpoints. Keep its reached wave on upgrade,
+      // then remap earned farm/boss entries if another Delve gained more waves.
+      const legacy = legacyPortalCheckpoint(GameState.activeBattle, GameState.currentDelve, this.bossWaveIndex);
+      if (legacy && !GameState.delveCheckpoints[GameState.currentDelve.id]) {
+        GameState.delveCheckpoints[GameState.currentDelve.id] = legacy;
+      }
+      GameState.activeBattle = migrateEncounterSnapshot(GameState.activeBattle, GameState.currentDelve,
+        this.bossWaveIndex, getDelveCheckpoint(GameState.currentDelve, this.bossWaveIndex));
+    }
 
     if (GameState.activeBattle?.scene.currentWaveIndex >= this.waves.length) GameState.activeBattle = null;
     if (GameState.activeBattle) {
@@ -237,7 +258,7 @@ export default class BattleScene extends Phaser.Scene {
     const entry = GameState.run.entry;
     if (entry === 'camp' && checkpoint?.campUnlocked) this.showDelveCamp();
     else this.startWave(entry === 'boss' ? this.bossWaveIndex
-      : entry === 'farm' ? this.bossWaveIndex - 1 : checkpoint?.nextWave ?? 0);
+      : entry === 'farm' ? delveFarmWaveIndex(GameState.currentDelve, this.bossWaveIndex) : checkpoint?.nextWave ?? 0);
     installBattlePersistence(this);
     hideLoadingScreenAfterRender(this);
   }
@@ -291,10 +312,12 @@ export default class BattleScene extends Phaser.Scene {
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
     const title = stoneText(this, width * 0.40, 46, (GameState.currentDelve?.name ?? 'The Delve').toUpperCase(), UI_FONT_SIZES.heading48, 4501);
-    if (title.width > width * 0.50) title.setScale(width * 0.50 / title.width);
-    addStoneOrnaments(this, width * 0.40, 44, width * 0.56, this.stoneTheme, 4502);
-    this.encounterStatusText = stoneText(this, width * 0.76, 42, '', UI_FONT_SIZES.battleWave, 4501);
-    this.encounterTimerText = stoneText(this, width * 0.76, 75, '', UI_FONT_SIZES.battleTimer, 4501, { color: STONE.muted });
+
+    // Reserve room for wave status and the BGM/Pause controls on this header row.
+    if (title.width > width * 0.46) title.setScale(width * 0.46 / title.width);
+    addStoneOrnaments(this, width * 0.40, 44, width * 0.46, this.stoneTheme, 4502);
+    this.encounterStatusText = stoneText(this, width * 0.69, 42, '', UI_FONT_SIZES.battleWave, 4501);
+    this.encounterTimerText = stoneText(this, width * 0.69, 75, '', UI_FONT_SIZES.battleTimer, 4501, { color: STONE.muted });
     this.battleMessageText = stoneText(this, width / 2, this.battleLayout.messageY, '', UI_FONT_SIZES.body34, 5000,
       { wordWrap: { width: 1430 }, align: 'center' });
 
@@ -493,7 +516,7 @@ export default class BattleScene extends Phaser.Scene {
     // on registers a callback for later events; it does not call that callback now.
     // Long-lived emitters need matching listener cleanup.
     hit.on('pointerdown', pointer => {
-      if (this.battleOver || this.combatPaused || this.waveTransitioning) return;
+      if (this.battleOver || this.waveTransitioning) return;
       const point = this.battlefield.screenToArena(pointer.worldX, pointer.worldY);
       if (point && !this.terrain.isBlocked(point.x, point.y)) this.handleArenaTap(point);
     });
@@ -529,6 +552,8 @@ export default class BattleScene extends Phaser.Scene {
       this.roleButtons.push({ box, text, role });
     });
 
+    // Keep BGM beside Pause in the upper-right header, clear of the command rail.
+    this.bgmToggle = addBgmToggle(this, width - 470, 48, { width: 220, height: 84, depth: 4600 });
     this.pauseButton = addStoneButton(this, width - 178, 48, 324, 84, 4600);
     const pauseIcon = stoneIcon(this, width - 293, 48, 'PAUSE', 36);
     this.pauseButtonText = stoneText(this, width - 150, 48, 'PAUSE', UI_FONT_SIZES.body34);
@@ -541,7 +566,7 @@ export default class BattleScene extends Phaser.Scene {
     const descriptions = {
       MOVE: 'Choose a destination for selected allies. They move there and hold.',
       HOLD: 'Selected allies stay at their positions while acting within range.',
-      SPREAD: 'Selected allies spread out around the chosen point to avoid area attacks.',
+      SPREAD: 'Spread selected allies ten paces apart as the floor allows. Tap a character to spread the party around them.',
       STACK: 'Selected allies gather tightly around the chosen point.',
       ATTACK: 'Choose an enemy for selected allies to pursue and attack. Explicitly ordered healers attack until the target dies or the order changes.',
       INTERRUPT: 'Choose a casting enemy. Selected allies with a ready interrupt try to stop its cast.'
@@ -694,7 +719,7 @@ export default class BattleScene extends Phaser.Scene {
 
       // ?. only follows this link when the value exists; a missing optional value gives
       // undefined.
-      const queued = this.pendingPausedTactics?.includes(ability.id);
+      const queued = this.pendingPausedTactics?.some(entry => (entry.id ?? entry) === ability.id);
 
       // Math.max chooses the largest value; pairing it with Math.min can keep a result
       // inside both a lower and an upper bound. ?? uses the fallback only for null or
@@ -712,11 +737,25 @@ export default class BattleScene extends Phaser.Scene {
   // This helper selects a tapped adventurer or deselects it on a second tap.
   toggleUnitSelection(unit) {
 
+    // A character tap anchors the whole party's Spread around that ally.
+    if (unit?.alive && this.commandMode === 'SPREAD') {
+      this.selectedUnitIds = new Set(this.partyUnits.filter(ally => ally.alive).map(ally => ally.id));
+      this.handleArenaTap({ x: unit.arenaX, y: unit.arenaY }, unit);
+      return;
+    }
+
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
     if (!unit?.alive && this.commandMode !== 'REVIVE') return;
 
     if (this.commandMode === 'REVIVE' && !unit.alive) {
+
+      // Targeted tactics store the chosen ID while paused; revival happens on Resume.
+      if (this.combatPaused) {
+        this.queuePausedTactic('revive', unit.id);
+        this.commandMode = null;
+        return;
+      }
 
       // find returns the first matching entry, or undefined when none matches. Check for
       // that missing result before using its fields.
@@ -898,7 +937,7 @@ export default class BattleScene extends Phaser.Scene {
   armCommand(label) {
 
     const selected = this.getSelectedUnits();
-    const needsSelection = ['MOVE', 'HOLD', 'SPREAD', 'STACK', 'ATTACK'].includes(label);
+    const needsSelection = ['MOVE', 'HOLD', 'STACK', 'ATTACK'].includes(label);
 
     // A second press cancels a target-selection mode before it can affect the party. This
     // is particularly useful for an accidentally armed Attack.
@@ -919,28 +958,19 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    // Hold takes effect immediately at each selected unit's current position. Other
-    // commands wait for a target tap.
+    // Hold confirms a destination already assigned by Move, or holds the current position.
+    // Other commands wait for a target tap.
     if (label === 'HOLD') {
 
-      // every requires all entries to pass the check; an empty list gives true.
-      const alreadyHeld = selected.length > 0 && selected.every((unit) => this.isPositionLocked(unit));
-      if (alreadyHeld) {
-        selected.forEach((unit) => {
-          this.manualTargets.delete(unit.id);
-          this.heldUnitIds.delete(unit.id);
-        });
-        this.refreshTacticsMenus();
-        this.showBattleMessage('HOLD ORDER CANCELED', '#a8a29e');
-        HapticsService.tap();
-
-        return;
-      }
-
+      // Confirm the same order for each selected adventurer.
       selected.forEach((unit) => {
 
-        this.manualTargets.set(unit.id, { x: unit.arenaX, y: unit.arenaY });
+        // Keep a pending Move destination. Hold confirms the order rather than toggling it off.
+        if (!this.manualTargets.has(unit.id)) {
+          this.manualTargets.set(unit.id, { x: unit.arenaX, y: unit.arenaY });
+        }
         this.attackTargets.delete(unit.id);
+        unit.finishAction();
         this.heldUnitIds.add(unit.id);
       });
       this.commandMode = null;
@@ -1053,7 +1083,7 @@ export default class BattleScene extends Phaser.Scene {
   // This helper interprets a battlefield tap using the current command. It locates targets
   // for Attack, Focus Fire, and Interrupt, or assigns movement destinations and keeps the
   // selected units under Hold.
-  handleArenaTap(center) {
+  handleArenaTap(center, anchor = null) {
 
     this.highlightArenaPoint(center);
 
@@ -1070,7 +1100,7 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     // Find a living enemy near the tapped point for commands that need an enemy target.
-    if (['ATTACK', 'FOCUS', 'INTERRUPT'].includes(this.commandMode)) {
+    if (['ATTACK', 'FOCUS', 'INTERRUPT', 'COORDINATED_ATTACK', 'LUNAR_ASSAULT'].includes(this.commandMode)) {
 
       // find returns the first matching entry, or undefined when none matches. Check for
       // that missing result before using its fields.
@@ -1086,6 +1116,11 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
+    if (this.commandMode === 'SPREAD' && this.getSelectedUnits().length === 0) {
+
+      // Spread without a selection applies to the living party.
+      this.selectedUnitIds = new Set(this.partyUnits.filter(unit => unit.alive).map(unit => unit.id));
+    }
     const units = this.getSelectedUnits();
     if (units.length === 0) {
       this.commandMode = null;
@@ -1100,13 +1135,14 @@ export default class BattleScene extends Phaser.Scene {
     if (this.commandMode === 'SPREAD' || this.commandMode === 'STACK') {
       const formationMode = this.commandMode;
       const mode = formationMode.toLowerCase();
-      const positions = this.movement.getFormationPositions(units, center, mode);
+      const positions = this.movement.getFormationPositions(units, center, mode, anchor);
 
       units.forEach((unit, index) => {
 
         const rawPoint = positions[index];
         const point = this.terrain.nearestSafeUnitPoint(unit, rawPoint.x, rawPoint.y, combatSpacing.terrainFootRadius);
         unit.spacingMode = mode;
+        unit.finishAction();
         this.manualTargets.set(unit.id, point);
         this.attackTargets.delete(unit.id);
         this.heldUnitIds.add(unit.id);
@@ -1127,7 +1163,8 @@ export default class BattleScene extends Phaser.Scene {
       const point = this.terrain.nearestSafeUnitPoint(unit, rawPoint.x, rawPoint.y, combatSpacing.terrainFootRadius);
       unit.spacingMode = 'normal';
 
-      if (unit.classAbilities) {
+      unit.finishAction();
+      if (unit.classAbilities && !this.combatPaused) {
 
         // ??= fills a missing value once. It leaves an existing value, including zero or
         // false, alone.
@@ -1158,6 +1195,17 @@ export default class BattleScene extends Phaser.Scene {
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
     if (!enemy?.alive) return;
+
+    // Choose each tactic's target now, so several paused tactics can retain different targets.
+    const tacticId = { FOCUS: 'focusFire', COORDINATED_ATTACK: 'coordinatedAttack',
+      LUNAR_ASSAULT: 'lunarAssault' }[this.commandMode];
+    if (this.combatPaused && tacticId) {
+      this.queuePausedTactic(tacticId, enemy.id);
+      this.commandMode = null;
+      this.setTargetingInputState(false);
+      this.refreshTacticsMenus();
+      return;
+    }
 
     if (['MOVE', 'SPREAD', 'STACK'].includes(this.commandMode)) {
       this.handleArenaTap({ x: enemy.arenaX, y: enemy.arenaY });
@@ -1308,7 +1356,15 @@ export default class BattleScene extends Phaser.Scene {
 
     if (this.battleOver || this.waveTransitioning) return;
     if (this.combatPaused) {
-      this.queuePausedTactic(id);
+
+      // Targeted tactics need a battlefield tap before joining the Resume queue.
+      const mode = { focusFire: 'FOCUS', coordinatedAttack: 'COORDINATED_ATTACK',
+        lunarAssault: 'LUNAR_ASSAULT', revive: 'REVIVE' }[id];
+      if (mode && this.isLeaderAbilityReady(id)) {
+        this.commandMode = mode;
+        this.setTargetingInputState(mode !== 'REVIVE');
+        this.showBattleMessage(mode === 'REVIVE' ? 'REVIVE! - tap a fallen character' : `${mode} - tap an enemy`, '#bef264', true);
+      } else this.queuePausedTactic(id);
       return;
     }
 
@@ -1450,7 +1506,7 @@ export default class BattleScene extends Phaser.Scene {
   // This helper records a legal tactic press while paused. Commands already update player
   // order state while paused; tactics need an explicit queue because their effects would
   // otherwise be committed immediately.
-  queuePausedTactic(id) {
+  queuePausedTactic(id, targetId = null) {
 
     // find returns the first matching entry, or undefined when none matches. Check for
     // that missing result before using its fields.
@@ -1480,11 +1536,11 @@ export default class BattleScene extends Phaser.Scene {
     // ??= fills a missing value once. It leaves an existing value, including zero or
     // false, alone.
     this.pendingPausedTactics ??= [];
-    if (this.pendingPausedTactics.includes(id)) {
+    if (this.pendingPausedTactics.some(entry => (entry.id ?? entry) === id)) {
       this.showBattleMessage(`${ability.name} is already queued`, '#a8a29e');
       return;
     }
-    this.pendingPausedTactics.push(id);
+    this.pendingPausedTactics.push({ id, targetId });
     this.showBattleMessage(`${ability.name} queued`, '#bef264', true);
 
     HapticsService.tap();
@@ -1498,7 +1554,32 @@ export default class BattleScene extends Phaser.Scene {
     // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
     const queued = this.pendingPausedTactics ?? [];
     this.pendingPausedTactics = [];
-    queued.forEach((id) => this.useLeaderAbility(id));
+    const armedCommand = this.commandMode;
+    let legacyTargetMode = null;
+    queued.forEach((entry) => {
+      const id = entry.id ?? entry;
+      const target = entry.targetId == null ? null
+        : [...this.partyUnits, ...this.enemies].find(unit => unit.id === entry.targetId);
+
+      // A vanished or invalid target does not consume the tactic or its cooldown.
+      if (entry.targetId != null && (!target || (id === 'revive' ? target.alive : !target.alive))) return;
+      if (!this.isLeaderAbilityReady(id)) return;
+      this.useLeaderAbility(id);
+      if (target) {
+        const mode = { focusFire: 'FOCUS', coordinatedAttack: 'COORDINATED_ATTACK',
+          lunarAssault: 'LUNAR_ASSAULT', revive: 'REVIVE' }[id];
+        if (this.commandMode === mode) {
+          if (id === 'revive') this.toggleUnitSelection(target);
+          else this.handleEnemyTap(target);
+        }
+      } else if (typeof entry === 'string' && ['FOCUS', 'COORDINATED_ATTACK', 'LUNAR_ASSAULT', 'REVIVE'].includes(this.commandMode)) {
+
+        // Older saves queued only the tactic name. Preserve their post-Resume target prompt.
+        legacyTargetMode = this.commandMode;
+      }
+    });
+    this.commandMode = armedCommand ?? legacyTargetMode;
+    this.setTargetingInputState(['ATTACK', 'FOCUS', 'INTERRUPT', 'COORDINATED_ATTACK', 'LUNAR_ASSAULT'].includes(this.commandMode));
   }
 
   // This helper validates the equipped tactic, its unlock, and encounter usage before
@@ -1720,7 +1801,12 @@ export default class BattleScene extends Phaser.Scene {
   // This helper builds an enemy from its definition and registers its combat targeting.
   createEnemy(type, spawn, spawnIndex) {
 
-    const definition = enemies[type];
+    // Ordinary Thornbriar waves first receive their level-5 farming totals. The shared
+    // local tuning then scales this encounter and its final boss, including escorts.
+    const encounterId = GameState.currentDelve?.encounterId ?? GameState.currentDelve?.id;
+    const bossWave = this.currentWaveIndex === this.bossWaveIndex;
+    const definition = delveEnemyDefinition(thornbriarEnemyDefinition(type, enemies[type], encounterId,
+      bossWave), GameState.currentDelve, bossWave);
     const serial = this.enemySerial++;
 
     // ... copies the source's own fields into this object; fields listed later replace
@@ -1866,8 +1952,15 @@ export default class BattleScene extends Phaser.Scene {
     // undefined.
     const replaying = this.game.backgroundProgress?.isReplaying === true;
 
+    // Real knockback advances once per frame for both sides, including saved-battle
+    // catch-up. Sprite drawing below only adds the height of each bounce.
+    if (!this.combatPaused) [...this.partyUnits, ...this.enemies].forEach(unit => {
+      if (unit.container?.active !== false) unit.updateCriticalRecoil?.(delta);
+    });
+
     // Sheet bolts use combat time, including Pause and background cleanup.
     updateVoidProjectiles(this, delta, replaying);
+    updateAbilityEffects(this, delta, replaying);
 
     this.classAbilitySystem?.syncChargeTweens?.(this.combatPaused);
 
@@ -1881,7 +1974,6 @@ export default class BattleScene extends Phaser.Scene {
     if (!this.combatPaused) this.enemies?.filter(enemy => enemy.container?.active !== false).forEach((enemy) => {
       if (!replaying) {
         enemy.spriteVisual?.update(delta);
-        enemy.updateCriticalRecoil?.(delta);
       }
       if (replaying && enemy.deathElapsed !== undefined) enemy.deathElapsed += Math.max(0, delta);
       else enemy.updateDeathPresentation?.(delta);
@@ -1903,7 +1995,6 @@ export default class BattleScene extends Phaser.Scene {
         // ?. only follows this link when the value exists; a missing optional value gives
         // undefined.
         unit.spriteVisual?.update(delta);
-        unit.updateCriticalRecoil?.(delta);
       });
 
       return;
@@ -1953,7 +2044,6 @@ export default class BattleScene extends Phaser.Scene {
 
     if (!replaying) this.partyUnits.forEach((unit) => {
       unit.spriteVisual?.update(delta);
-      unit.updateCriticalRecoil?.(delta);
     });
 
     if (!replaying) this.updateHud();
@@ -2000,7 +2090,7 @@ export default class BattleScene extends Phaser.Scene {
 
     // sort rearranges this array in place. A negative comparator result puts a before b;
     // positive puts it after; zero keeps them tied.
-    return living.sort((a, b) => {
+    const best = living.sort((a, b) => {
 
       const guardians = ['elderSlime', 'abyssalMaw', 'voidKeeperGuardian'];
       const bossPriority = Number(b.isBoss || guardians.includes(b.enemyType))
@@ -2011,6 +2101,15 @@ export default class BattleScene extends Phaser.Scene {
 
       return unit.distanceTo(a) - unit.distanceTo(b);
     })[0];
+
+    // Keep an automatic target unless an equally important enemy is meaningfully closer.
+    // Small distance changes in a melee crowd should not send a unit back and forth.
+    const previous = living.find(enemy => enemy.id === unit.autoTargetId);
+    const priority = enemy => Number(enemy.isBoss || ['elderSlime', 'abyssalMaw', 'voidKeeperGuardian'].includes(enemy.enemyType));
+    const target = previous && priority(previous) >= priority(best)
+      && unit.distanceTo(previous) <= unit.distanceTo(best) + 80 ? previous : best;
+    unit.autoTargetId = target.id;
+    return target;
   }
 
   // This helper chooses what one living adventurer does next. Passive effects run first,
@@ -2268,9 +2367,9 @@ export default class BattleScene extends Phaser.Scene {
     attacker.spriteVisual?.play(ability.animation ?? 'attack', target);
     this.announceAbility(attacker, ability.name, '#c084fc');
 
-    // Authored boss prompts explain the command while the normal cast bar counts down.
-    // Skills without a hint retain their existing announcement and targeting behavior.
-    if (ability.responseHint) this.showBattleMessage(`${ability.name}: ${ability.responseHint}`, '#fde68a');
+    // Long boss casts use the shared banner while the normal cast bar counts down.
+    // Include authored response guidance when the ability supplies it.
+    this.announceBossCast(attacker, ability, ability.windup);
     this.setEnemyTarget(attacker, target, 'highest threat');
     this.logActionStart(attacker, target, ability.name);
     attacker.markAbilityUsed(key, time);
@@ -2318,7 +2417,7 @@ export default class BattleScene extends Phaser.Scene {
     this.announceAbility(attacker, ability.name, '#f87171');
 
     // Keep the response instructions separate from the ability name used in combat logs.
-    if (ability.responseHint) this.showBattleMessage(`${ability.name}: ${ability.responseHint}`, '#fde68a');
+    this.announceBossCast(attacker, ability, ability.telegraph);
     this.setEnemyTarget(attacker, target, 'highest threat');
     this.logActionStart(attacker, target, ability.name);
 
@@ -2479,7 +2578,11 @@ export default class BattleScene extends Phaser.Scene {
   // This helper resolves an attack from its base damage through critical hits, status
   // effects, and the target defenses. It updates combat timestamps, threat, visual
   // feedback, and the log, then handles any resulting defeat.
-  resolveDamage(attacker, target, baseAmount, attackType, threatMultiplier = 1, abilityName = 'Attack', allowCrit = true) {
+  resolveDamage(attacker, target, baseAmount, attackType, threatMultiplier = 1, abilityName = 'Attack', allowCrit = true, contact = null) {
+
+    // Optional cosmetic feedback distinguishes a dodge from a shielded hit, which
+    // both return zero damage. Existing callers still receive the same damage value.
+    if (contact) contact.hit = false;
 
     // Area hits and delayed attacks also obey the engagement rule, so a spell cannot pull
     // an untouched enemy while the tank is approaching.
@@ -2585,6 +2688,10 @@ export default class BattleScene extends Phaser.Scene {
     const armorBlocked = physical && attackType !== 'reflection' && attacker !== target
       && target.statProgressionVersion === 2 && this.combatRandom() < cappedChance('block', (target.block ?? 0) + leaderBlock);
     const hpBefore = target.hp;
+
+    // Accuracy, dodge and parry checks have passed. The projectile touched its target
+    // even if the defenses below absorb all of the damage.
+    if (contact) contact.hit = true;
     target.takeDamage(amount, { time: now, ranged, attacker, physical, armorBlocked,
       blocked: armorBlocked || (!target.isEnemy && now < this.braceUntil)
         || now < (target.status.shieldUntil ?? 0)
@@ -2595,7 +2702,7 @@ export default class BattleScene extends Phaser.Scene {
     // Only a critical that actually takes HP starts the shock animation. Misses,
     // immunity and fully absorbed hits do not bounce. Replayed background hits keep
     // their real damage but skip historical visual reactions when catching up.
-    if (critical && actualDamage > 0 && !this.idleSimulating) target.playCriticalHit?.(attacker);
+    if (critical && actualDamage > 0) target.playCriticalHit?.(attacker);
     if (actualDamage > 0 && target.isEnemy && attacker.status.nextPoisonPower) {
       target.status.poison = {
         caster: attacker,
@@ -2672,9 +2779,11 @@ export default class BattleScene extends Phaser.Scene {
       if (attacker.alive) this.resolveDamage(bramble.caster, attacker, bramble.power, 'spell', 1, 'Bramble Mend', false);
     }
 
-    if (attackType === 'spell' || attackType === 'holy') {
+    // Supplied artwork replaces the generic pulse/bolt for these named class skills.
+    // Ordinary attacks and skills without authored art keep their familiar feedback.
+    if (!contact?.hasArtwork && (attackType === 'spell' || attackType === 'holy')) {
       this.createProjectile(attacker, target, attackType === 'holy' ? 0xfde68a : 0x60a5fa);
-    } else {
+    } else if (!contact?.hasArtwork) {
       this.createMeleePulse(target, critical ? 0xfbbf24 : 0xffffff);
     }
 
@@ -2703,7 +2812,7 @@ export default class BattleScene extends Phaser.Scene {
   // This helper applies a heal, including its critical roll, and measures how much health
   // was actually restored for feedback and the combat log. Healing generates threat only
   // on enemies already engaged by a tank.
-  resolveHeal(healer, target, baseAmount, abilityName, allowCrit = true) {
+  resolveHeal(healer, target, baseAmount, abilityName, allowCrit = true, hasArtwork = false) {
 
     const critical = this.rollCritical(healer, allowCrit);
 
@@ -2724,7 +2833,10 @@ export default class BattleScene extends Phaser.Scene {
     const effectiveHealing = target.hp - before;
 
     target.flash(0x86efac);
-    this.createProjectile(healer, target, 0x86efac);
+
+    // Authored healing columns replace the generic traveling dot. Health text and
+    // hit flashes still show the unchanged amount restored by this heal.
+    if (!hasArtwork) this.createProjectile(healer, target, 0x86efac);
     this.createFloatingText(target.x, target.y - 82, `+${effectiveHealing}${critical ? '!' : ''}`, '#22c55e', critical, 'healing');
 
     // filter keeps entries whose callback returns true. It builds a new list and leaves
@@ -2924,6 +3036,21 @@ export default class BattleScene extends Phaser.Scene {
       .sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp))[0] ?? null;
   }
 
+  // Cosmetic class effects are separate from damage so idle replay stays identical.
+  createAbilityTelegraph(caster, target, ability, action) {
+    return createAbilityTelegraph(this, caster, target, ability, action);
+  }
+
+  // Cast identity keeps cleanup from touching any newer warning from the same Ranger.
+  clearAbilityTelegraph(caster, action) {
+    clearAbilityTelegraph(this, caster, action);
+  }
+
+  // Pass the resolved recipients so area art draws above everyone it affects.
+  createAbilityEffect(caster, target, ability, recipients) {
+    return createAbilityEffect(this, caster, target, ability, recipients);
+  }
+
   // This helper connects attacker and target with a brief traveling effect.
   createProjectile(attacker, target, color, kind = 'bolt') {
 
@@ -2975,6 +3102,20 @@ export default class BattleScene extends Phaser.Scene {
     this.createFloatingText(unit.x, Math.max(unit.y - 122, this.battlefield.topY + 12), name.toUpperCase(), color, false, 'ability');
   }
 
+  // Boss casts lasting at least two seconds use the same stone banner as player guidance.
+  announceBossCast(attacker, ability, windup) {
+
+    if (attacker.isBoss && windup >= 2000) {
+      const hint = ability.responseHint ? `: ${ability.responseHint}` : '';
+
+      // A normal banner lasts 900 + 260 ms. Scale that lifetime to cover the cast,
+      // with at least two normal lifetimes for a readable short boss warning.
+      this.showBattleMessage(`${attacker.name} casts ${ability.name}${hint}`, '#fde68a', false, Math.max(2, windup / 1160));
+    } else if (ability.responseHint) {
+      this.showBattleMessage(`${ability.name}: ${ability.responseHint}`, '#fde68a');
+    }
+  }
+
   // This helper animates combat feedback with extra emphasis for critical results.
   createFloatingText(x, y, text, color, critical = false, kind = 'damage') {
 
@@ -3005,7 +3146,7 @@ export default class BattleScene extends Phaser.Scene {
       y: y - (critical ? 86 : 60),
       scale: critical ? 1 : 0.96,
       alpha: 0,
-      duration: (critical ? 1050 : 760) * (kind === 'ability' ? 1.5 : 1),
+      duration: (critical ? 1050 : 760) * (kind === 'ability' ? 3 : 1),
       ease: 'Cubic.Out',
 
       // Finish this animation's remaining work when the tween reaches its end.
@@ -3245,7 +3386,6 @@ export default class BattleScene extends Phaser.Scene {
       // undefined.
       if (!this.game.backgroundProgress?.isReplaying) {
         unit.spriteVisual?.update(delta);
-        unit.updateCriticalRecoil?.(delta);
       }
     }
 
@@ -3279,9 +3419,9 @@ export default class BattleScene extends Phaser.Scene {
 
       // Math.max chooses the largest value; pairing it with Math.min can keep a result
       // inside both a lower and an upper bound.
-      this.startWave(Math.max(0, this.bossWaveIndex - 1));
+      this.startWave(delveFarmWaveIndex(GameState.currentDelve, this.bossWaveIndex));
     } else if (isOrdinaryDelve() && (GameState.run.entry === 'farm'
-      || this.currentWaveIndex + 1 === this.bossWaveIndex)) {
+      || delveCampWaves(GameState.currentDelve, this.bossWaveIndex).includes(this.currentWaveIndex + 1))) {
       this.showDelveCamp();
     } else if (this.currentWaveIndex + 1 >= this.waves.length) this.finishVictory();
     else this.startWave(this.currentWaveIndex + 1);
@@ -3294,18 +3434,16 @@ export default class BattleScene extends Phaser.Scene {
     GameState.run.entry = 'camp';
     this.farmStopRequested = false;
     this.refreshFarmControls();
-    GameState.currentRoom = this.bossWaveIndex;
+    GameState.currentRoom = getDelveCheckpoint(GameState.currentDelve, this.bossWaveIndex)?.nextWave ?? this.bossWaveIndex;
     this.clearBattleMessage();
 
     const delve = GameState.currentDelve;
     if (this.idleSimulating) return;
 
-    // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
-    const values = FARM_REWARDS[delve.difficulty] ?? FARM_REWARDS.Easy;
-
     // Math.max chooses the largest value; pairing it with Math.min can keep a result
     // inside both a lower and an upper bound.
-    const farmIndex = Math.max(0, this.bossWaveIndex - 1);
+    const farmIndex = delveFarmWaveIndex(delve, this.bossWaveIndex);
+    const nextWave = getDelveCheckpoint(delve, this.bossWaveIndex)?.nextWave ?? this.bossWaveIndex;
 
     // The braces pull named fields into local variables. This reads those fields without
     // copying the whole source object.
@@ -3333,7 +3471,13 @@ export default class BattleScene extends Phaser.Scene {
     overlay.push(addStoneOrnaments(this, width / 2, 274, 1630, this.stoneTheme, 12002));
 
     overlay.push(stoneText(this, width / 2, 282, 'DELVE CAMP', UI_FONT_SIZES.display62, 12002));
-    overlay.push(stoneText(this, width / 2, 346, 'Rewards and checkpoint saved.', UI_FONT_SIZES.body32, 12002,
+    const eligibility = delveRewardEligibility(delve);
+    const rewardNotice = eligibility.cappedCount === eligibility.partyCount
+      ? `Party at level ${eligibility.cap} cap: materials only. No XP, Gold or Happiness.`
+      : eligibility.cappedCount > 0
+        ? `${eligibility.cappedCount}/${eligibility.partyCount} at level ${eligibility.cap} cap: reduced Gold; capped members earn no XP/Happiness.`
+        : `Rewards saved. XP, Gold and Happiness stop at level ${eligibility.cap} cap.`;
+    overlay.push(stoneText(this, width / 2, 346, rewardNotice, UI_FONT_SIZES.body32, 12002,
       { color: STONE.muted }));
 
     // Build one of the three camp choices. index selects its column and icon. The action
@@ -3391,23 +3535,19 @@ export default class BattleScene extends Phaser.Scene {
       });
     };
 
-    choice(0, 'RETURN TO TOWN', 'Keep all banked rewards', () => {
+    choice(0, 'LEAVE DELVE', 'Keep all banked rewards', () => {
       GameState.activeParty = [];
 
-      // ?? uses the fallback only for null or undefined. A real zero or false stays
-      // intact. The condition before ? chooses the first value when true and the value
-      // after : when false.
-      const townId = delve.returnTownId ?? (delve.requiresLocation === 'duskfall' ? 'duskfall' : 'pineshire');
-      GameState.world.currentLocation = townId;
+      // TitleScene hosts the world map. Keep the current Delve location so leaving
+      // camp does not teleport the party to town; banked rewards and checkpoints stay saved.
       saveProfile();
-      this.scene.start('TownScene', { townId });
+      this.scene.start('TitleScene');
     }, 0x1f2937);
 
-    // bossWaveIndex is zero-based. Its numeric value is also the one-based number of the
-    // preceding farm wave. FARM_REWARDS supplies the shown Gold and each
-    // living adventurer's XP/Happiness.
-    choice(1, `FARM WAVE ${this.bossWaveIndex}`,
-      `${values.gold} Gold + Material chances\n${values.xp} XP + ${values.happiness} Happiness\nper living adventurer\nRepeats until cancelled`, () => {
+    // farmIndex is zero-based, so add one for the player-visible camp wave number.
+    // Both Abyss camps repeat their own cleared wave; payouts use the reward-cap rules.
+    choice(1, `FARM WAVE ${farmIndex + 1}`,
+      eligibility.eligibleIds.size ? 'Gold, XP, Happiness, and Materials' : 'Materials only', () => {
         GameState.run.entry = 'farm';
         this.startWave(farmIndex);
       }, 0x50432e);
@@ -3416,9 +3556,12 @@ export default class BattleScene extends Phaser.Scene {
     // World clears already persist the defeated boss under this Delve's stable ID.
     // Use that record rather than the camp checkpoint, which also unlocks before a win.
     const bossDefeated = GameState.world.clearedDelves.includes(delve.id);
-    choice(2, 'FACE THE BOSS', bossDefeated ? 'Boss already defeated' : 'Boss rewards and Delve completion', () => {
-      GameState.run.entry = 'boss';
-      this.startWave(this.bossWaveIndex);
+    const atBoss = nextWave >= this.bossWaveIndex;
+    choice(2, atBoss ? 'FACE THE BOSS' : 'CONTINUE DELVE', bossDefeated ? 'Boss already defeated'
+      : atBoss ? 'Challenge the boss of this Delve to earn better rewards and unlock the next Delve!'
+        : `Continue from wave ${nextWave + 1} toward the next camp.`, () => {
+      GameState.run.entry = atBoss ? 'boss' : 'progress';
+      this.startWave(nextWave);
     }, 0x633328, !bossDefeated);
   }
 
@@ -3825,7 +3968,7 @@ export default class BattleScene extends Phaser.Scene {
 
     // Commit encounter gold and progression before showing the button that opens the
     // reward screen.
-    const gold = Math.max(1, this.earnedGold);
+    const gold = cappedDelveGold(Math.max(1, this.earnedGold));
     GameState.gold += gold;
     GameState.currentRoom = this.waves.length;
 
@@ -3833,9 +3976,17 @@ export default class BattleScene extends Phaser.Scene {
     GameState.rewards = [{ type: 'gold', amount: gold, source: GameState.currentDelve?.name ?? 'Delve' }];
     if (this.idleSimulating) {
       this.idleSummary.gold += gold;
-      this.idleSummary.xp += 35;
     }
     const summary = completeExpedition();
+    if (this.idleSimulating) {
+
+      // Record actual boss XP after cap clipping, including zero for capped heroes.
+      this.idleSummary.xpByHero ??= Object.fromEntries(this.partyUnits.map(hero => [hero.id, this.idleSummary.xp]));
+      for (const hero of summary.adventurers) {
+        this.idleSummary.xpByHero[hero.id] = (this.idleSummary.xpByHero[hero.id] ?? 0) + hero.xpGained;
+      }
+      this.idleSummary.xp += Math.max(0, ...summary.adventurers.map(hero => hero.xpGained));
+    }
     saveProfile();
 
     this.showResultOverlay('DELVE CLEARED!', `${GameState.currentDelve?.name ?? 'The Delve'} has been cleared.`, 'CONFIRM', () => {

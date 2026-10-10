@@ -8,7 +8,13 @@ export default {
   name: 'The Murmuring Abyss',
   mapLabel: 'The Murmuring Abyss',
   subtitle: 'A tear in the world. Something on the other side is whispering.',
-  difficulty: 'Incredibly Tough', recommendedLevel: 20, depth: 4, type: 'void',
+  difficulty: 'Incredibly Tough', recommendedLevel: 25, depth: 4, type: 'void',
+  bossPreparation: { level: 30, gearRarity: 'common', abilityCount: 3, abilityRank: 4 },
+
+  // Keep the portal identity and artwork while banking waves and offering two camps.
+  // Each number means camp opens after clearing that player-visible wave.
+  campWaves: [15, 33],
+  materialEnvironments: ['Caves', 'Forests', 'Humanoid'],
   possibleDrops: ['Gold', 'Adventurer XP'],
   prerequisites: ['slime-cave', 'thornbriar-hollow', 'dolmark-den'],
   requiresLocation: 'duskfall',

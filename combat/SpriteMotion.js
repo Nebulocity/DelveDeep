@@ -31,6 +31,8 @@ export class SpriteMotion {
     this.state = 'idle';
     this.elapsed = 0;
     this.quietMs = 0;
+    this.pendingDirection = null;
+    this.pendingDirectionMs = 0;
   }
 
   // Compare current and previous positions to choose stable walking direction and reaction
@@ -58,7 +60,19 @@ export class SpriteMotion {
 
     // A short grace period avoids flicker from subpixel avoidance corrections.
     const nextState = moving || (this.state === 'walk' && this.quietMs < 90 && !teleported) ? 'walk' : 'idle';
-    if (moving) this.direction = movementDirection(dx, dy);
+    if (moving) {
+      const direction = movementDirection(dx, dy);
+
+      // Start walking promptly, but require 180 ms of consistent motion before turning.
+      // Alternating avoidance nudges then cannot flip the character every frame.
+      if (this.state !== 'walk' || teleported) this.direction = direction;
+      if (direction !== this.pendingDirection) {
+        this.pendingDirection = direction;
+        this.pendingDirectionMs = 0;
+      }
+      this.pendingDirectionMs += Math.min(delta, 100);
+      if (this.pendingDirectionMs >= 180) this.direction = direction;
+    }
     if (nextState !== this.state) {
       this.state = nextState;
       this.elapsed = 0;

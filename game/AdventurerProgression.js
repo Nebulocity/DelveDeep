@@ -4,13 +4,16 @@
 // brand-new character whenever a level changes.
 
 import { rebuildCharacterStats } from './CharacterStats.js';
+import { ADVENTURER_XP_COSTS } from '../config/adventurerXp.js';
 
-// This helper increases the experience needed for each adventurer level.
+// Read the authored XP needed to advance from this level to the next one.
 export function xpRequired(level) {
 
-  // Math.max chooses the largest value; pairing it with Math.min can keep a result inside
-  // both a lower and an upper bound.
-  return 100 + Math.max(0, level - 1) * 50;
+  // Array positions start at zero, so current level 1 reads entry zero. Math.floor keeps
+  // the index whole. Costs above the authored level-50 plan keep the older linear rule,
+  // using ?? only when the array has no authored entry. This preserves
+  // existing higher-level saves and training rules until another region is planned.
+  return ADVENTURER_XP_COSTS[Math.max(0, Math.floor(level) - 1)] ?? (100 + Math.max(0, level - 1) * 50);
 }
 
 // Development grants preserve current XP and use the normal level rewards.
@@ -40,18 +43,30 @@ export function grantAdventurerLevels(adventurer, amount = 1) {
 // This helper adds earned experience to an adventurer and processes every level gained
 // from it. Each level raises maximum health and attack power, plus healing power when that
 // stat is present; leftover experience remains toward the next level.
-export function grantAdventurerXp(adventurer, amount) {
+export function grantAdventurerXp(adventurer, amount, levelCap = Infinity) {
 
-  // Math.max chooses the largest value; pairing it with Math.min can keep a result inside
-  // both a lower and an upper bound.
-  const result = { levelsGained: 0, xpGained: Math.max(0, Math.round(amount)) };
+  // Delve callers supply their boss level as the cap. Infinity means other XP sources
+  // keep the existing progression rules, including characters already above level 50.
+  const cap = levelCap;
+  const result = { levelsGained: 0, xpGained: 0 };
+  if (adventurer.level >= cap) return result;
+
+  // Sum the remaining level costs, then remove XP already banked toward the next level.
+  // Accept only XP that fits below this Delve's cap, so overflow cannot be carried into
+  // the next Delve. Existing saved XP is preserved, including XP on overleveled heroes.
+  let room = Infinity;
+  if (Number.isFinite(cap)) {
+    room = -(adventurer.xp ?? 0);
+    for (let level = adventurer.level; level < cap; level++) room += xpRequired(level);
+  }
+  result.xpGained = Math.min(Math.max(0, room), Number.isFinite(amount) ? Math.max(0, Math.round(amount)) : 0);
 
   // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
   adventurer.xp = Math.max(0, adventurer.xp ?? 0) + result.xpGained;
 
   // Process multiple level gains when one reward crosses several thresholds, subtracting
   // each level cost in turn.
-  while (adventurer.xp >= xpRequired(adventurer.level)) {
+  while (adventurer.level < cap && adventurer.xp >= xpRequired(adventurer.level)) {
     adventurer.xp -= xpRequired(adventurer.level);
     grantAdventurerLevels(adventurer, 1);
     result.levelsGained += 1;

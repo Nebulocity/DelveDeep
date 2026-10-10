@@ -9,7 +9,7 @@ export const WORLD_WIDTH = WORLD_COLUMNS * TILE;
 export const WORLD_HEIGHT = WORLD_ROWS * TILE;
 export const WORLD_LAYOUT_ID = 'illustrated-pineshire-v1';
 
-export const regions = [{ id: 'pineshire-reach', name: 'Pineshire Reach', levelRange: [1, 3], column: 0 }];
+export const regions = [{ id: 'pineshire-reach', name: 'Pineshire Reach', levelRange: [1, 30], column: 0 }];
 
 export const areas = [{ id: 'pineshire-reach', name: 'Pineshire Reach', column: 0, row: 0 }];
 

@@ -2,17 +2,25 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+
+    <!-- Let CSS use device safe-area insets around this full-window game host. -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#142b31" />
     <title>Delve Deep</title>
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
+
+    <!-- Phaser attaches its canvas here. CSS reserves system-bar space around this element. -->
     <div id="game"></div>
+
+    <!-- This splash is ordinary HTML so it appears before the game bundle has finished loading. -->
     <div id="loading-screen" class="loading-screen" role="status" aria-live="polite">
       <div class="loading-content">
         <img class="loading-art" src="./assets/screens/splashscreen.png" alt="" aria-hidden="true" fetchpriority="high" />
         <div class="loading-vignette"></div>
+
+        <!-- The quadratic path bends the title: M starts it and Q gives its control point and end. -->
         <svg class="loading-title" viewBox="0 0 1200 230" role="img" aria-label="Delve Deep!">
           <defs>
             <path id="loading-title-arc" d="M 110 170 Q 600 15 1090 170" />
@@ -21,12 +29,16 @@
             <textPath href="#loading-title-arc" startOffset="50%" text-anchor="middle">Delve Deep!</textPath>
           </text>
         </svg>
+
+        <!-- Vite replaces the build label. LoadingScreen updates the fill and accessible progress. -->
         <div class="loading-footer">
-          <div class="loading-status"><span id="loading-message">Preparing the world map</span><span id="loading-percent">0%</span></div>
-          <div class="loading-track"><div class="loading-progress" id="loading-progress"></div></div>
+          <div class="loading-status"><span id="loading-message">Loading<span class="loading-dots" aria-hidden="true"></span></span><span id="loading-build">__DELVE_DEEP_BUILD_NAME__</span></div>
+          <div class="loading-track" role="progressbar" aria-label="Loading progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="loading-progress" id="loading-progress"></div></div>
         </div>
       </div>
     </div>
+
+    <!-- Start the JavaScript module graph; imported modules supply scenes, state and services. -->
     <script type="module" src="./main.js"></script>
   </body>
 </html>

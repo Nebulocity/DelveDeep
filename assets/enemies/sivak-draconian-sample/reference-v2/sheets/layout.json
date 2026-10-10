@@ -1,0 +1,113 @@
+{
+  "frameWidth": 256,
+  "frameHeight": 256,
+  "directions": [
+    "south-east",
+    "south-west",
+    "north-east",
+    "north-west"
+  ],
+  "origins": {
+    "south-east": {
+      "y": 0.8984375,
+      "x": 0.5
+    },
+    "south-west": {
+      "y": 0.8984375,
+      "x": 0.5
+    },
+    "north-east": {
+      "y": 0.8828125,
+      "x": 0.5
+    },
+    "north-west": {
+      "y": 0.8828125,
+      "x": 0.5
+    }
+  },
+  "states": {
+    "facing": {
+      "columns": 1,
+      "counts": {
+        "south-east": 1,
+        "south-west": 1,
+        "north-east": 1,
+        "north-west": 1
+      },
+      "frameMs": 1000,
+      "loop": false
+    },
+    "idle": {
+      "columns": 4,
+      "counts": {
+        "south-east": 4,
+        "south-west": 4,
+        "north-east": 4,
+        "north-west": 4
+      },
+      "frameMs": 150,
+      "loop": true
+    },
+    "walk": {
+      "columns": 8,
+      "counts": {
+        "south-east": 8,
+        "south-west": 8,
+        "north-east": 8,
+        "north-west": 8
+      },
+      "frameMs": 75,
+      "loop": true
+    },
+    "block": {
+      "columns": 5,
+      "counts": {
+        "south-east": 5,
+        "south-west": 5,
+        "north-east": 5,
+        "north-west": 5
+      },
+      "frameMs": 85,
+      "loop": false
+    },
+    "attack": {
+      "columns": 5,
+      "counts": {
+        "south-east": 5,
+        "south-west": 5,
+        "north-east": 5,
+        "north-west": 5
+      },
+      "frameMs": 70,
+      "loop": false
+    },
+    "death": {
+      "columns": 7,
+      "counts": {
+        "south-east": 7,
+        "south-west": 7,
+        "north-east": 7,
+        "north-west": 7
+      },
+      "frameMs": 100,
+      "loop": false
+    }
+  },
+  "facings": {
+    "file": "facings.png",
+    "columns": 8,
+    "rows": 1,
+    "frameCount": 8,
+    "directions": [
+      "south",
+      "south-east",
+      "east",
+      "north-east",
+      "north",
+      "north-west",
+      "west",
+      "south-west"
+    ],
+    "source": "PixelLab 8-direction reference rotation export"
+  }
+}

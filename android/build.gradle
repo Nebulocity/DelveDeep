@@ -1,4 +1,4 @@
-// Top-level build file where you can add configuration options common to all sub-projects/modules.
+// This configures Gradle itself and the repositories shared by Android modules.
 
 buildscript {
     
@@ -7,6 +7,8 @@ buildscript {
         mavenCentral()
     }
     dependencies {
+
+        // These are build plugins, not libraries the game's JavaScript imports.
         classpath 'com.android.tools.build:gradle:8.13.0'
         classpath 'com.google.gms:google-services:4.4.4'
 
@@ -17,6 +19,7 @@ buildscript {
 
 apply from: "variables.gradle"
 
+// Each module resolves its native dependencies from these repositories.
 allprojects {
     repositories {
         google()
@@ -24,6 +27,8 @@ allprojects {
     }
 }
 
+
+// Gradle's clean task removes generated build output, not authored game source.
 task clean(type: Delete) {
     delete rootProject.buildDir
 }

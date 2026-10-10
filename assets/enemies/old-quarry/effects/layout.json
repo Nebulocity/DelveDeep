@@ -1,0 +1,78 @@
+{
+  "frameWidth": 256,
+  "frameHeight": 256,
+  "effects": {
+    "crystalImpact": {
+      "file": "crystalImpact.png",
+      "columns": 9,
+      "count": 9,
+      "frameMs": 90,
+      "loop": false,
+      "origin": {
+        "x": 0.5,
+        "y": 0.75
+      },
+      "direction": null
+    },
+    "crystalProjectile": {
+      "file": "crystalProjectile.png",
+      "columns": 8,
+      "count": 8,
+      "frameMs": 75,
+      "loop": true,
+      "origin": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "direction": "east"
+    },
+    "groundSpike": {
+      "file": "groundSpike.png",
+      "columns": 7,
+      "count": 7,
+      "frameMs": 90,
+      "loop": false,
+      "origin": {
+        "x": 0.5,
+        "y": 0.75
+      },
+      "direction": null
+    },
+    "rockImpact": {
+      "file": "rockImpact.png",
+      "columns": 9,
+      "count": 9,
+      "frameMs": 90,
+      "loop": false,
+      "origin": {
+        "x": 0.5,
+        "y": 0.75
+      },
+      "direction": null
+    },
+    "rockProjectile": {
+      "file": "rockProjectile.png",
+      "columns": 5,
+      "count": 5,
+      "frameMs": 75,
+      "loop": true,
+      "origin": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "direction": "east"
+    },
+    "stoneEruption": {
+      "file": "stoneEruption.png",
+      "columns": 8,
+      "count": 8,
+      "frameMs": 90,
+      "loop": false,
+      "origin": {
+        "x": 0.5,
+        "y": 0.75
+      },
+      "direction": null
+    }
+  }
+}

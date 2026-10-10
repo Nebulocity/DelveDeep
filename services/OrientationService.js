@@ -1,10 +1,15 @@
+// We ask the host to keep the game in landscape. Browser and native support can differ, so
+// this request is optional and errors must not stop the game from opening.
+
 export default class OrientationService {
 
-  // This function requests landscape orientation when the browser supports
-  // locking it.
+  // This helper requests landscape orientation when the browser supports locking it.
   static async lockLandscape() {
 
     try {
+
+      // ?. only follows this link when the value exists; a missing optional value gives
+      // undefined.
       if (screen?.orientation?.lock) {
         await screen.orientation.lock('landscape');
         return true;

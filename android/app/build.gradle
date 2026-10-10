@@ -1,5 +1,9 @@
 apply plugin: 'com.android.application'
 
+apply from: 'versioning.gradle'
+
+// This packages the web game inside the Android host. namespace is the Java package;
+// applicationId is the installed app's identity and must stay stable for compatible updates.
 android {
     namespace = "com.waywardkobold.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +11,8 @@ android {
         applicationId "com.waywardkobold.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode appVersionCode
+        versionName appVersionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,6 +20,9 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+
+    // Release keeps the existing shrinking policy. The rule files are only relevant if
+    // shrinking is enabled later; web JavaScript bundling is handled separately by Vite.
     buildTypes {
         release {
             minifyEnabled false
@@ -30,6 +37,8 @@ repositories {
     }
 }
 
+// implementation libraries ship with the app. Test libraries belong to native test builds.
+// The Capacitor projects provide the WebView bridge and plugin compatibility layer.
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
@@ -42,8 +51,12 @@ dependencies {
     implementation project(':capacitor-cordova-android-plugins')
 }
 
+
+// Sync maintains the native plugin wiring in this generated file.
 apply from: 'capacitor.build.gradle'
 
+// Apply Google's optional service configuration only when its local JSON file exists.
+// The existing local notification flow does not require a remote push service here.
 try {
     def servicesJSON = file('google-services.json')
     if (servicesJSON.text) {

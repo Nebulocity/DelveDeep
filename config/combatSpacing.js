@@ -1,9 +1,16 @@
-// Distances use logical arena coordinates, before perspective projection.
-// Keep melee radii within the existing class/enemy attack ranges.
+// These are the shared movement and spacing settings. Distances belong to the logical
+// arena. Formation spacing says how spread out we want a party; foot clearance says where
+// a unit can actually stand. They solve different problems, even though both use
+// distances. Distances use logical arena coordinates, before perspective projection. Keep
+// melee radii within the existing class/enemy attack ranges.
 export default {
   normal: 52,
   stack: 28,
   spread: 105,
+
+  // One pace is 100 logical units. Destination planning aims for ten paces;
+  // personal-space separation stays small so an arena edge cannot push held units forever.
+  spreadDistance: 1000,
   tankRange: 52,
   meleeRange: 65,
   personalSpaceGap: 18,

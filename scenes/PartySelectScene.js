@@ -1,12 +1,19 @@
-import { addWoodenPanel } from '../ui/WoodenPanel.js';
-import { bindSelectionDetails, addDetailsHint } from '../ui/SelectionDetails.js';
+// The role lists hold selectable adventurers; the lineup holds the chosen party. The list
+// mask limits both visible rows and valid touches. Remembering IDs keeps selection stable
+// across sorting, scrolling and returning to this screen.
+
+import { UI_FONT_SIZES, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
+import { preloadCarvedStone, addStonePanel, addStoneButton, stoneText, stoneIcon, STONE } from '../ui/CarvedStone.js';
+import { preparationFrame, preparationButton, preparationNotice } from '../ui/DelvePreparation.js';
+import { CHARACTER_SPRITES } from '../data/characterSprites.js';
+import { bindSelectionDetails, addDetailsHint, showSelectionDetails } from '../ui/SelectionDetails.js';
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
+import { addBgmToggle } from '../ui/BgmToggle.js';
+
 import { getEquippedAdventurer } from '../game/Equipment.js';
 import HapticsService from '../services/HapticsService.js';
 import { happinessLabel } from '../game/AdventurerProgression.js';
-import { UI_SAFE_TOP } from '../ui/Layout.js';
-import { addReturnButton } from '../ui/ReturnButton.js';
 import { saveProfile } from '../game/GameStorage.js';
 
 const MAX_PARTY_SIZE = 5;
@@ -25,91 +32,121 @@ const ROLE_COLUMNS = [
 
 export default class PartySelectScene extends Phaser.Scene {
 
-  // This function registers PartySelectScene so the game can navigate to this
-  // screen.
+  // This helper registers PartySelectScene so the game can navigate to this screen.
   constructor() {
 
     super('PartySelectScene');
+
+    // A Set keeps each value once. has checks membership without searching a list for
+    // duplicate entries.
     this.selectedIds = new Set();
+
+    // A Map pairs a key with a value. Unlike an array index, the key can be an ID or an
+    // object; get/set read and write that same key.
     this.cards = new Map();
     this.columns = [];
     this.lastTap = new Map();
   }
 
-  // This function restores the party selection whenever this screen opens.
+  // This helper restores the party selection whenever this screen opens.
   init() {
 
     this.selectedIds = this.buildInitialSelection();
   }
 
-  // This function builds the party selection screen with separate scrolling
-  // columns for each role. It connects wheel and scrollbar input, adds the
-  // battle overview button, and displays the current selection against the
-  // party limits.
+  // Load the shared battle surfaces and existing character portraits.
+  preload() {
+    preloadCarvedStone(this);
+    for (const definition of Object.values(CHARACTER_SPRITES)) {
+      const frame = definition.clips.idle.south.frames[0];
+
+      // find returns the first matching entry, or undefined when none matches. Check for
+      // that missing result before using its fields.
+      const texture = definition.textures.find(entry => entry.key === frame.key);
+      if (texture && !this.textures.exists(texture.key)) this.load.spritesheet(texture.key, texture.url, { frameWidth: 256, frameHeight: 256 });
+    }
+  }
+
+  // We build this screen and connect its input after the queued assets are ready. Display
+  // objects belong to this scene and are removed when the scene shuts down.
   create() {
 
+    // The braces pull named fields into local variables. This reads those fields without
+    // copying the whole source object.
     const { width, height } = this.scale;
-    this.cameras.main.setBackgroundColor('#111827');
     this.cards.clear();
     this.columns = [];
+    this.lastTap.clear();
+    preparationFrame(this, GameState.currentDelve, 'PARTY SELECT', 'DELVE OVERVIEW', () => this.scene.start('DelveSelectScene'));
+    this.bgmToggle = addBgmToggle(this, width - 165, 64);
+    this.partyCountText = stoneText(this, width / 2, 171, '', UI_FONT_SIZES.partyCount, 3, { fontFamily: UI_FONT_FAMILIES.sans, color: STONE.muted });
+    const columnWidth = (width - 130) / 4;
 
-    this.createBackButton();
-    addDetailsHint(this, height * 0.82, 'Long-press or hold-click an adventurer for stats.');
-
-    this.add.text(width / 2, UI_SAFE_TOP + 14, 'PARTY SELECT', { fontFamily: 'Arial', fontSize: '68px', fontStyle: 'bold', color: '#f8fafc' }).setOrigin(0.5);
-    this.add.text(width / 2, UI_SAFE_TOP + 67, GameState.currentDelve?.name ?? 'Unknown Delve', { fontFamily: 'Arial', fontSize: '34px', color: '#cbd5e1' }).setOrigin(0.5);
-    this.partyCountText = this.add.text(width / 2, UI_SAFE_TOP + 106, '', { fontFamily: 'Arial', fontSize: '32px', color: '#94a3b8' }).setOrigin(0.5);
-
-    // Divide the available width into four role columns with a shared viewing
-    // height.
-    const columnWidth = width * 0.225;
-    const gap = width * 0.012;
-    const totalWidth = columnWidth * 4 + gap * 3;
-    const startX = (width - totalWidth) / 2 + columnWidth / 2;
-    const viewTop = height * 0.30;
-    const viewHeight = height * 0.48;
-
+    const gap = 18;
+    const startX = 38 + columnWidth / 2;
     ROLE_COLUMNS.forEach((definition, index) => {
-
-      const x = startX + index * (columnWidth + gap);
-      this.createRoleColumn(definition, x, viewTop, columnWidth, viewHeight);
+      this.createRoleColumn(definition, startX + index * (columnWidth + gap), 258, columnWidth, 458);
     });
 
-    // Create the overview button. The begin handler still checks that exactly
-    // five adventurers are selected.
-    this.beginButton = this.add.rectangle(width / 2, height * 0.90, 720, 96, 0x334155).setInteractive({ useHandCursor: true });
-    this.beginButtonText = this.add.text(width / 2, height * 0.90, 'BATTLE OVERVIEW', { fontFamily: 'Arial', fontSize: '40px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
-    this.beginButton.on('pointerdown', () => this.begin());
+    // Depth is drawing order, not distance or size. Higher-depth objects draw on top of
+    // lower-depth objects.
+    this.lineup = this.add.container(0, 0).setDepth(5);
+    const action = preparationButton(this, width - 360, height - 74, 630, 104, 'BATTLE OVERVIEW', () => this.begin(), { primary: true, size: UI_FONT_SIZES.body36 });
+    this.beginButton = action.button;
+    this.beginButtonText = action.text;
+    addDetailsHint(this, height - 73, 'Tap to select. Hold an adventurer for stats. Drag lists to browse.', { x: width * 0.34, width: 1500, fontSize: UI_FONT_SIZES.partyHint });
 
     // Scroll only the role column under the pointer.
     this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY) => {
 
+      // find returns the first matching entry, or undefined when none matches. Check for
+      // that missing result before using its fields.
       const column = this.columns.find((entry) => Phaser.Geom.Rectangle.Contains(entry.bounds, pointer.x, pointer.y));
       if (column) this.scrollColumn(column, deltaY > 0 ? 1 : -1);
     });
 
     let listDrag = null;
+
+    // on registers a callback for later events; it does not call that callback now.
+    // Long-lived emitters need matching listener cleanup.
     this.input.on('pointerdown', (pointer) => {
+
+      // find returns the first matching entry, or undefined when none matches. Check for
+      // that missing result before using its fields.
       const column = this.columns.find((entry) => Phaser.Geom.Rectangle.Contains(entry.bounds, pointer.x, pointer.y));
+
+      // ?. only follows this link when the value exists; a missing optional value gives
+      // undefined.
       if (column?.maxOffset > 0) listDrag = { id: pointer.id, y: pointer.y, startY: pointer.y, column, moved: false };
     });
+
     this.input.on('pointermove', (pointer) => {
       if (!listDrag || listDrag.id !== pointer.id || !pointer.isDown) return;
-      if (Math.abs(pointer.y - listDrag.startY) > 6) listDrag.moved = true;
+      if (!listDrag.moved && Math.abs(pointer.y - listDrag.startY) > 6) {
+        listDrag.moved = true;
+        listDrag.column.container.list.forEach(object => { if (object.input) object.emit('pointerout'); });
+      }
+
       if (listDrag.moved) this.setColumnOffset(listDrag.column, listDrag.column.offset + listDrag.y - pointer.y, false);
       listDrag.y = pointer.y;
     });
+
     this.input.on('pointerup', () => { listDrag = null; });
     this.input.on('gameout', () => { listDrag = null; });
 
     // Convert scrollbar thumb movement into a bounded content offset.
     this.input.on('drag', (pointer, gameObject, dragX, dragY) => {
 
+      // find returns the first matching entry, or undefined when none matches. Check for
+      // that missing result before using its fields.
       const column = this.columns.find((entry) => entry.thumb === gameObject);
       if (!column || column.maxOffset <= 0) return;
 
       const minY = column.trackTop + column.thumbHeight / 2;
       const maxY = column.trackTop + column.trackHeight - column.thumbHeight / 2;
+
+      // Clamp keeps the first argument between the lower bound (second argument) and upper
+      // bound (third argument).
       const clampedY = Phaser.Math.Clamp(dragY, minY, maxY);
       const usableHeight = Math.max(1, column.trackHeight - column.thumbHeight);
       const ratio = (clampedY - minY) / usableHeight;
@@ -119,21 +156,15 @@ export default class PartySelectScene extends Phaser.Scene {
     this.refreshSelectionUi();
   }
 
-  // This function lets the player return to the delve overview with touch
-  // feedback.
-  createBackButton() {
-
-    addReturnButton(this, 'Delve Overview', () => this.scene.start('DelveSelectScene'), { y: UI_SAFE_TOP + 32 });
-  }
-
-  // This function restores a valid previous party while leaving first-time
-  // selection empty.
+  // This helper restores a valid previous party while leaving first-time selection empty.
   buildInitialSelection() {
 
+    // A Set keeps each value once. has checks membership without searching a list for
+    // duplicate entries.
     const initialIds = new Set();
 
-    // Prefer the active party, falling back to saved IDs. An empty history
-    // leaves the initial selection empty.
+    // Prefer the active party, falling back to saved IDs. An empty history leaves the
+    // initial selection empty.
     const preferredIds = GameState.activeParty.length > 0
       ? GameState.activeParty.map((adventurer) => adventurer.id)
       : (GameState.lastPartyIds ?? []);
@@ -141,6 +172,9 @@ export default class PartySelectScene extends Phaser.Scene {
     preferredIds.forEach((id) => {
 
       if (initialIds.size >= MAX_PARTY_SIZE) return;
+
+      // find returns the first matching entry, or undefined when none matches. Check for
+      // that missing result before using its fields.
       const adventurer = GameState.roster.find((entry) => entry.id === id);
       if (adventurer && this.canAddToSelection(adventurer, initialIds)) initialIds.add(id);
     });
@@ -148,114 +182,132 @@ export default class PartySelectScene extends Phaser.Scene {
     return initialIds;
   }
 
-  // This function builds one role column, including its adventurer cards,
-  // clipped viewing area, and scrolling controls. The saved column state lets
-  // dragging, arrow buttons, and track taps share the same scrolling logic.
+  // This helper builds one role column, including its adventurer cards, clipped viewing
+  // area, and scrolling controls. The saved column state lets dragging, arrow buttons, and
+  // track taps share the same scrolling logic.
   createRoleColumn(definition, x, top, width, height) {
+    addStonePanel(this, x, top + height / 2 - 24, width, height + 76, 0);
+    stoneIcon(this, x - width / 2 + 54, top - 28, definition.title, 40, 2, this.stoneTheme.accent);
 
-    this.add.rectangle(x, top + height / 2, width, height + 82, 0x172033).setStrokeStyle(3, 0x334155);
-    this.add.text(x, top - 24, definition.title, { fontFamily: 'Arial', fontSize: '34px', fontStyle: 'bold', color: '#f8fafc' }).setOrigin(0.5);
-
-    // Choose the adventurers belonging to this column and clip the scrolling
-    // content to its visible area.
-    const roster = GameState.roster.filter((adventurer) => definition.roles.includes(adventurer.role));
-    const itemHeight = 150;
-    const scrollTop = top + 18;
+    // filter keeps entries whose callback returns true. It builds a new list and leaves
+    // the original list in place.
+    const roster = GameState.roster.filter(adventurer => definition.roles.includes(adventurer.role));
+    stoneText(this, x + 10, top - 28, `${definition.title} · ${roster.length}`, UI_FONT_SIZES.body34, 2);
+    const itemHeight = 140;
+    const scrollTop = top + 16;
     const scrollHeight = height - 36;
-    const content = this.add.container(0, 0);
+
+    // Depth is drawing order, not distance or size. Higher-depth objects draw on top of
+    // lower-depth objects.
+    const content = this.add.container(0, 0).setDepth(3);
     const maskShape = this.make.graphics({ x: 0, y: 0, add: false });
-    maskShape.fillStyle(0xffffff).fillRect(x - width / 2 + 10, scrollTop, width - 40, scrollHeight);
-    const mask = maskShape.createGeometryMask();
-    content.setMask(mask);
+    maskShape.fillStyle(0xffffff).fillRect(x - width / 2 + 16, scrollTop, width - 82, scrollHeight);
 
-    // Create an interactive card for every matching adventurer and retain its
-    // display objects for selection updates.
-    const contentCenterX = x - 8;
-    const cardWidth = width - 58;
+    // The mask limits which pixels are drawn. It does not automatically limit the touch
+    // hit area; input bounds need their own check. A geometry mask uses a Graphics shape
+    // to decide which pixels remain visible. The mask shape can be hidden while still
+    // clipping its target.
+    content.setMask(maskShape.createGeometryMask());
+
+    // once registers a callback that removes itself after the first matching event.
+    this.events.once('shutdown', () => maskShape.destroy());
+    const contentCenterX = x - 25;
+    const cardWidth = width - 94;
     roster.forEach((adventurer, index) => {
-
       const cardY = scrollTop + 64 + index * itemHeight;
-      const card = this.add.rectangle(contentCenterX, cardY, cardWidth, 126, 0x1f2937)
-        .setStrokeStyle(3, 0x475569)
-        .setInteractive({ useHandCursor: true });
-      const portrait = this.add.circle(contentCenterX - width * 0.31, cardY, 36, adventurer.color).setStrokeStyle(3, 0xffffff, 0.18);
-      const name = this.add.text(contentCenterX - width * 0.22, cardY - 42, adventurer.name, { fontFamily: 'Arial', fontSize: '31px', fontStyle: 'bold', color: '#ffffff' });
-      const cls = this.add.text(contentCenterX - width * 0.22, cardY - 5, adventurer.shortName ?? adventurer.className, { fontFamily: 'Arial', fontSize: '27px', color: '#cbd5e1' });
-      const level = this.add.text(contentCenterX - width * 0.22, cardY + 28, `Lv ${adventurer.level} • ${adventurer.happiness ?? 70}%`, { fontFamily: 'Arial', fontSize: '24px', color: '#94a3b8' });
-      content.add([card, portrait, name, cls, level]);
+      const card = addStoneButton(this, contentCenterX, cardY, cardWidth, 126, 0);
+
+      // ?. only follows this link when the value exists; a missing optional value gives
+      // undefined.
+      const frame = CHARACTER_SPRITES[adventurer.id]?.clips.idle.south.frames[0];
+      const portraitX = contentCenterX - cardWidth / 2 + 62;
+
+      // The condition before ? chooses the first value when true and the value after :
+      // when false.
+      const portrait = frame && this.textures.exists(frame.key)
+        ? this.add.image(portraitX, cardY, frame.key, frame.frame).setDisplaySize(116, 116).setFlipX(frame.flipX === true)
+        : stoneIcon(this, portraitX, cardY, definition.title, 56, 0, adventurer.color);
+      const textX = contentCenterX - cardWidth / 2 + 120;
+      const textWidth = cardWidth - 135;
+
+      // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the center
+      // and 1 is the right/bottom edge. x/y place that anchor, not necessarily the
+      // object's corner.
+      const name = stoneText(this, textX, cardY - 37, adventurer.name, UI_FONT_SIZES.body32, 0).setOrigin(0, 0.5);
+
+      // ?? uses the fallback only for null or undefined. A real zero or false stays
+      // intact.
+      const cls = stoneText(this, textX, cardY + 2, adventurer.shortName ?? adventurer.className, UI_FONT_SIZES.partyClass, 0, { fontFamily: UI_FONT_FAMILIES.sans, fontStyle: UI_FONT_WEIGHTS.normal, color: STONE.muted }).setOrigin(0, 0.5);
+      const level = stoneText(this, textX, cardY + 37, `Lv ${adventurer.level} · ${adventurer.happiness ?? 70}%`, UI_FONT_SIZES.partyLevel, 0, { fontFamily: UI_FONT_FAMILIES.sans, fontStyle: UI_FONT_WEIGHTS.normal, color: STONE.muted }).setOrigin(0, 0.5);
+      [name, cls].forEach(label => { if (label.width > textWidth) label.setScale(textWidth / label.width); });
+
+      // ... expands these entries into the new list or call. It does not deep-copy the
+      // objects inside.
+      content.add([...card.pressVisuals, portrait, name, cls, level, card]);
       this.cards.set(adventurer.id, { card, portrait, name, cls, level, adventurer });
       this.bindCardInput(card, adventurer);
+
+      // Geometry masks only clip rendering; reject input outside the visible list too.
+      const hitTest = card.input.hitAreaCallback;
+      card.input.hitAreaCallback = (area, localX, localY, object) => {
+        const worldY = card.y + content.y + localY - card.height / 2;
+        return worldY >= scrollTop && worldY <= scrollTop + scrollHeight && hitTest(area, localX, localY, object);
+      };
     });
 
-    if (roster.length === 0) {
-      const empty = this.add.text(x, scrollTop + scrollHeight / 2, 'No adventurers yet', { fontFamily: 'Arial', fontSize: '28px', color: '#64748b' }).setOrigin(0.5);
-      content.add(empty);
-    }
+    if (!roster.length) content.add(stoneText(this, x, scrollTop + scrollHeight / 2, 'No adventurers yet', UI_FONT_SIZES.support28, 0));
+    const trackX = x + width / 2 - 36;
+    const trackTop = scrollTop + 62;
+    const trackHeight = scrollHeight - 124;
+    const up = preparationButton(this, trackX, scrollTop + 27, 54, 54, '^', () => this.scrollColumn(column, -1), { size: UI_FONT_SIZES.compact24, depth: 3 });
+    const down = preparationButton(this, trackX, scrollTop + scrollHeight - 27, 54, 54, 'v', () => this.scrollColumn(column, 1), { size: UI_FONT_SIZES.compact24, depth: 3 });
 
-    // Build the arrow buttons and scroll track beside the card list.
-    const trackHeight = scrollHeight;
-    const trackTop = scrollTop;
-    const trackX = x + width / 2 - 18;
-    const upButton = this.add.rectangle(trackX, scrollTop + 20, 40, 40, 0x334155).setInteractive({ useHandCursor: true });
-    const upIcon = this.add.text(trackX, scrollTop + 20, '^', { fontFamily: 'Arial', fontSize: '22px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
-    const downButton = this.add.rectangle(trackX, scrollTop + scrollHeight - 20, 40, 40, 0x334155).setInteractive({ useHandCursor: true });
-    const downIcon = this.add.text(trackX, scrollTop + scrollHeight - 20, 'v', { fontFamily: 'Arial', fontSize: '22px', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
-    const track = this.add.rectangle(trackX, trackTop + trackHeight / 2, 30, trackHeight - 56, 0x0f172a, 0.95).setStrokeStyle(2, 0x475569);
+    // This gives the display object an input hit area. Visible artwork alone does not make
+    // an object respond to a tap.
+    const track = this.add.rectangle(trackX, trackTop + trackHeight / 2, 44, trackHeight, 0x111925).setStrokeStyle(2, STONE.edge).setDepth(3).setInteractive();
 
-    // Calculate how far the list can scroll and size the thumb to the visible
-    // fraction of the content.
-    const contentHeight = roster.length > 0 ? (128 + (roster.length - 1) * itemHeight) : scrollHeight;
+    // The condition before ? chooses the first value when true and the value after : when
+    // false.
+    const contentHeight = roster.length ? 128 + (roster.length - 1) * itemHeight : scrollHeight;
+
+    // Math.max chooses the largest value; pairing it with Math.min can keep a result
+    // inside both a lower and an upper bound.
     const maxOffset = Math.max(0, contentHeight - scrollHeight);
-    const visibleRatio = Phaser.Math.Clamp(scrollHeight / Math.max(contentHeight, scrollHeight), 0.15, 1);
-    const thumbHeight = Math.max(48, (trackHeight - 56) * visibleRatio);
-    const thumb = this.add.rectangle(trackX, trackTop + thumbHeight / 2, 34, thumbHeight, 0x64748b)
-      .setStrokeStyle(3, 0x93c5fd)
-      .setInteractive({ draggable: true, useHandCursor: true });
+    const thumbHeight = Math.max(52, trackHeight * Math.min(1, scrollHeight / contentHeight));
+    const thumb = this.add.rectangle(trackX, trackTop + thumbHeight / 2, 44, thumbHeight, 0x526277)
+      .setStrokeStyle(2, this.stoneTheme.accent).setDepth(4).setInteractive({ draggable: true, useHandCursor: true });
     this.input.setDraggable(thumb);
-
     const column = {
-      bounds: new Phaser.Geom.Rectangle(x - width / 2, top, width, height),
-      container: content,
-      offset: 0,
-      maxOffset,
-      thumbHeight,
-      thumb,
-      track,
-      trackTop: trackTop + 28,
-      trackHeight: trackHeight - 56,
-      upButton,
-      downButton,
-      upIcon,
-      downIcon
+      bounds: new Phaser.Geom.Rectangle(x - width / 2 + 16, scrollTop, width - 82, scrollHeight),
+      container: content, offset: 0, maxOffset, thumbHeight, thumb, track, trackTop, trackHeight,
+      upButton: up.button, downButton: down.button, upIcon: up.text, downIcon: down.text
     };
+
     this.columns.push(column);
 
-    upButton.on('pointerdown', () => this.scrollColumn(column, -1));
-    downButton.on('pointerdown', () => this.scrollColumn(column, 1));
-    track.setInteractive({ useHandCursor: true });
-    track.on('pointerdown', (pointer) => {
-
-      if (column.maxOffset <= 0) return;
-      this.setColumnOffsetFromPointer(column, pointer.y);
-    });
-
+    // on registers a callback for later events; it does not call that callback now.
+    // Long-lived emitters need matching listener cleanup.
+    track.on('pointerdown', pointer => this.setColumnOffsetFromPointer(column, pointer.y));
+    if (maxOffset === 0) [track, thumb, up.button, down.button].forEach(control => control.disableInteractive());
     this.updateColumnScrollUi(column);
   }
 
-  // This function connects an adventurer card to selection and detail
-  // viewing. A short tap toggles selection, while a long press or closely
-  // repeated tap opens the stat panel.
+  // This helper connects an adventurer card to selection and detail viewing. A short tap
+  // toggles selection, while a long press or closely repeated tap opens the stat panel.
   bindCardInput(card, adventurer) {
 
     bindSelectionDetails(this, card, null, () => {
+
+      // ?? uses the fallback only for null or undefined. A real zero or false stays
+      // intact.
       const previous = this.lastTap.get(adventurer.id) ?? -Infinity;
       this.lastTap.set(adventurer.id, this.time.now);
       if (this.time.now - previous < 320) this.showAdventurerDetails(adventurer);
       else this.toggleAdventurer(adventurer.id);
-    }, () => this.showAdventurerDetails(adventurer));
+    }, () => this.showAdventurerDetails(adventurer), { allowSceneInput: true });
   }
 
-  // This function counts the party by the role limits used during selection.
+  // This helper counts the party by the role limits used during selection.
   getSelectionCounts(selectedIds = this.selectedIds) {
 
     const counts = { Tank: 0, Healer: 0, DPS: 0, total: 0 };
@@ -266,11 +318,11 @@ export default class PartySelectScene extends Phaser.Scene {
       counts[group] += 1;
       counts.total += 1;
     });
+
     return counts;
   }
 
-  // This function combines melee and ranged damage dealers under the shared
-  // DPS limit.
+  // This helper combines melee and ranged damage dealers under the shared DPS limit.
   getRoleGroup(role) {
 
     if (role === 'Tank') return 'Tank';
@@ -278,17 +330,17 @@ export default class PartySelectScene extends Phaser.Scene {
     return 'DPS';
   }
 
-  // This function enforces both party size and role limits before adding an
-  // adventurer.
+  // This helper enforces both party size and role limits before adding an adventurer.
   canAddToSelection(adventurer, selectedIds = this.selectedIds) {
 
     const counts = this.getSelectionCounts(selectedIds);
     const roleGroup = this.getRoleGroup(adventurer.role);
     if (counts.total >= MAX_PARTY_SIZE) return false;
+
     return counts[roleGroup] < ROLE_LIMITS[roleGroup];
   }
 
-  // This function explains which party limit prevents this selection.
+  // This helper explains which party limit prevents this selection.
   getSelectionBlockReason(adventurer) {
 
     const counts = this.getSelectionCounts();
@@ -297,12 +349,12 @@ export default class PartySelectScene extends Phaser.Scene {
     if (counts.total >= MAX_PARTY_SIZE) return 'Party is limited to five adventurers.';
     if (roleGroup === 'Tank' && counts.Tank >= ROLE_LIMITS.Tank) return 'Only one tank can be selected.';
     if (roleGroup === 'Healer' && counts.Healer >= ROLE_LIMITS.Healer) return 'Only two healers can be selected.';
+
     if (roleGroup === 'DPS' && counts.DPS >= ROLE_LIMITS.DPS) return 'Only four DPS can be selected.';
     return '';
   }
 
-  // This function adds or removes an adventurer and explains any selection
-  // limit.
+  // This helper adds or removes an adventurer and explains any selection limit.
   toggleAdventurer(id) {
 
     HapticsService.tap();
@@ -312,6 +364,8 @@ export default class PartySelectScene extends Phaser.Scene {
       return;
     }
 
+    // find returns the first matching entry, or undefined when none matches. Check for
+    // that missing result before using its fields.
     const adventurer = GameState.roster.find((entry) => entry.id === id);
     if (!adventurer) return;
 
@@ -325,16 +379,19 @@ export default class PartySelectScene extends Phaser.Scene {
     this.refreshSelectionUi();
   }
 
-  // This function moves the role list by one comfortable browsing step.
+  // This helper moves the role list by one comfortable browsing step.
   scrollColumn(column, direction) {
 
     this.setColumnOffset(column, column.offset + direction * 130, true);
   }
 
-  // This function keeps list scrolling within bounds and updates its
-  // controls.
+  // This helper keeps list scrolling within bounds and updates its controls.
   setColumnOffset(column, offset, animate = false) {
 
+    this.tweens.killTweensOf(column.container);
+
+    // Clamp keeps the first argument between the lower bound (second argument) and upper
+    // bound (third argument).
     column.offset = Phaser.Math.Clamp(offset, 0, column.maxOffset);
     if (animate) {
       this.tweens.add({ targets: column.container, y: -column.offset, duration: 140, ease: 'Quad.Out' });
@@ -344,23 +401,27 @@ export default class PartySelectScene extends Phaser.Scene {
     this.updateColumnScrollUi(column);
   }
 
-  // This function translates a scrollbar tap into a position in the roster
-  // list.
+  // This helper translates a scrollbar tap into a position in the roster list.
   setColumnOffsetFromPointer(column, pointerY) {
 
     const minY = column.trackTop + column.thumbHeight / 2;
     const maxY = column.trackTop + column.trackHeight - column.thumbHeight / 2;
+
+    // Clamp keeps the first argument between the lower bound (second argument) and upper
+    // bound (third argument).
     const clampedY = Phaser.Math.Clamp(pointerY, minY, maxY);
     const usableHeight = Math.max(1, column.trackHeight - column.thumbHeight);
     const ratio = (clampedY - minY) / usableHeight;
     this.setColumnOffset(column, ratio * column.maxOffset, false);
   }
 
-  // This function shows the list position and dims scrolling controls when
-  // unnecessary.
+  // This helper shows the list position and dims scrolling controls when unnecessary.
   updateColumnScrollUi(column) {
 
     const scrollable = column.maxOffset > 0;
+
+    // The condition before ? chooses the first value when true and the value after : when
+    // false.
     const alpha = scrollable ? 1 : 0.28;
     column.track.setAlpha(alpha);
     column.thumb.setAlpha(alpha);
@@ -377,11 +438,13 @@ export default class PartySelectScene extends Phaser.Scene {
     const ratio = column.offset / column.maxOffset;
     const minY = column.trackTop + column.thumbHeight / 2;
     const maxY = column.trackTop + column.trackHeight - column.thumbHeight / 2;
+
+    // Linear blends from the first value to the second using the third argument: 0 gives
+    // the start, 1 gives the end, and 0.5 gives halfway.
     column.thumb.y = Phaser.Math.Linear(minY, maxY, ratio);
   }
 
-  // This function shows selected and unavailable adventurers alongside party
-  // readiness.
+  // This helper shows selected and unavailable adventurers alongside party readiness.
   refreshSelectionUi() {
 
     const counts = this.getSelectionCounts();
@@ -390,39 +453,68 @@ export default class PartySelectScene extends Phaser.Scene {
     );
 
     this.cards.forEach((objects, id) => {
-
       const selected = this.selectedIds.has(id);
       const disabled = !selected && !this.canAddToSelection(objects.adventurer);
 
-      if (selected) {
-        objects.card.setFillStyle(0x29415f).setStrokeStyle(4, 0x93c5fd).setAlpha(1);
-        objects.portrait.setAlpha(1);
-        objects.name.setAlpha(1);
-        objects.cls.setAlpha(1);
-        objects.level.setAlpha(1);
-      } else if (disabled) {
-        objects.card.setFillStyle(0x1f2937).setStrokeStyle(3, 0x293241).setAlpha(0.30);
-        objects.portrait.setAlpha(0.30);
-        objects.name.setAlpha(0.34);
-        objects.cls.setAlpha(0.30);
-        objects.level.setAlpha(0.28);
-      } else {
-        objects.card.setFillStyle(0x1f2937).setStrokeStyle(3, 0x374151).setAlpha(0.75);
-        objects.portrait.setAlpha(0.78);
-        objects.name.setAlpha(0.82);
-        objects.cls.setAlpha(0.72);
-        objects.level.setAlpha(0.68);
-      }
+      // The condition before ? chooses the first value when true and the value after :
+      // when false.
+      objects.card.setFillStyle(selected ? 0x3b321d : 0x1f2937).setStrokeStyle(selected ? 4 : 2, selected ? STONE.gold : STONE.edge);
+
+      // ... expands these entries into the new list or call. It does not deep-copy the
+      // objects inside.
+      [...objects.card.pressVisuals, objects.portrait, objects.name, objects.cls, objects.level].forEach(object => object.setAlpha(disabled ? 0.45 : 1));
     });
 
-    // Use the overview button appearance to indicate whether the party is
-    // complete.
     const ready = counts.total === MAX_PARTY_SIZE;
-    this.beginButton.setFillStyle(ready ? 0x475569 : 0x1f2937);
-    this.beginButtonText.setColor(ready ? '#ffffff' : '#64748b');
+
+    // The condition before ? chooses the first value when true and the value after : when
+    // false.
+    this.beginButton.setStrokeStyle(ready ? 3 : 2, ready ? STONE.gold : STONE.edge);
+    this.beginButtonText.setColor(ready ? STONE.text : STONE.muted);
+    this.refreshLineup();
   }
 
-  // This function saves a complete party and advances to the battle overview.
+  // Rebuild the selected party strip in its current order and connect removal/inspection
+  // input.
+  refreshLineup() {
+    this.lineup.removeAll(true);
+
+    // The braces pull named fields into local variables. This reads those fields without
+    // copying the whole source object.
+    const { width } = this.scale;
+
+    // filter keeps entries whose callback returns true. It builds a new list and leaves
+    // the original list in place.
+    const heroes = GameState.roster.filter(hero => this.selectedIds.has(hero.id));
+    const slotWidth = (width - 100) / 5;
+    for (let index = 0; index < MAX_PARTY_SIZE; index++) {
+      const x = 50 + slotWidth * (index + 0.5);
+      const hero = heroes[index];
+      const panel = addStonePanel(this, x, 839, slotWidth - 16, 150, 0);
+      this.lineup.add(panel);
+
+      if (hero) {
+
+        // find returns the first matching entry, or undefined when none matches. Check for
+        // that missing result before using its fields.
+        const icon = stoneIcon(this, x - slotWidth / 2 + 58, 838, ROLE_COLUMNS.find(role => role.roles.includes(hero.role)).title, 46, 0, this.stoneTheme.accent);
+        const name = stoneText(this, x + 25, 813, hero.name, UI_FONT_SIZES.body32, 0);
+
+        // ?? uses the fallback only for null or undefined. A real zero or false stays
+        // intact.
+        const cls = stoneText(this, x + 25, 859, hero.shortName ?? hero.className, UI_FONT_SIZES.partyClass, 0, { fontFamily: UI_FONT_FAMILIES.sans, color: STONE.muted });
+        [name, cls].forEach(label => { if (label.width > slotWidth - 135) label.setScale((slotWidth - 135) / label.width); });
+        const hit = this.add.rectangle(x, 839, slotWidth - 16, 150, 0, 0);
+        bindSelectionDetails(this, hit, null, () => this.toggleAdventurer(hero.id), () => this.showAdventurerDetails(hero));
+        this.lineup.add([icon, name, cls, hit]);
+      } else {
+        this.lineup.add(stoneText(this, x, 816, `SLOT ${index + 1}`, UI_FONT_SIZES.body30, 0, { color: STONE.muted }));
+        this.lineup.add(stoneText(this, x, 861, 'Choose an adventurer', UI_FONT_SIZES.compact26, 0, { fontFamily: UI_FONT_FAMILIES.sans, color: STONE.muted }));
+      }
+    }
+  }
+
+  // This helper saves a complete party and advances to the battle overview.
   begin() {
 
     if (this.selectedIds.size !== MAX_PARTY_SIZE) {
@@ -431,6 +523,10 @@ export default class PartySelectScene extends Phaser.Scene {
     }
 
     HapticsService.confirm();
+
+    // map builds one output entry for each input entry, in the same order. The callback's
+    // return value becomes that output entry. filter keeps entries whose callback returns
+    // true. It builds a new list and leaves the original list in place.
     GameState.activeParty = GameState.roster
       .filter((adventurer) => this.selectedIds.has(adventurer.id))
       .map((adventurer) => ({ ...adventurer }));
@@ -439,131 +535,37 @@ export default class PartySelectScene extends Phaser.Scene {
     this.scene.start('DungeonScene');
   }
 
-  // This function opens a modal panel showing the selected adventurer's
-  // identity, stats, happiness, and class description. It tracks every modal
-  // object so tapping the close button or backdrop removes the whole panel.
+  // Use the shared themed modal for equipment-adjusted stats and class details.
   showAdventurerDetails(adventurer) {
     adventurer = getEquippedAdventurer(adventurer);
 
-    HapticsService.tap();
-    const { width, height } = this.scale;
+    // filter keeps entries whose callback returns true. It builds a new list and leaves
+    // the original list in place. The condition before ? chooses the first value when true
+    // and the value after : when false. ?? uses the fallback only for null or undefined. A
+    // real zero or false stays intact.
+    const stats = [
+      `Level ${adventurer.level} · ${adventurer.role}`,
+      `HP ${adventurer.maxHp} · Attack ${adventurer.attackPower}`,
+      adventurer.healPower > 0 ? `Healing ${adventurer.healPower}` : '',
+      adventurer.maxMana > 0 ? `Mana ${adventurer.maxMana}` : '',
+      `Move Speed ${adventurer.moveSpeed} · Crit ${Math.round((adventurer.critChance ?? 0) * 100)}%`,
+      `Happiness ${adventurer.happiness ?? 70}% (${happinessLabel(adventurer.happiness ?? 70)})`
+    ].filter(Boolean).join('\n');
 
-    const depth = 5000;
-    const panelWidth = Math.min(980, width * 0.64);
-    const panelHeight = Math.min(760, height * 0.84);
-    const panelX = width / 2;
-    const panelY = height / 2;
-    const modalElements = [];
-
-    // This function tracks each detail panel object so closing the panel
-    // removes it all.
-    const addElement = (element) => {
-
-      modalElements.push(element);
-      return element;
-    };
-
-    const blocker = addElement(this.add.rectangle(panelX, panelY, width, height, 0x000000, 0.58).setDepth(depth).setInteractive());
-    addElement(addWoodenPanel(this, panelX, panelY, panelWidth, panelHeight, depth + 1));
-
-    const top = panelY - panelHeight / 2;
-    const bottom = panelY + panelHeight / 2;
-
-    addElement(this.add.text(panelX, top + 78, adventurer.name, {
-      fontFamily: 'Arial', fontSize: '56px', fontStyle: 'bold', color: '#ffffff'
-    }).setOrigin(0.5).setDepth(depth + 2));
-    addElement(this.add.text(panelX, top + 142, adventurer.className, {
-      fontFamily: 'Arial', fontSize: '36px', fontStyle: 'bold', color: '#e2e8f0'
-    }).setOrigin(0.5).setDepth(depth + 2));
-    addElement(this.add.text(panelX, top + 190, `Role: ${adventurer.role}`, {
-      fontFamily: 'Arial', fontSize: '32px', color: '#cbd5e1'
-    }).setOrigin(0.5).setDepth(depth + 2));
-
-    // Build the stat list, adding healing and mana only when those resources
-    // apply to this adventurer.
-    const statRows = [
-      ['Level', `${adventurer.level}`],
-      ['HP', `${adventurer.maxHp}`],
-      ['Attack', `${adventurer.attackPower}`]
-    ];
-
-    if (typeof adventurer.healPower === 'number' && adventurer.healPower > 0) {
-      statRows.push(['Heal Power', `${adventurer.healPower}`]);
-    }
-    if ((adventurer.maxMana ?? 0) > 0) {
-      statRows.push(['Mana', `${adventurer.maxMana}`]);
-    }
-
-    statRows.push(
-      ['Move Speed', `${adventurer.moveSpeed}`],
-      ['Crit', `${Math.round((adventurer.critChance ?? 0) * 100)}%`],
-      ['Happiness', `${adventurer.happiness ?? 70}% (${happinessLabel(adventurer.happiness ?? 70)})`]
-    );
-
-    const labelX = panelX - panelWidth * 0.28;
-    const valueX = panelX + panelWidth * 0.04;
-    const startY = top + 250;
-    const lineGap = 43;
-
-    statRows.forEach((row, index) => {
-
-      const y = startY + index * lineGap;
-      addElement(this.add.text(labelX, y, `${row[0]}:`, {
-        fontFamily: 'Arial', fontSize: '31px', fontStyle: 'bold', color: '#94a3b8'
-      }).setOrigin(0, 0.5).setDepth(depth + 2));
-      addElement(this.add.text(valueX, y, row[1], {
-        fontFamily: 'Arial', fontSize: '31px', color: '#e2e8f0'
-      }).setOrigin(0, 0.5).setDepth(depth + 2));
-    });
-
-    // Reserve the bottom of the detail panel for the description and close
-    // button.
-    const closeY = bottom - 58;
-    const descriptionY = closeY - 94;
-    addElement(this.add.text(panelX, descriptionY, adventurer.description, {
-      fontFamily: 'Arial',
-      fontSize: '23px',
-      color: '#94a3b8',
-      align: 'center',
-      wordWrap: { width: panelWidth - 130, useAdvancedWrap: true }
-    }).setOrigin(0.5).setDepth(depth + 2));
-
-    const close = addElement(this.add.rectangle(panelX, closeY, 300, 72, 0x334155)
-      .setInteractive({ useHandCursor: true }).setDepth(depth + 2));
-    addElement(this.add.text(panelX, closeY, 'CLOSE', {
-      fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold', color: '#ffffff'
-    }).setOrigin(0.5).setDepth(depth + 3));
-
-    // This function removes the complete adventurer detail panel when it
-    // closes.
-    const destroyModal = () => modalElements.forEach((element) => element.destroy());
-    blocker.on('pointerdown', destroyModal);
-    close.on('pointerdown', destroyModal);
+    showSelectionDetails(this, { title: adventurer.name, description: `${adventurer.className}\n\n${stats}\n\n${adventurer.description ?? ''}` });
   }
 
-  // This function gives brief feedback about an unavailable choice or
-  // completed action.
+  // Show themed feedback at a readable size inside the current screen.
   showToast(message) {
 
-    const { width, height } = this.scale;
-    const label = this.add.text(width / 2, height * 0.18, message, {
-      fontFamily: 'Arial',
-      fontSize: '32px',
-      fontStyle: 'bold',
-      color: '#fca5a5',
-      stroke: '#000000',
-      strokeThickness: 5,
-      align: 'center',
-      wordWrap: { width: width * 0.78 }
-    }).setOrigin(0.5).setDepth(6000);
-    const panel = addWoodenPanel(this, label.x, label.y, Math.min(width * 0.86, label.width + 100), label.height + 42, 5999);
-
-    this.tweens.add({
-      targets: [panel, label],
-      alpha: 0,
-      delay: 1000,
-      duration: 350,
-      onComplete: () => { panel.destroy(); label.destroy(); }
-    });
+    // ?. only follows this link when the value exists; a missing optional value gives
+    // undefined.
+    this.toast?.forEach(object => object.destroy());
+    const notice = preparationNotice(this, this.scale.width / 2, this.scale.height / 2, message, { depth: 6000, width: 1200, fontSize: UI_FONT_SIZES.body34 });
+    this.toast = [notice.panel, notice.text];
+    this.tweens.add({ targets: this.toast, alpha: 0, delay: 1800, duration: 350, onComplete: () => {
+      notice.panel.destroy();
+      notice.text.destroy();
+    } });
   }
 }

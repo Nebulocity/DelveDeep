@@ -1,161 +1,289 @@
+// This is the shared shop workspace. The selected facility supplies stock, theme and
+// allowed actions. List scrolling changes row positions; clipping and input checks keep
+// rows outside the visible window from receiving a tap.
+
 import Phaser from 'phaser';
 import { FACILITIES, renderFacilityMenu } from '../ui/FacilityMenu.js';
 import GameState from '../game/GameState.js';
 import { saveProfile } from '../game/GameStorage.js';
-import { buyPotionPack, sellPotionPack, sellMaterial } from '../game/Equipment.js';
-import { POTION_ITEMS, getPotionDefinition } from '../data/items.js';
-import { bindSelectionDetails } from '../ui/SelectionDetails.js';
-import HapticsService from '../services/HapticsService.js';
-import { CRAFTING_RECIPES, CRAFTING_MATERIALS } from '../data/items.js';
-import { canCraft, craftItem, recipeIngredientText } from '../game/Crafting.js';
-import { addWoodenNotice } from '../ui/WoodenPanel.js';
+import { buyPotionPack, equipmentOwner, equipmentStatsText } from '../game/Equipment.js';
+import { fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
+import { POTION_ITEMS, CRAFTING_RECIPES } from '../data/items.js';
 
-const ALCHEMIST_THEME = { plaque: 'town-sign-alchemist', panel: 0x182b22, face: 0x315b3e, edge: 0x9fbd78, button: 0x315b3e, text: '#eff9d7' };
+import { ACTIVE_ENCHANTMENTS, ENCHANTMENT_BY_ID } from '../data/enchantments.js';
+import { bindSelectionDetails } from '../ui/SelectionDetails.js';
+import { addCategoryIcon } from '../ui/FacilityChoiceArt.js';
+import { addFacilityDetailsHint } from '../ui/FacilityChrome.js';
+import { addShopButton, addShopButtonFace, bindShopButtonFeedback } from '../ui/ShopButton.js';
+import { hallScroll } from '../ui/HallUI.js';
+import HapticsService from '../services/HapticsService.js';
+import { canCraft, craftItem, recipeIngredientText } from '../game/Crafting.js';
+
+import { GEAR_STOCK, saleRows, sellOwnedItem, sellAllOwnedItem, buyGear, inscribeEnchantment, applyEnchantment, disenchantItem } from '../game/ShopServices.js';
+
+const THEMES = {
+  Blacksmith: { panel: 0x1b2023, face: 0x353535, edge: 0xd58b55, text: '#fff0d8' },
+  Alchemist: { panel: 0x14271f, face: 0x294b36, edge: 0x9fbd78, text: '#eff9d7' },
+  Enchanter: { panel: 0x201a31, face: 0x403152, edge: 0xb69ada, text: '#f3eaff' }
+};
+
+const CATEGORIES = {
+  all: ['All items', 'satchel'], weapon: ['Weapons', 'sword'], armor: ['Armor', 'shield'],
+  accessory: ['Accessories', 'rune'], potion: ['Potions', 'flask'], material: ['Materials', 'ingot'], scroll: ['Scrolls', 'scroll']
+};
 
 export default class FacilityScene extends Phaser.Scene {
-  constructor(key = 'FacilityScene') {
-    super(key);
-  }
 
+  // We set up this instance's starting state. Values stored on this belong to this
+  // instance and can be reused by its other methods.
+  constructor(key = 'FacilityScene') { super(key); }
+
+  // Read the data supplied when this scene starts before creating its screen contents.
   init(data) {
+
+    // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
+    // ?. only follows this link when the value exists; a missing optional value gives
+    // undefined.
     this.facility = FACILITIES[data?.title] ?? FACILITIES.Alchemist;
     this.returnScene = data?.returnScene ?? 'TownScene';
     this.selection = null;
-    this.page = 0;
+    this.category = 'all';
+    this.itemOffset = 0;
     this.message = '';
+    this.selectedScroll = null;
   }
 
-  create() {
+  // We build this screen and connect its input after the queued assets are ready. Display
+  // objects belong to this scene and are removed when the scene shuts down.
+  create() { this.render(); }
+
+  // Build the visible workspace from the current selection, page and game state.
+  render() {
+    renderFacilityMenu(this, this.facility, this.selection,
+      selection => {
+        this.selection = selection;
+        this.category = 'all';
+        this.itemOffset = 0;
+        this.message = '';
+        this.selectedScroll = null;
+        this.render();
+      },
+      () => this.scene.start(this.returnScene),
+      choice => this.renderFacilityDetail(choice));
+  }
+
+  // Run the requested shop action through the shared rules, then refresh resources and
+  // feedback.
+  transact(action) {
+    HapticsService.tap();
+    const result = action();
+    this.message = result.message;
+
+    if (result.ok) {
+      saveProfile();
+      HapticsService.confirm();
+    }
     this.render();
   }
 
-  render() {
-    renderFacilityMenu(this, this.facility, this.selection,
-      (selection) => { this.selection = selection; this.page = 0; this.message = ''; this.render(); },
-      () => this.scene.start(this.returnScene),
-      () => { this.selection = null; this.render(); },
-      (choice) => this.renderFacilityDetail(choice));
+  // Build the item rows for this facility's selected action and category.
+  rowsFor(choice) {
+    const state = GameState;
+    if (choice.id === 'sell') return saleRows().map(row => ({
+      ...row, action: `SELL: ${row.value}g`, run: () => sellOwnedItem(row.id),
+      allAction: `SELL ALL: ${row.allValue}g`, runAll: () => sellAllOwnedItem(row.id)
+    }));
+    if (choice.id === 'craft' || choice.id === 'brew') return CRAFTING_RECIPES.filter(recipe => choice.id === 'brew'
+      ? recipe.category === 'alchemy' : ['equipment', 'material'].includes(recipe.category)).map(recipe => ({
+      id: recipe.id,
+      category: recipe.output.type === 'potion' ? 'potion' : recipe.output.type === 'material' ? 'material'
+        : recipe.output.type === 'scroll' ? 'scroll' : GEAR_STOCK.find(item => item.id === recipe.output.itemId)?.slot,
+      name: recipe.name,
+      description: `${recipeIngredientText(recipe)}${recipe.fee ? ` | ${recipe.fee} Gold fee` : ''}${recipe.knownAtStart ? '' : ' | Learn by buying the item or recipe'}`,
+      enabled: canCraft(recipe.id).ok, action: choice.id === 'brew' ? 'BREW' : 'CRAFT', run: () => craftItem(recipe.id)
+    }));
+
+    if (choice.id === 'buy' && this.facility.name !== 'Enchanter') return (this.facility.name === 'Blacksmith' ? GEAR_STOCK : POTION_ITEMS).map(item => ({
+      id: item.id, category: item.slot, name: item.name, description: `${item.description} ${item.uses ? '| 3 uses' : equipmentStatsText(item.stats)}`,
+      enabled: state.gold >= item.price, action: `BUY ${item.price}g`, run: () => item.slot === 'potion' ? buyPotionPack(item.id) : buyGear(item.id)
+    }));
+
+    if (choice.id === 'buy' || choice.id === 'inscribe') return ACTIVE_ENCHANTMENTS.map(definition => ({
+      id: definition.id, category: 'scroll', name: `${definition.name} Scroll`,
+      description: `${definition.description} ${choice.id === 'inscribe' ? `${recipeIngredientText(definition)}${definition.craftingFee ? ` | ${definition.craftingFee} Gold fee` : ''}` : 'Consume at Enchant to improve gear.'}`,
+      enabled: choice.id === 'buy' ? state.gold >= definition.price
+        : state.inventory.knownRecipes?.includes(CRAFTING_RECIPES.find(recipe => recipe.output.itemId === definition.id)?.id)
+          && state.gold >= definition.craftingFee
+          && Object.entries(definition.ingredients).every(([id, count]) => (state.inventory.materials[id] ?? 0) >= count),
+      action: choice.id === 'buy' ? `BUY ${definition.price}g`
+        : state.inventory.knownRecipes?.includes(CRAFTING_RECIPES.find(recipe => recipe.output.itemId === definition.id)?.id) ? 'INSCRIBE' : 'LEARN',
+
+      // Run the chosen action after the surrounding interaction accepts it.
+      run: () => inscribeEnchantment(definition.id, state, choice.id === 'buy')
+    }));
+
+    if (choice.id === 'disenchant') return state.inventory.equipment.filter(item => item.slot !== 'scroll' && ENCHANTMENT_BY_ID[item.enchantmentId]).map(item => ({
+      id: item.id, category: item.slot, name: item.name, description: `${ENCHANTMENT_BY_ID[item.enchantmentId].name} | Keep gear; recover 2 random recipe materials.`, enabled: true, action: 'DISENCHANT', run: () => disenchantItem(item.id)
+    }));
+
+    if (choice.id === 'enchant') {
+
+      // find returns the first matching entry, or undefined when none matches. Check for
+      // that missing result before using its fields.
+      const scroll = state.inventory.equipment.find(item => item.id === this.selectedScroll && item.slot === 'scroll');
+      if (!scroll) return state.inventory.equipment.filter(item => item.slot === 'scroll').map(item => ({
+        id: item.id, category: 'scroll', name: item.name, description: ENCHANTMENT_BY_ID[item.enchantmentId].description, enabled: true, action: 'SELECT',
+
+        // Run the chosen action after the surrounding interaction accepts it.
+        run: () => {
+          this.selectedScroll = item.id;
+          this.category = 'all';
+          this.itemOffset = 0;
+          return { ok: false, message: 'Choose gear to enchant. The selected scroll will be consumed.' };
+        }
+      }));
+
+      const definition = ENCHANTMENT_BY_ID[scroll.enchantmentId];
+
+      // map builds one output entry for each input entry, in the same order. The
+      // callback's return value becomes that output entry. filter keeps entries whose
+      // callback returns true. It builds a new list and leaves the original list in place.
+      return state.inventory.equipment.filter(item => !item.enchantmentId && definition.slots.includes(item.slot)).map(item => {
+        const owner = equipmentOwner(item.id, state);
+
+        // The condition before ? chooses the first value when true and the value after :
+        // when false.
+        const ownership = owner ? `Equipped by ${owner.name}` : 'Unequipped';
+        return {
+          id: item.id, category: item.slot, name: item.name,
+          description: `${ownership} | ${definition.description}`,
+          detailsDescription: `${ownership}\n\n${definition.description} Uses ${scroll.name}.`,
+          enabled: true, action: 'ENCHANT',
+
+          // Run the chosen action after the surrounding interaction accepts it.
+          run: () => {
+            const result = applyEnchantment(scroll.id, item.id);
+            if (result.ok) this.selectedScroll = null;
+            return result;
+          }
+        };
+      });
+    }
+
+    return [];
   }
 
+  // Display the selected facility item's details and available transaction controls.
   renderFacilityDetail(choice) {
-    if (this.facility === FACILITIES.Alchemist && (choice.id === 'buy' || choice.id === 'sell')) return this.renderAlchemistDetail(choice);
-    if (this.facility === FACILITIES.Blacksmith && (choice.id === 'craft' || choice.id === 'sell')) return this.renderCraftingDetail(choice);
-    if (this.facility === FACILITIES.Alchemist && choice.id === 'brew') return this.renderCraftingDetail(choice);
-    return false;
-  }
+    const theme = THEMES[this.facility.name];
+    const allRows = this.rowsFor(choice);
 
-  renderCraftingDetail(choice) {
-    const crafting = choice.id === 'craft' || choice.id === 'brew';
-    const recipes = crafting ? CRAFTING_RECIPES.filter((recipe) => this.facility === FACILITIES.Blacksmith
-      ? recipe.category === 'equipment' : recipe.category === 'alchemy') : [];
-    const materials = Object.values(CRAFTING_MATERIALS).filter((material) => (GameState.inventory.materials?.[material.id] ?? 0) > 0);
-    const rows = crafting ? recipes : materials;
-    const pageSize = 3;
-    const pages = Math.max(1, Math.ceil(rows.length / pageSize));
-    this.page = Math.max(0, Math.min(this.page, pages - 1));
-    const theme = this.facility === FACILITIES.Blacksmith
-      ? { panel: 0x292321, edge: 0xd58b55, face: 0x593728, text: '#fff0d8' }
-      : ALCHEMIST_THEME;
-    this.add.rectangle(1200, 550, 1700, 520, theme.panel, 0.96).setStrokeStyle(4, theme.edge);
-    this.add.text(1200, 338, crafting ? 'AVAILABLE RECIPES' : 'MATERIALS', {
-      fontFamily: 'Georgia', fontSize: '46px', fontStyle: 'bold', color: theme.text, stroke: '#102018', strokeThickness: 3
-    }).setOrigin(0.5);
-    if (!rows.length) addWoodenNotice(this, 1200, 555, crafting ? 'No recipes are available.' : 'You have no materials to sell.', { width: 1300, fontSize: 36, depth: 0 });
-    rows.slice(this.page * pageSize, this.page * pageSize + pageSize).forEach((row, index) => {
-      const y = 435 + index * 123;
-      const recipe = crafting ? row : null;
-      const stock = !crafting ? GameState.inventory.materials[row.id] : null;
-      const readiness = recipe && canCraft(recipe.id);
-      const summary = recipe ? `${recipe.category === 'alchemy' ? `3 ${getPotionDefinition(recipe.output.itemId).name}s • ` : ''}${recipeIngredientText(recipe)}` : row.description;
-      const action = recipe ? `Craft • ${summary}` : `${row.name} x${stock} • Sell for ${stock * 5} Gold`;
-      const card = this.add.rectangle(1200, y, 1580, 106, 0x294034, 0.97).setStrokeStyle(3, theme.edge).setInteractive({ useHandCursor: true });
-      this.add.text(470, y - 17, recipe ? recipe.name : row.name, { fontFamily: 'Arial', fontSize: '34px', fontStyle: 'bold', color: '#fff1d2' }).setOrigin(0, 0.5);
-      this.add.text(470, y + 23, recipe ? summary : `Owned: ${stock}. ${row.description}`, { fontFamily: 'Arial', fontSize: '30px', color: '#d8e8c5', wordWrap: { width: 1050 } }).setOrigin(0, 0.5);
-      bindSelectionDetails(this, card, { title: recipe ? recipe.name : row.name, description: `${recipe?.description ?? row.description} ${action}`, shopTheme: theme });
-      const enabled = recipe ? readiness.ok : true;
-      const label = recipe ? (enabled ? 'CRAFT' : 'NEED MATERIALS') : `SELL ${stock}`;
-      const button = this.add.rectangle(1830, y, 265, 86, enabled ? theme.face : 0x3f4a40).setStrokeStyle(3, theme.edge).setAlpha(enabled ? 1 : 0.55);
-      this.add.text(1830, y, label, { fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: enabled ? theme.text : '#b0a69b' }).setOrigin(0.5);
-      if (enabled) bindSelectionDetails(this, button, { title: recipe?.name ?? row.name, description: action, shopTheme: theme }, () => {
+    // ... expands these entries into the new list or call. It does not deep-copy the
+    // objects inside. filter keeps entries whose callback returns true. It builds a new
+    // list and leaves the original list in place.
+    const categories = ['all', ...Object.keys(CATEGORIES).filter(key => key !== 'all' && allRows.some(row => row.category === key))];
+    if (!categories.includes(this.category)) this.category = 'all';
+    const rows = allRows.filter(row => this.category === 'all' || row.category === this.category);
+
+    this.add.rectangle(1200, 553, 2280, 690, theme.panel, 0.97).setStrokeStyle(4, theme.edge);
+
+    // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the center
+    // and 1 is the right/bottom edge. x/y place that anchor, not necessarily the object's
+    // corner. The condition before ? chooses the first value when true and the value after
+    // : when false.
+    const heading = this.add.text(255, 252, choice.id === 'sell' ? 'YOUR INVENTORY' : choice.label, { fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx('heading42'), fontStyle: UI_FONT_WEIGHTS.bold, color: theme.text }).setOrigin(0.5);
+    if (heading.width > 330) heading.setScale(330 / heading.width);
+    addFacilityDetailsHint(this, this.facility.name, 252, { x: 1400 });
+    this.add.rectangle(255, 578, 350, 570, theme.face, 0.45).setStrokeStyle(2, theme.edge, 0.45);
+    categories.forEach((category, index) => {
+      const y = 333 + index * 76;
+
+      // The brackets unpack entries by position; their order matters.
+      const [label, icon] = CATEGORIES[category];
+      const active = category === this.category;
+
+      // Highlight the selected category while keeping every category visibly pressable.
+      const control = addShopButton(this, theme, 255, y, 330, 68, label,
+        { prominent: active, fontSize: fontPx('shopCategory') });
+      const button = control.target;
+      const emblem = addCategoryIcon(this, icon, 118, y, active ? 0x171319 : theme.edge);
+
+      // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the center
+      // and 1 is the right/bottom edge. x/y place that anchor, not necessarily the
+      // object's corner.
+      control.label.setX(154).setOrigin(0, 0.5);
+      bindSelectionDetails(this, button, { title: label, description: `Browse ${label.toLowerCase()}.`, shopTheme: theme }, () => {
         HapticsService.tap();
-        const result = recipe ? craftItem(recipe.id) : sellMaterial(row.id, stock);
-        this.message = result.message;
-        if (result.ok) { saveProfile(); HapticsService.confirm(); }
+        this.category = category;
+        this.itemOffset = 0;
         this.render();
       });
+      bindShopButtonFeedback(this, control, [emblem]);
     });
-    const pageButton = (x, label, page, enabled) => {
-      const button = this.add.rectangle(x, 759, 195, 62, 0x6b4527, enabled ? 1 : 0.45).setStrokeStyle(2, theme.edge);
-      this.add.text(x, 759, label, { fontFamily: 'Arial', fontSize: '28px', color: theme.text }).setOrigin(0.5);
-      if (enabled) bindSelectionDetails(this, button, { title: label, description: 'Browse recipes and materials.' }, () => {
-        HapticsService.tap(); this.page = page; this.render();
-      });
-    };
-    pageButton(600, '< PREV', this.page - 1, this.page > 0);
-    if (this.message) addWoodenNotice(this, 1200, 759, this.message, { width: 850, fontSize: 28, depth: 0 });
-    else this.add.text(1200, 759, `${this.page + 1} / ${pages}`, { fontFamily: 'Arial', fontSize: '28px', color: '#fde68a' }).setOrigin(0.5);
-    pageButton(1800, 'NEXT >', this.page + 1, this.page < pages - 1);
-    return { x: 1200, y: 550, width: 1700, height: 520 };
-  }
 
-  renderAlchemistDetail(choice) {
-    if (choice.id !== 'buy' && choice.id !== 'sell') return false;
-    const rows = choice.id === 'buy' ? POTION_ITEMS
-      : GameState.inventory.equipment.filter((item) => item.slot === 'potion' && getPotionDefinition(item.itemId));
-    const pages = Math.max(1, Math.ceil(rows.length / 2));
-    this.page = Math.max(0, Math.min(this.page, pages - 1));
-    this.add.rectangle(1200, 550, 1700, 520, 0x182b22, 0.95).setStrokeStyle(4, 0x9fbd78);
-    this.add.text(1200, 338, choice.id === 'buy' ? 'POTION PACKS' : 'YOUR POTION PACKS', {
-      fontFamily: 'Georgia', fontSize: '46px', fontStyle: 'bold', color: '#eff9d7', stroke: '#102018', strokeThickness: 3
-    }).setOrigin(0.5);
-    if (!rows.length) addWoodenNotice(this, 1200, 555, 'No potion packs to sell.', { width: 1300, fontSize: 36, depth: 0 });
-    rows.slice(this.page * 2, this.page * 2 + 2).forEach((item, index) => {
-      const definition = choice.id === 'buy' ? item : getPotionDefinition(item.itemId);
-      const y = 467 + index * 169;
-      const value = choice.id === 'buy' ? definition.price
-        : Math.floor(definition.price * 0.5 * item.charges / definition.uses);
-      const description = `${definition.description} ${choice.id === 'buy' ? definition.uses : item.charges}/${definition.uses} uses. ${choice.id === 'buy' ? 'Buy' : 'Sell'} for ${value} Gold.`;
-      const row = this.add.rectangle(1200, y, 1570, 144, 0x294034, 0.97).setStrokeStyle(3, 0x708d5d).setInteractive({ useHandCursor: true });
-      const labelBottom = y + 9;
-      const nameText = this.add.text(490, labelBottom, definition.name, {
-        fontFamily: 'Arial', fontSize: '37px', fontStyle: 'bold', color: '#fff1d2'
-      }).setOrigin(0, 1);
-      const countX = 490 + Math.min(nameText.width, definition.name.length * 22) + 18;
-      this.add.rectangle(countX, labelBottom, 64, 42, 0x315b3e)
-        .setStrokeStyle(2, 0xb7d494).setOrigin(0, 1);
-      this.add.text(countX + 32, labelBottom - 21,
-        `x${choice.id === 'buy' ? definition.uses : item.charges}`, {
-          fontFamily: 'Arial', fontSize: '28px', fontStyle: 'bold', color: '#dcfce7'
-        }).setOrigin(0.5);
-      this.add.text(490, y + 18, choice.id === 'buy' ? definition.description : `${item.charges}/${definition.uses} uses remaining`, {
-        fontFamily: 'Arial', fontSize: '30px', color: '#d8e8c5', wordWrap: { width: 1060 }
-      });
-      bindSelectionDetails(this, row, { title: definition.name, description, shopTheme: ALCHEMIST_THEME });
-      const affordable = choice.id !== 'buy' || GameState.gold >= value;
-      const button = this.add.rectangle(1810, y, 255, 86, affordable ? 0x315b3e : 0x3f4a40)
-        .setStrokeStyle(4, affordable ? 0xb7d494 : 0x74806f);
-      this.add.text(1810, y, `${choice.id === 'buy' ? 'Buy' : 'Sell'}: ${value}g`, {
-        fontFamily: 'Georgia', fontSize: '29px', fontStyle: 'bold', color: affordable ? '#eff9d7' : '#b0a69b'
-      }).setOrigin(0.5);
-      if (affordable) bindSelectionDetails(this, button, { title: definition.name, description, shopTheme: ALCHEMIST_THEME }, () => {
-        HapticsService.tap();
-        const result = choice.id === 'buy' ? buyPotionPack(definition.id) : sellPotionPack(item.id);
-        this.message = result.message;
-        if (result.ok) { saveProfile(); HapticsService.confirm(); }
-        this.render();
-      });
+    if (!rows.length) this.add.text(1400, 520, choice.id === 'sell' ? 'No owned items in this category.' : choice.id === 'disenchant' ? 'No gear with known enchantments.' : choice.id === 'enchant' ? this.selectedScroll ? 'No compatible gear without an enchantment.\nChoose Enchant again to select another scroll.' : 'Buy or inscribe a scroll to begin.' : 'Nothing available.', { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body34'), color: theme.text, align: 'center', wordWrap: { width: 1450 } }).setOrigin(0.5);
+    const start = this.children.list.length;
+    const stride = 264;
+    rows.forEach((row, index) => {
+
+      // % gives the remainder. With a nonnegative index and positive list length, it wraps
+      // the index back to the start of the list.
+      const x = 962 + index % 2 * 900;
+
+      // Math.floor rounds toward the smaller whole number, so 3.8 becomes 3.
+      const y = 416 + Math.floor(index / 2) * stride;
+      const card = this.add.rectangle(x, y, 872, 246, theme.face, 0.64).setStrokeStyle(2, theme.edge, 0.7).setName(`shop-item-${row.id}`);
+
+      // ?? uses the fallback only for null or undefined. A real zero or false stays
+      // intact. ?. only follows this link when the value exists; a missing optional value
+      // gives undefined.
+      addCategoryIcon(this, CATEGORIES[row.category]?.[1] ?? 'satchel', x - 399, y - 81, theme.edge);
+
+      // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the center
+      // and 1 is the right/bottom edge. x/y place that anchor, not necessarily the
+      // object's corner.
+      this.add.text(x - 363, y - 106, row.name, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body34'), fontStyle: UI_FONT_WEIGHTS.bold, color: theme.text,
+        wordWrap: { width: 770 }, maxLines: 2 }).setOrigin(0, 0);
+      this.add.text(x - 409, y - 16, row.description, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('shopDescription'), color: '#ddd5c7', wordWrap: { width: 804 }, maxLines: 2 });
+      const details = { title: row.name, description: row.detailsDescription ?? row.description, shopTheme: theme };
+      bindSelectionDetails(this, card, details);
+
+      // Boolean converts an unavailable recipe's missing value into an explicit false.
+      // Only actions allowed by the existing rules get a bright face and input binding.
+      const control = addShopButton(this, theme, x + 247, y + 82, 330, 68, row.action,
+        { enabled: Boolean(row.enabled), prominent: true });
+      const button = control.target.setName(`shop-action-${row.id}`);
+
+      if (row.enabled) {
+        bindSelectionDetails(this, button, details, () => this.transact(row.run));
+        bindShopButtonFeedback(this, control);
+      }
+
+      // Keep the single-sale control on the right and place bulk selling on the left.
+      // Both controls travel with the card inside the existing masked scroll region.
+      if (row.runAll) {
+        const allControl = addShopButton(this, theme, x - 224, y + 82, 376, 68, row.allAction,
+          { enabled: Boolean(row.enabled), prominent: true });
+        const allButton = allControl.target.setName(`shop-sell-all-${row.id}`);
+
+        if (row.enabled) {
+          bindSelectionDetails(this, allButton, details, () => this.transact(row.runAll));
+          bindShopButtonFeedback(this, allControl);
+        }
+      }
     });
-    const pageButton = (x, label, page, enabled) => {
-      const button = this.add.rectangle(x, 759, 195, 62, 0x6b4527, enabled ? 1 : 0.45).setStrokeStyle(2, 0xd9a662);
-      this.add.text(x, 759, label, { fontFamily: 'Arial', fontSize: '28px', color: '#fff1d2' }).setOrigin(0.5);
-      if (enabled) bindSelectionDetails(this, button, { title: label, description: 'Browse potion packs.' }, () => {
-        HapticsService.tap(); this.page = page; this.render();
-      });
-    };
-    pageButton(600, '< PREV', this.page - 1, this.page > 0);
-    if (this.message) addWoodenNotice(this, 1200, 759, this.message, { width: 850, fontSize: 28, depth: 0 });
-    else this.add.text(1200, 759, `${this.page + 1} / ${pages}`, { fontFamily: 'Arial', fontSize: '29px', color: '#fde68a' }).setOrigin(0.5);
-    pageButton(1800, 'NEXT >', this.page + 1, this.page < pages - 1);
-    return { x: 1200, y: 550, width: 1700, height: 520 };
+
+    const surface = (scene, x, y, width, height, variant) => addShopButtonFace(scene, theme, x, y, width, height,
+      { prominent: variant === 'thumb', enabled: variant === 'thumb' });
+
+    // Math.ceil rounds upward to the next integer, including when the value has a
+    // fractional part.
+    this.itemList = hallScroll(this, { x: 516, y: 291, width: 1794, height: 548 },
+      this.children.list.slice(start), Math.ceil(rows.length / 2) * stride, this.itemOffset,
+      value => { this.itemOffset = value; }, surface);
+    this.add.text(1400, 868, this.message || `${rows.length} items · Drag or scroll to browse`, { fontFamily: UI_FONT_FAMILIES.sans,
+      fontSize: fontPx('shopPager'), color: theme.text, align: 'center', wordWrap: { width: 1700 } }).setOrigin(0.5);
+
+    return { x: 1200, y: 553, width: 2280, height: 690 };
   }
 }

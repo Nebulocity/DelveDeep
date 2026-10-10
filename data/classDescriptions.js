@@ -1,0 +1,19 @@
+// These descriptions are shown when a player inspects a class. Keep their promises in step
+// with the actual class data and skill handlers.
+
+export const CLASS_DESCRIPTIONS = {
+  Gladiator: 'A front-line tank who draws enemies away from the party and controls the fight. Roar attracts attention, Throw Net roots distant foes, and Whirling Cleave builds threat across nearby enemies. Best at gathering enemies and protecting fragile allies while dealing physical damage.',
+  Oathwarden: 'A defensive tank who protects the party through vows, taunts and parries. Staunch Defense draws nearby enemies while reducing incoming damage, and Solemn Vow protects an ally. Best at surviving heavy pressure and buying the party time to recover.',
+  Dawnwarden: 'A holy front-line tank who combines enemy control with magic damage. Challenge and Defiant Stance draw enemies, while Sanctity Nova and Sunbrand Strike punish them with holy power. Best at keeping threats off allies and damaging clustered enemies.',
+  Barmaid: 'A close-combat fighter who disrupts enemies with stuns and sweeping attacks. Frying Pan and Shield Bash stop individual threats; Clumsy Swing and Last Call pressure groups. Best at interrupting dangerous enemies while supporting the front line.',
+  Scoundrel: 'A mobile physical attacker who uses stealth, surprise attacks and poison. Stealth sets up a powerful strike from behind, while Dagger Throw reaches distant foes. Best at attacking vulnerable targets and wearing enemies down with poison.',
+  Barbarian: 'An aggressive melee fighter with powerful strikes and a stunning charge. Enrage greatly increases damage but also increases damage taken and is followed by a recovery period. Best at bursting down priority targets with tank and healer support.',
+  Ranger: "A ranged physical attacker who marks targets, lays traps and attacks groups with arrows. Hunter's Mark makes a chosen enemy more vulnerable; traps stop advancing foes. Best at sustained ranged pressure and controlling enemies before they reach the party.",
+
+  'Mage of the Umbral Veil': 'A ranged spellcaster who channels necrotic magic through direct attacks and area bursts. Veilstep helps escape close threats. Best at ranged spell damage, damaging clustered enemies and repositioning away from danger.',
+  'Mage of the Crimson Spire': 'An arcane damage specialist who combines force attacks with defensive stabilization. Arcflare splashes nearby foes, while Spireburst strikes along a beam that can also hit allies. Best at heavy spell damage when carefully positioned.',
+  'Mage of the Luminous Archive': 'A radiant spellcaster who mixes enemy damage with healing. Radiant Touch, Lumenspear and Libram of Knowledge restore allies through damage-linked healing, while Scripted Refuge provides periodic recovery. Best at supporting the party while maintaining offensive pressure.',
+  'Cleric of the Everbright': 'A dedicated healer with direct, ranged and group healing. Solar Aegis provides protection and Judgement Spark adds radiant damage when healing pressure allows. Best at keeping allies alive with dependable healing and defensive support.',
+  'Cleric of the Verdant Covenant': 'A nature healer who combines recovery with armor and battlefield control. Rootbound Refuge improves protection, Bramble Mend adds retaliation, and Thornlance roots enemies. Best at sustaining the front line and slowing threats.',
+  'Cleric of the Sanguine Song': 'A blood-magic healer who trades personal health for powerful recovery. Hemoflow Beam strengthens healing on injured allies, and Crimson Chorus grants temporary health. Best at rescuing wounded allies, with care needed to protect the cleric.'
+};

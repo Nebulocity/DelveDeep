@@ -1,9 +1,8 @@
 {
   "version": 1,
-  "status": "Artwork and proposed navigation; not integrated into runtime",
+  "status": "Pineshire artwork integrated; later-region navigation anchors remain proposals",
   "locationCountPerRegion": 8,
   "coordinateSpace": "Normalized image coordinates; visually reviewed destination anchors, route polylines require tracing for runtime travel",
-  "reference": "../../screens/map.png",
   "regions": [
     {
       "id": "pineshire-reach",
@@ -1488,5 +1487,6 @@
         "fromPortal": "emberforge-caldera-portal"
       }
     }
-  ]
+  ],
+  "runtimeMap": "../../../data/illustratedWorldMap.js"
 }

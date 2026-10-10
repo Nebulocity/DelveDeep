@@ -1,0 +1,119 @@
+{
+  "frameWidth": 256,
+  "frameHeight": 256,
+  "directions": [
+    "south-east",
+    "south-west",
+    "north-east",
+    "north-west"
+  ],
+  "origins": {
+    "south-east": {
+      "x": 0.5,
+      "y": 0.875
+    },
+    "south-west": {
+      "x": 0.5,
+      "y": 0.875
+    },
+    "north-east": {
+      "x": 0.5,
+      "y": 0.875
+    },
+    "north-west": {
+      "x": 0.5,
+      "y": 0.875
+    }
+  },
+  "states": {
+    "facing": {
+      "columns": 1,
+      "counts": {
+        "south-east": 1,
+        "south-west": 1,
+        "north-east": 1,
+        "north-west": 1
+      },
+      "frameMs": 1000,
+      "loop": false
+    },
+    "idle": {
+      "columns": 4,
+      "counts": {
+        "south-east": 4,
+        "south-west": 4,
+        "north-east": 4,
+        "north-west": 4
+      },
+      "frameMs": 150,
+      "loop": true
+    },
+    "walk": {
+      "columns": 8,
+      "counts": {
+        "south-east": 8,
+        "south-west": 8,
+        "north-east": 8,
+        "north-west": 8
+      },
+      "frameMs": 75,
+      "loop": true
+    },
+    "attack": {
+      "columns": 9,
+      "counts": {
+        "south-east": 9,
+        "south-west": 9,
+        "north-east": 9,
+        "north-west": 9
+      },
+      "frameMs": 70,
+      "loop": false
+    },
+    "cast": {
+      "columns": 9,
+      "counts": {
+        "south-east": 9,
+        "south-west": 9,
+        "north-east": 9,
+        "north-west": 9
+      },
+      "frameMs": 95,
+      "loop": false
+    },
+    "block": {
+      "columns": 5,
+      "counts": {
+        "south-east": 5,
+        "south-west": 5,
+        "north-east": 5,
+        "north-west": 5
+      },
+      "frameMs": 85,
+      "loop": false
+    },
+    "hit": {
+      "columns": 5,
+      "counts": {
+        "south-east": 5,
+        "south-west": 5,
+        "north-east": 5,
+        "north-west": 5
+      },
+      "frameMs": 60,
+      "loop": false
+    },
+    "death": {
+      "columns": 9,
+      "counts": {
+        "south-east": 9,
+        "south-west": 9,
+        "north-east": 9,
+        "north-west": 9
+      },
+      "frameMs": 110,
+      "loop": false
+    }
+  },
+  "topFrameY": 85
+}

@@ -1,9 +1,20 @@
+// This encounter owns its artwork layers, waves and walkable floor outline. The polygon
+// points use original artwork pixels. LayeredEnvironment scales and positions them with
+// the art, then clips the lower edge above the party HUD. Foreground decoration can cover
+// sprites without becoming blocking terrain.
+
 export default {
   id: 'murmuring-abyss',
   name: 'The Murmuring Abyss',
   mapLabel: 'The Murmuring Abyss',
   subtitle: 'A tear in the world. Something on the other side is whispering.',
-  difficulty: 'Unknown', recommendedLevel: 2, depth: 4, type: 'void',
+  difficulty: 'Incredibly Tough', recommendedLevel: 25, depth: 4, type: 'void',
+  bossPreparation: { level: 30, gearRarity: 'common', abilityCount: 3, abilityRank: 4 },
+
+  // Keep the portal identity and artwork while banking waves and offering two camps.
+  // Each number means camp opens after clearing that player-visible wave.
+  campWaves: [15, 33],
+  materialEnvironments: ['Caves', 'Forests', 'Humanoid'],
   possibleDrops: ['Gold', 'Adventurer XP'],
   prerequisites: ['slime-cave', 'thornbriar-hollow', 'dolmark-den'],
   requiresLocation: 'duskfall',
@@ -12,11 +23,19 @@ export default {
   visuals: {
     environment: {
       width: 1672, height: 941, offsetY: -40, pixelArt: true,
+
+      // Keep the rear floor outline; the lower floor continues beneath foreground scenery.
+      walkable: [
+        [343, 514], [577, 498], [811, 493], [1099, 502],
+        [1320, 520], [1490, 558], [1571, 593], [1571, 941],
+        [136, 941], [136, 603], [194, 558]
+      ],
       layers: [
         { key: 'murmuring-abyss-pixel-art',
           url: new URL('../../assets/environments/murmuring-abyss-pixel/portal.png', import.meta.url).href,
           depth: -1000 }
       ],
+
       foreground: {
         sourceKey: 'murmuring-abyss-pixel-art', depth: 4300,
         polygons: [
@@ -26,6 +45,7 @@ export default {
             [1490, 769], [1434, 792], [1360, 846], [1278, 941], [1672, 941]]
         ]
       },
+
       voidEffects: {
         portal: { x: 836, y: 231, radiusX: 251, radiusY: 207, particles: 30 },
         clouds: [
@@ -34,12 +54,14 @@ export default {
           { x: 548, y: 321, width: 116, height: 36, phase: 3.1 },
           { x: 1126, y: 319, width: 126, height: 39, phase: 4.6 }
         ],
+
         flames: [
           { x: 46, y: 285, size: 38 },
           { x: 1627, y: 281, size: 41 },
           { x: 141, y: 408, size: 26 },
           { x: 1519, y: 412, size: 27 }
         ],
+
         lightning: [
           { startX: 336, startY: 43, endX: 534, endY: 184 },
           { startX: 1337, startY: 40, endX: 1158, endY: 180 },

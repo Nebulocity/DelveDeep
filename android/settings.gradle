@@ -1,5 +1,11 @@
+
+// Register the native app and Capacitor's compatibility module as parts of this Gradle build.
+// projectDir tells Gradle where the compatibility module lives on disk.
 include ':app'
 include ':capacitor-cordova-android-plugins'
 project(':capacitor-cordova-android-plugins').projectDir = new File('./capacitor-cordova-android-plugins/')
 
+
+// Capacitor sync generates this list of connected native plugins. Change plugin dependencies
+// in npm and run sync rather than hand-editing the generated settings file.
 apply from: 'capacitor.settings.gradle'

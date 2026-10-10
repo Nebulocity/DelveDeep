@@ -1,3 +1,6 @@
+// We load the initial assets, restore the profile and route into the first playable
+// screen. Assets loaded here become available by their texture keys in later scenes.
+
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
 import adventurers from '../data/adventurers.js';
@@ -5,11 +8,15 @@ import OrientationService from '../services/OrientationService.js';
 import { loadLeaderProgression } from '../game/LeaderProgression.js';
 import { loadProfile } from '../game/GameStorage.js';
 import { prepareBuildSave } from '../game/BuildSave.js';
-import partyIdleUrl from '../assets/characters/caramon-gladiator/reference-v2/sheets/idle.png?url';
-import partyWalkUrl from '../assets/characters/caramon-gladiator/reference-v2/sheets/walk.png?url';
+
+import { unpackBattleValue } from '../game/BattleSnapshot.js';
+import enemies from '../data/enemies.js';
+import partyIdleUrl from '../assets/characters/caramon-gladiator/sheets/idle.png?url';
+import partyWalkUrl from '../assets/characters/caramon-gladiator/sheets/walk.png?url';
 import townUrl from '../assets/screens/town.png?url';
 import adventurersHallUrl from '../assets/screens/adventurerhall.png?url';
 import alchemistUrl from '../assets/screens/alchemist.png?url';
+
 import blacksmithUrl from '../assets/screens/blacksmith.png?url';
 import enchanterUrl from '../assets/screens/enchanter.png?url';
 import townSignHallUrl from '../assets/screens/town-signs/hall.png?url';
@@ -17,6 +24,7 @@ import townSignAlchemistUrl from '../assets/screens/town-signs/alchemist.png?url
 import townSignBlacksmithUrl from '../assets/screens/town-signs/blacksmith.png?url';
 import townSignEnchanterUrl from '../assets/screens/town-signs/enchanter.png?url';
 import townSignWorldMapUrl from '../assets/screens/town-signs/world-map.png?url';
+
 import townSignDetailsUrl from '../assets/screens/town-signs/details.png?url';
 import townForestUrl from '../assets/screens/town-concepts/pineshire.png?url';
 import townMountainUrl from '../assets/screens/town-concepts/mountain-hold.png?url';
@@ -24,28 +32,31 @@ import townRiverUrl from '../assets/screens/town-concepts/river-town.png?url';
 import townMarshUrl from '../assets/screens/town-concepts/marsh-town.png?url';
 import townDesertUrl from '../assets/screens/town-concepts/desert-town.png?url';
 import townCastleUrl from '../assets/screens/town-concepts/castle-town.png?url';
+
 import { trackLoading } from '../ui/LoadingScreen.js';
-import delves from '../data/delves.js';
+import delves, { getDelveById } from '../data/delves.js';
 import pineshireMapUrl from '../assets/world-map/illustrated-regions-v1/01-pineshire-reach-v4.png?url';
+import { preloadMusic } from '../services/MusicService.js';
 
 export default class BootScene extends Phaser.Scene {
 
-  // This function registers BootScene so the game can navigate to this
-  // screen.
+  // This helper registers BootScene so the game can navigate to this screen.
   constructor() {
 
     super('BootScene');
   }
 
-  // This function loads the world map before the player enters the game.
+  // This helper loads the world map before the player enters the game.
   preload() {
 
     trackLoading(this);
+    preloadMusic(this);
     this.load.image('world-pineshire-final', pineshireMapUrl);
     this.load.spritesheet('world-party-idle', partyIdleUrl, { frameWidth: 256, frameHeight: 256 });
     this.load.spritesheet('world-party-walk', partyWalkUrl, { frameWidth: 256, frameHeight: 256 });
     this.load.image('town', townUrl);
     this.load.image('adventurers-hall', adventurersHallUrl);
+
     this.load.image('alchemist', alchemistUrl);
     this.load.image('blacksmith', blacksmithUrl);
     this.load.image('enchanter', enchanterUrl);
@@ -53,22 +64,37 @@ export default class BootScene extends Phaser.Scene {
     this.load.image('town-sign-alchemist', townSignAlchemistUrl);
     this.load.image('town-sign-blacksmith', townSignBlacksmithUrl);
     this.load.image('town-sign-enchanter', townSignEnchanterUrl);
+
     this.load.image('town-sign-world-map', townSignWorldMapUrl);
     this.load.image('town-sign-details', townSignDetailsUrl);
+
+    // Several encounters can share one battlefield. Queue each texture key once while
+    // it is still loading, before Phaser has added it to the texture cache.
+    const queuedEnvironments = new Set();
     for (const delve of delves) {
+
+      // ?. only follows this link when the value exists; a missing optional value gives
+      // undefined.
       const layer = delve.visuals?.environment?.layers[0];
-      if (layer) this.load.image(layer.key, layer.url);
+      if (layer && !queuedEnvironments.has(layer.key)) {
+        this.load.image(layer.key, layer.url);
+        queuedEnvironments.add(layer.key);
+      }
     }
+
     this.load.image('town-concept-pineshire', townForestUrl);
     this.load.image('town-concept-mountain-hold', townMountainUrl);
     this.load.image('town-concept-river-town', townRiverUrl);
     this.load.image('town-concept-marsh-town', townMarshUrl);
     this.load.image('town-concept-desert-town', townDesertUrl);
     this.load.image('town-concept-castle-town', townCastleUrl);
+
+    // find returns the first matching entry, or undefined when none matches. Check for
+    // that missing result before using its fields.
     this.load.image('everdeep-concept', delves.find((delve) => delve.id === 'murmuring-abyss').visuals.environment.layers[0].url);
   }
 
-  // This function restores the session and enters the world map in landscape.
+  // This helper restores the session and enters the world map in landscape.
   create() {
 
     const sign = this.textures.get('town-sign-details');
@@ -77,11 +103,13 @@ export default class BootScene extends Phaser.Scene {
     this.textures.get('world-pineshire-final').setFilter(1);
     this.initializeGameState();
     OrientationService.lockLandscape();
-    this.scene.start('TitleScene');
+
+    // The condition before ? chooses the first value when true and the value after : when
+    // false.
+    this.scene.start(GameState.activeBattle ? 'BattleScene' : 'TitleScene');
   }
 
-  // This function restores persistent progress and prepares clean encounter
-  // state.
+  // This helper restores persistent progress and prepares clean encounter state.
   initializeGameState() {
 
     prepareBuildSave();
@@ -99,14 +127,14 @@ export default class BootScene extends Phaser.Scene {
     // Restore player progression from its separate save record.
     GameState.leader = loadLeaderProgression();
 
-    // Preserve saved party order and copy roster entries so temporary changes
-    // to top-level party stats do not alter the permanent roster.
+    // Preserve saved party order and copy roster entries so temporary changes to top-level
+    // party stats do not alter the permanent roster.
     GameState.activeParty = GameState.roster
       .filter((adventurer) => GameState.lastPartyIds.includes(adventurer.id))
       .sort((a, b) => GameState.lastPartyIds.indexOf(a.id) - GameState.lastPartyIds.indexOf(b.id))
       .map((adventurer) => ({ ...adventurer }));
 
-    // Clear expedition details so a new session cannot resume a stale run.
+    // Start with clean expedition details, then restore a validated saved battle.
     GameState.currentDelve = null;
     GameState.currentRoom = 0;
     GameState.rewards = [];
@@ -118,5 +146,19 @@ export default class BootScene extends Phaser.Scene {
       summary: null,
       startingGold: GameState.gold
     };
+    const snapshot = GameState.activeBattle;
+
+    // Resolve the retained Sunken Watch map ID as well as authored template IDs so its
+    // saved battles resume with the original checkpoint and current sprite catalog.
+    const delve = snapshot && getDelveById(snapshot.delveId);
+
+    // every requires all entries to pass the check; an empty list gives true.
+    if (delve && snapshot.enemies.every(unit => enemies[unit.enemyType])) {
+      GameState.currentDelve = delve;
+      GameState.activeParty = unpackBattleValue(snapshot.partyTemplates);
+      GameState.leader = unpackBattleValue(snapshot.leader);
+      GameState.tactics = unpackBattleValue(snapshot.tactics);
+      GameState.run = unpackBattleValue(snapshot.run);
+    } else GameState.activeBattle = null;
   }
 }

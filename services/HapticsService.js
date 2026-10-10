@@ -1,9 +1,14 @@
+// This is our shared touch-feedback entry point. Capacitor supplies native vibration on
+// supported devices. Browser previews may have no native haptics; a failed optional
+// feedback call should not stop the player's actual action. Background work stays quiet.
+
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 
 class HapticsService {
 
-  // This function gives ordinary presses a light tactile response.
+  // This helper gives ordinary presses a light tactile response.
   static async tap() {
+    if (this.background) return;
 
     try {
       await Haptics.impact({
@@ -15,8 +20,9 @@ class HapticsService {
     }
   }
 
-  // This function gives committed choices a stronger tactile response.
+  // This helper gives committed choices a stronger tactile response.
   static async confirm() {
+    if (this.background) return;
 
     try {
       await Haptics.impact({
@@ -28,9 +34,9 @@ class HapticsService {
     }
   }
 
-  // This function emphasizes major combat events with a heavy tactile
-  // response.
+  // This helper emphasizes major combat events with a heavy tactile response.
   static async heavy() {
+    if (this.background) return;
 
     try {
       await Haptics.impact({
@@ -42,8 +48,9 @@ class HapticsService {
     }
   }
 
-  // This function celebrates success with the device notification feedback.
+  // This helper celebrates success with the device notification feedback.
   static async success() {
+    if (this.background) return;
 
     try {
       await Haptics.notification({

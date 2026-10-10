@@ -1,20 +1,23 @@
 {
   "name": "delve-deep",
-  "version": "1.0.0",
+  "version": "0.1.7",
   "private": true,
   "type": "module",
   "scripts": {
+    "test": "node tests/run-tests.js",
     "dev": "vite --port 5173 --strictPort",
     "build": "vite build",
+    "build:android": "npm run build && npx cap sync android && cd android && gradlew.bat assembleDebug",
     "preview": "vite preview",
     "test:visual": "playwright test -c tests/visual/playwright.config.js",
     "test:visual:headed": "playwright test -c tests/visual/playwright.config.js --headed",
-    "deploy": "npm run build && npx cap sync android && npx cap open android && npx cap sync ios && cd android"
+    "deploy": "npm run build && npx cap sync android && npx cap open android"
   },
   "dependencies": {
     "@capacitor/core": "^8.0.0",
     "@capacitor/haptics": "^8.0.0",
     "@capacitor/ios": "^8.5.2",
+    "@capacitor/local-notifications": "^8.3.1",
     "phaser": "^3.90.0"
   },
   "devDependencies": {

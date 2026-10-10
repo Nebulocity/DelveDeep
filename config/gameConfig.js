@@ -1,10 +1,16 @@
+// These are the game-wide Phaser settings. Our drawing space is 2400 by 1080 logical
+// pixels. FIT scales that whole canvas to the available device space without stretching
+// it. Screens use these logical coordinates, while style.css handles the phone cutouts and
+// system bars around the canvas. The first scene in the list boots the game; the other
+// entries register screens we can start by name.
+
 import Phaser from 'phaser';
 import BootScene from '../scenes/BootScene.js';
 import TitleScene from '../scenes/TitleScene.js';
 import TownScene from '../scenes/TownScene.js';
 import RosterScene from '../scenes/RosterScene.js';
-import RaidLeaderScene from '../scenes/RaidLeaderScene.js';
-import ShopScene from '../scenes/ShopScene.js';
+import PartyLeaderScene from '../scenes/PartyLeaderScene.js';
+
 import DelveSelectScene from '../scenes/DelveSelectScene.js';
 import PartySelectScene from '../scenes/PartySelectScene.js';
 import DungeonScene from '../scenes/DungeonScene.js';
@@ -12,6 +18,7 @@ import BattleScene from '../scenes/BattleScene.js';
 import RewardScene from '../scenes/RewardScene.js';
 import FacilityScene from '../scenes/FacilityScene.js';
 import AdventurersHallScene from '../scenes/AdventurersHallScene.js';
+
 import BlacksmithScene from '../scenes/BlacksmithScene.js';
 import ItemsScene from '../scenes/ItemsScene.js';
 import EncounterSummaryScene from '../scenes/EncounterSummaryScene.js';
@@ -27,6 +34,7 @@ const gameConfig = {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH
   },
+
   scene: [
     BootScene,
     TitleScene,
@@ -36,8 +44,7 @@ const gameConfig = {
     BlacksmithScene,
     ItemsScene,
     RosterScene,
-    RaidLeaderScene,
-    ShopScene,
+    PartyLeaderScene,
     DelveSelectScene,
     PartySelectScene,
     DungeonScene,

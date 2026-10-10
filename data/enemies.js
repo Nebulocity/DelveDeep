@@ -1,3 +1,17 @@
+// These are authored enemy totals and abilities. They use the shared combat stats but do
+// not receive adventurer growth. Encounter waves refer to these keys to create individual
+// live enemies, so changing a key can break an authored wave.
+
+import { monsterStats, monsterAbilities } from '../game/MonsterStats.js';
+import { SLIME_BALANCE } from '../config/slimeBalance.js';
+import { MONSTER_CATALOG, MONSTER_SKILLS } from '../config/monsterCatalog.js';
+
+
+// maxHp and attackPower are authored resource/power values. attackRange and moveSpeed
+// use logical arena distance; attackCooldown and attackWindup are milliseconds.
+// critChance is a fraction (0.08 means 8%) and critMultiplier scales a successful crit.
+// color is a hexadecimal display color, while goldMin/goldMax are reward bounds.
+// monsterStats and monsterAbilities normalize these definitions below before battle use.
 const enemies = {
   caveBat: {
     id: 'cave-bat',
@@ -14,6 +28,7 @@ const enemies = {
     goldMin: 4,
     goldMax: 7
   },
+
   stoneCrawler: {
     id: 'stone-crawler',
     name: 'Stone Crawler',
@@ -29,6 +44,7 @@ const enemies = {
     goldMin: 6,
     goldMax: 10
   },
+
   caveSlime: {
     id: 'cave-slime',
     name: 'Cave Slime',
@@ -53,6 +69,7 @@ const enemies = {
       }
     }
   },
+
   elderSlime: {
     id: 'elder-slime',
     name: 'Elder Slime',
@@ -75,6 +92,7 @@ const enemies = {
         radius: 165,
         power: 27
       },
+
       secondary: {
         name: 'Toxic Glob',
         cooldown: 7200,
@@ -83,18 +101,21 @@ const enemies = {
       }
     }
   },
+
   lasher: {
     id: 'lasher', name: 'Lasher', maxHp: 125, moveSpeed: 142,
     attackPower: 9, attackRange: 90, attackCooldown: 1150, attackWindup: 290,
     critChance: 0.09, critMultiplier: 1.5, color: 0x4d7c0f,
     goldMin: 6, goldMax: 10
   },
+
   ruffian: {
     id: 'ruffian', name: 'Ruffian', maxHp: 105, moveSpeed: 170,
     attackPower: 8, attackRange: 68, attackCooldown: 850, attackWindup: 220,
     critChance: 0.14, critMultiplier: 1.6, color: 0xb91c1c,
     goldMin: 7, goldMax: 11
   },
+
   hedgeMage: {
     id: 'hedge-mage', name: 'Hedge Mage', maxHp: 110, moveSpeed: 112,
     attackPower: 7, attackRange: 210, attackCooldown: 1500, attackWindup: 550,
@@ -102,6 +123,7 @@ const enemies = {
     goldMin: 9, goldMax: 14,
     abilities: { secondary: { name: 'Briar Bolt', cooldown: 6200, windup: 800, power: 15 } }
   },
+
   rongarTheCrusher: {
     id: 'rongar-the-crusher', name: 'Rongar the Crusher', boss: true,
     maxHp: 2600, bodyRadius: 56, moveSpeed: 95,
@@ -110,12 +132,14 @@ const enemies = {
     goldMin: 65, goldMax: 85,
     abilities: { primary: { name: 'Mace Sweep', cooldown: 5800, telegraph: 1250, radius: 145, power: 22 } }
   },
+
   denWarden: {
     id: 'den-warden', name: 'Den Warden', maxHp: 120, moveSpeed: 155,
     attackPower: 9, attackRange: 72, attackCooldown: 1050, attackWindup: 250,
     critChance: 0.11, critMultiplier: 1.5, color: 0xb97845,
     goldMin: 7, goldMax: 11
   },
+
   denProtector: {
     id: 'den-protector', name: 'Den Protector', maxHp: 520, bodyRadius: 44,
     moveSpeed: 88, attackPower: 14, attackRange: 86,
@@ -124,6 +148,7 @@ const enemies = {
     goldMin: 24, goldMax: 35,
     abilities: { primary: { name: 'Bark Slam', cooldown: 6500, telegraph: 1200, radius: 140, power: 22 } }
   },
+
   silvanarkTheForestLord: {
     id: 'silvanark-the-forest-lord', name: 'Silvanark the Forest Lord', boss: true,
     maxHp: 2600, bodyRadius: 68, moveSpeed: 75,
@@ -135,6 +160,7 @@ const enemies = {
       secondary: { name: 'Root Lance', cooldown: 7500, windup: 850, power: 19 }
     }
   },
+
   voidStalker: {
     id: 'void-stalker',
     name: 'Void Stalker',
@@ -153,6 +179,7 @@ const enemies = {
       secondary: { name: 'Void Lance', cooldown: 5200, windup: 600, power: 17 }
     }
   },
+
   voidWarden: {
     id: 'void-warden',
     name: 'Void Warden',
@@ -172,6 +199,7 @@ const enemies = {
       secondary: { name: 'Dark Bolt', cooldown: 6800, windup: 720, power: 20 }
     }
   },
+
   abyssalMaw: {
     id: 'abyssal-maw',
     name: 'Abyssal Maw',
@@ -193,8 +221,8 @@ const enemies = {
   }
 };
 
-// These final bosses extend the existing encounters with long fights.
-// Their health provides endurance without making each hit overwhelming.
+// These final bosses extend the existing encounters with long fights. Their health
+// provides endurance without making each hit overwhelming.
 enemies.slimeSovereign = {
   ...enemies.elderSlime,
   id: 'slime-sovereign', name: 'Slime Sovereign', boss: true,
@@ -202,6 +230,9 @@ enemies.slimeSovereign = {
   attackPower: 15, attackCooldown: 1500, color: 0x84cc16,
   goldMin: 65, goldMax: 85
 };
+
+// ... copies the source's own fields into this object; fields listed later replace earlier
+// ones. This is a shallow copy, so nested objects are still shared.
 enemies.denColossus = {
   ...enemies.elderSlime,
   id: 'den-colossus', name: 'Den Colossus', boss: true,
@@ -209,6 +240,7 @@ enemies.denColossus = {
   attackPower: 17, attackCooldown: 1450, color: 0xa16207,
   goldMin: 90, goldMax: 120
 };
+
 enemies.abyssalSovereign = {
   ...enemies.abyssalMaw,
   id: 'abyssal-sovereign', name: 'Abyssal Sovereign', boss: true,
@@ -231,24 +263,139 @@ enemies.riftSentinel = {
   goldMin: 18, goldMax: 25
 };
 
+// Add the supplied void identities using existing stat profiles. Old enemy keys remain
+// available for saved encounters and The Verdant Tear, so those records still restore.
+enemies.voidCrawler = {
+  ...enemies.voidStalker,
+  id: 'void-crawler', name: 'Void Crawler',
+  abilities: {
+    secondary: { ...enemies.voidStalker.abilities.secondary, name: 'Void Bolt', animation: 'cast' }
+  }
+};
+enemies.voidKeeper = {
+  ...enemies.voidWarden,
+  id: 'void-keeper', name: 'Void Keeper',
+  abilities: {
+    primary: { ...enemies.voidWarden.abilities.primary, name: 'Void Spirals', animation: 'area' },
+    secondary: { ...enemies.voidWarden.abilities.secondary, name: 'Void Beam', animation: 'cast', projectile: 'beam' }
+  }
+};
+enemies.voidWisp = {
+  ...enemies.voidStalker,
+  id: 'void-wisp', name: 'Void Wisp',
+  abilities: {
+    secondary: { ...enemies.voidStalker.abilities.secondary, name: 'Void Bolt', animation: 'cast' }
+  }
+};
+
+// The third Abyss wave keeps its existing durable guardian profile. It uses the
+// supplied Keeper artwork without replacing the older saved Abyssal Maw identity.
+enemies.voidKeeperGuardian = {
+  ...enemies.abyssalMaw,
+  id: 'void-keeper-guardian', name: 'Void Keeper',
+  abilities: {
+    primary: { ...enemies.abyssalMaw.abilities.primary, animation: 'area' },
+    secondary: { ...enemies.abyssalMaw.abilities.secondary, animation: 'cast' }
+  }
+};
+
+// Keep powers, cooldowns and targeting intact while matching the boards' action poses.
+enemies.voidStalker.abilities.secondary = {
+  ...enemies.voidStalker.abilities.secondary, animation: 'leap'
+};
+enemies.voidWarden.abilities = {
+  primary: { ...enemies.voidWarden.abilities.primary, animation: 'area' },
+  secondary: { ...enemies.voidWarden.abilities.secondary, animation: 'cast' }
+};
+enemies.abyssalMaw.abilities = {
+  primary: { ...enemies.abyssalMaw.abilities.primary, animation: 'area' },
+  secondary: { ...enemies.abyssalMaw.abilities.secondary, animation: 'cast' }
+};
+enemies.abyssalSovereign.abilities = {
+
+  // These warnings give the leader time to select allies and issue movement or Interrupt.
+  // Timings are milliseconds; circles and cast reach use logical arena units. Flat damage
+  // is converted to shared percentage potency below, just like the other monster skills.
+  // Damage is provisional: missing a response should hurt, with phone balance still needed.
+  primary: { name: 'Abyssal Collapse', animation: 'area', cooldown: 12000,
+    windup: 3000, telegraph: 3000, radius: 190, castRange: 300, autoAvoid: false,
+    power: 120, damageType: 'physical', manaCost: 0,
+    responseHint: 'MOVE out of the circle or INTERRUPT' },
+
+  // Soul Rend follows its threat target rather than a floor position. Walking away does
+  // not evade this hit, so the cast bar and prompt ask the player to stop the cast.
+  secondary: { name: 'Soul Rend', animation: 'cast', cooldown: 18000, windup: 4000,
+    power: 180, damageType: 'spell', manaCost: 0,
+    responseHint: 'INTERRUPT the cast' },
+
+  // The larger blast stays at the boss's cast-start position, leaving the rest of the
+  // authored arena available for escape. autoAvoid prevents automatic warning dodges.
+  tertiary: { name: "Sovereign's Ruin", animation: 'area', cooldown: 30000,
+    windup: 6000, telegraph: 6000, radius: 300, castRange: 300, areaCenter: 'caster',
+    autoAvoid: false, power: 240, damageType: 'spell', manaCost: 0,
+    responseHint: 'MOVE away from the boss or INTERRUPT' }
+};
+
+
+// Use the replaced roster's ordinary attack stats until the supplied ability list arrives.
+// Empty abilities prevent inherited bandit spells from becoming invented monster skills.
+// Existing enemy keys remain available so saved battles can finish with their old roster.
+enemies.sunkenWatcher = {
+  ...enemies.ruffian, id: 'sunken-watcher', name: 'Sunken Watcher',
+  color: 0x43bdd0, abilities: {}
+};
+enemies.deepTongue = {
+  ...enemies.lasher, id: 'deep-tongue', name: 'The Deep Tongue',
+  color: 0x32b6cb, abilities: {}
+};
+enemies.drownedKnell = {
+  ...enemies.hedgeMage, id: 'drowned-knell', name: 'Drowned Knell',
+  attackRange: 90, color: 0x91aa32, abilities: {}
+};
+enemies.earthsinker = {
+  ...enemies.rongarTheCrusher, id: 'earthsinker', name: 'The Earthsinker',
+  color: 0x388d91, abilities: {}
+};
+
+// These provisional profiles reuse the replaced encounter's basic combat totals.
+// Special abilities await authored data rather than inheriting unrelated forest spells.
+// Keep the old definitions above so battles already in progress can still restore them.
+enemies.quarryWorm = {
+  ...enemies.denWarden, id: 'quarry-worm', name: 'Quarry Worm', abilities: {}
+};
+
+// Baaz has a provisional melee profile and no invented petrification combat effect.
+// Its stone death is presentation only; an encounter assignment remains to be authored.
+enemies.baazDraconian = {
+  ...enemies.ruffian, id: 'baaz-draconian', name: 'Baaz Draconian', abilities: {}
+};
+enemies.quarryBehemoth = {
+  ...enemies.denProtector, id: 'quarry-behemoth', name: 'Quarry Behemoth', abilities: {}
+};
+enemies.quarryReaver = {
+  ...enemies.denProtector, id: 'quarry-reaver', name: 'Quarry Reaver', abilities: {}
+};
+enemies.depthsSovereign = {
+  ...enemies.silvanarkTheForestLord, id: 'depths-sovereign', name: 'Depths Sovereign', abilities: {}
+};
+
 export const forgottenCavernWaves = [
   {
-    name: 'Cavern Vermin',
     enemies: [
       { type: 'caveBat', arenaX: 390, arenaY: 790 },
       { type: 'caveBat', arenaX: 650, arenaY: 825 }
     ]
   },
+
   {
-    name: 'Things That Skitter',
     enemies: [
       { type: 'stoneCrawler', arenaX: 360, arenaY: 760 },
       { type: 'caveSlime', arenaX: 535, arenaY: 830 },
       { type: 'stoneCrawler', arenaX: 700, arenaY: 750 }
     ]
   },
+
   {
-    name: 'The Elder Puddle',
     boss: true,
     enemies: [
       { type: 'elderSlime', arenaX: 520, arenaY: 810 }
@@ -258,23 +405,22 @@ export const forgottenCavernWaves = [
 
 export const voidPortalWaves = [
   {
-    name: 'Whispers at the Threshold',
     enemies: [
       { type: 'voidStalker', arenaX: 360, arenaY: 770 },
       { type: 'voidStalker', arenaX: 650, arenaY: 800 },
       { type: 'stoneCrawler', arenaX: 520, arenaY: 845 }
     ]
   },
+
   {
-    name: 'Wardens of the Rift',
     enemies: [
       { type: 'voidWarden', arenaX: 500, arenaY: 790 },
       { type: 'voidStalker', arenaX: 310, arenaY: 750 },
       { type: 'voidStalker', arenaX: 710, arenaY: 750 }
     ]
   },
+
   {
-    name: 'The Maw Beyond',
     boss: true,
     enemies: [
       { type: 'abyssalMaw', arenaX: 520, arenaY: 810 },
@@ -283,5 +429,36 @@ export const voidPortalWaves = [
     ]
   }
 ];
+
+
+// Apply slime tuning after inherited archetypes have kept their original stats and skills.
+for (const [type, profile] of Object.entries(SLIME_BALANCE)) {
+  enemies[type] = { ...enemies[type], ...profile };
+}
+
+// Apply the revised authored roster after legacy copies and Slime tuning. Keeping this
+// step before normalization makes percentage damage agree with the new stat totals.
+for (const [type, [maxHp, armor, attackPower, reach, level, spellStats = {}]] of Object.entries(MONSTER_CATALOG)) {
+
+  // Most monsters use Attack Power for Spell Damage. Spread any authored spell stats
+  // afterward so Hedge Mage keeps its separate damage and healing totals. Older rows
+  // omit this object, so the = {} fallback preserves their existing behavior.
+  enemies[type] = { ...enemies[type], maxHp, armor, attackPower, level,
+    spellDamage: attackPower, ...spellStats,
+    attackRange: reach === 'Ranged' ? 210 : Math.min(100, enemies[type].attackRange),
+    abilities: MONSTER_SKILLS[type] ?? enemies[type].abilities };
+}
+
+// Colossus is an ordinary Dolmark monster in the catalog. Keeper's older guardian key
+// stays valid for saved spawns but shares the current Keeper totals for new encounters.
+enemies.denColossus.boss = false;
+enemies.voidKeeperGuardian = { ...enemies.voidKeeper, id: 'void-keeper-guardian' };
+
+// Object.entries turns own fields into [key, value] pairs so we can visit or transform
+// them.
+for (const [type, definition] of Object.entries(enemies)) {
+  const stats = monsterStats(definition);
+  enemies[type] = { ...stats, abilities: monsterAbilities(stats) };
+}
 
 export default enemies;

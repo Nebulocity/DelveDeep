@@ -3339,7 +3339,7 @@ export default class BattleScene extends Phaser.Scene {
     // Build one of the three camp choices. index selects its column and icon. The action
     // is a callback saved for a valid release, so merely drawing the card cannot start
     // farming or enter the boss wave.
-    const choice = (index, title, detail, action, color) => {
+    const choice = (index, title, detail, action, color, enabled = true) => {
 
       // width comes from this.scale, our logical canvas. Subtracting 1 from index places
       // columns at -528, 0 and +528 around the canvas center. Each card is 502 pixels
@@ -3376,6 +3376,14 @@ export default class BattleScene extends Phaser.Scene {
         { align: 'center', color: index === 1 ? '#f5d788' : STONE.muted, wordWrap: { width: 422 } })
         .setOrigin(0.5, 0);
       overlay.push(button, symbol, titleText, detailText);
+
+      // Keep a defeated boss visible as a dimmed card, with no press handlers or
+      // touch input. The room and the two remaining camp choices stay readable.
+      if (!enabled) {
+        button.disableInteractive();
+        [...button.pressVisuals, symbol, titleText, detailText].forEach(object => object.setAlpha(0.45));
+        return;
+      }
       bindButtonPress(this, button, [symbol, titleText, detailText], () => {
         HapticsService.confirm();
         overlay.forEach(object => object.destroy());
@@ -3404,10 +3412,14 @@ export default class BattleScene extends Phaser.Scene {
         this.startWave(farmIndex);
       }, 0x50432e);
 
-    choice(2, 'FACE THE BOSS', 'Boss rewards and Delve completion', () => {
+
+    // World clears already persist the defeated boss under this Delve's stable ID.
+    // Use that record rather than the camp checkpoint, which also unlocks before a win.
+    const bossDefeated = GameState.world.clearedDelves.includes(delve.id);
+    choice(2, 'FACE THE BOSS', bossDefeated ? 'Boss already defeated' : 'Boss rewards and Delve completion', () => {
       GameState.run.entry = 'boss';
       this.startWave(this.bossWaveIndex);
-    }, 0x633328);
+    }, 0x633328, !bossDefeated);
   }
 
   // Build held potion details from the equipped pack definition and its remaining charges.

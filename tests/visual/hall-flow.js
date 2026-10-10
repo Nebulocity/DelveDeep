@@ -164,8 +164,19 @@ export async function reviewHall(page, output, width) {
   ensure(!(await snapshot()).gear.weapon, 'Cancelled comparison changed gear');
 
   await click('RosterScene', 'hall-compare-gear-901');
+
+  // Transaction refreshes keep the roster alive instead of recreating every card.
+  await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene').rosterList.container.setData('transactionMarker', true));
   await click('RosterScene', 'EQUIP', true);
   ensure((await snapshot()).gear.weapon === 'gear-901', 'Confirmed weapon did not equip');
+  await click('RosterScene', 'hall-slot-weapon');
+  await click('RosterScene', 'Unequip');
+  ensure(!(await snapshot()).gear.weapon, 'Unequip did not clear the weapon');
+  await click('RosterScene', 'hall-slot-weapon');
+  await click('RosterScene', 'hall-compare-gear-901');
+  await click('RosterScene', 'EQUIP', true);
+  ensure(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene').rosterList.container.getData('transactionMarker')),
+    'Gear changes must preserve the roster objects');
   await click('RosterScene', 'hall-slot-potion');
   ensure(!await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene').children.list.some((object) => object.name === 'hall-compare-gear-904')), 'Mana pack must be excluded for a non-mana hero');
   await click('RosterScene', 'hall-compare-gear-905');
@@ -206,6 +217,13 @@ export async function reviewHall(page, output, width) {
 
   await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene').rosterList.set(0));
   await click('RosterScene', 'hall-tab-skills');
+
+  await revealSkill('cleave');
+  await click('RosterScene', 'hall-equip-skill-cleave');
+  ensure(!(await snapshot()).loadout.includes('cleave'), 'Unequip must remove the ability');
+  await click('RosterScene', 'hall-equip-skill-cleave');
+  ensure((await snapshot()).loadout.includes('cleave'), 'Equip must restore the ability');
+  await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene').skillList.set(0));
   ensure(await page.evaluate(() => {
     const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene');
 
@@ -262,7 +280,9 @@ export async function reviewHall(page, output, width) {
     // return value becomes that output entry. filter keeps entries whose callback returns
     // true. It builds a new list and leaves the original list in place.
     const text = flatten(scene.children.list).filter(object => object.depth >= 11000).map(object => object.text).join(' ');
-    return /Deal \d+-\d+ physical damage/.test(text) && text.includes('Range:') && text.includes('Cooldown:');
+
+    // Current catalog skills can have one damage amount; conditional skills have a range.
+    return /Deal \d+(?:-\d+)? physical damage/.test(text) && text.includes('Range:') && text.includes('Cooldown:');
   }), 'Skill details must show numeric damage, measured reach and cooldown');
 
   await capture('skill-potency');

@@ -5,6 +5,55 @@
 import { test, expect } from '@playwright/test';
 
 for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080 }]) {
+  test(`camp disables an already defeated boss at ${viewport.width}`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await page.goto('/?visualQa=1');
+    await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__?.game.scene.getScene('TitleScene').sys.isActive());
+    await page.locator('#loading-screen').waitFor({ state: 'hidden' });
+
+    for (const cleared of [false, true]) {
+      await page.evaluate(cleared => {
+        const qa = window.__DELVE_DEEP_VISUAL_QA__;
+
+        // A world clear with no checkpoint is the format used by older saves.
+        qa.state.world.clearedDelves = cleared ? ['slime-cave'] : [];
+        qa.state.delveCheckpoints = {};
+        qa.activate('BattleScene', { delve: 'slime-cave' });
+      }, cleared);
+      await page.waitForFunction(() => {
+        const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
+        return scene.sys.isActive() && scene.partyUnits?.length === 5 && scene.encounterStatusText;
+      });
+      await page.locator('#loading-screen').waitFor({ state: 'hidden' });
+      const cards = await page.evaluate(() => {
+        const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
+        scene.togglePause();
+        scene.showDelveCamp();
+        return [672, 1200, 1728].map(x => {
+          const button = scene.children.list.find(object => object.name === 'carved-stone-button'
+            && object.x === x && object.y === 599);
+          return { enabled: button.input.enabled, alpha: button.pressVisuals[0].alpha,
+            labels: scene.children.list.filter(object => object.type === 'Text' && object.x === x && object.depth === 12003)
+              .map(object => object.text) };
+        });
+      });
+      expect(cards[0].enabled).toBe(true);
+      expect(cards[1].enabled).toBe(true);
+      expect(cards[2].enabled).toBe(!cleared);
+      expect(cards[2].alpha).toBe(cleared ? 0.45 : 1);
+      expect(cards[2].labels).toContain(cleared ? 'Boss already defeated' : 'Boss rewards and Delve completion');
+
+      const canvas = await page.locator('canvas').boundingBox();
+      await page.mouse.click(canvas.x + 1728 * canvas.width / 2400, canvas.y + 650 * canvas.height / 1080);
+      expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.state.run.entry)).toBe(cleared ? 'camp' : 'boss');
+      if (cleared) {
+        await page.screenshot({ path: `output/qa/camp-cleared-${viewport.width}.png` });
+        await page.mouse.click(canvas.x + 1200 * canvas.width / 2400, canvas.y + 650 * canvas.height / 1080);
+        expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.state.run.entry)).toBe('farm');
+      }
+    }
+  });
+
   test(`camp rewards stay below their title at ${viewport.width}`, async ({ page }) => {
     await page.setViewportSize(viewport);
     await page.goto('/?visualQa=1');

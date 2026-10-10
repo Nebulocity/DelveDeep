@@ -120,7 +120,7 @@ export function addHallFrame(scene, active, message = '') {
   hallText(scene, width / 2, 23, 'PINESHIRE', UI_FONT_SIZES.compact24, { color: '#e6bd70', letterSpacing: 6 }).setOrigin(0.5);
   hallText(scene, width / 2, 70, 'Adventurer’s Hall', UI_FONT_SIZES.display54, { fontFamily: UI_FONT_FAMILIES.serif }).setOrigin(0.5);
   hallButton(scene, 200, 63, 290, 112, 'TOWN', () => scene.scene.start('TownScene'), { size: UI_FONT_SIZES.hallNavigation });
-  hallText(scene, width - 60, 67, `${GameState.gold} GOLD`, UI_FONT_SIZES.heading38, { color: '#e6bd70' }).setOrigin(1, 0.5);
+  hallText(scene, width - 60, 67, `${GameState.gold} GOLD`, UI_FONT_SIZES.heading38, { color: '#e6bd70' }).setOrigin(1, 0.5).setName('hall-gold');
   guildSurface(scene, width / 2, 186, width, 120, 'beam');
   [['Adventurers', 'RosterScene'], ['Items', 'ItemsScene'], ['Tactics', 'PartyLeaderScene']].forEach(([label, destination], index) => {
     hallButton(scene, 225 + index * 350, 186, 330, 112, label, () => {
@@ -134,7 +134,7 @@ export function addHallFrame(scene, active, message = '') {
   // false.
   hallText(scene, 58, height - 31, message || 'Drag lists to scroll. Hold an adventurer, item or skill for details.', UI_FONT_SIZES.hallHint, {
     color: message ? '#ffe0a7' : HALL.muted, wordWrap: { width: width - 116 }
-  });
+  }).setName('hall-feedback');
 }
 
 // Queue the portraits required by the Hall's current roster. scene is the Phaser screen
@@ -236,7 +236,12 @@ export function hallScroll(scene, bounds, objects, contentHeight, initial = 0, o
     }
 
     if (!inside(pointer.downX, pointer.downY)) return;
-    if (!drag) drag = { start: pointer.downY, value };
+
+    // Buttons can consume pointerup before the scene receives it. Match both the
+    // finger/mouse ID and this press's timestamp so an old drag cannot move a new tap.
+    if (!drag || drag.id !== pointer.id || drag.downTime !== pointer.downTime) {
+      drag = { id: pointer.id, downTime: pointer.downTime, start: pointer.downY, value };
+    }
     if (Math.abs(pointer.y - drag.start) > 24) set(drag.value + drag.start - pointer.y);
   };
 

@@ -73,6 +73,7 @@ export default class RosterScene extends Phaser.Scene {
     this.selectionDetailsClose?.();
     this.equipmentModalClose?.();
     this.children.removeAll(true);
+    this.detailObjects = [];
     addHallFrame(this, 'Adventurers', this.message);
     hallPanel(this, 272, 638, 440, 736);
     hallPanel(this, 794, 638, 560, 736);
@@ -92,7 +93,6 @@ export default class RosterScene extends Phaser.Scene {
       return;
     }
 
-    this.renderSummary(hero);
     [['gear', 'Gear & potions'], ['skills', 'Skills & training']].forEach(([key, label], index) => {
       hallButton(this, 1414 + index * 618, 186, 586, 112, label, () => {
         this.tab = key;
@@ -100,8 +100,30 @@ export default class RosterScene extends Phaser.Scene {
       }, { selected: this.tab === key, name: `hall-tab-${key}`, size: UI_FONT_SIZES.hallSection });
     });
 
-    if (this.tab === 'gear') this.renderGear(hero);
-    else this.renderSkills(hero);
+    this.refreshDetails(hero);
+  }
+
+  // Transactions change the selected hero, not the roster or room. Keep those
+  // expensive text and surface objects alive while rebuilding the affected panels.
+  refreshDetails(hero = GameState.roster.find((entry) => entry.id === this.heroId)) {
+    this.selectionDetailsClose?.();
+    this.equipmentModalClose?.();
+    for (const object of this.detailObjects ?? []) {
+      if (object.active) object.destroy();
+    }
+
+    // A Set remembers object identities. Scroll containers move their children off
+    // the scene list, so comparing identities is safer than comparing list indexes.
+    const retained = new Set(this.children.list);
+    if (hero) {
+      this.renderSummary(hero);
+      if (this.tab === 'gear') this.renderGear(hero);
+      else this.renderSkills(hero);
+    }
+    this.detailObjects = this.children.list.filter((object) => !retained.has(object));
+    this.children.getByName('hall-gold')?.setText(`${GameState.gold} GOLD`);
+    this.children.getByName('hall-feedback')?.setText(this.message || 'Drag lists to scroll. Hold an adventurer, item or skill for details.')
+      .setColor(this.message ? '#ffe0a7' : HALL.muted);
   }
 
   // Build the categorized character list using stable roster IDs for selection.
@@ -266,7 +288,7 @@ export default class RosterScene extends Phaser.Scene {
       // The condition before ? chooses the first value when true and the value after :
       // when false.
       hallButton(this, x, 428, 272, 142, '', () => this.commit(toggleAdventurerAbility(hero.id, key)), {
-        enabled: Boolean(key), details: ability ? this.abilityDetails(hero, key, ability) : undefined, name: `hall-ability-slot-${index}`
+        enabled: Boolean(key), details: ability ? () => this.abilityDetails(hero, key, ability) : undefined, name: `hall-ability-slot-${index}`
       });
       hallText(this, x, 384, `SLOT ${index + 1}`, UI_FONT_SIZES.compact24, { color: HALL.muted }).setOrigin(0.5);
 
@@ -290,7 +312,9 @@ export default class RosterScene extends Phaser.Scene {
       guildSurface(this, 1710, y, 1156, 182, 'row', canTrain);
       const row = this.add.rectangle(1710, y, 1156, 182, 0, 0);
       row.setName(`hall-skill-${key}`);
-      hallDetails(this, row, this.abilityDetails(hero, key, ability), () => {});
+
+      // Calculate the long description only when held, using the current rank and gear.
+      hallDetails(this, row, () => this.abilityDetails(hero, key, ability), () => {});
 
       hallText(this, 1152, y - 51, ability.name, UI_FONT_SIZES.hallSkillName, { fontStyle: UI_FONT_WEIGHTS.bold, wordWrap: { width: 688 } });
 
@@ -532,6 +556,6 @@ export default class RosterScene extends Phaser.Scene {
       saveProfile();
       HapticsService.confirm();
     }
-    this.render();
+    this.refreshDetails();
   }
 }

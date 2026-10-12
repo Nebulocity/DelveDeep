@@ -6,7 +6,12 @@ import { test, expect } from '@playwright/test';
 
 for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080 }]) {
   test(`camp disables an already defeated boss at ${viewport.width}`, async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
     await page.setViewportSize(viewport);
+
+    // Keep this interaction fixture stable if other local work triggers a Vite reload.
+    await page.route('**/@vite/client', route => route.fulfill({ contentType: 'application/javascript', body: '' }));
     await page.goto('/?visualQa=1');
     await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__?.game.scene.getScene('TitleScene').sys.isActive());
     await page.locator('#loading-screen').waitFor({ state: 'hidden' });
@@ -35,6 +40,18 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
         const state = window.__DELVE_DEEP_VISUAL_QA__.state;
         state.delveCheckpoints[state.currentDelve.id] = { nextWave: scene.bossWaveIndex, campUnlocked: true };
         scene.togglePause();
+
+        // Camp retains injuries and cooldowns until the boss choice is committed.
+        for (const unit of scene.partyUnits) {
+          unit.hp = 1;
+          unit.mana = 0;
+          unit.lastAttackAt = scene.time.now;
+          unit.lastHealAt = scene.time.now;
+          unit.lastAbilityAt = { primary: scene.time.now, secondary: scene.time.now, parry: scene.time.now };
+        }
+        scene.partyUnits[0].defeat();
+        scene.leaderAbilityCooldowns.set('revive', scene.time.now);
+        scene.lastPotionUseAt.set(scene.partyUnits[1].id, scene.time.now);
         scene.showDelveCamp();
         return [672, 1200, 1728].map(x => {
           const button = scene.children.list.find(object => object.name === 'carved-stone-button'
@@ -52,9 +69,34 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
       expect(cards[2].alpha).toBe(cleared ? 0.45 : 1);
       expect(cards[2].labels).toContain(cleared ? 'Boss already defeated' : 'Challenge the boss of this Delve to earn better rewards and unlock the next Delve!');
 
+      // Let Phaser register the freshly created touch targets before pressing a card.
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
       const canvas = await page.locator('canvas').boundingBox();
-      await page.mouse.click(canvas.x + 1728 * canvas.width / 2400, canvas.y + 650 * canvas.height / 1080);
-      expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.state.run.entry)).toBe(cleared ? 'camp' : 'boss');
+      await page.mouse.move(canvas.x + 1728 * canvas.width / 2400, canvas.y + 650 * canvas.height / 1080);
+      await page.mouse.down();
+
+      // Give the game a frame to process the held press before sending its release.
+      await page.evaluate(() => new Promise(resolve =>
+        window.__DELVE_DEEP_VISUAL_QA__.game.events.once('poststep', resolve)));
+      await page.mouse.up();
+      await expect.poll(() => page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.state.run.entry))
+        .toBe(cleared ? 'camp' : 'boss');
+      const resources = await page.evaluate(() => {
+        const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
+        return {
+          full: scene.partyUnits.every(unit => unit.alive && unit.hp === unit.maxHp && unit.mana === unit.maxMana),
+          ready: scene.partyUnits.every(unit => unit.lastAttackAt === -Infinity && unit.lastHealAt === -Infinity
+            && Object.keys(unit.lastAbilityAt).length === 0),
+          tacticWaits: scene.leaderAbilityCooldowns.size,
+          potionWaits: scene.lastPotionUseAt.size
+        };
+      });
+      expect(resources.full).toBe(!cleared);
+      expect(resources.ready).toBe(!cleared);
+      expect(resources.tacticWaits).toBe(cleared ? 1 : 0);
+      expect(resources.potionWaits).toBe(cleared ? 1 : 0);
+      expect(errors).toEqual([]);
+      if (!cleared) await page.screenshot({ path: `output/qa/boss-ready-${viewport.width}.png` });
       if (cleared) {
         await page.screenshot({ path: `output/qa/camp-cleared-${viewport.width}.png` });
         await page.mouse.click(canvas.x + 1200 * canvas.width / 2400, canvas.y + 650 * canvas.height / 1080);

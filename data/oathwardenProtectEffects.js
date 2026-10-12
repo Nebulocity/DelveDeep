@@ -1,6 +1,8 @@
 // These Oathwarden effects use PixelLab's finished 32-frame sheets at 20 FPS.
 // Existing saved protection records decide when each drawing starts and fades.
 
+import { shieldSphereClips } from './shieldSphereEffects.js';
+
 const PREFIX = 'ability_v2_oathwarden_';
 const FRAMES = 32;
 const FADE_MS = 400;
@@ -13,7 +15,7 @@ const effects = [
   { name: 'judgement', abilityName: 'Judgement', abilitySuffix: 'judgement', width: 35, height: 38,
     targetSize: 0.95, opacity: 0.9 },
   { name: 'vigilance', abilityName: 'Vigilance', abilitySuffix: 'vigilance', width: 96, height: 96,
-    targetSize: 1.35, opacity: 0.78 }
+    targetSize: 1.35, opacity: 0.85, surroundTarget: true, targetCaster: true }
 ];
 
 export const OATHWARDEN_PROTECT_EFFECTS = effects.map(effect => ({
@@ -29,10 +31,11 @@ export const OATHWARDEN_PROTECT_EFFECTS = effects.map(effect => ({
   fitTarget: true,
   followTarget: true,
   singleTargetArtwork: true,
+  recipientAnchor: true,
   holdMs: 1200,
   fadeMs: FADE_MS,
   statusActive: oathwardenProtectStatusActive,
-  clips: [{
+  clips: effect.name === 'vigilance' ? shieldSphereClips('vigilance', 'oathwarden-protect-vigilance') : [{
     name: 'whole',
     key: 'oathwarden-protect-' + effect.name,
     width: effect.width,

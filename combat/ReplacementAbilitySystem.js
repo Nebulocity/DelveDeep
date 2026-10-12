@@ -8,9 +8,11 @@ import { arenaDistance, NEAR_DISTANCE } from '../config/combatRanges.js';
 import { incomingPressure, missingHealth, healingUrgency, reserveHealing } from './CombatDecisions.js';
 import { replacementAmount, replacementMultiplier, refreshReplacementTiming } from './ReplacementEffects.js';
 import { findAbilityEffect } from '../data/abilityEffects.js';
+import { rememberBarmaidIntercept } from '../data/barmaidAbilityEffects.js';
 import { hasAssaultAbilityEffect } from './AssaultAbilityEffects.js';
 import { CLASS_DEFINITIONS } from '../data/classes.js';
 import { rankedReplacementAbility } from '../data/replacementAbilities.js';
+import { retireUmbralDecoy } from './UmbralDecoyEffects.js';
 
 // A modifier names the actual stat changed. Negative fractions reduce that stat; chance
 // fields add percentage points. Recipient choice is handled separately from the modifier.
@@ -436,13 +438,20 @@ export default class ReplacementAbilitySystem {
   resolve(caster, target, ability, time, triggered = false) {
     if (ability.handler === 'bonusCritDamage') ability = { ...ability, criticalBonus: ability.secondary.potency };
     const h = ability.handler, x = ability.primary.potency, y = ability.secondary.potency;
+
+    // A free reactive Siphon has no windup to borrow. Its connection grows as
+    // feedback for the instant reaction while the original damage stays immediate.
+    if (triggered && ability.id === 'ability_v2_umbral_mage_siphon') {
+      this.scene.createAbilityTelegraph?.(caster, target, ability, null);
+    }
     if (h === 'stealthStrike' && !caster.stealthed || h === 'rearStrike' && !this.isBehind(caster, target)) return;
     if (SETUPS.has(h)) {
       const prepared = ability.targetLabel === 'Allies' ? this.recipients(caster, target, ability, true) : [caster];
       for (const recipient of prepared) this.addPreparation(recipient, ability, time + ability.duration);
 
       // Party preparations are drawn after each recipient has its saved record.
-      if (ability.className === 'Oathwarden' || ability.className === 'Gladiator') {
+      if (ability.className === 'Oathwarden' || ability.className === 'Gladiator'
+        || ability.className === 'Barbarian') {
         this.scene.createAbilityEffect?.(caster, target, ability, prepared);
       }
       return;
@@ -461,8 +470,21 @@ export default class ReplacementAbilitySystem {
 
       // Charge restoration has no saved status, so start its one-shot art here.
       if (ability.id === 'ability_v2_oathwarden_oath_of_the_supplicant'
-        || ability.id === 'ability_v2_gladiator_reequip') {
+        || ability.id === 'ability_v2_gladiator_reequip'
+        || ability.id === 'ability_v2_barmaid_restock_the_bar') {
         this.scene.createAbilityEffect?.(caster, caster, ability);
+      }
+
+      // Show a refill cue at each recipient after their charges are resolved.
+      // This is local potion stock, not a thrown drink or a traveling missile.
+      if (ability.id === 'ability_v2_barmaid_liquid_courage') {
+        this.scene.createAbilityEffect?.(caster, caster, ability, this.allies());
+      }
+
+      // Potion restoration is brief; the prepared axe follows the separately
+      // saved next-attack record created by the recursive setup above.
+      if (ability.id === 'ability_v2_barbarian_preparation') {
+        this.scene.createAbilityEffect?.(caster, caster, { ...ability, vfxPhase: 'refill' });
       }
       return;
     }
@@ -475,7 +497,12 @@ export default class ReplacementAbilitySystem {
     }
     if (h === 'channelNextSpellMana') {
       caster.status.replacementChannel = { ability, until: time + ability.duration, startedAt: time, next: time + ability.tickInterval, remaining: Math.max(1, Math.ceil(ability.duration / ability.tickInterval)) };
-      caster.status.rootedUntil = time + ability.duration; return;
+      caster.status.rootedUntil = time + ability.duration;
+
+      // Meditation's artwork starts after the saved channel exists. Interruption
+      // removes that record and lets the renderer fade without changing its rules.
+      if (ability.id === 'ability_v2_umbral_mage_dark_meditation') this.scene.createAbilityEffect?.(caster, caster, ability);
+      return;
     }
     if (h === 'stealth') { caster.setStealthed(true); caster.status.stealthUntil = time + ability.duration; return; }
     if (h === 'poisonWeaponWindow') { caster.status.replacementPoisonWeapon = { ability, until: time + ability.duration }; return; }
@@ -495,9 +522,28 @@ export default class ReplacementAbilitySystem {
       if (ability.id === 'ability_v2_oathwarden_steadfast_focus') this.scene.createAbilityEffect?.(caster, caster, ability);
       return;
     }
-    if (h === 'revive') { if (!target.alive && !target.noReviveThisBattle) target.revive(x, y); return; }
+    if (h === 'revive') {
+      if (!target.alive && !target.noReviveThisBattle) {
+        target.revive(x, y);
+
+        // Reclamation forms a local soul silhouette on the newly revived ally.
+        if (ability.id === 'ability_v2_umbral_mage_soul_reclamation') this.scene.createAbilityEffect?.(caster, target, ability);
+      }
+      return;
+    }
     if (h === 'manaDrain') {
-      const drained = Math.min(target.mana, replacementAmount(caster, target, ability.primary)); target.mana -= drained; this.mana(caster, drained * y); return;
+      const drained = Math.min(target.mana, replacementAmount(caster, target, ability.primary));
+      const before = caster.mana;
+      target.mana -= drained;
+      this.mana(caster, drained * y);
+
+      // Keep the existing resolved recipient and resource calculation. The drain
+      // and return are cosmetic phases; a full caster gets no false recovery cue.
+      if (ability.id === 'ability_v2_umbral_mage_essence_drain' && drained > 0) {
+        this.scene.createAbilityEffect?.(caster, target, ability);
+        if (caster.mana > before) this.scene.createAbilityEffect?.(caster, caster, { ...ability, vfxPhase: 'mana' });
+      }
+      return;
     }
     if (h === 'enemyForcedAttack') {
       const enemy = this.enemies().filter(enemy => enemy !== target).sort((a, b) => arenaDistance(a, target) - arenaDistance(b, target))[0];
@@ -513,13 +559,25 @@ export default class ReplacementAbilitySystem {
       // consumption or expiry, without adding a separate cosmetic status timer.
       if (h === 'conditionalHeal') this.scene.createAbilityEffect?.(caster, target, ability);
 
+      // Briarweave forms on its recipient as soon as its reflection window starts.
+      // The saved reaction controls its animation lifetime and combat-time fade.
+      if (ability.id === 'ability_v2_verdant_cleric_briarweave') this.scene.createAbilityEffect?.(caster, target, ability);
+
       // The counterattack record keeps the red parry rim visible for its full window.
       if (ability.id === 'ability_v2_oathwarden_vow_of_retaliation') this.scene.createAbilityEffect?.(caster, caster, ability);
       if (ability.id === 'ability_v2_oathwarden_vigilance') this.scene.createAbilityEffect?.(caster, caster, ability);
+
+      // Quick Pour's saved reaction keeps the small ready bottle visible.
+      if (ability.id === 'ability_v2_barmaid_quick_pour') this.scene.createAbilityEffect?.(caster, caster, ability);
+      if (ability.id === 'ability_v2_umbral_mage_shadow_trap') this.scene.createAbilityEffect?.(caster, caster, ability);
       if (h === 'blockStun') this.modifier(caster, caster, ability, { block: x }, ability.duration); return;
     }
     if (h === 'intercept') {
       target.status.replacementIntercept = { ownerId: caster.id, until: time + ability.duration, reduction: y };
+
+      // Identify this live intercept without adding an ability field to saves.
+      // Another cast replaces the record, which lets the old tray fade out.
+      if (ability.id === 'ability_v2_barmaid_cover_the_regulars') rememberBarmaidIntercept(target.status.replacementIntercept);
 
       // Show the brief caster cue only for a new cast, never for restored status art.
       this.scene.createAbilityEffect?.(caster, target, ability);
@@ -559,7 +617,10 @@ export default class ReplacementAbilitySystem {
       caster.setArenaPosition(point.x, point.y);
     }
     if (h === 'stealthStrike') caster.setStealthed(false);
-    if (h === 'mark') target.status.huntersMarkVisual = true;
+
+    // Replacement marks read their timed modifier. The legacy flag would keep
+    // restoring artwork until death even after the current eight-second mark ends.
+    if (h === 'mark' && !ability.replacement) target.status.huntersMarkVisual = true;
     let dealt = 0, healed = 0, damageAttempted = false;
     const landed = [];
     for (const recipient of recipients) {
@@ -600,6 +661,17 @@ export default class ReplacementAbilitySystem {
     }
     if (h === 'escapeMovementBuff') this.prepareEscape(caster, ability.duration);
     this.secondary(caster, target, ability, recipients, landed, dealt, healed, triggered);
+
+    // Lasting strike cues start only on confirmed hits, after gameplay records
+    // exist. Their separate phase prevents restoring the old contact animation.
+    const barmaidPhase = {
+      ability_v2_barmaid_frying_pan: 'stun',
+      ability_v2_barmaid_bottle_smash: 'bleed',
+      ability_v2_barmaid_last_call: 'dazed'
+    }[ability.id];
+    if (barmaidPhase) for (const recipient of landed) {
+      this.scene.createAbilityEffect?.(caster, recipient, { ...ability, vfxPhase: barmaidPhase }, [recipient]);
+    }
     if (!damageAttempted || landed.length) this.scene.createAbilityEffect?.(caster, target, ability, landed.length ? landed : recipients);
     if (ability.echoScale && !triggered) this.resolve(caster, target, { ...ability, echoScale: 0, primary: { ...ability.primary, potency: x * ability.echoScale }, secondary: { ...ability.secondary, potency: y * ability.echoScale } }, time, true);
   }
@@ -627,7 +699,16 @@ export default class ReplacementAbilitySystem {
     if (['armorHeal', 'allyAreaBlindHeal'].includes(h)) for (const ally of h === 'allyAreaBlindHeal' ? [target] : recipients) this.heal(caster, ally, replacementAmount(caster, ally, ability.secondary), ability, triggered);
     if (['accuracyDebuffDamage', 'attackDebuffDamage', 'slowDamage'].includes(h)) for (const enemy of recipients) this.damage(caster, enemy, replacementAmount(caster, enemy, ability.secondary), ability, triggered);
     if (['healMana', 'partyHealMana'].includes(h)) for (const ally of recipients) this.mana(ally, replacementAmount(caster, ally, ability.secondary));
-    if (h === 'allDamagePartyMana' && !triggered) for (const ally of friendly) this.mana(ally, replacementAmount(caster, ally, ability.secondary));
+    if (h === 'allDamagePartyMana' && !triggered) for (const ally of friendly) {
+      const before = ally.mana;
+      this.mana(ally, replacementAmount(caster, ally, ability.secondary));
+
+      // Echo forms locally on every affected enemy and rewards each ally who
+      // actually gains Mana with a separate rising blue rune.
+      if (ability.id === 'ability_v2_umbral_mage_echo_of_night' && ally.mana > before) {
+        this.scene.createAbilityEffect?.(caster, ally, { ...ability, vfxPhase: 'mana' }, [ally]);
+      }
+    }
     if (h === 'healCleanse') this.cleanse(caster, 1);
     if (h === 'areaDamageLowestHeal' || h === 'damageNearestHeal') {
       const allies = friendly.filter(a => a.hp < a.maxHp).sort((a, b) => h === 'damageNearestHeal' ? arenaDistance(a, target) - arenaDistance(b, target) : a.hp / a.maxHp - b.hp / b.maxHp);
@@ -635,14 +716,31 @@ export default class ReplacementAbilitySystem {
     }
     if (['damageLifesteal', 'areaDamageLifesteal', 'areaDamageLinkedHeal', 'allDamagePartyLinkedHeal'].includes(h) && dealt > 0) {
       const allies = h.includes('Lifesteal') || h === 'damageLifesteal' ? [caster] : h === 'areaDamageLinkedHeal' ? friendly.filter(a => arenaDistance(a, target) <= 200) : friendly;
-      for (const ally of allies) this.heal(caster, ally, Math.min(dealt * y, caster.spellHealing * (1 + ((ability.rank ?? 1) - 1) * .08) * (h === 'allDamagePartyLinkedHeal' ? .6 : .5)), ability, true);
+      for (const ally of allies) {
+        const recovered = this.heal(caster, ally, Math.min(dealt * y, caster.spellHealing * (1 + ((ability.rank ?? 1) - 1) * .08) * (h === 'allDamagePartyLinkedHeal' ? .6 : .5)), ability, true);
+
+        // Guided Retribution forms healing light only on allies who recovered HP.
+        // This cosmetic phase shares the original ID and changes no saved record.
+        if (recovered > 0 && ability.id === 'ability_v2_everbright_cleric_guided_retribution') {
+          this.scene.createAbilityEffect?.(caster, ally, { ...ability, vfxPhase: 'heal' }, [ally]);
+        }
+        if (recovered > 0 && ability.id === 'ability_v2_umbral_mage_siphon') {
+          this.scene.createAbilityEffect?.(caster, ally, { ...ability, vfxPhase: 'heal' }, [ally]);
+        }
+      }
     }
     if (['healNearbyDamage', 'healLinkedAreaDamage', 'partyHealAdjacentDamage', 'areaHealAreaDamage'].includes(h)) {
       const anchors = h === 'partyHealAdjacentDamage' ? recipients.filter(a => a.hp > 0) : [h === 'areaHealAreaDamage' ? caster : target];
       const radius = h === 'partyHealAdjacentDamage' ? 100 : h === 'areaHealAreaDamage' ? 240 : 200;
       for (const enemy of this.enemies().filter(enemy => anchors.some(anchor => arenaDistance(enemy, anchor) <= radius))) {
         if (h !== 'areaHealAreaDamage' && healed <= 0) continue;
-        this.damage(caster, enemy, h === 'healLinkedAreaDamage' ? healed * y : replacementAmount(caster, enemy, ability.secondary), { ...ability, damageType: 'spell' }, triggered);
+        const result = this.damage(caster, enemy, h === 'healLinkedAreaDamage' ? healed * y : replacementAmount(caster, enemy, ability.secondary), { ...ability, damageType: 'spell' }, triggered);
+
+        // Reprisal's secondary radiant hit forms beside healed allies. It launches
+        // no object; confirmed contact receives separate impact art at the enemy.
+        if (result.hit && ability.id === 'ability_v2_everbright_cleric_divine_reprisal') {
+          this.scene.createAbilityEffect?.(caster, enemy, { ...ability, vfxPhase: 'hit' }, [enemy]);
+        }
       }
     }
     if (h === 'damageSplash' && landed.length) for (const enemy of this.enemies().filter(enemy => enemy !== target && arenaDistance(enemy, target) <= 200)) this.damage(caster, enemy, replacementAmount(caster, enemy, ability.secondary), { ...ability, shape: 'Circle' }, triggered);
@@ -731,6 +829,10 @@ export default class ReplacementAbilitySystem {
     if (!point || rescue && this.scene.isPositionLocked(target)) return;
     const decoy = this.scene.createAbilityDecoy?.(caster, rescue ? target : caster, point, replacementAmount(caster, target, ability.primary), this.now() + ability.duration);
     if (!decoy) return;
+
+    // Shadow Image belongs to the distant decoy, never the caster's old point.
+    // Its original sprite and existing saved expiry keep the summon recognizable.
+    if (ability.id === 'ability_v2_umbral_mage_shadow_image') this.scene.createAbilityEffect?.(caster, decoy, ability);
     if (rescue) {
       const landing = this.parent.adjacentPoint(target, caster);
       if (landing) { target.setArenaPosition(landing.x, landing.y); this.heal(caster, target, replacementAmount(caster, target, ability.secondary), ability); }
@@ -782,7 +884,10 @@ export default class ReplacementAbilitySystem {
       this.tickZones(unit, time);
     }
     this.scene.abilityDecoys = (this.scene.abilityDecoys ?? []).filter(decoy => {
-      if (!decoy.alive || decoy.decoyUntil <= time || decoy.decoyWave !== this.scene.currentWaveIndex) { decoy.container?.destroy(); return false; }
+      if (!decoy.alive || decoy.decoyUntil <= time || decoy.decoyWave !== this.scene.currentWaveIndex) {
+        retireUmbralDecoy(this.scene, decoy);
+        return false;
+      }
       decoy.syncPresentation?.(); return true;
     });
   }
@@ -798,7 +903,11 @@ export default class ReplacementAbilitySystem {
 
       // The pixel aura already shows its exact floor footprint and fades at expiry.
       // Drawing another solid ellipse here would duplicate the same field.
-      if (findAbilityEffect(owner, zone.ability)?.floorAura) continue;
+      const artwork = findAbilityEffect(owner, zone.ability);
+
+      // The Ranger's steel jaws already show the placed trap. Their own fade
+      // leaves a spent trap remnant without an abruptly removed cosmetic circle.
+      if (artwork?.floorAura || artwork?.replacesZoneView) continue;
       const key = `${owner.id}:${zone.ability.id}`;
       visible.add(key);
       const center = zone.ability.anchor === 'Caster' ? owner : zone.point;
@@ -908,7 +1017,14 @@ export default class ReplacementAbilitySystem {
         for (const reaction of owner.status.replacementReactions ?? []) if (reaction.kind === 'criticalPotionReaction' && reaction.until > this.now() && this.now() - reaction.lastAt >= 1000) {
           const pack = this.potion(owner);
           if (pack?.definition.effect.resource === 'hp' && arenaDistance(owner, target) <= reaction.ability.range * 100 && this.consumePotion(owner)) {
-            this.heal(owner, target, target.maxHp * pack.definition.effect.fraction * reaction.ability.primary.potency, reaction.ability, true); reaction.lastAt = this.now();
+            const recovered = this.heal(owner, target, target.maxHp * pack.definition.effect.fraction * reaction.ability.primary.potency, reaction.ability, true);
+
+            // Pour artwork forms on the actually healed ally. Healing stays at
+            // its original critical-hit timestamp with no added flight delay.
+            if (recovered > 0 && reaction.ability.id === 'ability_v2_barmaid_quick_pour') {
+              this.scene.createAbilityEffect?.(owner, target, { ...reaction.ability, vfxPhase: 'heal' }, [target]);
+            }
+            reaction.lastAt = this.now();
           }
         }
       }

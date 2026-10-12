@@ -18,6 +18,7 @@ const spell = (name, cooldown, range, effect, extra = {}) => ({ name, cooldown: 
 // class seed values are not a second set of bonuses to add onto the current profile.
 const mage = (shortName, color, abilities) => ({
   role: 'Ranged DPS',
+  manaRegenAttribute: 'intellect',
   shortName,
   color,
   maxHp: 80,
@@ -35,6 +36,7 @@ const mage = (shortName, color, abilities) => ({
 });
 const cleric = (shortName, color, abilities) => ({
   role: 'Healer',
+  manaRegenAttribute: 'wisdom',
   shortName,
   color,
   armor: 0.08,
@@ -118,7 +120,7 @@ export const CLASS_DEFINITIONS = {
   },
 
   Dawnwarden: {
-    role: 'Tank', color: 0xeab308, maxHp: 185, maxMana: 80, manaRegen: 5, moveSpeed: 135, attackPower: 9, attackRange: 74, attackCooldown: 1100, attackWindup: 280, armor: 0.22, threatMultiplier: 3.4, classAbilities: true,
+    role: 'Tank', color: 0xeab308, maxHp: 185, maxMana: 80, manaRegen: 5, manaRegenAttribute: 'wisdom', moveSpeed: 135, attackPower: 9, attackRange: 74, attackCooldown: 1100, attackWindup: 280, armor: 0.22, threatMultiplier: 3.4, classAbilities: true,
     abilities: {
       challenge: spell('Challenge', 10, 4, 'taunt', { duration: 6000, targets: 1 }),
       defiant: spell('Defiant Stance', 15, Infinity, 'taunt', { duration: 6000, targets: 3, farthest: true }),

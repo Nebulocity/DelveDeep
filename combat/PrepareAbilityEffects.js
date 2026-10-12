@@ -1,5 +1,7 @@
 // Prepare art follows existing saved statuses without changing bonuses or saves.
 
+import { shieldSphereScale } from '../data/shieldSphereEffects.js';
+
 const FADE_MS = 400;
 export const PREPARE_EFFECT_SHEETS = [
   { name: 'arcane-focus', abilityId: 'ability_v2_generic_magical_arcane_focus', width: 48, height: 48 },
@@ -26,10 +28,13 @@ export const GLADIATOR_PREPARE_EFFECT_SHEETS = [
     originX: 69, originY: 27, fps: 16, oneShotMs: 1600, loop: true, groundSigil: true, opacity: 0.52 },
   { name: 'rallying-cry', abilityId: 'ability_v2_gladiator_rallying_cry', width: 51, height: 71,
     originX: 24, originY: 46, fps: 16, footAnchor: true, opacity: 0.82 },
-  { name: 'combat-readiness', abilityId: 'ability_v2_gladiator_combat_readiness', width: 41, height: 41,
-    originX: 20, originY: 20, fps: 16, opacity: 0.78 }
+  { name: 'combat-readiness', abilityId: 'ability_v2_gladiator_combat_readiness', width: 96, height: 96,
+    fps: 20, opacity: 0.78, sphere: true,
+    rearKey: 'gladiator-prepare-combat-readiness-rear',
+    rearUrl: new URL('../assets/effects/shield-spheres/readiness/rear.png', import.meta.url).href,
+    url: new URL('../assets/effects/shield-spheres/readiness/front.png', import.meta.url).href }
 ].map(sheet => ({ ...sheet, key: 'gladiator-prepare-' + sheet.name,
-  url: new URL(`../assets/effects/gladiator-prepare/${sheet.name}.png`, import.meta.url).href }));
+  url: sheet.url ?? new URL(`../assets/effects/gladiator-prepare/${sheet.name}.png`, import.meta.url).href }));
 
 const ALL_PREPARE_EFFECT_SHEETS = [
   ...PREPARE_EFFECT_SHEETS, ...OATHWARDEN_PREPARE_EFFECT_SHEETS, ...GLADIATOR_PREPARE_EFFECT_SHEETS
@@ -39,6 +44,11 @@ const ALL_PREPARE_EFFECT_SHEETS = [
 export function preloadPrepareAbilityEffects(scene) {
   for (const sheet of ALL_PREPARE_EFFECT_SHEETS) {
     if (!scene.textures.exists(sheet.key)) scene.load.spritesheet(sheet.key, sheet.url, {
+      frameWidth: sheet.width, frameHeight: sheet.height, endFrame: 31
+    });
+
+    // The sphere's rear film needs its own texture to sit behind the body.
+    if (sheet.rearKey && !scene.textures.exists(sheet.rearKey)) scene.load.spritesheet(sheet.rearKey, sheet.rearUrl, {
       frameWidth: sheet.width, frameHeight: sheet.height, endFrame: 31
     });
   }
@@ -82,9 +92,11 @@ function ensureEffect(scene, target, sheet) {
     existing.fadeElapsed = null;
     return;
   }
-  if (!scene.textures.exists(sheet.key)) return;
+  if (!scene.textures.exists(sheet.key) || sheet.rearKey && !scene.textures.exists(sheet.rearKey)) return;
   scene.textures.get(sheet.key).setFilter(1);
+  if (sheet.rearKey) scene.textures.get(sheet.rearKey).setFilter(1);
   effects.push({ target, sheet, elapsed: 0, fadeElapsed: null,
+    rearImage: sheet.rearKey ? scene.add.image(0, 0, sheet.rearKey, 0) : null,
     image: scene.add.image(0, 0, sheet.key, 0) });
 }
 
@@ -156,6 +168,19 @@ function drawEffect(effect, bounds) {
   const frame = Math.floor(effect.elapsed * (sheet.fps ?? 24) / 1000);
   image.setFrame(sheet.oneShotMs && !sheet.loop ? Math.min(31, frame) : frame % 32);
   image.setAlpha((sheet.opacity ?? 0.9) * (1 - (effect.fadeElapsed ?? 0) / FADE_MS));
+
+  // A sphere shares its center, circular scale, frame and fade between layers.
+  // The character's unit depth separates the rear film from the front reflections.
+  if (sheet.sphere) {
+    const sphereSize = shieldSphereScale(bounds);
+    const centerX = (bounds.left + bounds.right) / 2;
+    const centerY = (bounds.top + bounds.bottom) / 2;
+    const depth = target.container?.depth ?? 100 + bounds.bottom;
+    image.setPosition(centerX, centerY).setScale(sphereSize);
+    effect.rearImage.setPosition(centerX, centerY).setScale(sphereSize)
+      .setDepth(depth - 1).setFrame(frame % 32)
+      .setAlpha((sheet.opacity ?? 0.9) * (1 - (effect.fadeElapsed ?? 0) / FADE_MS));
+  }
 }
 
 // Consumption, expiry, death and battle end start a 400 ms fade. Artwork keeps
@@ -181,6 +206,7 @@ export function updatePrepareAbilityEffects(scene, delta, getBounds) {
     }
     if (effect.fadeElapsed >= FADE_MS) {
       effect.image.destroy();
+      effect.rearImage?.destroy();
       return false;
     }
     drawEffect(effect, getBounds(scene, effect.target));
@@ -191,6 +217,9 @@ export function updatePrepareAbilityEffects(scene, delta, getBounds) {
 // Historical replay and shutdown may immediately remove art. Saved statuses
 // remain untouched and recreate only their current drawing on live update.
 export function clearPrepareAbilityEffects(scene) {
-  for (const effect of scene.prepareAbilityEffects ?? []) effect.image.destroy();
+  for (const effect of scene.prepareAbilityEffects ?? []) {
+    effect.image.destroy();
+    effect.rearImage?.destroy();
+  }
   scene.prepareAbilityEffects = [];
 }

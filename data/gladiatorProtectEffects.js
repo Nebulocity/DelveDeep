@@ -1,6 +1,8 @@
 // Gladiator Protect effects use PixelLab's editable, free VFX workbench exports.
 // Status records stay the source of truth; the artwork only follows them.
 
+import { shieldSphereClips } from './shieldSphereEffects.js';
+
 const FADE_MS = 400;
 
 const statusActive = (target, definition, now) => {
@@ -16,8 +18,8 @@ const statusActive = (target, definition, now) => {
 };
 
 const effects = [
-  { slug: 'iron-guard', abilityName: 'Iron Guard', suffix: 'iron_guard', width: 77, height: 77,
-    fitTarget: true, followTarget: true, targetCaster: true, targetSize: 1.25, opacity: 0.8 },
+  { slug: 'iron-guard', abilityName: 'Iron Guard', suffix: 'iron_guard', width: 96, height: 96,
+    fitTarget: true, followTarget: true, targetCaster: true, recipientAnchor: true, surroundTarget: true, targetSize: 1.25, opacity: 0.8 },
   { slug: 'defiant-roar', abilityName: 'Defiant Roar', suffix: 'defiant_roar', width: 49, height: 57,
     fitTarget: true, followTarget: true, perRecipient: true, recipientAnchor: true, targetSize: 1.25, opacity: 0.82 },
   { slug: 'shield-bash', abilityName: 'Shield Bash', suffix: 'shield_bash', width: 69, height: 52,
@@ -38,7 +40,7 @@ export const GLADIATOR_PROTECT_EFFECTS = effects.map(effect => ({
   statusActive,
   groundWidth: effect.width,
   singleTargetArtwork: true,
-  clips: [{
+  clips: effect.slug === 'iron-guard' ? shieldSphereClips('iron', 'gladiator-protect-iron-guard') : [{
     name: 'whole',
     key: 'gladiator-protect-' + effect.slug,
     width: effect.width,

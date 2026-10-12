@@ -51,7 +51,6 @@ export default class BattleUnit {
     // inside both a lower and an upper bound.
     this.maxMana = Math.max(0, config.maxMana ?? 0);
     this.mana = this.maxMana;
-    this.manaRegen = Math.max(0, config.manaRegen ?? 0);
 
     // Convert Mend's fraction using this encounter's gear-adjusted Mana pool. An
     // explicit saved cost, including zero, keeps an older encounter's original rule.
@@ -72,6 +71,12 @@ export default class BattleUnit {
     for (const stat of ['level', 'strength', 'agility', 'constitution', 'intellect', 'wisdom', 'happiness', 'delvesCompleted']) {
       this[stat] = config[stat] ?? 0;
     }
+
+    // Relevant gear-adjusted attributes add 0.1 Mana per combat second for each
+    // 10 points. Classes without a Mana attribute keep their existing flat rate.
+    const manaAttribute = config.manaRegenAttribute;
+    const attributeBonus = manaAttribute ? (this[manaAttribute] ?? 0) / 100 : 0;
+    this.manaRegen = Math.max(0, (config.manaRegen ?? 0) + attributeBonus);
 
     // Speed 100 means the normal action rate. Divide by 100 to get a multiplier, then
     // divide cooldown and windup by that multiplier: a higher Speed acts more often.
@@ -773,6 +778,12 @@ export default class BattleUnit {
       this.status.sunlitWardVisualUntil = 0;
     }
     this.finishAction();
+
+    // Keep a newly defeated party member visible in the battle feed, but never replay
+    // saved deaths as fresh announcements while restoring or simulating an encounter.
+    if (!this.scene.restoringBattle && !this.scene.idleSimulating) {
+      this.scene.announcePartyDeath?.(this);
+    }
 
     if (this.scene.idleSimulating) {
       if (this.isEnemy) this.deathElapsed = 0;

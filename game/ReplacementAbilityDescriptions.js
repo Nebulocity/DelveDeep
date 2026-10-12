@@ -4,7 +4,7 @@
 
 import { replacementAmount } from '../combat/ReplacementEffects.js';
 
-export function replacementDescription(unit, ability, compact = false) {
+export function replacementDescription(unit, ability, compact = false, structured = false) {
   const rounded = value => Number(value.toFixed(2));
   const seconds = value => `${rounded(value / 1000)}s`;
   const distance = value => `${rounded(value)} ${value === 1 ? 'pace' : 'paces'}`;
@@ -91,5 +91,7 @@ export function replacementDescription(unit, ability, compact = false) {
     : 'Requires at least 25% Health. Health costs cannot be lethal.');
   if (ability.oncePerWave) notes.push('Once per wave.');
   if (ability.oncePerEncounter) notes.push('Once per encounter.');
+  // The battle sheet gives effects and usage facts separate space on each ability card.
+  if (structured) return { effects, facts, notes };
   return [effects.join(' '), facts.join(' · '), notes.join(' ')].filter(Boolean).join(compact ? ' ' : '\n\n');
 }

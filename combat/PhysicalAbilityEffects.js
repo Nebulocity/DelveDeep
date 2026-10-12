@@ -2,6 +2,7 @@
 // Their lifetimes come from existing saved statuses, so visuals never change combat or saves.
 
 import { preloadAssaultAbilityEffects, createAssaultAbilityEffect, updateAssaultAbilityEffects, clearAssaultAbilityEffects } from './AssaultAbilityEffects.js';
+import { isBarmaidIntercept } from '../data/barmaidAbilityEffects.js';
 
 const PREFIX = 'ability_v2_generic_physical_';
 const FADE_MS = 400;
@@ -32,6 +33,10 @@ export function physicalEffectActive(scene, target, type) {
   if (type === 'disarm') return target.status?.replacementDisarmUntil > now;
   if (type === 'interpose') {
     const guard = target.status?.replacementIntercept;
+
+    // A live Cover the Regulars cast has its own tray cue. Source-less records
+    // restored from saves still use this shared protection badge until recast.
+    if (isBarmaidIntercept(guard)) return false;
     const owner = scene.partyUnits?.find(unit => unit.id === guard?.ownerId);
     return guard?.until > now && Boolean(owner?.alive);
   }
@@ -74,13 +79,18 @@ function drawEffect(scene, effect, bounds) {
   const width = bounds.right - bounds.left;
   const height = bounds.bottom - bounds.top;
   const hamstring = type === 'hamstring';
+  const protection = type === 'hold_the_line' || type === 'interpose';
 
   // Side sheets are 48 pixels tall, including clear padding. Their canvas uses
   // 55% of body height; ankle bands instead span 115% of body width. Small-unit
   // minimums keep the icons visible on phones and maximums limit boss-size art.
   const size = hamstring ? Math.max(0.65, Math.min(3, width * 1.15 / 64))
-    : Math.max(1.2, Math.min(3.2, height * 0.55 / 48));
-  const x = hamstring ? (bounds.left + bounds.right) / 2 : bounds.right + 15 * size;
+    : protection ? Math.min(3.2, width / 48, height * 0.55 / 48)
+      : Math.max(1.2, Math.min(3.2, height * 0.55 / 48));
+  // Protection badges sit within their owner's lower silhouette. Keeping the
+  // whole badge inside these bounds prevents it from hovering over a nearby ally.
+  const x = hamstring ? (bounds.left + bounds.right) / 2
+    : protection ? bounds.right - 24 * size : bounds.right + 15 * size;
   const y = hamstring ? bounds.bottom - height * 0.08 : bounds.top + height * 0.62;
   image.setPosition(x, y).setScale(size).setDepth((target.container?.depth ?? 100 + bounds.bottom) + 1);
   image.setFrame(Math.floor(effect.elapsed * 24 / 1000) % 32);

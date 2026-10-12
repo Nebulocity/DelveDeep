@@ -17,6 +17,7 @@ import { UI_FONT_SIZES, fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../con
 import { abilitySummary } from '../game/AbilityDescriptions.js';
 import GameState from '../game/GameState.js';
 import { hallScroll } from './HallUI.js';
+import { showBattleCharacterDetails } from './BattleCharacterDetails.js';
 
 export const DETAILS_HINT = 'Long-press or hold-click a selection for details.';
 
@@ -101,6 +102,7 @@ export function characterDetails(unit) {
   // calculated damage and healing appear beside each skill instead of a separate stat list.
   return {
     title: unit.name,
+    battleCharacter: unit,
     align: 'left',
     description: [
       `${unit.className ?? 'Monster'} | ${unit.role ?? 'Enemy'}${level ? ` | Level ${level}` : ''}\nHP: ${Math.floor(unit.hp ?? unit.maxHp)}/${unit.maxHp}${(unit.maxMana ?? 0) > 0 ? ` | Mana: ${Math.floor(unit.mana ?? unit.maxMana)}/${unit.maxMana}` : ''}`,
@@ -133,6 +135,9 @@ export function delveDetails(delve) {
 
 // Modal details block underlying controls while gameplay and timers continue.
 export function showSelectionDetails(scene, details) {
+  if (scene.scene?.key === 'BattleScene' && details.battleCharacter) {
+    return showBattleCharacterDetails(scene, details.battleCharacter);
+  }
   if (isGuildHall(scene)) return showGuildDetails(scene, details);
   if (details.shopTheme) return showShopDetails(scene, details);
 

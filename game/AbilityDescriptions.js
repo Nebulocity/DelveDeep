@@ -195,6 +195,33 @@ export function abilitySummary(unit, ability) {
   return `- ${ability.name}: ${abilityDescription(unit, ability, { compact: true })}`;
 }
 
+// Keep the card's effect explanation separate from its range, cooldown and resource cost.
+// All numbers still come from the equipped rank and the combatant's current stats.
+export function abilityCardDetails(unit, ability) {
+  if (ability.replacement) {
+    const parts = replacementDescription(unit, ability, true, true);
+
+    // Shorten repeated wording without dropping secondary effects or important restrictions.
+    const concise = text => text.replace(/all enemies within/g, 'Enemies within')
+      .replace(/all allies within/g, 'Allies within')
+      .replace(/the targeted enemy/g, 'the target')
+      .replace(/the targeted ally/g, 'the ally')
+      .replace(/Secondary effect lasts/g, 'Secondary duration:');
+    return {
+      description: [...parts.effects, ...parts.notes].map(concise).join(' '),
+      facts: parts.facts.join(' · ')
+    };
+  }
+
+  // Older saved encounters keep their original skills and calculated descriptions.
+  const description = abilityDescription(unit, ability, { compact: true });
+  const split = description.indexOf('Range:');
+  return {
+    description: split < 0 ? description : description.slice(0, split).trim(),
+    facts: split < 0 ? '' : description.slice(split).trim()
+  };
+}
+
 // Describe a leader tactic using its authored effect and duration. ability is the selected
 // skill data, including its current rank values.
 export function leaderAbilityDescription(ability, party = []) {

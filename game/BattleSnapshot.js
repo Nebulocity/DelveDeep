@@ -10,7 +10,7 @@ const OMIT = Symbol('omit');
 // Ignore these property names when rebuilding plain saved objects. They have special
 // prototype meanings in JavaScript and are not game state fields.
 const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
-const EVENT_KINDS = new Set(['countdown', 'pendingLandings', 'landing', 'attack', 'heal',
+const EVENT_KINDS = new Set(['countdown', 'pendingLandings', 'landing', 'bossDrop', 'attack', 'heal',
   'enemyAbility', 'classAbility', 'groundSlam']);
 
 // Store only model data; Phaser objects and functions are rebuilt from game code.
@@ -76,7 +76,8 @@ const SCENE_FIELDS = [
   'usedLeaderAbilities', 'pendingPausedTactics', 'awaitingRevive', 'combatPaused',
   'waveReturnPositions', 'waveReturnTargets', 'waveReturnReadyAt', 'waveReturnStartedAt',
   'waveReturnTimedOut', 'waveReturnProgress', 'waveReturnSettled', 'pendingWaveSpawns',
-  'idlePhaseRemainingMs', 'idleSummary', 'idleSummaryResumePaused', 'combatRngState', 'abilityDecoySerial'
+  'idlePhaseRemainingMs', 'idleSummary', 'idleSummaryResumePaused', 'combatRngState', 'abilityDecoySerial',
+  'delveTimerStartedAt'
 ];
 
 // Extract one unit's durable state while excluding live scene and graphics references.

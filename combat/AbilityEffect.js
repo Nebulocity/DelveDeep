@@ -2,6 +2,7 @@
 // Damage still resolves in ClassAbilitySystem, including saved and background battles.
 
 import { findAbilityEffect } from '../data/abilityEffects.js';
+import { shieldSphereScale } from '../data/shieldSphereEffects.js';
 import { ADJACENT_DISTANCE } from '../config/combatRanges.js';
 import { MAGICAL_PROTECTION_EFFECTS, magicalProtectionStatusActive } from '../data/magicalProtectionEffects.js';
 import { MAGICAL_ASSAULT_EFFECTS } from '../data/magicalAssaultEffects.js';
@@ -11,6 +12,13 @@ import { DAWNWARDEN_ASSAULT_EFFECTS } from '../data/dawnwardenAssaultEffects.js'
 import { OATHWARDEN_PROTECT_EFFECTS } from '../data/oathwardenProtectEffects.js';
 import { GLADIATOR_PROTECT_EFFECTS } from '../data/gladiatorProtectEffects.js';
 import { GENERIC_RESTORE_EFFECTS } from '../data/genericRestoreEffects.js';
+import { VERDANT_CLERIC_EFFECTS } from '../data/verdantClericEffects.js';
+import { RANGER_ABILITY_EFFECTS } from '../data/rangerAbilityEffects.js';
+import { BARBARIAN_ABILITY_EFFECTS } from '../data/barbarianAbilityEffects.js';
+import { BARMAID_ABILITY_EFFECTS } from '../data/barmaidAbilityEffects.js';
+import { EVERBRIGHT_CLERIC_EFFECTS } from '../data/everbrightClericEffects.js';
+import { UMBRAL_MAGE_EFFECTS } from '../data/umbralMageEffects.js';
+import { updateUmbralDecoyEffects, clearUmbralDecoyEffects } from './UmbralDecoyEffects.js';
 import { createPhysicalAbilityEffect, updatePhysicalAbilityEffects, clearPhysicalAbilityEffects } from './PhysicalAbilityEffects.js';
 import { createPrepareAbilityEffect, updatePrepareAbilityEffects, clearPrepareAbilityEffects } from './PrepareAbilityEffects.js';
 import { startTravelingEffect, finishTravelingEffect, clearTravelingEffects, updateTravelingEffects } from './TravelingEffects.js';
@@ -24,6 +32,7 @@ function effectStatusActive(target, definition, now, wave) {
 
 // Destroy each piece and release references when playback ends or the scene shuts down.
 export function clearAbilityEffects(scene) {
+  clearUmbralDecoyEffects(scene);
   clearTravelingEffects(scene);
   clearPhysicalAbilityEffects(scene);
   clearPrepareAbilityEffects(scene);
@@ -230,6 +239,12 @@ function fitTarget(scene, effect) {
   effect.origin.y = effect.definition.healing || effect.definition.groundAtFeet ? bounds.bottom - bottom * scale
     : (bounds.top + bounds.bottom) / 2 - (top + bottom) * scale / 2;
   effect.origin.x -= (left + right) * scale / 2;
+
+  // A named anchor is a fraction of the visible body's height: 0 is the head,
+  // 1 is the feet, and 0.58 is the waist. Sheet offsets stay relative to that point.
+  if (Number.isFinite(effect.definition.targetAnchorY)) {
+    effect.origin.y = bounds.top + (bounds.bottom - bounds.top) * effect.definition.targetAnchorY;
+  }
 }
 
 // Sprite images have a local origin inside a scaled unit container. Convert that
@@ -268,39 +283,53 @@ function fitCoverage(scene, effect) {
   }
 }
 
-// The Ward sheet is a ring centered on its origin. Stretch its interior around the
-// target's full sprite with a little breathing room, rather than centering on feet.
+// Center both sphere layers on the recipient and keep their scale equal on both
+// axes. Enclosing the silhouette's diagonal preserves a sphere instead of an oval.
 function fitWard(scene, effect) {
   const bounds = visibleUnitBounds(scene, effect.target);
-  const clip = effect.definition.clips[0];
   effect.origin = { ...effect.origin, x: (bounds.left + bounds.right) / 2,
     y: (bounds.top + bounds.bottom) / 2 };
-
-  // Eight artwork pixels account for the ring thickness; the remaining interior
-  // must enclose the sprite. This requested stretch permits fractional scaling.
-  effect.scaleX = (bounds.right - bounds.left) * 1.35 / (clip.width - 8);
-  effect.scaleY = (bounds.bottom - bounds.top) * 1.25 / (clip.height - 8);
+  effect.scaleX = effect.scaleY = shieldSphereScale(bounds);
 }
 
 // Ground art uses the actual radius with whole-number pixel scaling. Body effects
 // are fitted afterward to the recipient's visible artwork instead of this radius.
 function startEffect(scene, caster, target, ability, definition, action = null, recipients = [target]) {
 
+  // Brambles belongs to its owner's saved zone, but its art stays on the captured
+  // ground point. Walking targets and later caster movement cannot drag the field.
+  if (definition.groundZone && Number.isFinite(caster.arenaX)) target = caster;
+  const groundRecord = definition.groundZone ? target.status?.replacementZones?.find(record =>
+    record.ability?.id === definition.abilityId && record.until > (scene.time?.now ?? 0)
+      && record.wave === scene.currentWaveIndex) : null;
+  if (definition.groundZone && !groundRecord) return false;
+
   // The aura belongs to its caster even when the AI selected a nearby ally.
-    if ((definition.floorAura || definition.targetCaster) && Number.isFinite(caster.arenaX)) target = caster;
+  if ((definition.floorAura || definition.targetCaster) && Number.isFinite(caster.arenaX)) target = caster;
   if (!definition.clips.every(clip => scene.textures.exists(clip.key))) return false;
   if (definition.persistentStatus) {
     if (!effectStatusActive(target, definition, scene.time?.now ?? 0, scene.currentWaveIndex)) return false;
 
     // Refresh the running ring without adding duplicate artwork or resetting its
     // animation. A status reapplied during its fade restores normal opacity.
-    const current = scene.abilityEffects?.find(effect => effect.target === target && effect.definition === definition);
+    const current = scene.abilityEffects?.find(effect => effect.target === target
+      && effect.definition === definition && !effect.retiredGround);
     if (current) {
-      current.fadeElapsed = null;
-      return true;
+      if (groundRecord && (current.anchor.arenaX !== groundRecord.point.arenaX
+        || current.anchor.arenaY !== groundRecord.point.arenaY)) {
+
+        // A replacement field leaves a fading remnant at its old ground point.
+        // Start the new field below rather than teleporting the old drawing.
+        current.retiredGround = true;
+        current.fadeElapsed = 0;
+      } else {
+        if (groundRecord) current.anchor = groundRecord.point;
+        current.fadeElapsed = null;
+        return true;
+      }
     }
   }
-  const anchor = definition.recipientAnchor ? target : ability.replacement ? ability.anchor === 'Caster' ? caster : target
+  const anchor = groundRecord ? groundRecord.point : definition.recipientAnchor ? target : ability.replacement ? ability.anchor === 'Caster' ? caster : target
     : ability.radius && !definition.fitTarget ? caster : target;
   const origin = scene.battlefield.arenaToScreen(anchor.arenaX, anchor.arenaY);
   const radius = definition.singleTargetArtwork ? null : ability.replacement && ability.shape === 'Circle'
@@ -332,6 +361,7 @@ function startEffect(scene, caster, target, ability, definition, action = null, 
     return { clip, image };
   });
   const effect = { definition, caster, target, anchor, recipients, action, origin, scale,
+    groundRadius: groundRecord?.ability.radius ?? definition.groundFootprint?.arenaRadius,
     scaleX: scale * (definition.widthStretch ?? 1), scaleY: scale, pieces, elapsed: 0,
     duration: definition.untilDeath || definition.followShield || definition.persistentStatus ? Infinity
       : action?.duration ?? (definition.holdMs ?? definition.frames * definition.frameMs) + (definition.fadeMs ?? 0),
@@ -367,16 +397,22 @@ function drawEffect(effect) {
     ? Math.max(0, Math.min(1, fadeAge / effect.definition.fadeMs)) : 0;
   for (const { clip, image } of effect.pieces) {
     const age = frame - clip.start;
-    const localFrame = clip.loop && age >= 0 ? age % clip.frames : age;
+    const localFrame = clip.loop && age >= 0 ? age % clip.frames
+      : clip.holdLastFrame && age >= clip.frames ? clip.frames - 1 : age;
     const visible = localFrame >= 0 && localFrame < clip.frames;
     image.setVisible(visible);
     if (!visible) continue;
 
     // Offsets place the supplied parts around one origin. Volley's travel is baked
     // into its frames; only separate projectile packs receive additional flight motion.
-    image.setAlpha((effect.definition.opacity ?? 1) * (1 - fadeProgress)).setScale(effect.scaleX, effect.scaleY).setFrame(localFrame).setPosition(
+
+    // Ground cracks keep the floor's flattened projection. Upright light uses
+    // uniform scale so its height rises through bodies instead of lying on the floor.
+    const scaleY = clip.upright ? effect.scaleX : effect.scaleY;
+    image.setAlpha((effect.definition.opacity ?? 1) * (clip.opacity ?? 1) * (1 - fadeProgress))
+      .setScale(effect.scaleX, scaleY).setFrame(localFrame).setPosition(
       effect.origin.x + clip.x * effect.scaleX,
-      effect.origin.y + clip.y * effect.scaleY
+      effect.origin.y + clip.y * scaleY
     );
 
     // An ellipse's upper half is farther from the viewer. Move the crop boundary
@@ -395,6 +431,15 @@ function drawEffect(effect) {
 // Front layers use the foremost recipient's unit depth. Updating depth does not move
 // fixed area art and keeps it over affected units whose positions change afterward.
 function updateEffectDepth(scene, effect) {
+
+  // Match authored ground artwork to the real floor projection. Sheet radius is in
+  // artwork pixels; arena radius is in combat units. This does not change targeting.
+  if (effect.definition.groundFootprint) {
+    const footprint = effect.definition.groundFootprint;
+    const radii = scene.battlefield.getGroundEllipseRadii(effect.groundRadius, effect.anchor.arenaY);
+    effect.scaleX = radii.width / footprint.radius;
+    effect.scaleY = radii.height / (footprint.radius * footprint.squash);
+  }
 
   // Aura rings keep their floor footprint. The sheet has a 39-pixel radius and a 0.5
   // squash; fit both axes to the real healing radius projected onto this floor.
@@ -415,7 +460,9 @@ function updateEffectDepth(scene, effect) {
 
     // Normally depth is one step above the body. Wrapped far halves sit one step
     // below it, allowing the character silhouette to occlude the rear arc.
-    piece.image.setDepth(piece.clip.depth === 'behind' || piece.clip.wrapHalf === 'behind' ? depth - 2 : depth);
+    const behind = !effect.definition.coverUnits
+      && (piece.clip.depth === 'behind' || piece.clip.wrapHalf === 'behind');
+    piece.image.setDepth(behind ? depth - 2 : depth);
   }
 }
 
@@ -423,18 +470,23 @@ function updateEffectDepth(scene, effect) {
 // art after reload or background catch-up without replaying old casts or damage.
 function restorePersistentEffects(scene) {
   const now = scene.time?.now ?? 0;
-  const units = [...(scene.partyUnits ?? []), ...(scene.enemies ?? [])];
+  const units = [...(scene.partyUnits ?? []), ...(scene.enemies ?? []), ...(scene.abilityDecoys ?? [])];
   for (const target of units) {
     if (!target.alive) continue;
     const requests = [];
     for (const definition of [...MAGICAL_PROTECTION_EFFECTS, ...MAGICAL_ASSAULT_EFFECTS,
       ...OATHWARDEN_ASSAULT_EFFECTS, ...GLADIATOR_ASSAULT_EFFECTS, ...DAWNWARDEN_ASSAULT_EFFECTS,
-      ...OATHWARDEN_PROTECT_EFFECTS, ...GLADIATOR_PROTECT_EFFECTS, ...GENERIC_RESTORE_EFFECTS]) {
-      if (definition.persistentStatus && effectStatusActive(target, definition, now, scene.currentWaveIndex)) {
-        requests.push([{ className: definition.className }, { id: definition.abilityId, name: definition.abilityName }]);
+      ...OATHWARDEN_PROTECT_EFFECTS, ...GLADIATOR_PROTECT_EFFECTS, ...GENERIC_RESTORE_EFFECTS,
+      ...VERDANT_CLERIC_EFFECTS, ...RANGER_ABILITY_EFFECTS, ...EVERBRIGHT_CLERIC_EFFECTS,
+      ...BARBARIAN_ABILITY_EFFECTS, ...BARMAID_ABILITY_EFFECTS, ...UMBRAL_MAGE_EFFECTS]) {
+      if (definition.persistentStatus && definition.restoreFromStatus !== false
+        && effectStatusActive(target, definition, now, scene.currentWaveIndex)) {
+        requests.push([{ className: definition.className }, { id: definition.abilityId,
+          name: definition.abilityName, vfxPhase: definition.vfxPhase }]);
       }
     }
-    if (target.status?.huntersMarkVisual) {
+    if (target.status?.huntersMarkVisual && !(scene.partyUnits ?? []).some(unit =>
+      Object.values(unit.abilities ?? {}).some(ability => ability.id === 'ability_v2_ranger_hunter_s_mark'))) {
       requests.push([{ className: 'Ranger' }, { name: "Hunter's Mark" }]);
     }
     if (target.status?.sunlitWardVisualUntil > now && target.status.temporaryHp > 0) {
@@ -442,7 +494,8 @@ function restorePersistentEffects(scene) {
         duration: target.status.sunlitWardVisualUntil - now }]);
     }
     for (const [caster, ability] of requests) {
-      if (scene.abilityEffects?.some(effect => effect.target === target && effect.definition.abilityName === ability.name)) continue;
+      if (scene.abilityEffects?.some(effect => effect.target === target
+        && effect.definition.abilityName === ability.name && effect.definition.vfxPhase === ability.vfxPhase)) continue;
       createAbilityEffect(scene, caster, target, ability);
     }
   }
@@ -475,6 +528,7 @@ function drawFlight(scene, effect) {
 export function updateAbilityEffects(scene, delta, replaying = false) {
   updateTravelingEffects(scene, delta, replaying);
   if (replaying) {
+    clearUmbralDecoyEffects(scene);
     if (scene.abilityEffects?.length || scene.abilityTelegraphs?.length || scene.physicalAbilityEffects?.length || scene.physicalAssaultEffects?.length || scene.prepareAbilityEffects?.length) clearAbilityEffects(scene);
     return;
   }
@@ -482,6 +536,7 @@ export function updateAbilityEffects(scene, delta, replaying = false) {
 
   // Status art shares the same combat pause, replay and shutdown lifecycle as sheets.
   if (!scene.idleSimulating && !scene.game.backgroundProgress?.isReplaying) {
+    updateUmbralDecoyEffects(scene, delta);
     if (scene.partyUnits?.length || scene.enemies?.length || scene.physicalAbilityEffects?.length || scene.prepareAbilityEffects?.length) prepareEffects(scene);
     updatePhysicalAbilityEffects(scene, delta, visibleUnitBounds);
     updatePrepareAbilityEffects(scene, delta, visibleUnitBounds);
@@ -523,7 +578,10 @@ export function updateAbilityEffects(scene, delta, replaying = false) {
     // A removed status leaves only cosmetic artwork for 400 combat milliseconds.
     // The timer freezes on pause, and restoring a saved active status recreates it.
     if (effect.definition.persistentStatus) {
-      const active = !scene.battleOver && effectStatusActive(effect.target, effect.definition, scene.time?.now ?? 0, scene.currentWaveIndex);
+      const activeGround = !effect.definition.groundZone || effect.target.status?.replacementZones?.some(record =>
+        record.ability?.id === effect.definition.abilityId && record.point === effect.anchor);
+      const active = !scene.battleOver && !effect.retiredGround && activeGround
+        && effectStatusActive(effect.target, effect.definition, scene.time?.now ?? 0, scene.currentWaveIndex);
       if (active) effect.fadeElapsed = null;
       else if (effect.fadeElapsed == null) effect.fadeElapsed = 0;
       else if (!scene.combatPaused) effect.fadeElapsed += Math.max(0, delta);
@@ -541,10 +599,17 @@ export function updateAbilityEffects(scene, delta, replaying = false) {
     const endedMark = effect.definition.untilDeath && !effect.target.alive;
     const endedWard = effect.definition.followShield && (!effect.target.alive
       || !(effect.target.status?.temporaryHp > 0)
-      || (scene.time?.now ?? 0) >= (effect.target.status?.sunlitWardVisualUntil ?? 0));
+      || scene.battleOver || (scene.time?.now ?? 0) >= (effect.target.status?.sunlitWardVisualUntil ?? 0));
+
+    // Absorbed or expired wards keep their last loop while fading for 400 combat
+    // milliseconds. Both sphere layers pause together and follow the recipient.
+    if (endedWard) {
+      if (effect.fadeElapsed == null) effect.fadeElapsed = 0;
+      else if (!scene.combatPaused) effect.fadeElapsed += Math.max(0, delta);
+    } else if (effect.definition.followShield) effect.fadeElapsed = null;
     const fadedStatus = effect.fadeElapsed >= effect.definition.fadeMs;
-    if (effect.elapsed >= effect.duration && !effect.definition.projectile || fadedStatus || canceledFlight || endedMark || endedWard
-      || scene.battleOver && !effect.definition.abilityId && !effect.definition.projectile) {
+    if (effect.elapsed >= effect.duration && !effect.definition.projectile || fadedStatus || canceledFlight || endedMark
+      || scene.battleOver && !effect.definition.abilityId && !effect.definition.projectile && !effect.definition.followShield) {
       for (const piece of effect.pieces) piece.image.destroy();
       effect.zone?.destroy();
     } else {

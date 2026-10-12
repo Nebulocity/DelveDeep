@@ -10,7 +10,7 @@ const scene = { time: { now: 0 }, partyUnits: [caster, ally], enemies: [enemy],
   add: { image() {
     return { active: true,
       setFrame(frame) { this.frame = frame; return this; },
-      setPosition(x, y) { this.x = x; this.y = y; return this; }, setScale() { return this; },
+      setPosition(x, y) { this.x = x; this.y = y; return this; }, setScale(size) { this.scale = size; return this; },
       setDepth() { return this; }, setAlpha(alpha) { this.alpha = alpha; return this; },
       destroy() { this.active = false; } };
   } } };
@@ -23,6 +23,19 @@ caster.status.replacementEffects = [{ key: prefix + 'hold_the_line:beneficial', 
 ally.status.replacementIntercept = { ownerId: caster.id, until: 6000 };
 update(0);
 assert.equal(scene.physicalAbilityEffects.length, 4, 'Saved statuses restore recipient art');
+
+// Nearby allies must not own the tank's badge, even if selected by the AI.
+createPhysicalAbilityEffect(scene, caster, ally, { id: prefix + 'hold_the_line' });
+update(0);
+const holder = scene.physicalAbilityEffects.find(effect => effect.type === 'hold_the_line');
+assert.equal(holder.target, caster);
+const holderBounds = bounds(scene, caster);
+assert(holder.image.x - 24 * holder.image.scale >= holderBounds.left);
+assert(holder.image.x + 24 * holder.image.scale <= holderBounds.right);
+const badgeX = holder.image.x;
+caster.arenaX += 55;
+update(0);
+assert.equal(holder.image.x, badgeX + 55, 'The badge follows its owner');
 createPhysicalAbilityEffect(scene, caster, ally, { id: prefix + 'interpose' });
 assert.equal(scene.physicalAbilityEffects.length, 5, 'Interpose adds a brief caster cue');
 const cue = scene.physicalAbilityEffects.find(effect => effect.brief);

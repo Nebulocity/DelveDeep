@@ -74,6 +74,9 @@ function restoreUnit(unit, saved) {
   unit.updateHealthBar();
   unit.setTargetName(unit.targetName);
 
+  // Older saves have no waiting flag. New bosses remain hidden until their saved drop.
+  if (unit.landingWaiting) unit.container.setVisible(false);
+
   if (unit.pendingAction) {
 
     // The condition before ? chooses the first value when true and the value after : when
@@ -107,6 +110,11 @@ export function restoreBattle(scene, snapshot) {
   GameState.leader = unpackBattleValue(snapshot.leader);
   GameState.currentRoom = scene.currentWaveIndex;
   scene.time.now = snapshot.time;
+
+  // Older saves lack the timer origin. Keep their last recorded run duration, then
+  // continue on paused combat time. Historical Pause durations cannot be recovered.
+  scene.delveTimerStartedAt = model.delveTimerStartedAt ?? (snapshot.time
+    - Math.max(0, snapshot.savedAtMs - (GameState.run.startedAt || snapshot.savedAtMs)));
 
   scene.time.paused = scene.combatPaused;
 
@@ -201,8 +209,12 @@ export function restoreBattle(scene, snapshot) {
         // intact.
         const visual = enemy.spriteVisual?.image ?? enemy.body;
         visual.y = enemy.landingVisualY;
-        scene.tweens.add({ targets: visual, y: enemy.landingFloorY,
-          duration: event.remainingMs, ease: 'Bounce.Out' });
+
+        // New drops draw from saved combat timestamps. Older saves keep their bounce.
+        if (enemy.landingStartedAt === undefined) {
+          scene.tweens.add({ targets: visual, y: enemy.landingFloorY,
+            duration: event.remainingMs, ease: 'Bounce.Out' });
+        }
 
         for (const label of [enemy.label, enemy.targetLabel, enemy.actionLabel,
           enemy.hpBack, enemy.hpFill, enemy.castBack, enemy.castFill]) label.setAlpha(0);

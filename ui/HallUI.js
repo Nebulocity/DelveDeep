@@ -166,7 +166,7 @@ export function hallPortrait(scene, hero, x, y, size) {
 
 // Masks constrain drawing and hit tests; off-screen controls cannot receive taps.
 export function hallScroll(scene, bounds, objects, contentHeight, initial = 0, onScroll = () => {}, surface = guildSurface,
-  isBlocked = () => Boolean(scene.selectionDetailsClose || scene.equipmentModalClose)) {
+  isBlocked = () => Boolean(scene.selectionDetailsClose || scene.equipmentModalClose), minimumThumbHeight = 105) {
 
   // The braces pull named fields into local variables. This reads those fields without
   // copying the whole source object.
@@ -191,7 +191,9 @@ export function hallScroll(scene, bounds, objects, contentHeight, initial = 0, o
   let value = Math.min(initial, max), drag = null, disposed = false;
   const trackX = x + width + 13;
   const track = surface(scene, trackX, y + height / 2, 20, height, 'track');
-  const thumbHeight = Math.max(105, height * height / (height + max));
+
+  // Compact battle cards can request a shorter thumb that stays inside their scroll region.
+  const thumbHeight = Math.min(height, Math.max(minimumThumbHeight, height * height / (height + max)));
   const thumb = surface(scene, trackX, y + thumbHeight / 2, 30, thumbHeight, 'thumb');
   track.setVisible(max > 0);
   thumb.setVisible(max > 0);

@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { createAbilityEffect, updateAbilityEffects, createAbilityTelegraph, clearAbilityTelegraph } from '../combat/AbilityEffect.js';
 import { preloadAbilityEffects, ABILITY_EFFECTS } from '../data/abilityEffects.js';
 import { PHYSICAL_EFFECT_SHEETS } from '../combat/PhysicalAbilityEffects.js';
-import { PREPARE_EFFECT_SHEETS, OATHWARDEN_PREPARE_EFFECT_SHEETS } from '../combat/PrepareAbilityEffects.js';
+import { PREPARE_EFFECT_SHEETS, OATHWARDEN_PREPARE_EFFECT_SHEETS, GLADIATOR_PREPARE_EFFECT_SHEETS } from '../combat/PrepareAbilityEffects.js';
 import ClassAbilitySystem from '../combat/ClassAbilitySystem.js';
 import { ASSAULT_EFFECT_SHEETS } from '../combat/AssaultAbilityEffects.js';
 import { RANGED_DELIVERY_SHEETS } from '../data/rangedDelivery.js';
@@ -97,7 +97,8 @@ scene.textures.exists = () => false;
 assert.equal(createAbilityEffect(scene, ranger, target, volley), false);
 preloadAbilityEffects(scene);
 assert.equal(scene.loads.length, RANGED_DELIVERY_SHEETS.length + ASSAULT_EFFECT_SHEETS.length + PHYSICAL_EFFECT_SHEETS.length + PREPARE_EFFECT_SHEETS.length
-  + OATHWARDEN_PREPARE_EFFECT_SHEETS.length + ABILITY_EFFECTS.reduce((sum, effect) => sum + effect.clips.length, 0));
+  + OATHWARDEN_PREPARE_EFFECT_SHEETS.length + GLADIATOR_PREPARE_EFFECT_SHEETS.reduce((sum, sheet) => sum + 1 + Boolean(sheet.rearKey), 0)
+  + ABILITY_EFFECTS.reduce((sum, effect) => sum + effect.clips.length, 0));
 assert.equal(scene.loads.find(load => load.key === 'physical-charge-trail').options.endFrame, 31);
 assert.equal(scene.loads.find(load => load.key === 'volley-part-dust_kick').options.endFrame, 4);
 
@@ -209,6 +210,7 @@ for (const definition of ABILITY_EFFECTS.filter(effect => effect.id !== 'volley'
   }
   s.time.now = 10000;
   updateAbilityEffects(s, 10000);
+  if (definition.followShield) updateAbilityEffects(s, 400);
   assert.equal(s.abilityEffects.length, 0);
   assert(s.images.every(image => !image.active));
 }
@@ -331,7 +333,17 @@ assert.equal(bubble.origin.x, protectedHero.arenaX);
 assert.equal(restoredScene.abilityEffects.length, 2);
 protectedHero.status.temporaryHp = 0;
 updateAbilityEffects(restoredScene, 0);
+assert.equal(restoredScene.abilityEffects.length, 2, 'Absorbed Ward starts its fade');
+restoredScene.combatPaused = true;
+updateAbilityEffects(restoredScene, 500);
+assert.equal(bubble.fadeElapsed, 0, 'Pause freezes the shield fade');
+restoredScene.combatPaused = false;
+updateAbilityEffects(restoredScene, 200);
+assert(bubble.pieces.every(piece => piece.image.active && piece.image.alpha === 0.5));
+assert.equal(bubble.scaleX, bubble.scaleY, 'The shield stays spherical');
+updateAbilityEffects(restoredScene, 200);
 assert.equal(restoredScene.abilityEffects.length, 1);
+assert(bubble.pieces.every(piece => !piece.image.active), 'Both shield layers are released');
 markedEnemy.alive = false;
 updateAbilityEffects(restoredScene, 0);
 assert.equal(restoredScene.abilityEffects.length, 0);

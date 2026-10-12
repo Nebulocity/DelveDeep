@@ -48,13 +48,20 @@ export function startTravelingEffect(scene, caster, target, ability, action = nu
 
   // Named missile profiles share finished sheets. Other delivery types retain
   // their graphics, including growing beams, tethers, whips and thrown flasks.
-  const sheetName = profile.type === 'rock' ? 'stone' : profile.type === 'glob' ? 'bolt' : profile.type;
+  const sheetName = profile.sheet ?? (profile.type === 'rock' ? 'stone' : profile.type === 'glob' ? 'bolt' : profile.type);
   const sheet = RANGED_DELIVERY_SHEETS.find(entry => entry.name === sheetName);
-  if (sheet && !profile.volley && scene.textures?.exists?.(sheet.key) && scene.add.image) {
+  if (sheet && (!profile.volley || sheetName.startsWith('ranger-'))
+    && scene.textures?.exists?.(sheet.key) && scene.add.image) {
     effect.sheet = sheet;
     effect.image = scene.add.image(effect.from.x, effect.from.y, sheet.key, 0)
-      .setOrigin(0.5).setScale(sheetName === 'stone' ? 0.35 : 1.8).setTint(profile.color);
+      .setOrigin(0.5).setScale(sheetName === 'stone' ? 0.35 : sheetName.startsWith('ranger-') ? 1.4 : 1.8);
+    if (!sheet.nativeColors) effect.image.setTint(profile.color);
     scene.textures.get(sheet.key).setFilter(1);
+
+    // Volley launches from one bow and fans toward three nearby ground points.
+    // Extra images share the flight's clock, pause, arrival and retirement fade.
+    if (profile.volley) effect.volleyImages = [0, 1].map(() =>
+      scene.add.image(effect.from.x, effect.from.y, sheet.key, 0).setOrigin(0.5).setScale(1.4));
   }
   effects.push(effect);
   drawTravelingEffect(effect);
@@ -96,6 +103,30 @@ function drawTravelingEffect(effect) {
       .setFrame(Math.floor(effect.elapsed * effect.sheet.fps / 1000) % effect.sheet.frames)
       .setVisible(effect.elapsed >= effect.delay).setAlpha(1 - (effect.fadeElapsed ?? 0) / FADE_MS)
       .setDepth(from.depth + (to.depth - from.depth) * effect.progress + 1);
+
+    // Offsets are screen pixels at the landing point, not extra targeting radii.
+    // Starting each side arrow at the same source makes its outward fan visible.
+    for (const [index, image] of (effect.volleyImages ?? []).entries()) {
+      const side = index === 0 ? -1 : 1;
+      const sidePose = travelPose(from, { ...to, x: to.x + side * 34, y: to.y - 10 }, effect.progress, profile);
+      image.setPosition(sidePose.x, sidePose.y).setRotation(sidePose.angle)
+        .setFrame(Math.floor(effect.elapsed * effect.sheet.fps / 1000) % effect.sheet.frames)
+        .setVisible(effect.elapsed >= effect.delay).setAlpha(1 - (effect.fadeElapsed ?? 0) / FADE_MS)
+        .setDepth(from.depth + (to.depth - from.depth) * effect.progress + 1);
+    }
+
+    // A whip remains connected to its source. Reveal its textured length instead
+    // of moving the entire vine like a missile or stretching a plain green line.
+    if (profile.type === 'whip' || profile.type === 'beam' || profile.type === 'tether') {
+
+      // Rays reveal a growing front using the same source anchor as a lash.
+      // The stationary sheet spans rootX..tipX pixels before screen scaling.
+      const distance = Math.hypot(to.x - from.x, to.y - from.y);
+      const span = effect.sheet.tipX - effect.sheet.rootX;
+      effect.image.setOrigin(effect.sheet.rootX / effect.sheet.width, 0.5)
+        .setPosition(from.x, from.y).setScale(distance / span, 1.25)
+        .setCrop(0, 0, effect.sheet.rootX + span * effect.progress, effect.sheet.height);
+    }
     graphics.setVisible(false);
     return;
   }
@@ -199,6 +230,7 @@ export function updateTravelingEffects(scene, delta, replaying = false) {
     if (effect.fadeElapsed >= FADE_MS) {
       effect.graphics.destroy();
       effect.image?.destroy();
+      for (const image of effect.volleyImages ?? []) image.destroy();
       return false;
     }
     drawTravelingEffect(effect);
@@ -212,6 +244,7 @@ export function clearTravelingEffects(scene) {
   for (const effect of scene.travelingEffects ?? []) {
     effect.graphics.destroy();
     effect.image?.destroy();
+    for (const image of effect.volleyImages ?? []) image.destroy();
   }
   scene.travelingEffects = [];
 }

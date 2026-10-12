@@ -2,6 +2,7 @@
 // Offsets and movement are artwork pixels relative to the effect's ground origin.
 
 import { SUPPLIED_EFFECT_PACKS } from './suppliedAbilityEffects.js';
+import { shieldSphereClips } from './shieldSphereEffects.js';
 import { MAGICAL_PROTECTION_EFFECTS } from './magicalProtectionEffects.js';
 import { MAGICAL_ASSAULT_EFFECTS } from './magicalAssaultEffects.js';
 import { OATHWARDEN_ASSAULT_EFFECTS } from './oathwardenAssaultEffects.js';
@@ -11,6 +12,12 @@ import { OATHWARDEN_PROTECT_EFFECTS } from './oathwardenProtectEffects.js';
 import { GLADIATOR_PROTECT_EFFECTS } from './gladiatorProtectEffects.js';
 import { GENERIC_RESTORE_EFFECTS } from './genericRestoreEffects.js';
 import { DAWNWARDEN_RESTORE_EFFECTS } from './dawnwardenRestoreEffects.js';
+import { VERDANT_CLERIC_EFFECTS } from './verdantClericEffects.js';
+import { RANGER_ABILITY_EFFECTS } from './rangerAbilityEffects.js';
+import { BARBARIAN_ABILITY_EFFECTS } from './barbarianAbilityEffects.js';
+import { BARMAID_ABILITY_EFFECTS } from './barmaidAbilityEffects.js';
+import { EVERBRIGHT_CLERIC_EFFECTS } from './everbrightClericEffects.js';
+import { UMBRAL_MAGE_EFFECTS } from './umbralMageEffects.js';
 import { preloadPhysicalAbilityEffects } from '../combat/PhysicalAbilityEffects.js';
 import { preloadPrepareAbilityEffects } from '../combat/PrepareAbilityEffects.js';
 import { preloadRangedDelivery } from './rangedDelivery.js';
@@ -64,9 +71,8 @@ const additionalPacks = [
   { id: 'ground-sigil', frameMs: 83, frames: 12, groundWidth: 128,
     clips: [{ name: 'whole', width: 120, height: 89, frames: 12, start: 0,
       x: -60, y: -66, depth: 'front', loop: true }] },
-  { id: 'sunlit-ward', frameMs: 33, frames: 24, groundWidth: 96,
-    clips: [{ name: 'whole', width: 96, height: 96, frames: 24, start: 0,
-      x: -48, y: -48, depth: 'front', loop: true }] },
+  { id: 'sunlit-ward', frameMs: 50, frames: 32, groundWidth: 96,
+    clips: shieldSphereClips('sunlit', 'sunlit-ward') },
   { id: 'everbright-pulse', frameMs: 43, frames: 24, groundWidth: 78,
     clips: [{ name: 'whole', width: 72, height: 100, frames: 24, start: 0,
       x: -36, y: -82, depth: 'front', loop: true }] },
@@ -93,7 +99,7 @@ const presentation = {
   'smoke-bomb': { coverUnits: true, fitTarget: true, perRecipient: true },
   'sanctity-nova': { widthStretch: 2.5, followTarget: true, artworkScale: 0.85 },
   'hunter-s-mark': { untilDeath: true, followTarget: true, fitTarget: true },
-  'sunlit-ward': { followShield: true, followTarget: true, surroundTarget: true },
+  'sunlit-ward': { followShield: true, followTarget: true, recipientAnchor: true, surroundTarget: true, fadeMs: 400 },
   'everbright-pulse': { healing: true, fitTarget: true, singleTargetArtwork: true, followTarget: true, holdMs: 1500, fadeMs: 400 },
   'morning-chorus': { healing: true, fitTarget: true, singleTargetArtwork: true, followTarget: true, holdMs: 1500, fadeMs: 400 }
 };
@@ -101,6 +107,12 @@ const presentation = {
 // Parts preserve the supplied behind/front layering; combined sheets are only used
 // for packs with no parts. Loading both would draw the same artwork twice.
 export const ABILITY_EFFECTS = [
+  ...BARMAID_ABILITY_EFFECTS,
+  ...UMBRAL_MAGE_EFFECTS,
+  ...BARBARIAN_ABILITY_EFFECTS,
+  ...EVERBRIGHT_CLERIC_EFFECTS,
+  ...RANGER_ABILITY_EFFECTS,
+  ...VERDANT_CLERIC_EFFECTS,
   ...DAWNWARDEN_RESTORE_EFFECTS,
   ...GENERIC_RESTORE_EFFECTS,
   ...MAGICAL_ASSAULT_EFFECTS,
@@ -116,23 +128,52 @@ export const ABILITY_EFFECTS = [
     ...presentation[pack.id],
     projectile: ['nightbolt', 'explodingarrow-arrow'].includes(pack.id),
     clips: pack.clips.map(clip => ({
-      ...clip, key: `${pack.id}-${clip.name}`,
+      ...clip, key: clip.key ?? `${pack.id}-${clip.name}`,
 
       // The mark's triangle occupies the top 16 pixels of each 42 x 48 cell.
       // Hide the lower ring without changing the cell bounds used to fit the target.
       crop: pack.id === 'hunter-s-mark' ? { x: 0, y: 0, width: 42, height: 16 } : null,
-      url: new URL(`../assets/effects/${pack.id}/${clip.name}.png`, import.meta.url).href
+      url: clip.url ?? new URL(`../assets/effects/${pack.id}/${clip.name}.png`, import.meta.url).href
     }))
   }))
 ];
 
 // Select a flight separately from its impact. Most skills only have an impact pack.
 export function findAbilityEffect(caster, ability, projectile = false) {
+
+  // Exact current IDs preserve retired Barmaid artwork in saved encounters.
+  const barmaid = BARMAID_ABILITY_EFFECTS.find(effect => effect.abilityId === ability.id
+    && effect.vfxPhase === ability.vfxPhase);
+  if (barmaid) return projectile ? undefined : barmaid;
+
+  // Current IDs select separate impact, channel and recovery phases. Legacy
+  // saved Nightbolt and Gloomburst definitions retain their supplied artwork.
+  const umbral = UMBRAL_MAGE_EFFECTS.find(effect => effect.abilityId === ability.id
+    && effect.vfxPhase === ability.vfxPhase);
+  if (umbral) return projectile ? undefined : umbral;
+
+  // Contact, refill and status phases share the saved Barbarian ability ID.
+  // Selecting a phase prevents reload from replaying an old strike or refill.
+  const barbarian = BARBARIAN_ABILITY_EFFECTS.find(effect => effect.abilityId === ability.id
+    && effect.vfxPhase === ability.vfxPhase);
+  if (barbarian) return projectile ? undefined : barbarian;
+
+  // Exact current IDs and cosmetic phases preserve art in legacy saved battles.
+  const everbright = EVERBRIGHT_CLERIC_EFFECTS.find(effect => effect.abilityId === ability.id
+    && effect.vfxPhase === ability.vfxPhase);
+  if (everbright) return projectile ? undefined : everbright;
+
+  // Current Ranger IDs take precedence over legacy name bindings. The poison
+  // phase belongs to a trap victim instead of the caster's armed ground trap.
+  const ranger = RANGER_ABILITY_EFFECTS.find(effect => effect.abilityId === ability.id
+    && effect.vfxPhase === ability.vfxPhase);
+  if (ranger) return projectile ? undefined : ranger;
   const restore = GENERIC_RESTORE_EFFECTS.find(effect => effect.abilityId === ability.id);
   if (restore) return projectile ? undefined : restore;
   const genericEffect = [...MAGICAL_PROTECTION_EFFECTS, ...MAGICAL_ASSAULT_EFFECTS,
     ...OATHWARDEN_ASSAULT_EFFECTS, ...GLADIATOR_ASSAULT_EFFECTS, ...DAWNWARDEN_ASSAULT_EFFECTS,
-    ...OATHWARDEN_PROTECT_EFFECTS, ...GLADIATOR_PROTECT_EFFECTS, ...DAWNWARDEN_RESTORE_EFFECTS]
+    ...OATHWARDEN_PROTECT_EFFECTS, ...GLADIATOR_PROTECT_EFFECTS, ...DAWNWARDEN_RESTORE_EFFECTS,
+    ...VERDANT_CLERIC_EFFECTS]
     .find(effect => effect.abilityId === ability.id);
   if (genericEffect) return projectile ? undefined : genericEffect;
   const aliases = {
@@ -148,6 +189,11 @@ export function findAbilityEffect(caster, ability, projectile = false) {
   const className = binding?.[0] ?? caster.className;
   const name = binding?.[1] ?? ability.name;
   return ABILITY_EFFECTS.find(effect => effect.className === className
+    && (!effect.abilityId?.startsWith('ability_v2_barmaid_') || effect.abilityId === ability.id)
+    && (!effect.abilityId?.startsWith('ability_v2_umbral_mage_') || effect.abilityId === ability.id)
+    && (!effect.abilityId?.startsWith('ability_v2_everbright_cleric_') || effect.abilityId === ability.id)
+    && (!effect.abilityId?.startsWith('ability_v2_ranger_') || effect.abilityId === ability.id)
+    && (!effect.abilityId?.startsWith('ability_v2_barbarian_') || effect.abilityId === ability.id)
     && effect.abilityName === name && Boolean(effect.projectile) === projectile);
 }
 

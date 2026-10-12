@@ -8,12 +8,16 @@ test('Physical status motifs follow combat and fade on consumption', async ({ pa
   await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__?.game.scene.getScene('TitleScene').sys.isActive());
   await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.activate('BattleScene'));
   await page.waitForFunction(() => {
-    const s = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
+    const s = window.__DELVE_DEEP_VISUAL_QA__?.game.scene.getScene('BattleScene');
     return s?.sys.isActive() && s.enemies?.some(unit => !unit.landing) && !s.waveTransitioning;
   });
   const result = await page.evaluate(async () => {
     const s = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
     const effects = await import('/combat/AbilityEffect.js');
+
+    // Finish background catch-up before staging this deterministic live view.
+    s.idleSimulating = false;
+    if (s.game.backgroundProgress) s.game.backgroundProgress.isReplaying = false;
     s.combatPaused = true;
     s.time.paused = true;
     effects.clearAbilityEffects(s);

@@ -42,6 +42,9 @@ assert(steadfast && readiness && retaliation, 'Oathwarden cooldown, party readin
 const rallyingCry = scene.prepareAbilityEffects.find(effect => effect.sheet.name === 'rallying-cry');
 const combatReadiness = scene.prepareAbilityEffects.find(effect => effect.sheet.name === 'combat-readiness');
 assert(rallyingCry && combatReadiness, 'Gladiator Rallying Cry and free-potion records restore art');
+assert(combatReadiness.rearImage.active, 'Readiness restores both sphere layers');
+assert.equal(combatReadiness.image.x, combatReadiness.rearImage.x);
+assert.equal(combatReadiness.image.y, combatReadiness.rearImage.y);
 const x = focus.image.x;
 caster.arenaX += 75;
 update(125);
@@ -61,6 +64,7 @@ assert.equal(readiness.fadeElapsed, null, 'Readiness stays visible after its nex
 assert.equal(retaliation.fadeElapsed, 200);
 assert.equal(rallyingCry.fadeElapsed, 200);
 assert.equal(combatReadiness.fadeElapsed, 200);
+assert.equal(combatReadiness.image.alpha, combatReadiness.rearImage.alpha, 'Both sphere layers fade together');
 assert.equal(footwork.fadeElapsed, null, 'Consumed windup does not end Footwork movement art');
 assert(focus.image.active && focus.image.alpha > 0 && focus.image.alpha < 0.5);
 scene.combatPaused = true;

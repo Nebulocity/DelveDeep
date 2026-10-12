@@ -166,9 +166,13 @@ export function awardOrdinaryWave(delve, waveIndex, bossIndex, farming = false, 
   // actually lives, without depending on party list order.
   const partyIds = new Set((farming ? partyUnits.filter(unit => unit.alive) : GameState.activeParty).map(hero => hero.id));
   const xpByHero = {};
+
+  // Report actual level gains with this payout so presentation cannot replay old levels.
+  const levelsGainedByHero = {};
   GameState.roster.filter(hero => partyIds.has(hero.id)).forEach(hero => {
     const gained = grantAdventurerXp(hero, xp, eligibility.cap);
     xpByHero[hero.id] = gained.xpGained;
+    levelsGainedByHero[hero.id] = gained.levelsGained;
     if (farming && eligibility.eligibleIds.has(hero.id)) {
       adjustHappiness(hero, values.happiness);
 
@@ -194,6 +198,6 @@ export function awardOrdinaryWave(delve, waveIndex, bossIndex, farming = false, 
 
   const materialId = Object.keys(materials)[0];
   const actualXp = Math.max(0, ...Object.values(xpByHero));
-  return { gold, xp: actualXp, xpByHero, happiness: eligibility.eligibleIds.size ? values.happiness ?? 0 : 0, materials,
+  return { gold, xp: actualXp, xpByHero, levelsGainedByHero, happiness: eligibility.eligibleIds.size ? values.happiness ?? 0 : 0, materials,
     materialId, materialCount: materials[materialId] ?? 0, farming };
 }

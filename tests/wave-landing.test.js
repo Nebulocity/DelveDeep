@@ -41,19 +41,13 @@ for (const delve of [
       assert.ok(landings.every(other => other === point || Math.hypot(other.x - point.x, other.y - point.y) >= 110));
     }
 
-    // Math.max chooses the largest value; pairing it with Math.min can keep a result
-    // inside both a lower and an upper bound. ... expands these entries into the new list
-    // or call. It does not deep-copy the objects inside.
-    const tier = Math.max(...wave.enemies.map(spawn =>
-      (enemies[spawn.type].boss ? 1000000 : 0) + enemies[spawn.type].maxHp));
+    // Bosses reserve the upper center; ordinary enemies share the full arc.
     wave.enemies.forEach((spawn, index) => {
 
-      // The condition before ? chooses the first value when true and the value after :
-      // when false.
-      if ((enemies[spawn.type].boss ? 1000000 : 0) + enemies[spawn.type].maxHp !== tier) return;
+      if (!enemies[spawn.type].boss) return;
       const cell = landings[index];
       assert.ok(cell.y >= 495 && cell.x >= 525 && cell.x <= 1225,
-        `${delve.id}: wave ${waveIndex + 1} highest tier landed outside upper center`);
+        `${delve.id}: wave ${waveIndex + 1} boss landed outside upper center`);
     });
   }
 }
@@ -63,6 +57,24 @@ const crowdedLandings = chooseWaveLandings(crowdedWave, battlefield, terrain, pa
 assert.equal(crowdedWave.enemies.length, 13);
 assert.ok(crowdedLandings.every(Boolean));
 assert.equal(new Set(crowdedLandings.map(point => `${point.x},${point.y}`)).size, 13);
+
+// Equal-HP mobs fill the whole back arc before overflowing to the next inner arc.
+assert.ok(Math.max(...crowdedLandings.map(p => p.x)) - Math.min(...crowdedLandings.map(p => p.x)) > 1200);
+assert.equal(crowdedLandings.filter(p => p.y > 700).length, 10);
+assert.equal(crowdedLandings.filter(p => p.y <= 700).length, 3);
+const bossWave = { enemies: [{ type: 'ruffian' }, { type: 'rongar' }, { type: 'ruffian' }] };
+const bossType = Object.keys(enemies).find(type => enemies[type].id === 'rongar-the-crusher');
+bossWave.enemies[1].type = bossType;
+const bossLandings = chooseWaveLandings(bossWave, battlefield, terrain, partyUnits, random);
+assert.ok(bossLandings.every(Boolean));
+assert.ok(bossLandings.every((point, index) => index === 1
+  || Math.hypot(point.x - bossLandings[1].x, point.y - bossLandings[1].y) >= 190));
+
+// A curved authored rear outline moves the arc with the environment, not a shared floor.
+const shapedFloor = { ...battlefield, containsArenaPoint: (x, y) =>
+  y >= 20 && y <= 850 - Math.pow((x - 875) / 875, 2) * 200 };
+assert.ok(chooseWaveLandings(crowdedWave, shapedFloor, terrain, partyUnits, random)
+  .every(point => point && shapedFloor.containsArenaPoint(point.x, point.y)));
 
 const wave = { enemies: [{ type: 'caveSlime' }, { type: 'elderSlime' }] };
 const blocked = {
@@ -87,4 +99,4 @@ assert.ok(chooseWaveLandings(wave, battlefield, terrain, partyUnits, random, res
 const fallen = { alive: false, arenaX: 875, arenaY: 525, container: { active: true } };
 assert.ok(chooseWaveLandings(wave, battlefield, terrain, [...partyUnits, fallen], random)
   .every(cell => Math.hypot(cell.x - fallen.arenaX, cell.y - fallen.arenaY) >= 240));
-console.log('Wave landings: every delve, tier placement, character clearance, distinct positions and terrain passed.');
+console.log('Wave landings: rear arcs, overflow, boss reservation, character clearance and authored floors passed.');

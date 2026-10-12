@@ -64,7 +64,7 @@ assert.equal(crowdedWave.enemies.length, 13);
 assert.ok(crowdedLandings.every(Boolean));
 assert.equal(new Set(crowdedLandings.map(point => `${point.x},${point.y}`)).size, 13);
 
-const wave = { enemies: [{ type: 'caveSlime' }, { type: 'stoneCrawler' }] };
+const wave = { enemies: [{ type: 'caveSlime' }, { type: 'elderSlime' }] };
 const blocked = {
 
   // Reject a point outside the walkable floor, beyond padded bounds or too close to

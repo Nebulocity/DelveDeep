@@ -5,6 +5,7 @@ import vm from 'node:vm';
 import UnitSprite from '../combat/UnitSprite.js';
 import { criticalHitPose, criticalHitDirection, CRITICAL_RECOIL_MS } from '../combat/SpritePresentation.js';
 import { hitAccuracy } from '../game/CharacterStats.js';
+import { replacementMultiplier, replacementChance } from '../combat/ReplacementEffects.js';
 import { packBattleValue, unpackBattleValue } from '../game/BattleSnapshot.js';
 
 const peaks = [110, 330, 550].map(time => criticalHitPose(time));
@@ -81,7 +82,7 @@ unit.alive=false; visual.play('death'); visual.update(55); assert.equal(visual.a
 
 // Use BattleScene's actual damage method with small combatants. Test both sides and
 // ensure misses, immunity, full absorption do not push, while historical replay uses the same gameplay.
-const context = vm.createContext({ Phaser: { Scene: class {} }, hitAccuracy });
+const context = vm.createContext({ Phaser: { Scene: class {} }, hitAccuracy, replacementMultiplier, replacementChance });
 vm.runInContext(fs.readFileSync(new URL('../scenes/BattleScene.js',import.meta.url),'utf8')
   .replace(/^import .*;\r?\n/gm,'').replace('export default class BattleScene','globalThis.Battle = class BattleScene'),context);
 const battle = Object.assign(Object.create(context.Battle.prototype), {

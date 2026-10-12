@@ -16,7 +16,13 @@ function loadClass(path, name, globals = {}) {
   return context.Subject;
 }
 const Unit = loadClass('../combat/BattleUnit.js', 'BattleUnit');
-const Battle = loadClass('../scenes/BattleScene.js', 'BattleScene', { Phaser: { Scene: class {} }, abilityPower });
+const Battle = loadClass('../scenes/BattleScene.js', 'BattleScene', {
+  Phaser: { Scene: class {} }, abilityPower,
+
+  // These checks exercise damage and warning rules; dedicated VFX checks cover artwork.
+  startThornbriarAbilityEffect() {}, startSlimeGlobFlight() {}, landSlimeGlobFlight() {},
+  playSlimeAbilityEffect: () => false, fadeSlimeTelegraph: () => false
+});
 const events = [];
 const hits = [];
 const warnings = [];
@@ -49,7 +55,7 @@ assert.equal(abilityPower(enemies.slimeSovereign, ability), 690);
 assert.equal(ability.cooldown, 16000);
 assert.equal(ability.windup, 6000);
 assert.equal(ability.telegraph, 6000);
-assert.equal(ability.radius, 500);
+assert.equal(ability.radius, 600);
 assert.equal(ability.castRange, Number.MAX_SAFE_INTEGER);
 assert.equal(ability.areaCenter, 'caster');
 assert.equal(ability.manaCost, 0);
@@ -71,15 +77,15 @@ assert.equal(boss.lastAbilityAt.tertiary, 1000);
 assert.equal(boss.lastAbilityAt.primary, undefined);
 assert.equal(boss.mana, 0);
 
-// A party member can leave during the warning. Exactly 500 units is inside; anything
+// A party member can leave during the warning. Exactly 600 units is inside; anything
 // beyond the circle and any dead party member must escape damage.
 function member(id, x, alive = true) {
   return { id, alive, arenaX: x, arenaY: 500,
     distanceToPoint(centerX, centerY) { return Math.hypot(this.arenaX - centerX, this.arenaY - centerY); } };
 }
 const escaped = member('escaped', 650);
-battle.partyUnits = [member('inside', 600), member('edge', 1000), member('outside', 1000.01), member('dead', 550, false), escaped];
-escaped.arenaX = 1100;
+battle.partyUnits = [member('inside', 1050), member('edge', 1100), member('outside', 1100.01), member('dead', 550, false), escaped];
+escaped.arenaX = 1200;
 battle.time.now = 7000;
 events.shift().callback();
 assert.deepEqual(hits.map(hit => hit.victim), ['inside', 'edge']);
@@ -127,7 +133,8 @@ const consumeWarning = Battle.prototype.createSlamTelegraph.call(battle, boss, a
   { arenaX: 500, arenaY: 500 }, 6000);
 assert.equal(consumeWarning.autoAvoid, false);
 let evades = 0;
-const dodger = { alive: true, distanceToPoint: () => 0, finishAction() {}, moveAwayFrom() { evades++; } };
+const dodger = { alive: true, distanceToPoint: () => 0, finishAction() {}, moveToward() { evades++; } };
+battle.movement = { getEscapePoint: () => ({ x: 100, y: 100 }) };
 assert.equal(battle.tryEvadeTelegraph(dodger, 0.1), false);
 assert.equal(evades, 0);
 const ordinaryWarning = Battle.prototype.createSlamTelegraph.call(battle, boss, boss.abilities.secondary,

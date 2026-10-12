@@ -3,7 +3,7 @@
 // particular rule easy to check without launching the game.
 
 import assert from 'node:assert/strict';
-import { CLASS_DEFINITIONS } from '../data/classes.js';
+import { LEGACY_CLASS_DEFINITIONS as CLASS_DEFINITIONS } from '../data/classes.js';
 import { NEW_CLASS_ABILITIES } from '../data/abilityProgression.js';
 import adventurers from '../data/adventurers.js';
 import { abilityGoldCost, abilityLearningAvailable, abilityLevelRequired, battleAbilities, purchaseAdventurerAbility, restoreAdventurerAbilities, sortedAbilityEntries } from '../game/AdventurerAbilities.js';
@@ -50,33 +50,33 @@ assert.equal(Object.values(CLASS_DEFINITIONS).reduce((count, def) => count + Obj
 // matching entry, or undefined when none matches. Check for that missing result before
 // using its fields.
 const fresh = restoreAdventurerAbilities({ ...adventurers.find(hero => hero.className === 'Gladiator') }, null);
-assert.deepEqual(fresh.abilityLoadout, ['roar','cleave','secondWind']);
+assert.deepEqual(fresh.abilityLoadout, ['ability_v2_gladiator_defiant_roar','ability_v2_gladiator_offensive_drill','ability_v2_generic_physical_interpose']);
 assert.equal(fresh.skillPoints, 1);
-assert.deepEqual(sortedAbilityEntries(fresh).slice(0, 3).map(([key]) => key), ['roar','cleave','secondWind']);
-assert.equal(abilityLearningAvailable(fresh, 'net'), true);
-assert.equal(abilityLearningAvailable(fresh, 'roar'), false);
-const sortedFixture = { ...fresh, abilityRanks: { ...fresh.abilityRanks, net: 1 }, abilityLoadout: ['roar','secondWind'] };
+assert.deepEqual(sortedAbilityEntries(fresh).slice(0, 3).map(([key]) => key), ['ability_v2_gladiator_defiant_roar','ability_v2_gladiator_offensive_drill','ability_v2_generic_physical_interpose']);
+assert.equal(abilityLearningAvailable(fresh, 'ability_v2_gladiator_brutal_thrust'), true);
+assert.equal(abilityLearningAvailable(fresh, 'ability_v2_gladiator_defiant_roar'), false);
+const sortedFixture = { ...fresh, abilityRanks: { ...fresh.abilityRanks, ['ability_v2_gladiator_brutal_thrust']: 1 }, abilityLoadout: ['ability_v2_gladiator_defiant_roar','ability_v2_generic_physical_interpose'] };
 
 const unlockedOrder = sortedAbilityEntries(sortedFixture).map(([key]) => key);
-assert.deepEqual(unlockedOrder.slice(0, 4), ['roar','net','cleave','secondWind']);
-assert.deepEqual(sortedAbilityEntries({ ...sortedFixture, abilityLoadout: ['net','cleave'] }).map(([key]) => key), unlockedOrder);
-for (let rank = 1; rank <= 10; rank++) assert.equal(abilityLevelRequired(fresh, 'roar', rank), rank === 1 ? 1 : (rank - 1) * 5);
-assert.equal(abilityGoldCost({ ...fresh, level: 5, happiness: 70 }, 'net', 2), 120);
-assert.ok(abilityGoldCost({ ...fresh, happiness: 10 }, 'net', 1) > abilityGoldCost({ ...fresh, happiness: 90 }, 'net', 1));
+assert.deepEqual(unlockedOrder.slice(0, 4), ['ability_v2_gladiator_defiant_roar','ability_v2_gladiator_offensive_drill','ability_v2_generic_physical_interpose','ability_v2_gladiator_brutal_thrust']);
+assert.deepEqual(sortedAbilityEntries({ ...sortedFixture, abilityLoadout: ['ability_v2_gladiator_brutal_thrust','ability_v2_gladiator_offensive_drill'] }).map(([key]) => key), unlockedOrder);
+for (let rank = 1; rank <= 10; rank++) assert.equal(abilityLevelRequired(fresh, 'ability_v2_gladiator_defiant_roar', rank), rank === 1 ? 1 : (rank - 1) * 5);
+assert.equal(abilityGoldCost({ ...fresh, level: 5, happiness: 70 }, 'ability_v2_gladiator_brutal_thrust', 2), 120);
+assert.ok(abilityGoldCost({ ...fresh, happiness: 10 }, 'ability_v2_gladiator_brutal_thrust', 1) > abilityGoldCost({ ...fresh, happiness: 90 }, 'ability_v2_gladiator_brutal_thrust', 1));
 
 const state = { roster: [fresh], gold: 10000 };
-assert.equal(purchaseAdventurerAbility(fresh.id, 'net', state).ok, true);
+assert.equal(purchaseAdventurerAbility(fresh.id, 'ability_v2_gladiator_brutal_thrust', state).ok, true);
 assert.equal(fresh.skillPoints, 0);
-assert.equal(purchaseAdventurerAbility(fresh.id, 'net', state).ok, false);
+assert.equal(purchaseAdventurerAbility(fresh.id, 'ability_v2_gladiator_brutal_thrust', state).ok, false);
 fresh.level = 5;
 fresh.skillPoints = 2;
-assert.equal(purchaseAdventurerAbility(fresh.id, 'net', state).ok, true);
+assert.equal(purchaseAdventurerAbility(fresh.id, 'ability_v2_gladiator_brutal_thrust', state).ok, true);
 
 assert.equal(fresh.skillPoints, 0);
-assert.equal(battleAbilities(fresh).net.power, 9);
-assert.equal(battleAbilities(fresh).net.cooldown, 15000);
-fresh.abilityRanks.net = 10;
-assert.equal(battleAbilities(fresh).net.power, 17);
+assert.equal(battleAbilities(fresh).ability_v2_gladiator_brutal_thrust.power, 140.4);
+assert.equal(battleAbilities(fresh).ability_v2_gladiator_brutal_thrust.cooldown, 17640);
+fresh.abilityRanks.ability_v2_gladiator_brutal_thrust = 10;
+assert.ok(Math.abs(battleAbilities(fresh).ability_v2_gladiator_brutal_thrust.power - 223.6) < 1e-9);
 
 const leveling = { ...fresh, level: 1, xp: 0, skillPoints: 1 };
 grantAdventurerXp(leveling, xpRequired(1) + xpRequired(2));

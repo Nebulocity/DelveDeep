@@ -40,7 +40,7 @@ export const SLIME_BALANCE = {
       // autoAvoid: false keeps the party from solving this warning automatically; the
       // player must interrupt or manually move adventurers outside the circle.
       tertiary: { name: 'Consume', cooldown: 16000, windup: 6000, telegraph: 6000,
-        radius: 500, castRange: Number.MAX_SAFE_INTEGER, areaCenter: 'caster', autoAvoid: false, manaCost: 0,
+        radius: 600, castRange: Number.MAX_SAFE_INTEGER, areaCenter: 'caster', autoAvoid: false, manaCost: 0,
         power: 300, ...physicalPotency }
     }
   }

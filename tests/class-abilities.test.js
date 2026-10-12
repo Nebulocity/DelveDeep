@@ -6,11 +6,12 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import System, { abilityDistance, zoneContains, beamContains } from '../combat/ClassAbilitySystem.js';
-import { CLASS_DEFINITIONS as classes } from '../data/classes.js';
+import { LEGACY_CLASS_DEFINITIONS as classes } from '../data/classes.js';
 import roster from '../data/adventurers.js';
 import { loadProfile } from '../game/GameStorage.js';
 
 import GameState from '../game/GameState.js';
+import { replacementMultiplier, replacementChance } from '../combat/ReplacementEffects.js';
 
 // The arena is continuous. These examples place points 100 units apart to make reach
 // checks easy to read; there are no cell lookups or snapped movement destinations.
@@ -134,7 +135,7 @@ blood.hp=50;system.resolve(blood,s.enemies[0],blood.abilities.rend,0);assert.equ
 system.resolve(blood,blood,blood.abilities.ascendance,0);assert.equal(blood.status.healingBoostUntil,8000);assert.equal(blood.status.teleportRange,2);
 
 // Real mitigation applies armor, a one-hit shield, and temporary HP in order.
-const context=vm.createContext({Phaser:{}});
+const context=vm.createContext({Phaser:{},replacementMultiplier,replacementChance});
 vm.runInContext(fs.readFileSync(new URL('../combat/BattleUnit.js',import.meta.url),'utf8').replace(/^import .*;\r?\n/gm,'').replace('export default class BattleUnit','globalThis.Unit = class BattleUnit'),context);
 
 // Object.assign writes these fields into its first argument. Later sources replace earlier
@@ -185,6 +186,9 @@ assert.equal(castingMage.pendingAction, replacement);
 
 // New martial kits: targeting, persistent control, poison timing and trap entry.
 const gladiator=make('Gladiator'), near=enemy(1), far=enemy(6);
+
+// Keep this offensive-targeting check healthy so its ready self-heal is unnecessary.
+gladiator.hp = gladiator.maxHp;
 s=scene([gladiator],[near,far]);system=new System(s);
 gladiator.lastAbilityAt.roar=0;
 system.cast=(u,t,k)=>{s.chosen={t,k};};

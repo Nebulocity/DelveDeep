@@ -4,6 +4,8 @@
 
 import { progressionResources } from '../config/characterProgression.js';
 import { addAbilityProgression } from './abilityProgression.js';
+import { replacementAbilities } from './replacementAbilities.js';
+import { HEALING_BALANCE } from '../config/healingBalance.js';
 
 // Powers and unspecified durations are provisional balance values; see
 // docs/CLASS_ABILITIES.md.
@@ -170,6 +172,24 @@ export const CLASS_DEFINITIONS = {
 };
 
 addAbilityProgression(CLASS_DEFINITIONS);
+
+// Compatibility fixtures and saved encounters may still describe the former skills.
+// Only the replacement map is offered to the roster, training screens, and new battles.
+export const LEGACY_CLASS_DEFINITIONS = Object.fromEntries(Object.entries(CLASS_DEFINITIONS)
+  .map(([name, definition]) => [name, { ...definition, abilities: definition.abilities }]));
+for (const [name, definition] of Object.entries(CLASS_DEFINITIONS)) {
+  definition.abilities = replacementAbilities(name);
+
+  // Mend is the healer's small fallback spell. New encounters spend 2% of maximum
+  // Mana per cast; legacy definitions above keep the costs recorded in older battles.
+  if (definition.role === 'Healer') {
+    definition.basicHealManaFraction = 0.02;
+
+    // Mana regenerates in whole units per combat second. Two per second replaces the
+    // 8-unit legacy rate, so frequent Mend and class heals draw down the starting pool.
+    definition.manaRegen = HEALING_BALANCE.healerManaPerSecond;
+  }
+}
 
 // Build a starting roster record from the named class and that character's identity.
 export function createAdventurer(id, name, className, overrides = {}) {

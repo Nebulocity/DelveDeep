@@ -136,8 +136,17 @@ export function restoreBattle(scene, snapshot) {
   scene.enemyThreat = new Map([...threat].filter(([id]) => enemyIds.has(id)));
   scene.enemySerial = enemySerial;
   scene.partyUnits.forEach(unit => restoreUnit(unit, snapshot.party.find(saved => saved.id === unit.id)));
+  scene.abilityDecoys = [];
+  for (const saved of snapshot.decoys ?? []) {
+    const model = unpackBattleValue(saved);
+    const owner = scene.partyUnits.find(unit => unit.id === model.decoyOwnerId);
+    if (!owner) continue;
+    const decoy = scene.createAbilityDecoy(owner, model, { x: model.arenaX, y: model.arenaY }, model.maxHp, model.decoyUntil, model.id);
+    restoreUnit(decoy, saved);
+    decoy.hitZone.disableInteractive();
+  }
   scene.tactics.preferences = unpackBattleValue(snapshot.preferences);
-  const units = [...scene.partyUnits, ...scene.enemies];
+  const units = [...scene.partyUnits, ...scene.enemies, ...scene.abilityDecoys];
   const movement = unpackBattleValue(snapshot.movement);
 
   for (const key of ['slots', 'rangeStates']) {

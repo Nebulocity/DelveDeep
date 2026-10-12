@@ -17,14 +17,21 @@ function loadClass(path, name, globals = {}) {
   return context.Subject;
 }
 const Unit = loadClass('../combat/BattleUnit.js', 'BattleUnit');
-const Battle = loadClass('../scenes/BattleScene.js', 'BattleScene', { Phaser: { Scene: class {} }, abilityPower });
+const Battle = loadClass('../scenes/BattleScene.js', 'BattleScene', {
+  Phaser: { Scene: class {} }, abilityPower,
+
+  // Cosmetic callbacks are separate from this check's targeting and damage rules.
+  playSlimeAbilityEffect: () => false, landSlimeGlobFlight() {},
+  startThornbriarAbilityEffect() {}, fadeSlimeTelegraph: () => false
+});
 const target = { id: 'hero', alive: true, hp: 500, maxHp: 500, arenaX: 100, arenaY: 100 };
 const events = [];
 const hits = [];
 const battle = Object.assign(Object.create(Battle.prototype), {
+  battlefield: { arenaToScreen: (x, y) => ({ x, y }) },
   idleSimulating: true, time: { now: 1000 },
   getHighestThreatTarget: () => target, setEnemyTarget() {}, announceAbility() {}, logActionStart() {},
-  createSlamTelegraph: () => ({}), createProjectile() {}, isActionCurrent: () => true,
+  createSlamTelegraph: () => ({}), createProjectile() {}, createMeleePulse() {}, isActionCurrent: () => true,
   scheduleBattleEvent(delay, data, callback) { events.push({ delay, data, callback }); },
   resolveDamage(actor, victim, amount) { hits.push({ victim, amount }); },
   resolveGroundSlam(actor, action, center, ability) { hits.push({ center, amount: abilityPower(actor, ability) }); actor.finishAction(); },

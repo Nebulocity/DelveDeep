@@ -8,6 +8,13 @@ import { fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypograph
 
 export const BACKGROUND_STEP_MS = 50;
 
+// Keep the catch-up flavor text here so adding another phrase only needs one new entry.
+const IDLE_PROGRESS_MESSAGES = [
+  'Tallying loot and questionable decisions...',
+  'The dungeon master is checking his notes...',
+  'Gathering the party so you can venture forth...'
+];
+
 // Account for suspended time through scene settlement, with a small-step fallback.
 export default class BackgroundProgress {
 
@@ -251,7 +258,11 @@ export default class BackgroundProgress {
       const panel = this.page.createElement('div');
       panel.style.cssText = 'width:min(520px,100%);display:grid;gap:16px;text-align:center';
       const title = this.page.createElement('div');
-      title.textContent = 'Resolving idle progress…';
+
+      // Pick once when the overlay opens so progress updates keep the same message.
+      // Math.random gives a value below 1; floor turns it into a valid array index.
+      const messageIndex = Math.floor(Math.random() * IDLE_PROGRESS_MESSAGES.length);
+      title.textContent = IDLE_PROGRESS_MESSAGES[messageIndex];
       this.noticeProgress = this.page.createElement('div');
       this.noticeProgress.setAttribute('role', 'progressbar');
       this.noticeProgress.setAttribute('aria-label', 'Idle progress processed');

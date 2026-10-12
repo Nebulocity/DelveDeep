@@ -27,38 +27,38 @@ loadProfile(adventurers);
 // find returns the first matching entry, or undefined when none matches. Check for that
 // missing result before using its fields.
 const caramon = GameState.roster.find((hero) => hero.id === 'caramon-gladiator');
-assert.deepEqual(caramon.abilityLoadout, ['roar', 'cleave', 'secondWind']);
-assert.deepEqual(Object.keys(battleAbilities(caramon)), ['roar', 'cleave', 'secondWind']);
+assert.deepEqual(caramon.abilityLoadout, ['ability_v2_gladiator_defiant_roar', 'ability_v2_gladiator_offensive_drill', 'ability_v2_generic_physical_interpose']);
+assert.deepEqual(Object.keys(battleAbilities(caramon)), ['ability_v2_gladiator_defiant_roar', 'ability_v2_gladiator_offensive_drill', 'ability_v2_generic_physical_interpose']);
 assert.equal(caramon.skillPoints, 1);
-assert.equal(purchaseAdventurerAbility(caramon.id, 'cleave').ok, false);
+assert.equal(purchaseAdventurerAbility(caramon.id, 'ability_v2_gladiator_offensive_drill').ok, false);
 caramon.level = 5;
 caramon.skillPoints = 5;
 
 GameState.gold = 500;
-assert.equal(purchaseAdventurerAbility(caramon.id, 'cleave').ok, true);
-assert.equal(caramon.abilityLoadout.includes('cleave'), true);
-assert.equal(purchaseAdventurerAbility(caramon.id, 'net').ok, true);
-assert.equal(battleAbilities(caramon).cleave.power, 29);
-assert.equal(battleAbilities(caramon).cleave.cooldown, 10000);
+assert.equal(purchaseAdventurerAbility(caramon.id, 'ability_v2_gladiator_offensive_drill').ok, true);
+assert.equal(caramon.abilityLoadout.includes('ability_v2_gladiator_offensive_drill'), true);
+assert.equal(purchaseAdventurerAbility(caramon.id, 'ability_v2_gladiator_brutal_thrust').ok, true);
+assert.ok(Math.abs(battleAbilities(caramon).ability_v2_gladiator_offensive_drill.power - 102.6) < 1e-9);
+assert.equal(battleAbilities(caramon).ability_v2_gladiator_offensive_drill.cooldown, 9800);
 assert.equal(caramon.skillPoints, 2);
 
-assert.equal(toggleAdventurerAbility(caramon.id, 'net').ok, true);
-assert.equal(battleAbilities(caramon).net, undefined);
-assert.equal(toggleAdventurerAbility(caramon.id, 'net').ok, true);
+assert.equal(toggleAdventurerAbility(caramon.id, 'ability_v2_gladiator_brutal_thrust').ok, true);
+assert.equal(battleAbilities(caramon).ability_v2_gladiator_brutal_thrust, undefined);
+assert.equal(toggleAdventurerAbility(caramon.id, 'ability_v2_gladiator_brutal_thrust').ok, true);
 saveProfile();
 loadProfile(adventurers);
 const restored = GameState.roster.find((hero) => hero.id === caramon.id);
-assert.equal(restored.abilityRanks.cleave, 2);
+assert.equal(restored.abilityRanks.ability_v2_gladiator_offensive_drill, 2);
 
-assert.equal(restored.abilityLoadout.includes('net'), true);
+assert.equal(restored.abilityLoadout.includes('ability_v2_gladiator_brutal_thrust'), true);
 assert.equal(restored.skillPoints, 2);
 
 storage.clear();
 storage.set('delveDeep.profile.v2', JSON.stringify({ roster: [{ id: caramon.id, level: 3 }] }));
 loadProfile(adventurers);
 const legacy = GameState.roster.find((hero) => hero.id === caramon.id);
-assert.deepEqual(Object.keys(legacy.abilityRanks), ['roar', 'net', 'cleave', 'sand', 'secondWind']);
-assert.deepEqual(Object.keys(battleAbilities(legacy)), ['roar', 'net', 'cleave', 'sand']);
+assert.deepEqual(Object.keys(legacy.abilityRanks), ['ability_v2_gladiator_defiant_roar', 'ability_v2_gladiator_offensive_drill', 'ability_v2_generic_physical_interpose']);
+assert.deepEqual(Object.keys(battleAbilities(legacy)), ['ability_v2_gladiator_defiant_roar', 'ability_v2_gladiator_offensive_drill', 'ability_v2_generic_physical_interpose']);
 
 // Hall interaction and layout checks run against Phaser in tests/visual/hall.spec.js.
 console.log('Adventurer ability unlocks, ranks, loadout, combat values, and legacy saves passed.');

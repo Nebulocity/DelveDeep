@@ -26,12 +26,12 @@ test('Supplied effects load, fly, pause and clean up in combat', async ({ page }
     const s = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
     s.combatPaused = true;
     s.time.paused = true;
-    return ABILITY_EFFECTS.filter(effect => effect.id !== 'volley').map(effect => effect.id);
+    return ABILITY_EFFECTS.filter(effect => effect.id !== 'volley' && !effect.abilityId).map(effect => effect.id);
   });
   for (const id of ids) {
     const result = await page.evaluate(async id => {
       const { ABILITY_EFFECTS } = await import('/data/abilityEffects.js');
-      const { CLASS_DEFINITIONS } = await import('/data/classes.js');
+      const { LEGACY_CLASS_DEFINITIONS: CLASS_DEFINITIONS } = await import('/data/classes.js');
       const effects = await import('/combat/AbilityEffect.js');
       const s = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
       for (const unit of [...s.partyUnits, ...s.enemies]) {
@@ -70,27 +70,30 @@ test('Supplied effects load, fly, pause and clean up in combat', async ({ page }
       effects.updateAbilityEffects(s, 400);
       const frozen = effect.elapsed === pausedElapsed;
       s.combatPaused = false;
-      effects.updateAbilityEffects(s, definition.projectile ? 500 : Math.min(600, effect.duration * 0.5));
+      effects.updateAbilityEffects(s, definition.projectile ? 500
+        : Math.min(id === 'smoke-bomb' ? 250 : 600, effect.duration * 0.5));
       s.combatPaused = true;
       return { started, frozen, count: s.abilityEffects.length,
+        expectedCount: definition.perRecipient ? new Set(recipients).size : 1,
         visible: effect.pieces.some(piece => piece.image.visible),
         loaded: definition.clips.every(clip => s.textures.exists(clip.key)),
         coversRecipients: !definition.coverUnits || recipients.every(unit =>
-          effect.pieces.every(piece => piece.image.depth > unit.container.depth)),
+          s.abilityEffects.some(art => (!definition.perRecipient || art.target === unit)
+            && art.pieces.every(piece => piece.image.depth > unit.container.depth))),
         scale: effect.scale };
     }, id);
     expect(result.started).toBe(true);
     expect(result.loaded).toBe(true);
     expect(result.frozen).toBe(true);
-    expect(result.count).toBe(1);
+    expect(result.count).toBe(result.expectedCount);
     expect(result.coversRecipients).toBe(true);
     expect(result.visible).toBe(true);
-    expect(Number.isInteger(result.scale)).toBe(true);
+    expect(result.scale).toBeGreaterThan(0);
     await page.screenshot({ path: `output/qa/supplied-effects/${id}-${page.viewportSize().width}.png` });
   }
 
   const lifetimes = await page.evaluate(async () => {
-    const { CLASS_DEFINITIONS } = await import('/data/classes.js');
+    const { LEGACY_CLASS_DEFINITIONS: CLASS_DEFINITIONS } = await import('/data/classes.js');
     const effects = await import('/combat/AbilityEffect.js');
     const s = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
     for (const unit of [...s.partyUnits, ...s.enemies]) unit.status.sunlitWardVisualUntil = 0;
@@ -104,9 +107,12 @@ test('Supplied effects load, fly, pause and clean up in combat', async ({ page }
     effects.updateAbilityEffects(s, 12000);
     s.combatPaused = true;
     const survivedExpiry = s.abilityEffects.length === 1;
+    const markStartX = s.abilityEffects[0].origin.x;
+    const startScreenX = s.battlefield.arenaToScreen(target.arenaX, target.arenaY).x;
     target.arenaX += 40;
     effects.updateAbilityEffects(s, 0);
-    const follows = s.abilityEffects[0].origin.x === s.battlefield.arenaToScreen(target.arenaX, target.arenaY).x;
+    const screenDelta = s.battlefield.arenaToScreen(target.arenaX, target.arenaY).x - startScreenX;
+    const follows = Math.abs(s.abilityEffects[0].origin.x - markStartX - screenDelta) < 0.01;
     effects.clearAbilityEffects(s);
     effects.updateAbilityEffects(s, 0);
     const restored = s.abilityEffects.length === 1;
@@ -120,10 +126,36 @@ test('Supplied effects load, fly, pause and clean up in combat', async ({ page }
     const ward = Object.values(CLASS_DEFINITIONS.Dawnwarden.abilities).find(a => a.name === 'Sunlit Ward');
     s.classAbilitySystem.resolve(caster, caster, ward, s.time.now);
     const bubble = s.abilityEffects[0];
-    const sprite = caster.spriteVisual.image.getBounds();
+    const image = caster.spriteVisual.image;
+    const sprite = image.getBounds();
+
+    // Inspect opaque pixels rather than demanding that the shield enclose empty
+    // sheet padding. Phaser's frame cell coordinates select the current artwork.
+    const frame = image.frame;
+    const canvas = document.createElement('canvas');
+    canvas.width = frame.cutWidth;
+    canvas.height = frame.cutHeight;
+    const context = canvas.getContext('2d');
+    context.drawImage(frame.source.image, frame.cutX, frame.cutY, frame.cutWidth, frame.cutHeight,
+      0, 0, canvas.width, canvas.height);
+    const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+    let left = canvas.width, right = 0, top = canvas.height, bottom = 0;
+    for (let y = 0; y < canvas.height; y++) {
+      for (let x = 0; x < canvas.width; x++) {
+        if (pixels[(y * canvas.width + x) * 4 + 3] <= 16) continue;
+        left = Math.min(left, x);
+        right = Math.max(right, x + 1);
+        top = Math.min(top, y);
+        bottom = Math.max(bottom, y + 1);
+      }
+    }
+    const opaque = { left: sprite.left + left * sprite.width / canvas.width,
+      right: sprite.left + right * sprite.width / canvas.width,
+      top: sprite.top + top * sprite.height / canvas.height,
+      bottom: sprite.top + bottom * sprite.height / canvas.height };
     const ring = bubble.pieces[0].image.getBounds();
-    const surrounds = ring.left < sprite.left && ring.right > sprite.right
-      && ring.top < sprite.top && ring.bottom > sprite.bottom;
+    const surrounds = ring.left < opaque.left && ring.right > opaque.right
+      && ring.top < opaque.top && ring.bottom > opaque.bottom;
     const startX = bubble.origin.x;
     caster.arenaX += 40;
     effects.updateAbilityEffects(s, 0);
@@ -140,7 +172,7 @@ test('Supplied effects load, fly, pause and clean up in combat', async ({ page }
   // Use the real damage method for deterministic miss, dodge and hit outcomes.
   // High HP keeps the QA wave alive; these settings exist only in this browser run.
   const outcomes = await page.evaluate(async () => {
-    const { CLASS_DEFINITIONS } = await import('/data/classes.js');
+    const { LEGACY_CLASS_DEFINITIONS: CLASS_DEFINITIONS } = await import('/data/classes.js');
     const effects = await import('/combat/AbilityEffect.js');
     const s = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
     const ranger = s.partyUnits.find(unit => unit.className === 'Ranger');

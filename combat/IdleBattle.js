@@ -35,7 +35,7 @@ function beginIdleBattle(scene) {
 
   // ... expands these entries into the new list or call. It does not deep-copy the objects
   // inside.
-  for (const unit of [...scene.partyUnits, ...scene.enemies]) simulation.views.set(unit, deferUnitPresentation(unit));
+  for (const unit of [...scene.partyUnits, ...scene.enemies, ...(scene.abilityDecoys ?? [])]) simulation.views.set(unit, deferUnitPresentation(unit));
   for (const name of PRESENTATION_METHODS) {
 
     // Remember the real method before temporarily replacing it. These names are
@@ -247,7 +247,7 @@ export function resumeIdleBattle(scene) {
   }
 
   for (const key of Object.keys(simulation.timers)) scene.time[key].push(...simulation.timers[key]);
-  const current = new Set([...scene.partyUnits, ...scene.enemies]);
+  const current = new Set([...scene.partyUnits, ...scene.enemies, ...(scene.abilityDecoys ?? [])]);
   for (const [unit, views] of simulation.views) {
     if (!current.has(unit) || unit.container.active === false) views.container?.destroy();
     else Object.assign(unit, views);
@@ -258,6 +258,7 @@ export function resumeIdleBattle(scene) {
     if (unit.presentationDeferred) {
       unit.createPresentation();
       if (unit.isEnemy) scene.bindEnemyInput(unit);
+      if (unit.isDecoy) unit.hitZone.disableInteractive();
     }
     unit.syncPresentation();
 

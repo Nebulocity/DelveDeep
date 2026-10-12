@@ -13,38 +13,6 @@ import { MONSTER_CATALOG, MONSTER_SKILLS } from '../config/monsterCatalog.js';
 // color is a hexadecimal display color, while goldMin/goldMax are reward bounds.
 // monsterStats and monsterAbilities normalize these definitions below before battle use.
 const enemies = {
-  caveBat: {
-    id: 'cave-bat',
-    name: 'Cave Bat',
-    maxHp: 92,
-    moveSpeed: 155,
-    attackPower: 7,
-    attackRange: 62,
-    attackCooldown: 1050,
-    attackWindup: 220,
-    critChance: 0.08,
-    critMultiplier: 1.5,
-    color: 0x7c3aed,
-    goldMin: 4,
-    goldMax: 7
-  },
-
-  stoneCrawler: {
-    id: 'stone-crawler',
-    name: 'Stone Crawler',
-    maxHp: 135,
-    moveSpeed: 92,
-    attackPower: 10,
-    attackRange: 68,
-    attackCooldown: 1250,
-    attackWindup: 330,
-    critChance: 0.06,
-    critMultiplier: 1.5,
-    color: 0x78716c,
-    goldMin: 6,
-    goldMax: 10
-  },
-
   caveSlime: {
     id: 'cave-slime',
     name: 'Cave Slime',
@@ -178,46 +146,6 @@ const enemies = {
     abilities: {
       secondary: { name: 'Void Lance', cooldown: 5200, windup: 600, power: 17 }
     }
-  },
-
-  voidWarden: {
-    id: 'void-warden',
-    name: 'Void Warden',
-    maxHp: 315,
-    moveSpeed: 112,
-    attackPower: 16,
-    attackRange: 86,
-    attackCooldown: 1180,
-    attackWindup: 310,
-    critChance: 0.10,
-    critMultiplier: 1.65,
-    color: 0x4c1d95,
-    goldMin: 18,
-    goldMax: 25,
-    abilities: {
-      primary: { name: 'Rift Crush', cooldown: 5600, telegraph: 1250, radius: 150, power: 27 },
-      secondary: { name: 'Dark Bolt', cooldown: 6800, windup: 720, power: 20 }
-    }
-  },
-
-  abyssalMaw: {
-    id: 'abyssal-maw',
-    name: 'Abyssal Maw',
-    maxHp: 920,
-    moveSpeed: 102,
-    attackPower: 19,
-    attackRange: 92,
-    attackCooldown: 1180,
-    attackWindup: 360,
-    critChance: 0.11,
-    critMultiplier: 1.7,
-    color: 0x581c87,
-    goldMin: 55,
-    goldMax: 75,
-    abilities: {
-      primary: { name: 'Abyssal Collapse', cooldown: 5200, telegraph: 1450, radius: 190, power: 34 },
-      secondary: { name: 'Soul Rend', cooldown: 6400, windup: 760, power: 25 }
-    }
   }
 };
 
@@ -242,29 +170,22 @@ enemies.denColossus = {
 };
 
 enemies.abyssalSovereign = {
-  ...enemies.abyssalMaw,
   id: 'abyssal-sovereign', name: 'Abyssal Sovereign', boss: true,
   maxHp: 4400, bodyRadius: 76, moveSpeed: 85,
-  attackPower: 19, attackCooldown: 1450, color: 0xa855f7,
+  attackPower: 19, attackRange: 92, attackCooldown: 1450, attackWindup: 360,
+  critChance: 0.11, critMultiplier: 1.7, color: 0xa855f7,
   goldMin: 130, goldMax: 170
 };
 
 // These escorts sit between ordinary creatures and the existing bosses.
 enemies.denGuard = {
-  ...enemies.stoneCrawler,
-  id: 'den-guard', name: 'Den Guard', maxHp: 330,
-  attackPower: 12, attackCooldown: 1400, color: 0x92400e,
+  id: 'den-guard', name: 'Den Guard', maxHp: 330, moveSpeed: 92,
+  attackPower: 12, attackRange: 68, attackCooldown: 1400, attackWindup: 330,
+  critChance: 0.06, critMultiplier: 1.5, color: 0x92400e,
   goldMin: 14, goldMax: 20
 };
-enemies.riftSentinel = {
-  ...enemies.voidStalker,
-  id: 'rift-sentinel', name: 'Rift Sentinel', maxHp: 360,
-  attackPower: 13, attackCooldown: 1400, color: 0x7e22ce,
-  goldMin: 18, goldMax: 25
-};
 
-// Add the supplied void identities using existing stat profiles. Old enemy keys remain
-// available for saved encounters and The Verdant Tear, so those records still restore.
+// The supplied void identities own their combat profiles without retired test monsters.
 enemies.voidCrawler = {
   ...enemies.voidStalker,
   id: 'void-crawler', name: 'Void Crawler',
@@ -273,12 +194,10 @@ enemies.voidCrawler = {
   }
 };
 enemies.voidKeeper = {
-  ...enemies.voidWarden,
-  id: 'void-keeper', name: 'Void Keeper',
-  abilities: {
-    primary: { ...enemies.voidWarden.abilities.primary, name: 'Void Spirals', animation: 'area' },
-    secondary: { ...enemies.voidWarden.abilities.secondary, name: 'Void Beam', animation: 'cast', projectile: 'beam' }
-  }
+  id: 'void-keeper', name: 'Void Keeper', maxHp: 315, moveSpeed: 112,
+  attackPower: 16, attackRange: 86, attackCooldown: 1180, attackWindup: 310,
+  critChance: 0.1, critMultiplier: 1.65, color: 0x4c1d95,
+  goldMin: 18, goldMax: 25, abilities: {}
 };
 enemies.voidWisp = {
   ...enemies.voidStalker,
@@ -288,28 +207,9 @@ enemies.voidWisp = {
   }
 };
 
-// The third Abyss wave keeps its existing durable guardian profile. It uses the
-// supplied Keeper artwork without replacing the older saved Abyssal Maw identity.
-enemies.voidKeeperGuardian = {
-  ...enemies.abyssalMaw,
-  id: 'void-keeper-guardian', name: 'Void Keeper',
-  abilities: {
-    primary: { ...enemies.abyssalMaw.abilities.primary, animation: 'area' },
-    secondary: { ...enemies.abyssalMaw.abilities.secondary, animation: 'cast' }
-  }
-};
-
 // Keep powers, cooldowns and targeting intact while matching the boards' action poses.
 enemies.voidStalker.abilities.secondary = {
   ...enemies.voidStalker.abilities.secondary, animation: 'leap'
-};
-enemies.voidWarden.abilities = {
-  primary: { ...enemies.voidWarden.abilities.primary, animation: 'area' },
-  secondary: { ...enemies.voidWarden.abilities.secondary, animation: 'cast' }
-};
-enemies.abyssalMaw.abilities = {
-  primary: { ...enemies.abyssalMaw.abilities.primary, animation: 'area' },
-  secondary: { ...enemies.abyssalMaw.abilities.secondary, animation: 'cast' }
 };
 enemies.abyssalSovereign.abilities = {
 
@@ -378,58 +278,6 @@ enemies.quarryReaver = {
 enemies.depthsSovereign = {
   ...enemies.silvanarkTheForestLord, id: 'depths-sovereign', name: 'Depths Sovereign', abilities: {}
 };
-
-export const forgottenCavernWaves = [
-  {
-    enemies: [
-      { type: 'caveBat', arenaX: 390, arenaY: 790 },
-      { type: 'caveBat', arenaX: 650, arenaY: 825 }
-    ]
-  },
-
-  {
-    enemies: [
-      { type: 'stoneCrawler', arenaX: 360, arenaY: 760 },
-      { type: 'caveSlime', arenaX: 535, arenaY: 830 },
-      { type: 'stoneCrawler', arenaX: 700, arenaY: 750 }
-    ]
-  },
-
-  {
-    boss: true,
-    enemies: [
-      { type: 'elderSlime', arenaX: 520, arenaY: 810 }
-    ]
-  }
-];
-
-export const voidPortalWaves = [
-  {
-    enemies: [
-      { type: 'voidStalker', arenaX: 360, arenaY: 770 },
-      { type: 'voidStalker', arenaX: 650, arenaY: 800 },
-      { type: 'stoneCrawler', arenaX: 520, arenaY: 845 }
-    ]
-  },
-
-  {
-    enemies: [
-      { type: 'voidWarden', arenaX: 500, arenaY: 790 },
-      { type: 'voidStalker', arenaX: 310, arenaY: 750 },
-      { type: 'voidStalker', arenaX: 710, arenaY: 750 }
-    ]
-  },
-
-  {
-    boss: true,
-    enemies: [
-      { type: 'abyssalMaw', arenaX: 520, arenaY: 810 },
-      { type: 'voidStalker', arenaX: 300, arenaY: 745 },
-      { type: 'voidStalker', arenaX: 735, arenaY: 745 }
-    ]
-  }
-];
-
 
 // Apply slime tuning after inherited archetypes have kept their original stats and skills.
 for (const [type, profile] of Object.entries(SLIME_BALANCE)) {

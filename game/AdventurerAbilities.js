@@ -3,7 +3,8 @@
 // build ranked ability values from the catalog so saved ranks stay compatible with the
 // current data instead of saving a permanent copy of every formula.
 
-import { CLASS_DEFINITIONS } from '../data/classes.js';
+import { CLASS_DEFINITIONS, LEGACY_CLASS_DEFINITIONS } from '../data/classes.js';
+import { ABILITY_CATALOG_VERSION, abilityAllowed, rankedReplacementAbility } from '../data/replacementAbilities.js';
 import GameState from './GameState.js';
 
 export const MAX_EQUIPPED_ABILITIES = 4;
@@ -17,7 +18,8 @@ export function abilityEntries(hero) {
   // them. ?? uses the fallback only for null or undefined. A real zero or false stays
   // intact. ?. only follows this link when the value exists; a missing optional value
   // gives undefined.
-  return Object.entries(CLASS_DEFINITIONS[hero.className]?.abilities ?? {});
+  return Object.entries(CLASS_DEFINITIONS[hero.className]?.abilities ?? {})
+    .filter(([, ability]) => !ability.replacement || abilityAllowed(hero.className, ability));
 }
 
 // Order skill entries for display without using that order as saved identity. hero is the
@@ -102,6 +104,30 @@ export function abilityGoldCost(hero, key, rank = 1) {
 export function restoreAdventurerAbilities(hero, saved, legacy = false) {
   const entries = abilityEntries(hero);
 
+  // A full catalog replacement is a respec, not a silent loss of training. Historical
+  // Gold prices were not saved, so credit the minimum price at each rank's earliest level.
+  // The version marker persists with the hero and prevents a second refund after reload.
+  const previousRanks = saved?.abilityRanks ?? {};
+  const needsRespec = saved?.abilityCatalogVersion !== ABILITY_CATALOG_VERSION
+    && Object.keys(previousRanks).some(key => !key.startsWith('ability_v2_'));
+  let refundedPoints = 0, goldCredit = 0;
+  if (needsRespec) {
+    const former = LEGACY_CLASS_DEFINITIONS[hero.className]?.abilities ?? {};
+    for (const [key, value] of Object.entries(previousRanks)) {
+      if (!former[key] || !Number.isSafeInteger(value) || value < 1) continue;
+      const rank = Math.min(MAX_ABILITY_RANK, value);
+      for (let trained = former[key].starter ? 2 : 1; trained <= rank; trained++) {
+        refundedPoints += trained;
+        const earliestLevel = trained === 1 ? 1 : (trained - 1) * 5;
+        goldCredit += Math.ceil((20 + 5 * earliestLevel) * trained / 5) * 5;
+      }
+    }
+  }
+  hero.abilityCatalogVersion = ABILITY_CATALOG_VERSION;
+  hero.abilityMigrationGoldCredit = goldCredit;
+  hero.abilityRespec = saved?.abilityRespec;
+  if (needsRespec) hero.abilityRespec = { refundedPoints, goldCredit };
+
   // map builds one output entry for each input entry, in the same order. The callback's
   // return value becomes that output entry.
   const keys = entries.map(([key]) => key);
@@ -118,13 +144,14 @@ export function restoreAdventurerAbilities(hero, saved, legacy = false) {
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
-    const value = saved?.abilityRanks?.[key];
+    const value = needsRespec ? 0 : saved?.abilityRanks?.[key];
     if (Number.isSafeInteger(value) && value >= 1) ranks[key] = Math.min(MAX_ABILITY_RANK, value);
     else if (starterKeys.includes(key) || legacyKeys.includes(key)) ranks[key] = 1;
   }
 
   // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
-  const defaults = saved?.abilityLoadout ?? (legacy ? legacyKeys : starterKeys);
+  const defaults = needsRespec || !saved?.abilityCatalogVersion && !Object.keys(previousRanks).length
+    ? starterKeys : saved?.abilityLoadout ?? starterKeys;
   hero.abilityRanks = ranks;
 
   // ... expands these entries into the new list or call. It does not deep-copy the objects
@@ -137,7 +164,7 @@ export function restoreAdventurerAbilities(hero, saved, legacy = false) {
   // Math.max chooses the largest value; pairing it with Math.min can keep a result inside
   // both a lower and an upper bound.
   hero.skillPoints = Number.isSafeInteger(saved?.skillPoints) && saved.skillPoints >= 0
-    ? saved.skillPoints : Math.max(1, hero.level);
+    ? saved.skillPoints + refundedPoints : Math.max(1, hero.level) + refundedPoints;
   return hero;
 }
 
@@ -236,6 +263,7 @@ export function battleAbilities(hero) {
 // Build this skill's values at the requested learned rank without changing its catalog
 // row.
 export function rankedAbility(base, rank = 1) {
+  if (base.replacement) return rankedReplacementAbility(base, rank);
   const powerScale = 1 + (rank - 1) * 0.12;
   const durationScale = 1 + (rank - 1) * 0.05;
 

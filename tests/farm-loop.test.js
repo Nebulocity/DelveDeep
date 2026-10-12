@@ -30,7 +30,7 @@ GameState.activeParty = [{ ...hero }];
 GameState.inventory.materials = {};
 GameState.gold = 0;
 GameState.run.entry = 'farm';
-const unit = { id: 'hero', alive: true, hp: 20, maxHp: 100, arenaX: 0, arenaY: 0,
+const unit = { id: 'hero', alive: true, hp: 20, maxHp: 100, mana: 3, maxMana: 101, arenaX: 0, arenaY: 0,
 
   // Restore actual missing HP without exceeding the unit's maximum.
   heal(amount) { this.hp += amount; } };
@@ -77,6 +77,9 @@ const finishReturn = () => {
 
 // Completed farm waves bank rewards before repeating the same final pre-boss wave.
 for (let round = 1; round <= 2; round += 1) {
+
+  // The first clear rounds an odd Mana pool up to half. The next preserves a fuller pool.
+  unit.mana = round === 1 ? 3 : 80;
   scene.waveTransitioning = false;
   scene.completeWave();
   assert.equal(GameState.gold, round);
@@ -87,6 +90,7 @@ for (let round = 1; round <= 2; round += 1) {
   // the accumulator for the next step; the final argument supplies its starting value.
   assert.equal(Object.values(GameState.inventory.materials).reduce((sum, count) => sum + count, 0), round);
   assert.equal(unit.hp, 50);
+  assert.equal(unit.mana, round === 1 ? 51 : 80);
   assert.equal(scene.earnedGold, 0);
   finishReturn();
   assert.equal(camps, 0);
@@ -98,6 +102,7 @@ for (let round = 1; round <= 2; round += 1) {
 scene.waveTransitioning = false;
 scene.waveRetreating = false;
 unit.hp = 17;
+unit.mana = 7;
 assert.equal(scene.requestFarmStop(), true);
 assert.equal(scene.requestFarmStop(), false);
 assert.equal(scene.waveTransitioning, false);
@@ -105,6 +110,7 @@ assert.equal(scene.waveRetreating, false);
 
 assert.equal(scene.currentWaveIndex, 4);
 assert.equal(unit.hp, 17);
+assert.equal(unit.mana, 7);
 assert.equal(GameState.gold, 2);
 assert.equal(camps, 0);
 scene.completeWave();
@@ -167,3 +173,23 @@ confirmation = null;
 scene.confirmRetreat();
 assert.equal(confirmation, null);
 console.log('Farm cancellation and retreat require confirmation before their actions run.');
+
+// Recovery also runs during background combat, but never revives a fallen caster or
+// creates Mana for physical characters. Only presentation is skipped during replay.
+scene.battleOver = false;
+scene.waveTransitioning = false;
+scene.game.backgroundProgress = { isReplaying: true };
+GameState.currentDelve.type = 'delve';
+unit.hp = 10;
+unit.mana = 0;
+const fallenCaster = { id: 'fallen', alive: false, hp: 0, maxHp: 100, mana: 4, maxMana: 100 };
+const physicalAlly = { id: 'physical', alive: true, hp: 70, maxHp: 100, mana: 0, maxMana: 0 };
+scene.partyUnits = [unit, fallenCaster, physicalAlly];
+scene.completeWave();
+assert.equal(unit.hp, 50);
+assert.equal(unit.mana, 51);
+assert.equal(fallenCaster.hp, 0);
+assert.equal(fallenCaster.mana, 4);
+assert.equal(physicalAlly.hp, 70);
+assert.equal(physicalAlly.mana, 0);
+console.log('Between-wave Health and Mana recovery also respects background combat, fallen allies and physical pools.');

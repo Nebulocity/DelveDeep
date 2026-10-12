@@ -31,5 +31,10 @@ export default {
   personalSpaceCore: 0.8,
   sidestepStrength: 0.35,
   edgePadding: 38,
+
+  // Keep automatic fights near the middle 60% of each arena's width and depth.
+  // Recovery uses 35% of walking speed so enemies can follow without a sudden reset.
+  interiorMargin: 0.2,
+  interiorReturnSpeed: 0.35,
   terrainFootRadius: 12
 };

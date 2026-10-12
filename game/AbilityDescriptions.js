@@ -4,6 +4,7 @@
 
 import { abilityPower, linkedHealing } from './CharacterStats.js';
 import { ARENA_RANGE, rangeLabel } from '../config/combatRanges.js';
+import { replacementDescription } from './ReplacementAbilityDescriptions.js';
 
 const number = value => Number((value ?? 0).toFixed(2));
 const percent = value => `${number(value * 100)}%`;
@@ -49,6 +50,7 @@ function recipients(ability) {
 // Describe the current ranked skill with concrete results, without exposing stat
 // calculations.
 export function abilityDescription(unit, ability, { compact = false } = {}) {
+  if (ability.replacement) return replacementDescription(unit, ability, compact);
   const a = ability;
   const lines = [];
   const targets = recipients(a);

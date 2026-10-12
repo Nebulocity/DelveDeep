@@ -48,7 +48,8 @@ loadProfile(adventurers);
 // find returns the first matching entry, or undefined when none matches. Check for that
 // missing result before using its fields.
 const mage = GameState.roster.find(hero => hero.id === 'raistlin');
-mage.xp = 17; mage.happiness = 65; mage.delvesCompleted = 3; mage.abilityRanks.arcflare = 2;
+const trainedKey = 'ability_v2_crimson_mage_magic_missile';
+mage.xp = 17; mage.happiness = 65; mage.delvesCompleted = 3; mage.abilityRanks[trainedKey] = 2;
 grantAdventurerLevels(mage, 19);
 assert.equal(mage.maxHp, 359); assert.equal(mage.spellDamage, 804); assert.equal(mage.xp, 17);
 const before = { level: mage.level, strength: mage.strength, intellect: mage.intellect, maxHp: mage.maxHp, mana: mage.maxMana, spellDamage: mage.spellDamage, spellHealing: mage.spellHealing };
@@ -64,7 +65,7 @@ assert.deepEqual({
   spellDamage: restored.spellDamage,
   spellHealing: restored.spellHealing
 }, before);
-assert.equal(restored.happiness, 65); assert.equal(restored.delvesCompleted, 3); assert.equal(restored.abilityRanks.arcflare, 2); assert.equal(restored.xp, 17);
+assert.equal(restored.happiness, 65); assert.equal(restored.delvesCompleted, 3); assert.equal(restored.abilityRanks[trainedKey], 2); assert.equal(restored.xp, 17);
 restored.equipment = { weapon: 'attribute-gear' };
 GameState.inventory.equipment = [{ id: 'attribute-gear', slot: 'weapon', usableBy: [restored.className], stats: { intellect: 3, wisdom: 2, constitution: 1, spellDamage: 4 } }];
 const equipped = getEquippedAdventurer(restored);

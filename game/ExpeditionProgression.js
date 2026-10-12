@@ -81,8 +81,7 @@ export function completeExpedition() {
     'dolmark-den': ['march-west-delves'],
     'march-west-delves': ['verge-delves'],
     'verge-delves': ['everdeep', 'murmuring-abyss'],
-    'murmuring-abyss': [],
-    'verdant-tear': []
+    'murmuring-abyss': []
   };
 
   (revealMap[delveId] ?? []).forEach((id) => {

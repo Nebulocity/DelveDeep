@@ -76,7 +76,7 @@ const SCENE_FIELDS = [
   'usedLeaderAbilities', 'pendingPausedTactics', 'awaitingRevive', 'combatPaused',
   'waveReturnPositions', 'waveReturnTargets', 'waveReturnReadyAt', 'waveReturnStartedAt',
   'waveReturnTimedOut', 'waveReturnProgress', 'waveReturnSettled', 'pendingWaveSpawns',
-  'idlePhaseRemainingMs', 'idleSummary', 'idleSummaryResumePaused', 'combatRngState'
+  'idlePhaseRemainingMs', 'idleSummary', 'idleSummaryResumePaused', 'combatRngState', 'abilityDecoySerial'
 ];
 
 // Extract one unit's durable state while excluding live scene and graphics references.
@@ -118,6 +118,7 @@ export function captureBattle(scene, state, savedAtMs = Date.now()) {
     run: packBattleValue(state.run), rewards: packBattleValue(state.rewards), tactics: packBattleValue(state.tactics),
     scene: packBattleValue(Object.fromEntries(SCENE_FIELDS.filter(key => scene[key] !== undefined).map(key => [key, scene[key]]))),
     party: scene.partyUnits.map(unitSnapshot), enemies: scene.enemies.map(unitSnapshot),
+    decoys: (scene.abilityDecoys ?? []).map(unitSnapshot),
 
     // Keep only uncompleted events and save their remaining delay plus typed event data. A
     // reload creates fresh timers on the restored gameplay clock rather than trying to
@@ -181,7 +182,8 @@ export function validBattleSnapshot(snapshot, roster) {
     // map builds one output entry for each input entry, in the same order. The callback's
     // return value becomes that output entry. ... expands these entries into the new list
     // or call. It does not deep-copy the objects inside.
-    const units = [...snapshot.party, ...snapshot.enemies].map(unpackBattleValue);
+    if (snapshot.decoys !== undefined && !Array.isArray(snapshot.decoys)) return false;
+    const units = [...snapshot.party, ...snapshot.enemies, ...(snapshot.decoys ?? [])].map(unpackBattleValue);
     return new Set(units.map(unit => unit.id)).size === units.length
       && snapshot.party.every(unit => snapshot.partyIds.includes(unit.id))
       && units.every(unit => typeof unit.id === 'string' && Number.isFinite(unit.hp)

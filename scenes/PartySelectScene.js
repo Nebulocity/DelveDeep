@@ -5,6 +5,7 @@
 import { UI_FONT_SIZES, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import { preloadCarvedStone, addStonePanel, addStoneButton, stoneText, stoneIcon, STONE } from '../ui/CarvedStone.js';
 import { preparationFrame, preparationButton, preparationNotice } from '../ui/DelvePreparation.js';
+import { bindButtonPress } from '../ui/ButtonPress.js';
 import { CHARACTER_SPRITES } from '../data/characterSprites.js';
 import { bindSelectionDetails, addDetailsHint, showSelectionDetails } from '../ui/SelectionDetails.js';
 import Phaser from 'phaser';
@@ -91,6 +92,10 @@ export default class PartySelectScene extends Phaser.Scene {
     // Depth is drawing order, not distance or size. Higher-depth objects draw on top of
     // lower-depth objects.
     this.lineup = this.add.container(0, 0).setDepth(5);
+    const autoSelectX = (width * 0.55 + (width - 675)) / 2;
+    this.autoSelectButton = addStoneButton(this, autoSelectX, height - 81, 310, 96, 10);
+    this.autoSelectText = stoneText(this, autoSelectX, height - 81, 'AUTO-SELECT', UI_FONT_SIZES.body30, 11, { color: STONE.muted });
+    bindButtonPress(this, this.autoSelectButton, [this.autoSelectText], () => this.autoSelectParty());
     const action = preparationButton(this, width - 360, height - 74, 630, 104, 'BATTLE OVERVIEW', () => this.begin(), { primary: true, size: UI_FONT_SIZES.body36 });
     this.beginButton = action.button;
     this.beginButtonText = action.text;
@@ -338,6 +343,27 @@ export default class PartySelectScene extends Phaser.Scene {
     if (counts.total >= MAX_PARTY_SIZE) return false;
 
     return counts[roleGroup] < ROLE_LIMITS[roleGroup];
+  }
+
+  // Choose a complete party with the same role limits used by manual selection.
+  autoSelectParty() {
+
+    // A shuffled copy leaves the roster's saved order untouched while making every
+    // adventurer in a role equally likely to appear in the chosen slots.
+    const chooseRandom = (members, count) => Phaser.Utils.Array.Shuffle([...members]).slice(0, count);
+    const tanks = chooseRandom(GameState.roster.filter(hero => hero.role === 'Tank'), 1);
+    const healers = chooseRandom(GameState.roster.filter(hero => hero.role === 'Healer'), 1);
+    const damageDealers = chooseRandom(GameState.roster.filter(hero => hero.role === 'Melee DPS' || hero.role === 'Ranged DPS'), 3);
+
+    // Keep the current lineup if the roster cannot fill every requested role.
+    if (tanks.length < 1 || healers.length < 1 || damageDealers.length < 3) {
+      this.showToast('The roster needs one tank, one healer, and three DPS for auto-select.');
+      return;
+    }
+
+    HapticsService.tap();
+    this.selectedIds = new Set([...tanks, ...healers, ...damageDealers].map(hero => hero.id));
+    this.refreshSelectionUi();
   }
 
   // This helper explains which party limit prevents this selection.

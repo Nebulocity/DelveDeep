@@ -16,6 +16,7 @@ AGENTS.md*
 !/tests/visual/README.md
 /scripts/
 /outputs/
+/cheatsheets/
 /output/
 /.tmp/
 /buildapk.sh

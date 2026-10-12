@@ -160,6 +160,13 @@ export function loadProfile(baseRoster) {
     }), prior, Boolean(savedRoster.has(base.id) && !prior.abilityRanks));
   });
 
+  // Migration credit is computed only from the previous catalog. Persisting the new
+  // per-character version below makes this a one-time credit rather than repeat income.
+  for (const hero of GameState.roster) {
+    GameState.gold += hero.abilityMigrationGoldCredit ?? 0;
+    delete hero.abilityMigrationGoldCredit;
+  }
+
   restoreEquipment(saved?.inventory, savedRoster);
   grantStartingEquipment(savedRoster);
 
@@ -229,6 +236,8 @@ function writeProfile() {
       startingEquipmentGranted: adventurer.startingEquipmentGranted === true,
       abilityRanks: adventurer.abilityRanks ?? {},
       abilityLoadout: adventurer.abilityLoadout ?? [],
+      abilityCatalogVersion: adventurer.abilityCatalogVersion,
+      abilityRespec: adventurer.abilityRespec,
       skillPoints: adventurer.skillPoints ?? adventurer.level,
       level: adventurer.level,
       xp: adventurer.xp ?? 0,

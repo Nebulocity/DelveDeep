@@ -510,6 +510,8 @@ export default class CombatMovement {
     // undefined.
     if (!target?.alive || this.scene.isPositionLocked(unit) || !unit.canStartAction(time)) return;
 
+    if (this.tryEscapeCrowd(unit, delta)) return;
+
     if (!this.isMeleeUnit(unit)) {
 
       // sort rearranges this array in place. A negative comparator result puts a before b;
@@ -556,8 +558,29 @@ export default class CombatMovement {
 
     // filter keeps entries whose callback returns true. It builds a new list and leaves
     // the original list in place.
-    const fallenAllies = this.getFallenPartyUnits().filter(fallenAlly => fallenAlly !== unit);
+    // Route around standing opponents as well as fallen allies. Ignore bodies already
+    // overlapping our starting point so a surrounded unit can still walk outward.
+    // The destination's body is also excluded so melee units can reach their slots.
+    const opponents = this.getLivingCombatUnits().filter(other => other !== unit
+      && other.isEnemy !== unit.isEnemy
+      && Math.hypot(other.arenaX - unit.arenaX, other.arenaY - unit.arenaY)
+        > this.getRequiredUnitSpacing(unit, other)
+      && Math.hypot(other.arenaX - destination.x, other.arenaY - destination.y)
+        > this.getRequiredUnitSpacing(unit, other));
+    const fallenAllies = [...this.getFallenPartyUnits().filter(fallenAlly => fallenAlly !== unit), ...opponents];
     const getBodyClearance = fallenAlly => this.getRequiredUnitSpacing(unit, fallenAlly);
+
+    // Automatic travel avoids entering warning circles. Player Move orders and authored
+    // manual-response boss attacks keep their existing control rules.
+    const warnings = !unit.isEnemy && !this.scene.manualTargets?.has(unit.id)
+      && this.scene.tactics?.shouldAvoidMechanics(unit)
+      ? (this.scene.activeTelegraphs ?? []).filter(warning => warning.autoAvoid !== false) : [];
+    const entersWarning = point => warnings.some(warning => {
+      const radius = warning.radius + (unit.bodyRadius ?? 20) + 25;
+      const startDistance = Math.hypot(unit.arenaX - warning.arenaX, unit.arenaY - warning.arenaY);
+      const distance = Math.hypot(point.x - warning.arenaX, point.y - warning.arenaY);
+      return distance < Math.min(radius, startDistance - 1);
+    });
 
     // Check the whole line so a long step cannot jump through a body or wall.
     const isSegmentBlocked = (segmentStart, segmentEnd) => {
@@ -599,6 +622,8 @@ export default class CombatMovement {
         const sampleX = segmentStart.x + segmentX * sampleRatio;
         const sampleY = segmentStart.y + segmentY * sampleRatio;
 
+        if (entersWarning({ x: sampleX, y: sampleY })) return true;
+
         // ?. only follows this link when the value exists; a missing optional value gives
         // undefined.
         if (this.scene.terrain?.isUnitBlocked(unit, sampleX, sampleY, this.config.terrainFootRadius)) {
@@ -637,7 +662,7 @@ export default class CombatMovement {
       && Math.hypot(previousPath.destination.x - destination.x, previousPath.destination.y - destination.y) < 48
       && Math.hypot(previousPath.waypoint.x - startPosition.x, previousPath.waypoint.y - startPosition.y) > 20;
 
-    if (previousStepIsUsable) return previousPath.waypoint;
+    if (previousStepIsUsable && !isSegmentBlocked(startPosition, previousPath.waypoint)) return previousPath.waypoint;
 
     // Put stepping stones 48 units apart. Each stone is one place the unit could stand.
     const gridStep = 48;
@@ -655,6 +680,7 @@ export default class CombatMovement {
     const isSafeStandingPoint = standingPoint => !fallenAllies.some(fallenAlly =>
       Math.hypot(standingPoint.x - fallenAlly.arenaX, standingPoint.y - fallenAlly.arenaY)
         < getBodyClearance(fallenAlly))
+      && !entersWarning(standingPoint)
       && !this.scene.terrain?.isUnitBlocked(
         unit,
         standingPoint.x,
@@ -837,7 +863,7 @@ export default class CombatMovement {
       }
     }
 
-    if (!reachedGoal) return destination;
+    if (!reachedGoal) return warnings.length ? startPosition : destination;
 
     // Follow the remembered stones backward, then take just the first step.
     const routeCellIds = [goalCellId];
@@ -864,6 +890,116 @@ export default class CombatMovement {
     });
 
     return waypoint;
+  }
+
+  // Compare legal escape points against every warning and nearby opponent together.
+  // Rings use continuous coordinates. No gameplay cells or shared floor are introduced.
+  getEscapePoint(unit, warnings = [], desiredClearance = 180) {
+    const opponents = this.getLivingCombatUnits().filter(other => other.isEnemy !== unit.isEnemy);
+    const dangerAt = point => warnings.reduce((sum, warning) => sum + Math.max(0,
+      warning.radius + (unit.bodyRadius ?? 20) + 45
+        - Math.hypot(point.x - warning.arenaX, point.y - warning.arenaY)), 0);
+    const crowdAt = point => opponents.reduce((sum, other) => sum + Math.max(0,
+      desiredClearance - Math.hypot(point.x - other.arenaX, point.y - other.arenaY)), 0);
+    const start = { x: unit.arenaX, y: unit.arenaY };
+
+    // Prefer exits in the middle 60% when they offer similar safety. Warning exposure
+    // still costs far more, and opponents still outrank this gentle edge preference.
+    const floor = this.scene.battlefield;
+    const margin = this.config.interiorMargin;
+    const edgeCost = point => Math.hypot(
+      Math.max(0, floor.logicalWidth * margin - point.x, point.x - floor.logicalWidth * (1 - margin)),
+      Math.max(0, floor.logicalHeight * margin - point.y, point.y - floor.logicalHeight * (1 - margin)));
+    const score = point => dangerAt(point) * 100 + crowdAt(point) * 2
+      + Math.hypot(point.x - start.x, point.y - start.y) * 0.15 + edgeCost(point) * 0.4;
+    let best = start, bestScore = score(start);
+    const farthest = Math.max(desiredClearance, ...warnings.map(w => w.radius * 2 + 100));
+    for (const radius of [100, 220, farthest]) {
+      for (let index = 0; index < 24; index++) {
+
+        // Cosine and sine turn an angle in radians into an evenly sampled direction.
+        const angle = index * Math.PI * 2 / 24;
+        const point = this.getSafeArenaPoint(start.x + Math.cos(angle) * radius,
+          start.y + Math.sin(angle) * radius, unit);
+        if (this.scene.terrain?.isUnitBlocked(unit, point.x, point.y, this.config.terrainFootRadius)) continue;
+
+        // Penalize crossing a safe warning on the way out of another. Sample the route
+        // as well as its endpoint, and allow decreasing exposure inside the current zone.
+        let crossing = 0;
+        for (const fraction of [0.25, 0.5, 0.75]) {
+          const sample = { x: start.x + (point.x - start.x) * fraction,
+            y: start.y + (point.y - start.y) * fraction };
+          crossing += Math.max(0, dangerAt(sample) - dangerAt(start));
+        }
+        const candidateScore = score(point) + crossing * 100;
+        if (candidateScore < bestScore) {
+          best = point;
+          bestScore = candidateScore;
+        }
+      }
+    }
+    return best === start ? null : best;
+  }
+
+  // A tank normally holds enemies; other roles seek an open edge of a large dog pile.
+  // Emergency tank retreat requires both low health and several close opponents.
+  tryEscapeCrowd(unit, delta) {
+    if (unit.isEnemy && this.isMeleeUnit(unit)) return false;
+    const opponents = this.getLivingCombatUnits().filter(other => other.isEnemy !== unit.isEnemy);
+    const close = opponents.filter(other => Math.hypot(unit.arenaX - other.arenaX,
+      unit.arenaY - other.arenaY) < 150);
+    const minimumCount = this.isMeleeUnit(unit) ? 3 : 2;
+    if (close.length < minimumCount || (unit.role === 'Tank' && unit.hp / unit.maxHp >= 0.35)) return false;
+    const point = this.getEscapePoint(unit, [], this.isMeleeUnit(unit) ? 160 : 240);
+    if (!point) return false;
+    unit.moveToward(point.x, point.y, delta, this.config.arrival);
+    return true;
+  }
+
+  // When the party drifts to an edge, take a slow voluntary step back toward open floor.
+  // Enemies follow their usual threat targets. This changes no positions by force.
+  tryReturnToInterior(unit, time, delta) {
+    if (unit.isEnemy || this.scene.isPositionLocked(unit)
+      || this.scene.manualTargets?.has(unit.id) || unit.criticalKnockback
+      || !unit.canStartAction(time)
+      || time < Math.max(unit.status?.rootedUntil ?? 0, unit.status?.stunnedUntil ?? 0)) return false;
+
+    // Leave warning responses to the existing escape and Party Leader systems.
+    if (this.scene.activeTelegraphs?.length || !this.scene.enemies.some(enemy => enemy.alive)) return false;
+    const party = this.scene.partyUnits.filter(ally => ally.alive && !ally.landing);
+    if (!party.length) return false;
+    const floor = this.scene.battlefield;
+    const margin = this.config.interiorMargin;
+    const inset = point => ({
+      x: Math.max(floor.logicalWidth * margin, Math.min(floor.logicalWidth * (1 - margin), point.x)),
+      y: Math.max(floor.logicalHeight * margin, Math.min(floor.logicalHeight * (1 - margin), point.y))
+    });
+
+    // The average living-party position detects a drifting fight, rather than an
+    // individual flanker. Logical y starts at the front; fractions work in either axis.
+    const center = { x: party.reduce((sum, ally) => sum + ally.arenaX, 0) / party.length,
+      y: party.reduce((sum, ally) => sum + ally.arenaY, 0) / party.length };
+    const innerCenter = inset(center);
+    if (Math.hypot(center.x - innerCenter.x, center.y - innerCenter.y) < 12) return false;
+    const start = { x: unit.arenaX, y: unit.arenaY };
+    const inner = inset(start);
+    const distance = Math.hypot(inner.x - start.x, inner.y - start.y);
+    if (distance < 12) return false;
+
+    // Aim only 100 logical units ahead, preserving local navigation and body clearance.
+    // Fragile roles avoid walking closer to opponents already within their safe range.
+    const fraction = Math.min(1, 100 / distance);
+    const point = this.getSafeArenaPoint(start.x + (inner.x - start.x) * fraction,
+      start.y + (inner.y - start.y) * fraction, unit);
+    if (Math.hypot(point.x - inner.x, point.y - inner.y) >= distance - 1) return false;
+    if (!this.isMeleeUnit(unit)) {
+      const clearance = unit.role === 'Healer' ? this.config.healerMin : this.config.rangedMin;
+      if (this.scene.enemies.some(enemy => enemy.alive
+        && Math.hypot(point.x - enemy.arenaX, point.y - enemy.arenaY)
+          < Math.min(clearance, unit.distanceTo(enemy)) - 1)) return false;
+    }
+    unit.moveToward(point.x, point.y, delta * this.config.interiorReturnSpeed, this.config.arrival);
+    return true;
   }
 
   // Approach or back away according to the unit's preferred combat distance. unit is the
@@ -906,12 +1042,8 @@ export default class CombatMovement {
     this.rangeStates.set(unit, rangeState);
 
     if (rangeState.direction < 0) {
-      unit.moveAwayFrom(
-        target.arenaX,
-        target.arenaY,
-        delta,
-        minimumAllowedRange + spacingConfig.rangeHysteresis
-      );
+      const escape = this.getEscapePoint(unit, [], minimumAllowedRange + spacingConfig.rangeHysteresis);
+      if (escape) unit.moveToward(escape.x, escape.y, delta, spacingConfig.arrival);
     } else if (rangeState.direction > 0) {
       unit.moveToward(
         target.arenaX,

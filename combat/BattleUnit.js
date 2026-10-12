@@ -13,6 +13,7 @@ import { monsterDeathPose, criticalHitDirection, criticalHitPose, CRITICAL_RECOI
 import HapticsService from '../services/HapticsService.js';
 
 import { deferUnitPresentation, deferredSprite } from './DeferredPresentation.js';
+import { replacementMultiplier } from './ReplacementEffects.js';
 
 export default class BattleUnit {
 
@@ -51,7 +52,11 @@ export default class BattleUnit {
     this.maxMana = Math.max(0, config.maxMana ?? 0);
     this.mana = this.maxMana;
     this.manaRegen = Math.max(0, config.manaRegen ?? 0);
-    this.basicHealManaCost = Math.max(0, config.basicHealManaCost ?? 0);
+
+    // Convert Mend's fraction using this encounter's gear-adjusted Mana pool. An
+    // explicit saved cost, including zero, keeps an older encounter's original rule.
+    this.basicHealManaCost = Math.max(0, config.basicHealManaCost
+      ?? Math.round(this.maxMana * (config.basicHealManaFraction ?? 0)));
 
     // The configured speed is multiplied by the game's existing 1.5 movement pace
     // adjustment. Movement later multiplies speed by elapsed seconds, so this stays
@@ -114,8 +119,13 @@ export default class BattleUnit {
     // them.
     this.abilities = Object.fromEntries(Object.entries(config.abilities ?? {}).map(([key, ability]) => [key, {
       ...ability, cooldown: ability.cooldown / actionRate, windup: (ability.windup ?? 300) / actionRate,
+      manaCost: ability.replacement ? Math.round(this.maxMana * ability.manaFraction) : ability.manaCost,
       telegraph: ability.telegraph === undefined ? undefined : ability.telegraph / actionRate
     }]));
+
+    // A triggered skill can require a learned ability without taking another equipped
+    // slot. Keep only its saved ranks here; normal AI still sees equipped abilities only.
+    this.knownAbilityRanks = { ...(config.abilityRanks ?? {}) };
 
     // Start timed effects inactive. Their expiration timestamps are checked against the
     // battle clock.
@@ -333,6 +343,7 @@ export default class BattleUnit {
       && time >= (this.status.stunnedUntil ?? 0)
       && !this.isBusy(time)
       && !this.criticalKnockback
+      && time >= (this.status.replacementChannel?.until ?? 0)
       && this.pendingAction === null;
   }
 
@@ -354,6 +365,11 @@ export default class BattleUnit {
     this.actionSerial = (this.actionSerial ?? 0) + 1;
     this.pendingAction = { id: this.actionSerial, name, startAt: time, duration };
     this.busyUntil = time + duration;
+
+    // Action-punishment effects can defeat a monster as it commits a move. Stop before
+    // scheduling that defeated unit's action or reading a cleared pendingAction object.
+    if (this.isEnemy) this.scene.classAbilitySystem?.replacement?.actionCommitted(this);
+    if (!this.alive || !this.pendingAction) return false;
 
     if (this.scene.idleSimulating) return true;
 
@@ -440,7 +456,7 @@ export default class BattleUnit {
 
     // The condition before ? chooses the first value when true and the value after : when
     // false.
-    const moveBonus = now < (this.status.moveSpeedBonusUntil ?? 0) ? 1 + this.status.moveSpeedBonus : 1;
+    const moveBonus = (now < (this.status.moveSpeedBonusUntil ?? 0) ? 1 + this.status.moveSpeedBonus : 1) * replacementMultiplier(this, 'movement', now);
     const moveSlow = now < (this.status.moveSpeedSlowUntil ?? 0) ? 1 - this.status.moveSpeedSlow : 1;
 
     // Math.min chooses the smallest value; pairing it with Math.max can keep a result
@@ -473,7 +489,7 @@ export default class BattleUnit {
 
     // The condition before ? chooses the first value when true and the value after : when
     // false.
-    const moveBonus = now < (this.status.moveSpeedBonusUntil ?? 0) ? 1 + this.status.moveSpeedBonus : 1;
+    const moveBonus = (now < (this.status.moveSpeedBonusUntil ?? 0) ? 1 + this.status.moveSpeedBonus : 1) * replacementMultiplier(this, 'movement', now);
     const moveSlow = now < (this.status.moveSpeedSlowUntil ?? 0) ? 1 - this.status.moveSpeedSlow : 1;
     const destination = this.scene?.movement?.getNavigationWaypoint(this, {
       x: this.arenaX + direction.x * (desiredDistance - distance),
@@ -492,6 +508,7 @@ export default class BattleUnit {
   // while still steering around fallen characters and terrain.
   moveBy(dx, dy, avoidUnits = true) {
     if (this.criticalKnockback) return;
+    if ((this.scene.time?.now ?? 0) < (this.status.replacementCostRootUntil ?? 0)) return;
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined. Math.max chooses the largest value; pairing it with Math.min can keep a
@@ -511,6 +528,8 @@ export default class BattleUnit {
 
   // This helper checks whether the unit can begin another basic attack.
   canAttack(time) {
+    if (time < (this.status.replacementTruceUntil ?? 0)) return false;
+    if (this.basicAttackDamageType !== 'spell' && time < (this.status.replacementDisarmUntil ?? 0)) return false;
 
     // The condition before ? chooses the first value when true and the value after : when
     // false. ?? uses the fallback only for null or undefined. A real zero or false stays
@@ -518,10 +537,12 @@ export default class BattleUnit {
     return this.canStartAction(time) && time - this.lastAttackAt >= this.attackCooldown / (time < (this.status.attackSlowUntil ?? 0) ? 1 - this.status.attackSlow : 1);
   }
 
-  // This helper checks whether a capable healer is ready for another basic heal.
+  // This helper checks the action, Mana payment and cooldown for another basic heal.
   canHeal(time) {
 
-    return this.canStartAction(time) && this.basicHealPower > 0 && time - this.lastHealAt >= this.healCooldown;
+    return this.canStartAction(time) && this.basicHealPower > 0
+      && (this.basicHealManaCost ?? 0) <= (this.mana ?? 0)
+      && time - this.lastHealAt >= this.healCooldown;
   }
 
   // This helper requires an available action, enough mana, and a ready cooldown.
@@ -533,22 +554,42 @@ export default class BattleUnit {
     }
 
     // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
-    if ((ability.manaCost ?? 0) > this.mana) return false;
+    const manaCost = ability.replacement && this.scene.classAbilitySystem?.replacement
+      ? this.scene.classAbilitySystem.replacement.manaCost(this, ability, time) : ability.manaCost ?? 0;
+    if (manaCost > this.mana) return false;
+    if (!this.canCast(time)) return false;
+    if (this.isEnemy && time < (this.status.replacementForcedAttack?.until ?? 0)) return false;
+    if (ability.replacement && this.scene.classAbilitySystem?.replacement && !this.scene.classAbilitySystem.replacement.usable(this, ability, time)) return false;
+    if (time < (this.status.replacementTruceUntil ?? 0) && ability.effect !== 'heal') return false;
 
     // The condition before ? chooses the first value when true and the value after : when
     // false.
-    return time - (this.lastAbilityAt[key] ?? -Infinity) >= ability.cooldown / (time < (this.status.attackSlowUntil ?? 0) ? 1 - this.status.attackSlow : 1);
+    const cooldown = ability.cooldown * (this.status.replacementCooldownFactors?.[key] ?? 1);
+    return time - (this.lastAbilityAt[key] ?? -Infinity) >= cooldown / (time < (this.status.attackSlowUntil ?? 0) ? 1 - this.status.attackSlow : 1);
   }
 
   // This helper commits the ability cooldown and its configured mana cost.
-  markAbilityUsed(key, time) {
+  markAbilityUsed(key, time, manaCostOverride = null) {
 
     const ability = this.abilities[key];
     this.lastAbilityAt[key] = time;
 
+    // A future-cooldown buff is captured when committing the skill. Letting it alter
+    // an already running cooldown would turn a duration buff into an unintended reset.
+    if (ability?.replacement) {
+      const common = replacementMultiplier(this, 'cooldown', time);
+      const protect = ability.category === 'Protect' ? replacementMultiplier(this, 'protectCooldown', time) : 1;
+      (this.status.replacementCooldownFactors ??= {})[key] = Math.max(.65, common * protect);
+    }
+
+    // All party skills announce intent to active enemies. Buffs and escapes can pull
+    // aggro too; resolved damage and healing still contribute their separate amounts.
+    this.scene?.generateAbilityThreat?.(this, manaCostOverride === null ? ability : { ...ability, manaCost: manaCostOverride });
+
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
-    if (ability?.manaCost) this.spendMana(ability.manaCost);
+    const paidCost = manaCostOverride ?? ability?.manaCost ?? 0;
+    if (paidCost) this.spendMana(paidCost);
   }
 
   // This helper pays a mana cost only when the unit can afford it.
@@ -617,12 +658,20 @@ export default class BattleUnit {
       const armor = now < (this.status.armorUntil ?? 0)
         ? this.armor * this.status.armorMultiplier
         : this.armor;
+      const adjustedArmor = armor * Math.max(0, replacementMultiplier(this, 'armor', now)) * (1 - (options.armorPiercing ?? 0));
       const reduction = this.statProgressionVersion === 2
-        ? Math.min(1, armorReduction(armor) * (options.armorBlocked ? 2 : 1)) : Math.min(0.9, armor);
+        ? Math.min(1, armorReduction(adjustedArmor) * (options.armorBlocked ? 2 : 1)) : Math.min(0.9, armor);
       adjusted *= 1 - reduction;
     }
 
     adjusted *= this.damageTakenMultiplier;
+
+    // General reduction and magical-only reduction are separate. Armor still applies
+    // only to physical attacks, and chance caps are handled by the shared hit resolver.
+    adjusted *= Math.max(0, replacementMultiplier(this, 'reduction', now));
+    adjusted *= Math.max(0, replacementMultiplier(this, 'vulnerability', now));
+    if (options.physical === false) adjusted *= Math.max(0, replacementMultiplier(this, 'spellReduction', now));
+    adjusted *= 1 - (options.interceptReduction ?? 0);
 
     if (now < (this.status.damageReductionUntil ?? 0)) {
       adjusted *= Math.max(0, 1 - (this.status.damageReduction ?? 0));
@@ -650,6 +699,7 @@ export default class BattleUnit {
     const absorbed = Math.min(adjusted, this.status.temporaryHp ?? 0);
     this.status.temporaryHp = (this.status.temporaryHp ?? 0) - absorbed;
     adjusted -= absorbed;
+    adjusted = this.scene?.classAbilitySystem?.replacement?.preventLethal(this, adjusted) ?? adjusted;
     this.hp = Math.max(0, this.hp - adjusted);
 
     this.updateHealthBar();
@@ -709,7 +759,7 @@ export default class BattleUnit {
     if (this.alive) this.scene.combatMembershipRevision = (this.scene.combatMembershipRevision ?? 0) + 1;
 
     // Pulse only for a new party death, never restored or replayed deaths.
-    if (this.alive && !this.isEnemy && !this.scene.restoringBattle
+    if (this.alive && !this.isEnemy && !this.isDecoy && !this.scene.restoringBattle
       && !this.scene.game?.backgroundProgress?.isReplaying) {
       HapticsService.heavy();
     }

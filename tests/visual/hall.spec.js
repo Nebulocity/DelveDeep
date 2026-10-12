@@ -8,6 +8,10 @@ import { reviewHall } from './hall-flow.js';
 
 for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080 }]) {
   test(`Hall equipment, training, navigation and saves at ${viewport.width}`, async ({ page }) => {
+
+    // This complete flow opens several canvas modals, trains skills, and reloads a
+    // profile. Traced screenshots take longer than a single combat mechanic check.
+    test.setTimeout(300000);
     await page.setViewportSize(viewport);
     await reviewHall(page, 'output/qa/screenshots', viewport.width);
   });

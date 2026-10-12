@@ -119,8 +119,8 @@ export const VOID_SPRITES = Object.fromEntries(
   Object.entries(sources).map(([id, source]) => [id, createVoidSprite(id, source)])
 );
 
-// Older saved battles and the retained Verdant Tear still refer to these archetypes.
-// Keep those IDs resolving to accepted artwork without migrating or discarding saves.
+// Keep the retired test identities as artwork aliases for future art reuse.
+// These aliases register sprites only; they do not supply monster stats or encounters.
 VOID_SPRITES.voidWarden = VOID_SPRITES.voidKeeper;
 VOID_SPRITES.abyssalMaw = VOID_SPRITES.voidKeeper;
 VOID_SPRITES.riftSentinel = VOID_SPRITES.voidStalker;

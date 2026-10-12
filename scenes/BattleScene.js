@@ -7,12 +7,16 @@
 
 import { fontPx, UI_FONT_SIZES, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import { abilityPower, hitAccuracy } from '../game/CharacterStats.js';
+import { replacementMultiplier, replacementChance } from '../combat/ReplacementEffects.js';
+import { installBattleClock } from '../combat/BattleClock.js';
 import { leaderAbilityDescription } from '../game/AbilityDescriptions.js';
 import { showConfirmation } from '../ui/ConfirmationDialog.js';
 import { bindButtonPress } from '../ui/ButtonPress.js';
 import { hallScroll } from '../ui/HallUI.js';
 import { preloadCarvedStone, addStonePanel, addStoneButton, addStoneOrnaments, stoneText, stoneIcon, campStoneIcon, delveStoneTheme, STONE } from '../ui/CarvedStone.js';
 import { preloadSlimeSprites } from '../data/slimeSprites.js';
+import { preloadSlimeAbilityEffects } from '../data/slimeAbilityEffects.js';
+import { fadeSlimeTelegraph, playSlimeAbilityEffect, updateSlimeAbilityEffects, startSlimeGlobFlight, landSlimeGlobFlight } from '../combat/SlimeAbilityEffects.js';
 
 import { chooseWaveLandings } from '../combat/WaveLanding.js';
 import { bindSelectionDetails, characterDetails, showSelectionDetails } from '../ui/SelectionDetails.js';
@@ -41,9 +45,12 @@ import BattlefieldTerrain from '../combat/BattlefieldTerrain.js';
 import BattlefieldTerrainEditor from '../combat/BattlefieldTerrainEditor.js';
 import TacticsController from '../combat/TacticsController.js';
 import CombatMovement from '../combat/CombatMovement.js';
-import { createVoidProjectile, updateVoidProjectiles } from '../combat/VoidProjectile.js';
+import { updateVoidProjectiles } from '../combat/VoidProjectile.js';
+import { clearThornbriarAbilityEffects, startThornbriarAbilityEffect, updateThornbriarAbilityEffects } from '../combat/ThornbriarAbilityEffects.js';
 import { preloadAbilityEffects } from '../data/abilityEffects.js';
 import { createAbilityEffect, updateAbilityEffects, createAbilityTelegraph, clearAbilityTelegraph } from '../combat/AbilityEffect.js';
+import { startTravelingEffect, finishTravelingEffect } from '../combat/TravelingEffects.js';
+import { rangedTravelProfile } from '../data/rangedTravelEffects.js';
 import combatSpacing from '../config/combatSpacing.js';
 import CombatLog from '../combat/CombatLog.js';
 
@@ -95,6 +102,10 @@ export default class BattleScene extends Phaser.Scene {
     }
     preloadSlimeSprites(this);
 
+    // Ability sheets are small, so load them only for the encounter that uses them.
+    if (GameState.currentDelve?.id === 'slime-cave'
+      || GameState.currentDelve?.encounterId === 'slime-cave') preloadSlimeAbilityEffects(this);
+
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
     const environment = GameState.currentDelve?.visuals?.environment;
@@ -110,6 +121,9 @@ export default class BattleScene extends Phaser.Scene {
   // arena and combatants, and building the tactical controls. It also starts the combat
   // log and announces the first enemy wave.
   create() {
+    installBattleClock(this);
+    this.isThornbriarHollow = GameState.currentDelve?.id === 'thornbriar-hollow';
+    this.events.once('shutdown', () => clearThornbriarAbilityEffects(this));
     this.classAbilitySystem = new ClassAbilitySystem(this);
 
     // The braces pull named fields into local variables. This reads those fields without
@@ -1277,7 +1291,6 @@ export default class BattleScene extends Phaser.Scene {
         const damage = mages.reduce((sum, unit) => sum + unit.spellDamage, 0) * 3;
 
         targets.forEach(target => {
-          if (!this.isEnemyEngaged(target)) return;
           this.resolveDamage(mages[0], target, damage, 'spell', 1, 'Lunar Assault!', false);
           if (target.alive) target.status.rootedUntil = Math.max(target.status.rootedUntil ?? 0, this.time.now + 8000);
         });
@@ -1614,7 +1627,10 @@ export default class BattleScene extends Phaser.Scene {
     const wave = this.waves[index];
     this.waveTransitioning = true;
     this.updateEncounterStatus();
-    this.showWaveAnnouncement(`WAVE ${index + 1}`, Boolean(wave.boss));
+
+    // Farming repeats a cleared encounter, so announce its next repetition without
+    // implying that the party is advancing to another numbered progression wave.
+    this.showWaveAnnouncement(GameState.run.entry === 'farm' ? 'NEXT WAVE' : `WAVE ${index + 1}`, Boolean(wave.boss));
 
     this.updateWaveCountdown(3);
     this.scheduleBattleEvent(1000, { kind: 'countdown', index, secondsRemaining: 3 });
@@ -1675,7 +1691,7 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     if (data.kind === 'pendingLandings') return this.retryPendingLandings();
-    const units = [...this.partyUnits, ...this.enemies];
+    const units = [...this.partyUnits, ...this.enemies, ...(this.abilityDecoys ?? [])];
 
     // find returns the first matching entry, or undefined when none matches. Check for
     // that missing result before using its fields.
@@ -1705,6 +1721,10 @@ export default class BattleScene extends Phaser.Scene {
 
   // Keep the wave number and countdown readable over bright or detailed arenas.
   showWaveAnnouncement(title, isBoss = false) {
+
+    // Reload and idle catch-up can restore this panel without calling startWave.
+    // Apply the farm wording here too, so those paths cannot restore a wave number.
+    if (GameState.run.entry === 'farm') title = 'NEXT WAVE';
 
     // The braces pull named fields into local variables. This reads those fields without
     // copying the whole source object.
@@ -1946,6 +1966,7 @@ export default class BattleScene extends Phaser.Scene {
   // resources and actions, runs party and enemy decisions, separates crowded units, and
   // checks for a cleared wave or defeated party.
   update(time, delta) {
+    time = this.time.now;
     if (this.restoringBattle || this.idleSummaryOpen) return;
 
     // ?. only follows this link when the value exists; a missing optional value gives
@@ -1961,6 +1982,9 @@ export default class BattleScene extends Phaser.Scene {
     // Sheet bolts use combat time, including Pause and background cleanup.
     updateVoidProjectiles(this, delta, replaying);
     updateAbilityEffects(this, delta, replaying);
+    updateThornbriarAbilityEffects(this);
+    updateSlimeAbilityEffects(this, delta);
+    this.classAbilitySystem?.replacement?.drawZones(time);
 
     this.classAbilitySystem?.syncChargeTweens?.(this.combatPaused);
 
@@ -2068,13 +2092,36 @@ export default class BattleScene extends Phaser.Scene {
     return this.enemies.filter((enemy) => enemy.alive && !enemy.landing);
   }
 
+  // Decoys use existing character art, but stay outside party and enemy reward lists.
+  // Their saved model is rebuilt separately after the real units have been restored.
+  createAbilityDecoy(owner, template, point, health, until, restoredId = null) {
+    this.abilityDecoys ??= [];
+    if (!restoredId) {
+      for (const old of this.abilityDecoys.filter(unit => unit.decoyOwnerId === owner.id)) old.container.destroy();
+      this.abilityDecoys = this.abilityDecoys.filter(unit => unit.decoyOwnerId !== owner.id);
+    }
+    this.abilityDecoySerial = (this.abilityDecoySerial ?? 0) + 1;
+    const decoy = new BattleUnit(this, {
+      ...template, id: restoredId ?? `decoy-${this.abilityDecoySerial}`, name: `${template.name}'s Image`,
+      maxHp: Math.max(1, Math.round(health)), maxMana: 0, manaRegen: 0, abilities: {},
+      classAbilities: false, isEnemy: false, battlefield: this.battlefield, spriteId: template.spriteId ?? template.id
+    });
+    decoy.isDecoy = true;
+    decoy.decoyOwnerId = owner.id;
+    decoy.decoyUntil = until;
+    decoy.decoyWave = this.currentWaveIndex;
+    decoy.setArenaPosition(point.x, point.y);
+    decoy.hitZone.disableInteractive();
+    this.abilityDecoys.push(decoy);
+    return decoy;
+  }
+
   // This helper honors Focus first, then favors bosses and nearby enemies.
   getPrimaryTarget(unit) {
 
     // filter keeps entries whose callback returns true. It builds a new list and leaves
     // the original list in place.
-    const living = this.getLivingEnemies().filter((enemy) =>
-      unit.role === 'Tank' || this.isEnemyEngaged(enemy));
+    const living = this.getLivingEnemies();
     if (living.length === 0) {
       return null;
     }
@@ -2088,11 +2135,27 @@ export default class BattleScene extends Phaser.Scene {
 
     if (focused) return focused;
 
+    // Rescue an ally before building more threat on a safely controlled boss. Explicit
+    // Attack and Focus orders above still select exactly the enemy the player chose.
+    if (unit.role === 'Tank') {
+      const endangered = living.filter(enemy => enemy.currentTargetId && enemy.currentTargetId !== unit.id
+        && this.partyUnits.some(ally => ally.id === enemy.currentTargetId && ally.alive && ally.role !== 'Tank'));
+      if (endangered.length) {
+        endangered.sort((a, b) => {
+          const first = this.partyUnits.find(ally => ally.id === a.currentTargetId);
+          const second = this.partyUnits.find(ally => ally.id === b.currentTargetId);
+          return first.hp / first.maxHp - second.hp / second.maxHp || unit.distanceTo(a) - unit.distanceTo(b);
+        });
+        unit.autoTargetId = endangered[0].id;
+        return endangered[0];
+      }
+    }
+
     // sort rearranges this array in place. A negative comparator result puts a before b;
     // positive puts it after; zero keeps them tied.
     const best = living.sort((a, b) => {
 
-      const guardians = ['elderSlime', 'abyssalMaw', 'voidKeeperGuardian'];
+      const guardians = ['elderSlime', 'voidKeeperGuardian'];
       const bossPriority = Number(b.isBoss || guardians.includes(b.enemyType))
         - Number(a.isBoss || guardians.includes(a.enemyType));
       if (bossPriority !== 0) {
@@ -2105,7 +2168,7 @@ export default class BattleScene extends Phaser.Scene {
     // Keep an automatic target unless an equally important enemy is meaningfully closer.
     // Small distance changes in a melee crowd should not send a unit back and forth.
     const previous = living.find(enemy => enemy.id === unit.autoTargetId);
-    const priority = enemy => Number(enemy.isBoss || ['elderSlime', 'abyssalMaw', 'voidKeeperGuardian'].includes(enemy.enemyType));
+    const priority = enemy => Number(enemy.isBoss || ['elderSlime', 'voidKeeperGuardian'].includes(enemy.enemyType));
     const target = previous && priority(previous) >= priority(best)
       && unit.distanceTo(previous) <= unit.distanceTo(best) + 80 ? previous : best;
     unit.autoTargetId = target.id;
@@ -2128,7 +2191,13 @@ export default class BattleScene extends Phaser.Scene {
     if (this.applyManualMovement(unit, deltaSeconds)) return;
 
     if (!this.isPositionLocked(unit) && this.tryEvadeTelegraph(unit, deltaSeconds)) return;
-    this.classAbilitySystem.update(unit, time, deltaSeconds);
+
+    // Take a short escape step before deciding an action. Ready spells should not keep
+    // a fragile unit stationary forever, and escape still permits an urgent heal.
+    const escaped = !this.isPositionLocked(unit) && unit.canStartAction(time)
+      && (this.movement.tryEscapeCrowd(unit, deltaSeconds)
+        || this.movement.tryReturnToInterior?.(unit, time, deltaSeconds));
+    this.classAbilitySystem.update(unit, time, deltaSeconds, escaped);
   }
 
   // Melee reach is measured from centers in the combat data. Extend it only by the shared
@@ -2207,15 +2276,25 @@ export default class BattleScene extends Phaser.Scene {
         return;
       }
 
+      // Ranged monsters can take a safety step before choosing a spell, just like the
+      // party. Melee monsters keep their shared approach slots instead of fleeing.
+      const escaped = enemy.canStartAction(time) && this.movement.tryEscapeCrowd?.(enemy, deltaSeconds);
 
       // Check skills in priority order. Only a monster with the authored boss flag gets
       // the third slot. A skipped or cooling-down skill lets the next slot be considered.
       const abilityKeys = enemy.isBoss ? ['primary', 'secondary', 'tertiary'] : ['primary', 'secondary'];
+
+      // Recovery takes precedence when allies are actually injured. Damage skills keep
+      // their authored slot order whenever no useful healing opportunity exists.
+      if (this.getLivingEnemies().some(ally => ally.hp / ally.maxHp < 0.85)) {
+        abilityKeys.sort((a, b) => Number(enemy.abilities[b]?.effect === 'heal')
+          - Number(enemy.abilities[a]?.effect === 'heal'));
+      }
       for (const key of abilityKeys) {
         if (this.tryEnemyAbility(enemy, target, key, time)) return;
       }
 
-      this.movement.moveToCombatPosition(enemy, target, time, deltaSeconds);
+      if (!escaped) this.movement.moveToCombatPosition(enemy, target, time, deltaSeconds);
 
       if (this.isWithinAttackReach(enemy, target, 8) && enemy.canAttack(time)) {
 
@@ -2237,7 +2316,10 @@ export default class BattleScene extends Phaser.Scene {
       // Compare injured health fractions, so a large boss is not favored just because
       // its missing health is a bigger number. Full-health and dead enemies are skipped.
       // filter builds the injured list; sort puts the smallest hp / maxHp fraction first.
-      const injured = this.getLivingEnemies().filter(unit => unit.hp < unit.maxHp)
+      const injured = this.getLivingEnemies().filter(unit => unit.hp / unit.maxHp < 0.85
+        && enemy.distanceTo(unit) <= (ability.castRange ?? Number.MAX_SAFE_INTEGER)
+        && this.getLivingEnemies().reduce((sum, other) => sum
+          + (other.pendingAction?.healingReservations?.[unit.id] ?? 0), 0) < unit.maxHp - unit.hp)
         .sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0];
       if (!injured) return false;
       this.beginEnemyAbility(enemy, injured, key, time);
@@ -2287,6 +2369,7 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     attacker.lastAttackAt = time;
+    attacker.pendingAction.replacementBasic = this.classAbilitySystem?.replacement?.basicPreparation(attacker);
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
@@ -2294,6 +2377,10 @@ export default class BattleScene extends Phaser.Scene {
     if (attacker.isEnemy) this.setEnemyTarget(attacker, target, 'highest threat');
     this.logActionStart(attacker, target, 'Attack');
     const action = attacker.pendingAction;
+
+    // Ranged basic attacks travel during the existing windup, arriving at the
+    // scheduled hit. Melee attacks do not acquire a projectile just from range.
+    this.startRangedTravel(attacker, target, { name: 'Attack', attackType }, action);
     this.scheduleBattleEvent(attacker.attackWindup, this.actionEvent('attack', attacker, target, { attackType }),
       () => this.resolveBasicAttack(attacker, action, target, attackType));
   }
@@ -2305,6 +2392,7 @@ export default class BattleScene extends Phaser.Scene {
 
   // Resolve the scheduled basic hit only if its action and target remain valid.
   resolveBasicAttack(attacker, action, target, attackType) {
+    this.finishRangedTravel(attacker, action);
 
     if (!this.isActionCurrent(attacker, action, target)) return;
 
@@ -2319,18 +2407,26 @@ export default class BattleScene extends Phaser.Scene {
 
       // The condition before ? chooses the first value when true and the value after :
       // when false.
-      const power = attacker.isEnemy && attacker.basicAttackDamageType === 'spell' ? attacker.spellDamage : attacker.attackPower;
-      this.resolveDamage(attacker, target, power, attackType, attacker.threatMultiplier, 'Attack');
+      const forced = attacker.status.replacementForcedAttack;
+      const power = forced?.until > this.time.now ? attacker.attackPower * forced.fraction
+        : attacker.isEnemy && attacker.basicAttackDamageType === 'spell' ? attacker.spellDamage : attacker.attackPower;
+      this.resolveDamage(attacker, target, power * (action.replacementBasic?.multiplier ?? 1), attackType, attacker.threatMultiplier, 'Attack', true,
+        { hasArtwork: this.hasRangedTravel(attacker, 'Attack') });
+      if (forced) attacker.status.replacementForcedAttack = null;
     }
     attacker.finishAction();
   }
 
-  // A healer's basic action restores a small amount to one injured ally.
+  // A healer's basic action pays Mana to restore a small amount to one injured ally.
   beginBasicHeal(healer, target, time) {
     if (!target.alive || target.hp >= target.maxHp || !healer.canHeal(time)
       || this.classAbilitySystem.distance(healer, target) > healer.basicHealRange
       || !healer.startAction('Mend', time, healer.healWindup)) return;
 
+
+    // Pay once when Mend starts, just like a class spell. Resolution and restored
+    // pending actions do not pay again, and an interruption does not refund the cost.
+    healer.spendMana(healer.basicHealManaCost ?? 0);
     healer.lastHealAt = time;
 
     // ?. only follows this link when the value exists; a missing optional value gives
@@ -2338,15 +2434,23 @@ export default class BattleScene extends Phaser.Scene {
     healer.spriteVisual?.play('block', target);
     this.logActionStart(healer, target, 'Mend');
     const action = healer.pendingAction;
+
+    // Basic Mend sends a small healing light to the ally on the same paused clock.
+    this.startRangedTravel(healer, target, { name: 'Mend', recipient: target }, action);
+
+    // Expected healing belongs to this action, so cancellation or death releases it.
+    action.healingReservations = { [target.id]: Math.min(target.maxHp - target.hp,
+      abilityPower(healer, {}, healer.basicHealPower, true)) };
     this.scheduleBattleEvent(healer.healWindup, this.actionEvent('heal', healer, target),
       () => this.resolveBasicHeal(healer, action, target));
   }
 
   // Resolve the scheduled heal against the eligible ally and record actual restored HP.
   resolveBasicHeal(healer, action, target) {
+    this.finishRangedTravel(healer, action);
     if (!this.isActionCurrent(healer, action, target)) return;
     if (target.hp < target.maxHp && this.classAbilitySystem.distance(healer, target) <= healer.basicHealRange) {
-      this.resolveHeal(healer, target, abilityPower(healer, {}, healer.basicHealPower, true), 'Mend');
+      this.resolveHeal(healer, target, abilityPower(healer, {}, healer.basicHealPower, true), 'Mend', true, healer !== target);
     }
     healer.finishAction();
   }
@@ -2370,23 +2474,42 @@ export default class BattleScene extends Phaser.Scene {
     // Long boss casts use the shared banner while the normal cast bar counts down.
     // Include authored response guidance when the ability supplies it.
     this.announceBossCast(attacker, ability, ability.windup);
-    this.setEnemyTarget(attacker, target, 'highest threat');
+    if (ability.effect !== 'heal') this.setEnemyTarget(attacker, target, 'highest threat');
     this.logActionStart(attacker, target, ability.name);
     attacker.markAbilityUsed(key, time);
 
     const action = attacker.pendingAction;
+    if (ability.effect === 'heal') action.healingReservations = {
+      [target.id]: Math.min(target.maxHp - target.hp, abilityPower(attacker, ability, ability.power, true))
+    };
+
+    // The glob flies during this existing windup and arrives when the scheduled hit resolves.
+    if (!this.add?.image || !startSlimeGlobFlight(this, attacker, target, ability, action)) {
+      this.startRangedTravel(attacker, target, ability, action);
+    }
     this.scheduleBattleEvent(ability.windup, this.actionEvent('enemyAbility', attacker, target, { key }),
       () => this.resolveEnemyAbility(attacker, action, target, ability));
   }
 
   // Apply the scheduled enemy skill through the shared targeting and combat effect rules.
   resolveEnemyAbility(attacker, action, target, ability) {
+    this.finishRangedTravel(attacker, action);
 
     if (!this.isActionCurrent(attacker, action, target)) return;
 
-    // A leaping strike uses close impact feedback; casts keep their traveling bolt.
-    if (ability.animation === 'leap') this.createMeleePulse(target, 0xa855f7);
-    else this.createProjectile(attacker, target, 0xa855f7, ability.projectile);
+    if (this.slimeGlobFlights?.length) landSlimeGlobFlight(this, attacker, action);
+
+    // Thornbriar and Slime Cave use their own skill art; other delves keep shared feedback.
+    const hasThornbriarImpact = this.isThornbriarHollow
+      && ['Whip Lash', 'Bramble Shroud', 'Briar Bolt'].includes(ability.name);
+    if (hasThornbriarImpact) startThornbriarAbilityEffect(this, attacker, target, ability, 'impact');
+    else if (this.add?.image && playSlimeAbilityEffect(this, ability.name, target,
+      ability.name === 'Crushing Slime Slam' ? 100 : 0)) {
+
+      // The glob splashes on contact; the Sovereign's short slam stays a close ground impact.
+    }
+    else if (ability.animation === 'leap') this.createMeleePulse(target, 0xa855f7);
+    else if (!this.hasRangedTravel(attacker, ability.name)) this.createMeleePulse(target, 0xa855f7);
     if (ability.effect === 'heal') {
       this.resolveHeal(attacker, target, abilityPower(attacker, ability, ability.power, true), ability.name);
     } else {
@@ -2394,7 +2517,8 @@ export default class BattleScene extends Phaser.Scene {
       // The condition before ? chooses the first value when true and the value after :
       // when false.
       this.resolveDamage(attacker, target, abilityPower(attacker, ability),
-        ability.damageType === 'physical' ? 'enemy' : 'spell', 1, ability.name);
+        ability.damageType === 'physical' ? 'enemy' : 'spell', 1, ability.name, true,
+        { hasArtwork: hasThornbriarImpact || this.hasRangedTravel(attacker, ability.name) });
     }
 
     attacker.finishAction();
@@ -2430,8 +2554,11 @@ export default class BattleScene extends Phaser.Scene {
     // the warning. Windup and telegraph describe this same cast, not two added waits.
     const origin = ability.areaCenter === 'caster' ? attacker : target;
     const center = { arenaX: origin.arenaX, arenaY: origin.arenaY };
+    if (this.isThornbriarHollow) startThornbriarAbilityEffect(this, attacker, target, ability, 'cast',
+      this.battlefield.arenaToScreen(center.arenaX, center.arenaY));
     const telegraph = this.createSlamTelegraph(attacker, ability, center, ability.telegraph);
     const action = attacker.pendingAction;
+    this.startRangedTravel(attacker, { ...center, alive: true, groundDestination: true }, ability, action);
     this.scheduleBattleEvent(ability.telegraph, this.actionEvent('groundSlam', attacker, null, { center, ability }),
       () => this.resolveGroundSlam(attacker, action, center, ability, telegraph));
   }
@@ -2460,30 +2587,47 @@ export default class BattleScene extends Phaser.Scene {
       autoAvoid: ability.autoAvoid ?? true,
       warning,
       inner,
-      attacker
+      attacker,
+      ability,
+      duration
     };
 
     this.activeTelegraphs.push(telegraph);
 
-    this.tweens.add({
-      targets: inner,
-      displayWidth: radii.width * 2,
-      displayHeight: radii.height * 2,
-      alpha: 0.08,
-      duration,
-      ease: 'Linear'
-    });
+    // The Sovereign lobs its glob at the saved warning center, so movement can escape it.
+    startSlimeGlobFlight(this, attacker, null, ability, attacker.pendingAction, center);
+
+    if (!['Slime Slam', 'Crushing Slime Slam', 'Toxic Glob', 'Consume'].includes(ability.name)) {
+      this.tweens.add({
+        targets: inner,
+        displayWidth: radii.width * 2,
+        displayHeight: radii.height * 2,
+        alpha: 0.08,
+        duration,
+        ease: 'Linear'
+      });
+    }
 
     return telegraph;
   }
 
   // Resolve a saved strike against current positions and remove its warning.
   resolveGroundSlam(attacker, action, center, ability, telegraph) {
+    this.finishRangedTravel(attacker, action);
 
     if (!this.isActionCurrent(attacker, action)) {
       this.removeTelegraph(telegraph);
       return;
     }
+
+    const hasThornbriarImpact = this.isThornbriarHollow
+      && startThornbriarAbilityEffect(this, attacker, attacker, ability, 'impact',
+      this.battlefield.arenaToScreen(center.arenaX, center.arenaY));
+
+    landSlimeGlobFlight(this, attacker, action);
+
+    // Start the impact before damage can end the battle, including a lethal boss glob.
+    const hasSlimeImpact = playSlimeAbilityEffect(this, ability.name, center, ability.radius);
 
     // filter keeps entries whose callback returns true. It builds a new list and leaves
     // the original list in place.
@@ -2494,7 +2638,8 @@ export default class BattleScene extends Phaser.Scene {
         // The condition before ? chooses the first value when true and the value after :
         // when false.
         this.resolveDamage(attacker, unit, abilityPower(attacker, ability),
-          ability.damageType === 'physical' ? 'enemy' : 'spell', 1, ability.name, ability.allowCrit ?? false);
+          ability.damageType === 'physical' ? 'enemy' : 'spell', 1, ability.name, ability.allowCrit ?? false,
+          { area: true, hasArtwork: hasThornbriarImpact || hasSlimeImpact });
 
         // Stomp and Belch stun surviving characters for three seconds. Use the unit's
         // shared status timer so pause, saved battles and idle catch-up see the same stun.
@@ -2510,18 +2655,20 @@ export default class BattleScene extends Phaser.Scene {
 
     // Depth is drawing order, not distance or size. Higher-depth objects draw on top of
     // lower-depth objects.
-    const burst = this.add.ellipse(screenCenter.x, screenCenter.y, radii.width * 0.8, radii.height * 0.8, 0xef4444, 0.42)
-      .setDepth(45 + screenCenter.y);
-    this.tweens.add({
-      targets: burst,
-      displayWidth: radii.width * 2.6,
-      displayHeight: radii.height * 2.6,
-      alpha: 0,
-      duration: 260,
+    if (!hasSlimeImpact && !hasThornbriarImpact) {
+      const burst = this.add.ellipse(screenCenter.x, screenCenter.y, radii.width * 0.8, radii.height * 0.8, 0xef4444, 0.42)
+        .setDepth(45 + screenCenter.y);
+      this.tweens.add({
+        targets: burst,
+        displayWidth: radii.width * 2.6,
+        displayHeight: radii.height * 2.6,
+        alpha: 0,
+        duration: 260,
 
-      // Finish this animation's remaining work when the tween reaches its end.
-      onComplete: () => burst.destroy()
-    });
+        // Finish this animation's remaining work when the tween reaches its end.
+        onComplete: () => burst.destroy()
+      });
+    }
 
     this.removeTelegraph(telegraph);
     attacker.finishAction();
@@ -2544,7 +2691,9 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     unit.finishAction();
-    unit.moveAwayFrom(danger.arenaX, danger.arenaY, deltaSeconds, danger.radius + 90);
+    const warnings = this.activeTelegraphs.filter(warning => warning.autoAvoid !== false);
+    const destination = this.movement.getEscapePoint(unit, warnings);
+    if (destination) unit.moveToward(destination.x, destination.y, deltaSeconds, 6);
     return true;
   }
 
@@ -2558,8 +2707,10 @@ export default class BattleScene extends Phaser.Scene {
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
-    telegraph.warning?.destroy();
-    telegraph.inner?.destroy();
+    if (!fadeSlimeTelegraph(this, telegraph)) {
+      telegraph.warning?.destroy();
+      telegraph.inner?.destroy();
+    }
   }
 
   // This helper rolls the attacker critical chance when the action allows it.
@@ -2572,7 +2723,9 @@ export default class BattleScene extends Phaser.Scene {
 
     // Math.min chooses the smallest value; pairing it with Math.max can keep a result
     // inside both a lower and an upper bound.
-    return allowCrit && this.combatRandom() < Math.min(attacker.statProgressionVersion === 2 ? 0.4 : 0.95, (attacker.critChance ?? 0) + bonus);
+    return allowCrit && this.combatRandom() < Math.min(attacker.statProgressionVersion === 2 ? 0.4 : 0.95,
+      (attacker.critChance ?? 0) + bonus + replacementChance(attacker, 'crit', this.time.now)
+        + (attacker.pendingAction?.replacementBasic?.criticalBonus ?? 0));
   }
 
   // This helper resolves an attack from its base damage through critical hits, status
@@ -2584,17 +2737,16 @@ export default class BattleScene extends Phaser.Scene {
     // both return zero damage. Existing callers still receive the same damage value.
     if (contact) contact.hit = false;
 
-    // Area hits and delayed attacks also obey the engagement rule, so a spell cannot pull
-    // an untouched enemy while the tank is approaching.
-    if (!attacker.isEnemy && attacker.role !== 'Tank' && target.isEnemy && !this.isEnemyEngaged(target)) return;
+    // Area hits and delayed attacks can reach untouched enemies. Their actual damage
+    // contributes threat below, whether or not the tank has made contact yet.
     const now = this.time.now;
 
     // Resolve blindness before damage modifiers; a miss stops the rest of the hit
     // processing.
-    const accuracy = hitAccuracy(attacker);
+    const accuracy = Math.max(0, hitAccuracy(attacker) + replacementChance(attacker, 'hit', now));
 
     // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
-    if (attackType !== 'reflection' && (accuracy < (target.minimumAccuracy ?? 0) || accuracy < 1 && this.combatRandom() >= accuracy
+    if (attackType !== 'reflection' && !contact?.periodic && !contact?.redirected && (accuracy < (target.minimumAccuracy ?? 0) || accuracy < 1 && this.combatRandom() >= accuracy
       || now < (attacker.status.blindUntil ?? 0) && this.combatRandom() < (attacker.status.blindChance ?? 0))) {
       this.createFloatingText(target.x, target.y - 82, 'MISS', '#cbd5e1', false, 'miss');
 
@@ -2611,6 +2763,17 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     const interceptor = target.status.interceptSource;
+
+    // Replacement interception redirects one ordinary target hit. Area hits retain
+    // every recipient, and the redirect keeps the original confirmed accuracy check.
+    const guard = target.status.replacementIntercept;
+    const guardUnit = guard && this.partyUnits.find(unit => unit.id === guard.ownerId && unit.alive);
+    if (attacker.isEnemy && guardUnit && guardUnit !== target && guard.until > now && !contact?.area && !contact?.redirected) {
+      guard.until = 0;
+      this.resolveDamage(attacker, guardUnit, baseAmount, attackType, threatMultiplier, abilityName, allowCrit,
+        { ...contact, redirected: true, interceptReduction: guard.reduction });
+      return 0;
+    }
     if (attacker.isEnemy && interceptor?.alive && interceptor !== target
       && now < (target.status.interceptUntil ?? 0)) {
       target.status.interceptUntil = 0;
@@ -2633,6 +2796,12 @@ export default class BattleScene extends Phaser.Scene {
     // The condition before ? chooses the first value when true and the value after : when
     // false.
     let amount = Math.round(baseAmount * (critical ? attacker.critMultiplier : 1));
+    const physicalPower = ['melee', 'ranged', 'enemy', 'reflection'].includes(attackType);
+
+    // A reflected or damage-linked amount is already measured from a resolved hit.
+    // Scaling it by the power stat again would change its stated percentage of that hit.
+    if (!contact?.measured) amount *= Math.max(0, replacementMultiplier(attacker, physicalPower ? 'attack' : 'spell', now));
+    amount *= Math.max(0, replacementMultiplier(attacker, 'damage', now));
     if (attackType !== 'reflection' && attacker.status.nextAttackBoost) {
       amount = Math.round(amount * (1 + attacker.status.nextAttackBoost));
       attacker.status.nextAttackBoost = 0;
@@ -2673,7 +2842,7 @@ export default class BattleScene extends Phaser.Scene {
       ? target.status.abilityDodgeChance ?? 0 : 0;
 
     if (attackType !== 'reflection' && attacker !== target && target.statProgressionVersion === 2
-      && this.combatRandom() < Math.min(0.3, (target.dodge ?? 0) + temporaryDodge)) {
+      && !contact?.periodic && this.combatRandom() < Math.min(0.3, (target.dodge ?? 0) + temporaryDodge + replacementChance(target, 'dodge', now))) {
       this.createFloatingText(target.x, target.y - 82, 'DODGE', '#cbd5e1', false, 'miss');
       return 0;
     }
@@ -2686,13 +2855,14 @@ export default class BattleScene extends Phaser.Scene {
     const physical = ['melee', 'ranged', 'enemy', 'reflection'].includes(attackType);
     const leaderBlock = now < (target.status.leaderBlockUntil ?? 0) ? target.status.leaderBlockBonus ?? 0 : 0;
     const armorBlocked = physical && attackType !== 'reflection' && attacker !== target
-      && target.statProgressionVersion === 2 && this.combatRandom() < cappedChance('block', (target.block ?? 0) + leaderBlock);
+      && target.statProgressionVersion === 2 && this.combatRandom() < cappedChance('block', (target.block ?? 0) + leaderBlock + replacementChance(target, 'block', now));
     const hpBefore = target.hp;
 
     // Accuracy, dodge and parry checks have passed. The projectile touched its target
     // even if the defenses below absorb all of the damage.
     if (contact) contact.hit = true;
     target.takeDamage(amount, { time: now, ranged, attacker, physical, armorBlocked,
+      armorPiercing: contact?.armorPiercing, interceptReduction: contact?.interceptReduction,
       blocked: armorBlocked || (!target.isEnemy && now < this.braceUntil)
         || now < (target.status.shieldUntil ?? 0)
         || now < (target.status.damageReductionUntil ?? 0) });
@@ -2766,7 +2936,7 @@ export default class BattleScene extends Phaser.Scene {
       target: target.name,
       ability: abilityName,
       amount: actualDamage,
-      targetSide: target.isEnemy ? 'enemy' : 'party',
+      targetSide: target.isDecoy ? 'decoy' : target.isEnemy ? 'enemy' : 'party',
       critical,
       targetHp: target.hp,
       targetMaxHp: target.maxHp,
@@ -2781,9 +2951,10 @@ export default class BattleScene extends Phaser.Scene {
 
     // Supplied artwork replaces the generic pulse/bolt for these named class skills.
     // Ordinary attacks and skills without authored art keep their familiar feedback.
-    if (!contact?.hasArtwork && (attackType === 'spell' || attackType === 'holy')) {
+    if (!contact?.hasArtwork && !this.hasRangedTravel(attacker, abilityName)
+      && abilityName === 'Attack' && (attackType === 'spell' || attackType === 'holy' || attackType === 'ranged')) {
       this.createProjectile(attacker, target, attackType === 'holy' ? 0xfde68a : 0x60a5fa);
-    } else if (!contact?.hasArtwork) {
+    } else if (!contact?.hasArtwork && !this.hasRangedTravel(attacker, abilityName)) {
       this.createMeleePulse(target, critical ? 0xfbbf24 : 0xffffff);
     }
 
@@ -2801,17 +2972,19 @@ export default class BattleScene extends Phaser.Scene {
         actor: attacker.name,
         target: target.name,
       ability: abilityName,
-      targetSide: target.isEnemy ? 'enemy' : 'party', amount: actualDamage,
+      targetSide: target.isDecoy ? 'decoy' : target.isEnemy ? 'enemy' : 'party', amount: actualDamage,
       hpBefore, targetHp: target.hp, targetMaxHp: target.maxHp
       });
     }
 
+    this.classAbilitySystem?.replacement?.afterDamage(attacker, target, actualDamage, critical, armorBlocked, { ...contact, physical, abilityName });
+    this.classAbilitySystem?.replacement?.finishExchange(target);
     return actualDamage;
   }
 
   // This helper applies a heal, including its critical roll, and measures how much health
-  // was actually restored for feedback and the combat log. Healing generates threat only
-  // on enemies already engaged by a tank.
+  // was actually restored for feedback and the combat log. Effective party healing
+  // generates threat on every active enemy, even before the tank reaches that enemy.
   resolveHeal(healer, target, baseAmount, abilityName, allowCrit = true, hasArtwork = false) {
 
     const critical = this.rollCritical(healer, allowCrit);
@@ -2836,12 +3009,12 @@ export default class BattleScene extends Phaser.Scene {
 
     // Authored healing columns replace the generic traveling dot. Health text and
     // hit flashes still show the unchanged amount restored by this heal.
-    if (!hasArtwork) this.createProjectile(healer, target, 0x86efac);
+    if (!hasArtwork) this.createMeleePulse(target, 0x86efac);
     this.createFloatingText(target.x, target.y - 82, `+${effectiveHealing}${critical ? '!' : ''}`, '#22c55e', critical, 'healing');
 
     // filter keeps entries whose callback returns true. It builds a new list and leaves
     // the original list in place.
-    const engaged = this.getLivingEnemies().filter((enemy) => this.isEnemyEngaged(enemy));
+    const engaged = healer.isEnemy ? [] : this.getLivingEnemies();
     engaged.forEach((enemy) => this.addThreat(enemy, healer, effectiveHealing * 0.45));
 
     // ?. only follows this link when the value exists; a missing optional value gives
@@ -2880,19 +3053,14 @@ export default class BattleScene extends Phaser.Scene {
     enemy.hitZone?.disableInteractive?.();
   }
 
-  // This helper checks whether allies may engage an enemy. A tank hit or taunt opens
-  // normal combat for that enemy; parties without a living tank can fight immediately
-  // instead of waiting for an impossible engagement.
+  // Keep this compatibility helper for older callers. Tank engagement is no longer a
+  // permission gate: any living enemy can be attacked and can acquire party threat.
   isEnemyEngaged(enemy) {
-
-    // some stops with true as soon as one entry passes the check; an empty list gives
-    // false.
-    return enemy.engagedByTank === true || !this.partyUnits.some((unit) => unit.alive && unit.role === 'Tank');
+    return enemy?.alive === true;
   }
 
-  // This helper records normal threat after the tank has engaged an enemy. Tank damage
-  // establishes engagement, while ally damage and healing wait for that opening before
-  // contributing their usual threat amounts.
+  // Record threat immediately. The old engagement field remains compatible with saves,
+  // but no longer suppresses damage dealers or healers before a tank makes contact.
   addThreat(enemy, unit, amount) {
 
     // ?. only follows this link when the value exists; a missing optional value gives
@@ -2907,7 +3075,6 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     if (unit.role === 'Tank' && amount > 0) enemy.engagedByTank = true;
-    if (unit.role !== 'Tank' && !this.isEnemyEngaged(enemy)) return;
 
     // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
     // Math.max chooses the largest value; pairing it with Math.min can keep a result
@@ -2915,13 +3082,27 @@ export default class BattleScene extends Phaser.Scene {
     table.set(unit.id, (table.get(unit.id) ?? 0) + Math.max(0, amount));
   }
 
+  // Using any party skill attracts attention. A small intent amount covers buffs,
+  // shields and movement skills; actual damage and healing add their usual threat.
+  // No new saved table is needed, and tanks still open a wave through the zero-threat tie.
+  generateAbilityThreat(unit, ability) {
+    if (unit.isEnemy || !unit.alive) return;
+    const reduction = this.time.now < (unit.status.threatReductionUntil ?? 0)
+      ? 1 - (unit.status.threatReduction ?? 0) : 1;
+    const intent = Math.max(1, (ability.manaCost ?? 0) * 0.5
+      + Math.max(unit.attackPower ?? 0, unit.spellDamage ?? 0, unit.spellHealing ?? 0) * 0.1);
+    this.getLivingEnemies().forEach(enemy => this.addThreat(enemy, unit, intent * reduction));
+  }
+
   // This helper chooses the living threat leader. With equal threat, tanks take priority
   // before distance, including at the start of a wave.
   getHighestThreatTarget(enemy) {
+    const forcedReplacement = this.classAbilitySystem?.replacement?.forcedTarget(enemy);
+    if (forcedReplacement) return forcedReplacement;
 
     // filter keeps entries whose callback returns true. It builds a new list and leaves
     // the original list in place.
-    const living = this.partyUnits.filter((unit) => unit.alive && !unit.stealthed);
+    const living = [...this.partyUnits, ...(this.abilityDecoys ?? [])].filter((unit) => unit.alive && !unit.stealthed);
     if (living.length === 0) {
       return null;
     }
@@ -3054,22 +3235,26 @@ export default class BattleScene extends Phaser.Scene {
   // This helper connects attacker and target with a brief traveling effect.
   createProjectile(attacker, target, color, kind = 'bolt') {
 
-    // Accepted void sprites supply an animated bolt instead of the shared circle.
-    if (createVoidProjectile(this, attacker, target, kind)) return;
+    // Shared travel follows combat time instead of a wall-clock tween. The fallback
+    // remains useful for older saved actions that have no cast-time visual record.
+    const profile = { ...(rangedTravelProfile(attacker, { name: 'Attack' }) ?? { type: kind }), color };
+    return startTravelingEffect(this, attacker, target, { name: 'Legacy projectile' }, null, profile);
+  }
 
-    // Depth is drawing order, not distance or size. Higher-depth objects draw on top of
-    // lower-depth objects.
-    const projectile = this.add.circle(attacker.x, attacker.y, 9, color).setDepth(4000);
-    this.tweens.add({
-      targets: projectile,
-      x: target.x,
-      y: target.y,
-      duration: 180,
-      ease: 'Linear',
+  // Presentation is optional during offline combat and renderer-free tests.
+  startRangedTravel(attacker, target, ability, action) {
+    if (!this.add?.graphics) return false;
+    return startTravelingEffect(this, attacker, target, ability, action);
+  }
 
-      // Finish this animation's remaining work when the tween reaches its end.
-      onComplete: () => projectile.destroy()
-    });
+  // A resolved or interrupted action keeps only its fading cosmetic trail.
+  finishRangedTravel(attacker, action) {
+    if (this.travelingEffects?.length) finishTravelingEffect(this, attacker, action);
+  }
+
+  // An existing delivery replaces generic feedback, avoiding a second projectile.
+  hasRangedTravel(attacker, name) {
+    return this.travelingEffects?.some(effect => effect.caster === attacker && effect.ability.name === name) ?? false;
   }
 
   // This helper marks a close combat impact with a short visual pulse.
@@ -3102,15 +3287,15 @@ export default class BattleScene extends Phaser.Scene {
     this.createFloatingText(unit.x, Math.max(unit.y - 122, this.battlefield.topY + 12), name.toUpperCase(), color, false, 'ability');
   }
 
-  // Boss casts lasting at least two seconds use the same stone banner as player guidance.
+  // Boss windups longer than three seconds use the same stone banner as player guidance.
   announceBossCast(attacker, ability, windup) {
 
-    if (attacker.isBoss && windup >= 2000) {
-      const hint = ability.responseHint ? `: ${ability.responseHint}` : '';
+    // Windup is measured in milliseconds, so exactly 3000 ms keeps authored guidance.
+    if (attacker.isBoss && windup > 3000) {
 
       // A normal banner lasts 900 + 260 ms. Scale that lifetime to cover the cast,
       // with at least two normal lifetimes for a readable short boss warning.
-      this.showBattleMessage(`${attacker.name} casts ${ability.name}${hint}`, '#fde68a', false, Math.max(2, windup / 1160));
+      this.showBattleMessage(`${attacker.name} using ${ability.name}, interrupt it!`, '#fde68a', false, Math.max(2, windup / 1160));
     } else if (ability.responseHint) {
       this.showBattleMessage(`${ability.name}: ${ability.responseHint}`, '#fde68a');
     }
@@ -3286,6 +3471,14 @@ export default class BattleScene extends Phaser.Scene {
         // fractional part.
         const halfway = Math.ceil(unit.maxHp * 0.5);
         if (unit.hp < halfway) unit.heal(halfway - unit.hp);
+
+        // Give living casters the same between-wave minimum as Health. Round upward
+        // for odd-sized pools, and keep any Mana already above half. Idle farming uses
+        // this same completion method, so recovery does not depend on the app being open.
+        if (unit.maxMana > 0) {
+          const halfwayMana = Math.ceil(unit.maxMana * 0.5);
+          if (unit.mana < halfwayMana) unit.mana = halfwayMana;
+        }
       });
 
       this.updateHud();
@@ -3544,9 +3737,9 @@ export default class BattleScene extends Phaser.Scene {
       this.scene.start('TitleScene');
     }, 0x1f2937);
 
-    // farmIndex is zero-based, so add one for the player-visible camp wave number.
-    // Both Abyss camps repeat their own cleared wave; payouts use the reward-cap rules.
-    choice(1, `FARM WAVE ${farmIndex + 1}`,
+    // Both Abyss camps repeat their own cleared wave. The label stays the same in
+    // every Delve while farmIndex still chooses its saved encounter and reward rules.
+    choice(1, 'FARM NEXT WAVE',
       eligibility.eligibleIds.size ? 'Gold, XP, Happiness, and Materials' : 'Materials only', () => {
         GameState.run.entry = 'farm';
         this.startWave(farmIndex);
@@ -3572,7 +3765,7 @@ export default class BattleScene extends Phaser.Scene {
     // find returns the first matching entry, or undefined when none matches. Check for
     // that missing result before using its fields.
     const hero = GameState.roster.find((entry) => entry.id === unit.id);
-    const item = hero && equippedItem(hero, 'potion', GameState);
+    const item = this.classAbilitySystem?.replacement?.potion(unit)?.item ?? (hero && equippedItem(hero, 'potion', GameState));
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
@@ -3593,14 +3786,14 @@ export default class BattleScene extends Phaser.Scene {
     // find returns the first matching entry, or undefined when none matches. Check for
     // that missing result before using its fields.
     const hero = GameState.roster.find((entry) => entry.id === unit.id);
-    const item = hero && equippedItem(hero, 'potion', GameState);
+    const item = this.classAbilitySystem?.replacement?.potion(unit)?.item ?? (hero && equippedItem(hero, 'potion', GameState));
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
     const definition = getPotionDefinition(item?.itemId);
 
     // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
-    if (!definition || time - (this.lastPotionUseAt?.get(unit.id) ?? -Infinity) < 1500) return false;
+    if (!definition || item.charges <= 0 || time - (this.lastPotionUseAt?.get(unit.id) ?? -Infinity) < 1500) return false;
 
     // The condition before ? chooses the first value when true and the value after : when
     // false.
@@ -3617,7 +3810,7 @@ export default class BattleScene extends Phaser.Scene {
     // find returns the first matching entry, or undefined when none matches. Check for
     // that missing result before using its fields.
     const hero = GameState.roster.find((entry) => entry.id === unit.id);
-    const item = equippedItem(hero, 'potion', GameState);
+    const item = this.classAbilitySystem?.replacement?.potion(unit)?.item ?? equippedItem(hero, 'potion', GameState);
     const definition = getPotionDefinition(item.itemId);
     const resource = definition.effect.resource;
 
@@ -3632,7 +3825,8 @@ export default class BattleScene extends Phaser.Scene {
     if (resource === 'hp') unit.heal(restored);
     else unit.mana = Math.min(unit.maxMana, unit.mana + restored);
     const amount = Math.round((resource === 'hp' ? unit.hp : unit.mana) - before);
-    consumePotionCharge(hero.id, GameState);
+    if (this.classAbilitySystem?.replacement) this.classAbilitySystem.replacement.consumePotion(unit);
+    else consumePotionCharge(hero.id, GameState);
 
     // ??= fills a missing value once. It leaves an existing value, including zero or
     // false, alone. A Map pairs a key with a value. Unlike an array index, the key can be
@@ -3663,12 +3857,12 @@ export default class BattleScene extends Phaser.Scene {
       // find returns the first matching entry, or undefined when none matches. Check for
       // that missing result before using its fields.
       const hero = GameState.roster.find((entry) => entry.id === unit.id);
-      const item = hero && equippedItem(hero, 'potion', GameState);
+      const item = this.classAbilitySystem?.replacement?.potion(unit)?.item ?? (hero && equippedItem(hero, 'potion', GameState));
 
       // ?. only follows this link when the value exists; a missing optional value gives
       // undefined.
       const definition = getPotionDefinition(item?.itemId);
-      const available = Boolean(definition);
+      const available = Boolean(definition && item.charges > 0);
       const ready = available && this.canUsePotion(unit);
 
       // The condition before ? chooses the first value when true and the value after :

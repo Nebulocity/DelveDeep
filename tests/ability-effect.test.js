@@ -4,7 +4,11 @@
 import assert from 'node:assert/strict';
 import { createAbilityEffect, updateAbilityEffects, createAbilityTelegraph, clearAbilityTelegraph } from '../combat/AbilityEffect.js';
 import { preloadAbilityEffects, ABILITY_EFFECTS } from '../data/abilityEffects.js';
+import { PHYSICAL_EFFECT_SHEETS } from '../combat/PhysicalAbilityEffects.js';
+import { PREPARE_EFFECT_SHEETS, OATHWARDEN_PREPARE_EFFECT_SHEETS } from '../combat/PrepareAbilityEffects.js';
 import ClassAbilitySystem from '../combat/ClassAbilitySystem.js';
+import { ASSAULT_EFFECT_SHEETS } from '../combat/AssaultAbilityEffects.js';
+import { RANGED_DELIVERY_SHEETS } from '../data/rangedDelivery.js';
 
 function makeScene() {
   const scene = {
@@ -31,6 +35,7 @@ function makeScene() {
         x, y, key, active: true,
         setOrigin() { return this; }, setScale(x, y = x) { this.scale = x; this.scaleX = x; this.scaleY = y; return this; },
         setRotation(rotation) { this.rotation = rotation; return this; },
+        setCrop(x, y, width, height) { this.crop = { x, y, width, height }; return this; },
         setAlpha(alpha) { this.alpha = alpha; return this; },
         setDepth(depth) { this.depth = depth; return this; },
         setVisible(visible) { this.visible = visible; return this; },
@@ -91,7 +96,9 @@ assert.equal(createAbilityEffect(scene, ranger, target, { name: 'Aimed Shot' }),
 scene.textures.exists = () => false;
 assert.equal(createAbilityEffect(scene, ranger, target, volley), false);
 preloadAbilityEffects(scene);
-assert.equal(scene.loads.length, ABILITY_EFFECTS.reduce((sum, effect) => sum + effect.clips.length, 0));
+assert.equal(scene.loads.length, RANGED_DELIVERY_SHEETS.length + ASSAULT_EFFECT_SHEETS.length + PHYSICAL_EFFECT_SHEETS.length + PREPARE_EFFECT_SHEETS.length
+  + OATHWARDEN_PREPARE_EFFECT_SHEETS.length + ABILITY_EFFECTS.reduce((sum, effect) => sum + effect.clips.length, 0));
+assert.equal(scene.loads.find(load => load.key === 'physical-charge-trail').options.endFrame, 31);
 assert.equal(scene.loads.find(load => load.key === 'volley-part-dust_kick').options.endFrame, 4);
 
 // Cast warnings follow the target and belong to a specific action. Canceling an
@@ -124,8 +131,8 @@ warningScene.shutdown();
 assert(warningScene.zones.every(zone => !zone.active));
 console.log('Ability effect pause, alignment, padding, replay and cleanup passed.');
 
-// A real cast's flight follows its moving target and clears on interruption, even
-// while paused. The two arrow packs must never be drawn together before a hit.
+// A real cast's flight follows its moving target and fades on interruption. Pause
+// freezes the fading remnant. The arrow and explosion never play together before a hit.
 const flightScene = makeScene();
 const archer = { ...ranger, arenaX: 100, arenaY: 200 };
 const arrow = { name: 'Exploding Arrow', effect: 'damage', power: 100, damageType: 'physical' };
@@ -144,6 +151,14 @@ updateAbilityEffects(flightScene, 500);
 assert.equal(flight.pieces[0].image.x, pausedX);
 archer.pendingAction = null;
 updateAbilityEffects(flightScene, 0);
+assert.equal(flightScene.abilityEffects.length, 1);
+assert(flight.pieces[0].image.active, 'Interrupted arrows retain their paused fading remnant');
+updateAbilityEffects(flightScene, 500);
+assert.equal(flight.fadeElapsed, 0);
+flightScene.combatPaused = false;
+updateAbilityEffects(flightScene, 200);
+assert(flight.pieces[0].image.alpha > 0 && flight.pieces[0].image.alpha < 1);
+updateAbilityEffects(flightScene, 200);
 assert.equal(flightScene.abilityEffects.length, 0);
 assert(!flight.pieces[0].image.active);
 
@@ -171,7 +186,7 @@ assert.equal(impacts.length, 2);
 
 // Every new impact pack ends without showing its sheet padding. A mark loops for
 // its victim until death, follows movement and removes duplicate applications.
-for (const definition of ABILITY_EFFECTS.filter(effect => effect.id !== 'volley' && !effect.projectile)) {
+for (const definition of ABILITY_EFFECTS.filter(effect => effect.id !== 'volley' && !effect.projectile && !effect.abilityId)) {
   const s = makeScene();
   s.time = { now: 0 };
   const marked = { ...target, status: { damageTakenBoost: 0.25, temporaryHp: 50, sunlitWardVisualUntil: 10000 } };
@@ -199,7 +214,79 @@ for (const definition of ABILITY_EFFECTS.filter(effect => effect.id !== 'volley'
 }
 console.log('Supplied effects, flight interruption and hit-only explosions passed.');
 
-// Fixed area art covers the resolved frontmost recipient without following movement.
+// Generic magical skills work for every eligible caster class. Their saved gameplay
+// statuses control persistent art, while instant cleanup skills play just once.
+for (const name of ['Hex', 'Spellbind', 'Nullify', 'Spellward']) {
+  const s = makeScene();
+  s.time = { now: 0 };
+  const id = `ability_v2_generic_magical_${name.toLowerCase()}`;
+  const victim = { ...target, status: { spellLockUntil: 6000,
+    replacementEffects: [{ key: `${id}:harmful`, until: 6000 }] } };
+  const caster = { className: 'Mage of the Umbral Veil' };
+  const ability = { id, name, replacement: true };
+  assert(createAbilityEffect(s, caster, victim, ability));
+  const effect = s.abilityEffects[0];
+  assert.equal(effect.definition.frames, 32);
+  assert.equal(effect.definition.frameMs, 50);
+  if (name === 'Spellward') {
+    const [rear, front] = effect.pieces;
+    assert.equal(rear.image.depth, 100 + victim.arenaY - 1);
+    assert.equal(front.image.depth, 100 + victim.arenaY + 1);
+    assert.deepEqual(rear.image.crop, { x: 0, y: 0, width: 96, height: 72 });
+    assert.deepEqual(front.image.crop, { x: 0, y: 72, width: 96, height: 24 });
+  }
+  s.combatPaused = true;
+  updateAbilityEffects(s, 700);
+  assert.equal(effect.elapsed, 0);
+  s.combatPaused = false;
+  updateAbilityEffects(s, 1200);
+  assert.equal(effect.pieces[0].image.alpha, 0.85);
+  if (name === 'Spellward') {
+    const [rear, front] = effect.pieces;
+    assert.equal(rear.image.crop.height, front.image.crop.y, 'Crops meet without overlap or gaps');
+    assert.equal(rear.image.crop.height + front.image.crop.height, 96);
+    assert(rear.image.crop.height < 72, 'The split follows the ring as it rises');
+    assert.equal(rear.image.frame, front.image.frame);
+  }
+
+  if (effect.definition.persistentStatus) {
+    createAbilityEffect(s, caster, victim, ability);
+    assert.equal(s.abilityEffects.length, 1, 'Refreshing never doubles the status artwork');
+    victim.status.spellLockUntil = 0;
+    victim.status.replacementEffects = [];
+    updateAbilityEffects(s, 0);
+    assert(effect.pieces[0].image.active, 'Removal begins a fade instead of destroying art');
+  }
+  updateAbilityEffects(s, 200);
+  assert.equal(effect.pieces[0].image.alpha, 0.425);
+  s.combatPaused = true;
+  updateAbilityEffects(s, 1000);
+  assert.equal(effect.pieces[0].image.alpha, 0.425, 'Fade freezes with combat');
+  s.combatPaused = false;
+  updateAbilityEffects(s, 200);
+  assert.equal(s.abilityEffects.length, 0);
+  assert(!effect.pieces[0].image.active);
+
+  // Saved active statuses recreate art without another cast; immunity leaves no art.
+  if (effect.definition.persistentStatus) {
+    s.enemies = [victim];
+    victim.status = name === 'Spellbind' ? { spellLockUntil: 6000 }
+      : { replacementEffects: [{ key: `${id}:harmful`, until: 6000 }] };
+    updateAbilityEffects(s, 0);
+    assert.equal(s.abilityEffects.length, 1);
+    victim.alive = false;
+    updateAbilityEffects(s, 0);
+    updateAbilityEffects(s, 400);
+    assert.equal(s.abilityEffects.length, 0);
+    victim.alive = true;
+    victim.status = {};
+    assert.equal(createAbilityEffect(s, caster, victim, ability), false);
+  }
+}
+console.log('Magical protection sheets, status refresh, restoration and paused fades passed.');
+
+// Ground fields cover the frontmost recipient. Body clouds draw one fitted effect
+// per recipient and retain each impact position without growing across the group.
 for (const name of ['Gloomburst', 'Eclipse Field', 'Smoke Bomb']) {
   const s = makeScene();
   const caster = { className: name === 'Smoke Bomb' ? 'Scoundrel' : 'Mage of the Umbral Veil', arenaX: 100, arenaY: 200 };
@@ -207,7 +294,10 @@ for (const name of ['Gloomburst', 'Eclipse Field', 'Smoke Bomb']) {
   createAbilityEffect(s, caster, victims[0], { name, zone: 2 }, victims);
   const effect = s.abilityEffects[0];
   const { x, y } = effect.origin;
-  assert(effect.pieces.every(piece => piece.image.depth > 1000));
+  const clouds = name !== 'Eclipse Field';
+  assert.equal(s.abilityEffects.length, clouds ? 2 : 1);
+  assert(effect.pieces.every(piece => piece.image.depth > (clouds ? 900 : 1000)));
+  if (clouds) assert(s.abilityEffects[1].pieces.every(piece => piece.image.depth > 1000));
   victims[0].arenaX += 200;
   updateAbilityEffects(s, 100);
   assert.equal(effect.origin.x, x);
@@ -289,3 +379,58 @@ for (const name of ['Morning Chorus', 'Everbright Pulse']) {
   assert(effect.pieces.every(piece => !piece.image.active));
 }
 console.log('Everbright healing hold, fade, pause and cleanup passed.');
+
+// A padded sheet cell is much larger than its visible creature. Exercise pixel
+// measurement, caching, fractional sizing and group spacing without launching Phaser.
+const originalDocument = globalThis.document;
+let pixelReads = 0;
+const frame = { cutX: 0, cutY: 0, cutWidth: 100, cutHeight: 100, source: { image: {} } };
+const pixels = new Uint8ClampedArray(100 * 100 * 4);
+for (let y = 60; y < 80; y++) {
+  for (let x = 40; x < 60; x++) pixels[(y * 100 + x) * 4 + 3] = 255;
+}
+globalThis.document = { createElement: () => ({ getContext: () => ({
+  drawImage() {}, getImageData() { pixelReads++; return { data: pixels }; }
+}) }) };
+try {
+  const s = makeScene();
+  s.textures.getFrame = () => frame;
+  const small = { ...target, container: { scaleX: 1, depth: 900 }, spriteVisual: {
+    definition: { scale: 1, footY: 0, clips: { idle: { south: {
+      frames: [{ key: 'padded', frame: 0, originX: 0.5, originY: 0.8 }]
+    } } } }, image: { width: 100, height: 100, scaleX: 1, scaleY: 1,
+      x: 0, y: 0, originX: 0.5, originY: 0.8 }
+  } };
+  const boss = { ...small, arenaX: 900, container: { scaleX: 3, depth: 1000 } };
+  const caster = { className: 'Scoundrel', arenaX: 100, arenaY: 200 };
+  createAbilityEffect(s, caster, small, { name: 'Smoke Bomb', radius: 10 }, [small, boss, small]);
+  const [smoke, bossSmoke] = s.abilityEffects;
+  assert.equal(s.abilityEffects.length, 2, 'One cloud per distinct resolved victim');
+  assert(smoke.scale < 1, 'Small creatures allow fractional scales below 1x');
+  assert.equal(smoke.pieces[0].clip.width * smoke.scale, 25, 'Padding and huge ability radius do not inflate smoke');
+  assert(Math.abs(bossSmoke.scale / smoke.scale - 3) < 0.001, 'Boss effects grow with the visible sprite');
+  assert.equal(smoke.origin.x + (-65 + 122 / 2) * smoke.scale, small.arenaX);
+  assert.equal(smoke.origin.y + (-58 + 94 / 2) * smoke.scale, small.arenaY - 10);
+  assert.equal(pixelReads, 1, 'Shared idle frame is measured once');
+  const scaleBefore = smoke.scale;
+  boss.arenaX += 1000;
+  updateAbilityEffects(s, 0);
+  assert.equal(smoke.scale, scaleBefore, 'Group separation cannot stretch the small cloud');
+
+  // A mirrored facing must mirror the off-center foot anchor as well as the art.
+  const facing = small.spriteVisual.definition.clips.idle.south.frames[0];
+  facing.originX = 0.4;
+  createAbilityEffect(s, caster, small, { name: 'Smoke Bomb' });
+  const unflipped = s.abilityEffects.at(-1);
+  facing.flipX = true;
+  createAbilityEffect(s, caster, small, { name: 'Smoke Bomb' });
+  const flipped = s.abilityEffects.at(-1);
+  const centerOffset = (-65 + 122 / 2) * smoke.scale;
+  assert.equal(unflipped.origin.x + centerOffset, small.arenaX + 10);
+  assert.equal(flipped.origin.x + centerOffset, small.arenaX - 10);
+  assert.equal(pixelReads, 1, 'Mirroring reuses the cached source rectangle');
+} finally {
+  if (originalDocument === undefined) delete globalThis.document;
+  else globalThis.document = originalDocument;
+}
+console.log('Visible target fitting, subpixel scale, boss size and independent clouds passed.');

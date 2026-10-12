@@ -2,6 +2,18 @@
 // Offsets and movement are artwork pixels relative to the effect's ground origin.
 
 import { SUPPLIED_EFFECT_PACKS } from './suppliedAbilityEffects.js';
+import { MAGICAL_PROTECTION_EFFECTS } from './magicalProtectionEffects.js';
+import { MAGICAL_ASSAULT_EFFECTS } from './magicalAssaultEffects.js';
+import { OATHWARDEN_ASSAULT_EFFECTS } from './oathwardenAssaultEffects.js';
+import { GLADIATOR_ASSAULT_EFFECTS } from './gladiatorAssaultEffects.js';
+import { DAWNWARDEN_ASSAULT_EFFECTS } from './dawnwardenAssaultEffects.js';
+import { OATHWARDEN_PROTECT_EFFECTS } from './oathwardenProtectEffects.js';
+import { GLADIATOR_PROTECT_EFFECTS } from './gladiatorProtectEffects.js';
+import { GENERIC_RESTORE_EFFECTS } from './genericRestoreEffects.js';
+import { DAWNWARDEN_RESTORE_EFFECTS } from './dawnwardenRestoreEffects.js';
+import { preloadPhysicalAbilityEffects } from '../combat/PhysicalAbilityEffects.js';
+import { preloadPrepareAbilityEffects } from '../combat/PrepareAbilityEffects.js';
+import { preloadRangedDelivery } from './rangedDelivery.js';
 
 const sheetUrl = (name) => new URL(`../assets/effects/volley/${name}.png`, import.meta.url).href;
 
@@ -67,22 +79,37 @@ const additionalPacks = [
     ] }
 ];
 
-// Coverage is a cosmetic choice. Areas stay anchored on the floor but draw above
-// all affected units, and Nova's requested 2.5x stretch changes only artwork width.
+// Clouds fit each resolved creature instead of stretching one cloud across the group.
+// Ground fields still show their area, and Nova retains its authored width stretch.
 const presentation = {
-  gloomburst: { coverUnits: true },
-  'ground-sigil': { coverUnits: true },
-  'smoke-bomb': { coverUnits: true },
-  'sanctity-nova': { widthStretch: 2.5, followTarget: true },
-  'hunter-s-mark': { untilDeath: true, followTarget: true },
+  'back-alley-cut': { fitTarget: true },
+  'surprise-attack': { fitTarget: true },
+  'sunbrand-strike': { fitTarget: true },
+  'explodingarrow-arrow': { fitTarget: true, targetSize: 0.6, holdMs: Infinity, fadeMs: 400 },
+  'explodingarrow-explosion': { fitTarget: true },
+  nightbolt: { fitTarget: true, targetSize: 0.45, holdMs: Infinity, fadeMs: 400 },
+  gloomburst: { coverUnits: true, fitTarget: true, perRecipient: true },
+  'ground-sigil': { coverUnits: true, artworkScale: 0.85 },
+  'smoke-bomb': { coverUnits: true, fitTarget: true, perRecipient: true },
+  'sanctity-nova': { widthStretch: 2.5, followTarget: true, artworkScale: 0.85 },
+  'hunter-s-mark': { untilDeath: true, followTarget: true, fitTarget: true },
   'sunlit-ward': { followShield: true, followTarget: true, surroundTarget: true },
-  'everbright-pulse': { healing: true, singleTargetArtwork: true, followTarget: true, holdMs: 1500, fadeMs: 400 },
-  'morning-chorus': { healing: true, singleTargetArtwork: true, followTarget: true, holdMs: 1500, fadeMs: 400 }
+  'everbright-pulse': { healing: true, fitTarget: true, singleTargetArtwork: true, followTarget: true, holdMs: 1500, fadeMs: 400 },
+  'morning-chorus': { healing: true, fitTarget: true, singleTargetArtwork: true, followTarget: true, holdMs: 1500, fadeMs: 400 }
 };
 
 // Parts preserve the supplied behind/front layering; combined sheets are only used
 // for packs with no parts. Loading both would draw the same artwork twice.
 export const ABILITY_EFFECTS = [
+  ...DAWNWARDEN_RESTORE_EFFECTS,
+  ...GENERIC_RESTORE_EFFECTS,
+  ...MAGICAL_ASSAULT_EFFECTS,
+  ...OATHWARDEN_ASSAULT_EFFECTS,
+  ...GLADIATOR_ASSAULT_EFFECTS,
+  ...DAWNWARDEN_ASSAULT_EFFECTS,
+  ...OATHWARDEN_PROTECT_EFFECTS,
+  ...GLADIATOR_PROTECT_EFFECTS,
+  ...MAGICAL_PROTECTION_EFFECTS,
   { ...VOLLEY_EFFECT, id: 'volley', className: 'Ranger', abilityName: 'Volley' },
   ...[...SUPPLIED_EFFECT_PACKS.filter(pack => pack.id !== 'eclipse-field'), ...additionalPacks].map(pack => ({
     ...pack, className: bindings[pack.id][0], abilityName: bindings[pack.id][1],
@@ -90,6 +117,10 @@ export const ABILITY_EFFECTS = [
     projectile: ['nightbolt', 'explodingarrow-arrow'].includes(pack.id),
     clips: pack.clips.map(clip => ({
       ...clip, key: `${pack.id}-${clip.name}`,
+
+      // The mark's triangle occupies the top 16 pixels of each 42 x 48 cell.
+      // Hide the lower ring without changing the cell bounds used to fit the target.
+      crop: pack.id === 'hunter-s-mark' ? { x: 0, y: 0, width: 42, height: 16 } : null,
       url: new URL(`../assets/effects/${pack.id}/${clip.name}.png`, import.meta.url).href
     }))
   }))
@@ -97,12 +128,34 @@ export const ABILITY_EFFECTS = [
 
 // Select a flight separately from its impact. Most skills only have an impact pack.
 export function findAbilityEffect(caster, ability, projectile = false) {
-  return ABILITY_EFFECTS.find(effect => effect.className === caster.className
-    && effect.abilityName === ability.name && Boolean(effect.projectile) === projectile);
+  const restore = GENERIC_RESTORE_EFFECTS.find(effect => effect.abilityId === ability.id);
+  if (restore) return projectile ? undefined : restore;
+  const genericEffect = [...MAGICAL_PROTECTION_EFFECTS, ...MAGICAL_ASSAULT_EFFECTS,
+    ...OATHWARDEN_ASSAULT_EFFECTS, ...GLADIATOR_ASSAULT_EFFECTS, ...DAWNWARDEN_ASSAULT_EFFECTS,
+    ...OATHWARDEN_PROTECT_EFFECTS, ...GLADIATOR_PROTECT_EFFECTS, ...DAWNWARDEN_RESTORE_EFFECTS]
+    .find(effect => effect.abilityId === ability.id);
+  if (genericEffect) return projectile ? undefined : genericEffect;
+  const aliases = {
+    'Shadow Bolt': ['Mage of the Umbral Veil', 'Nightbolt'],
+    'Solar Strike': ['Dawnwarden', 'Sunbrand Strike'],
+    'Sneak Attack': ['Scoundrel', 'Surprise Attack'],
+    'Smoke Screen': ['Scoundrel', 'Smoke Bomb'],
+    'Spring Canopy': ['Cleric of the Everbright', 'Morning Chorus'],
+    'Divine Reprisal': ['Cleric of the Everbright', 'Everbright Pulse']
+  };
+  const binding = ability.replacement && ability.name === 'Sunlit Ward'
+    ? ['Dawnwarden', 'Sunlit Ward'] : ability.replacement && aliases[ability.name];
+  const className = binding?.[0] ?? caster.className;
+  const name = binding?.[1] ?? ability.name;
+  return ABILITY_EFFECTS.find(effect => effect.className === className
+    && effect.abilityName === name && Boolean(effect.projectile) === projectile);
 }
 
 // Load once. endFrame excludes unused padding cells in the small dust sheets.
 export function preloadAbilityEffects(scene) {
+  preloadPhysicalAbilityEffects(scene);
+  preloadPrepareAbilityEffects(scene);
+  preloadRangedDelivery(scene);
   for (const clip of ABILITY_EFFECTS.flatMap(effect => effect.clips)) {
     if (!scene.textures.exists(clip.key)) {
       scene.load.spritesheet(clip.key, clip.url, {

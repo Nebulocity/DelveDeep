@@ -95,7 +95,7 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
 
         // Match each description to the card at the same x. getBounds includes actual
         // font measurement, wrapping and origin, which is what caused the original overlap.
-        return ['LEAVE DELVE', `FARM WAVE ${scene.bossWaveIndex}`, 'FACE THE BOSS'].map(title => {
+        return ['LEAVE DELVE', 'FARM NEXT WAVE', 'FACE THE BOSS'].map(title => {
           const label = scene.children.list.find(object => object.text === title);
           const detail = scene.children.list.find(object => object.type === 'Text'
             && object.x === label.x && object.depth === label.depth && object.y > label.y);

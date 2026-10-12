@@ -1,18 +1,10 @@
-// This encounter owns its artwork layers, waves and walkable floor outline. The polygon
+// This retained background owns its artwork layers and walkable floor outline. The polygon
 // points use original artwork pixels. LayeredEnvironment scales and positions them with
 // the art, then clips the lower edge above the party HUD. Foreground decoration can cover
 // sprites without becoming blocking terrain.
+// There is no playable Delve here; keep this art configuration available for future reuse.
 
 export default {
-  id: 'verdant-tear',
-  name: 'The Verdant Tear',
-  mapLabel: 'The Verdant Tear',
-  subtitle: 'A fresh wound in reality hangs over a grassy knoll. Small, unstable, and no less deadly.',
-  difficulty: 'Unknown', recommendedLevel: 2, depth: 4, type: 'void',
-  possibleDrops: ['Gold', 'Adventurer XP'],
-  prerequisites: ['slime-cave', 'thornbriar-hollow', 'dolmark-den'],
-  requiresLocation: 'duskfall',
-  map: { x: 0.40, y: 0.72, radius: 0.064 },
   terrain: [],
   visuals: {
     environment: {

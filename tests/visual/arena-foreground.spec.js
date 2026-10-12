@@ -18,7 +18,7 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
     await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__?.game.scene.getScene('TitleScene').sys.isActive());
     await mkdir('output/qa/foreground', { recursive: true });
 
-    for (const delve of ['slime-cave', 'thornbriar-hollow', 'dolmark-den', 'murmuring-abyss', 'verdant-tear']) {
+    for (const delve of ['slime-cave', 'thornbriar-hollow', 'dolmark-den', 'murmuring-abyss']) {
       await page.evaluate(id => {
         const qa = window.__DELVE_DEEP_VISUAL_QA__;
         window.__previousArenaParty = qa.game.scene.getScene('BattleScene').partyUnits;

@@ -16,7 +16,13 @@ function loadClass(path, name, globals = {}) {
 }
 
 const Unit = loadClass('../combat/BattleUnit.js', 'BattleUnit');
-const Battle = loadClass('../scenes/BattleScene.js', 'BattleScene', { Phaser: { Scene: class {} }, abilityPower });
+const Battle = loadClass('../scenes/BattleScene.js', 'BattleScene', {
+  Phaser: { Scene: class {} }, abilityPower,
+
+  // Rule checks replace cosmetic callbacks; dedicated effect tests exercise drawing.
+  startThornbriarAbilityEffect() {}, playSlimeAbilityEffect: () => false,
+  startSlimeGlobFlight: () => false, landSlimeGlobFlight() {}, fadeSlimeTelegraph: () => false
+});
 const events = [];
 const hits = [];
 const prompts = [];
@@ -62,7 +68,7 @@ assert.equal(battle.activeTelegraphs.length, 0);
 battle.time.now = 5000;
 battle.tryEnemyAbility(boss, target, 'secondary', 5000);
 assert.equal(events[0].delay, 4000);
-assert.match(prompts.at(-1), /INTERRUPT/);
+assert.equal(prompts.at(-1), 'Abyssal Sovereign using Soul Rend, interrupt it!');
 target.arenaX = 1200;
 battle.time.now = 9000;
 events.shift().callback();
@@ -106,8 +112,8 @@ events.shift().callback();
 assert.equal(hits.length, beforeRuinCancel);
 assert.equal(boss.mana, 0);
 
-// Only the final Sovereign gets these mechanics; the retained Maw and guardian keep theirs.
-assert.equal(enemies.abyssalMaw.abilities.primary.telegraph, 1450);
+// Only the final Sovereign gets these mechanics; the guardian keeps its current kit.
+assert.equal(enemies.abyssalMaw, undefined);
 assert.equal(enemies.voidKeeperGuardian.abilities.tertiary, undefined);
 assert.equal(abilityPower(boss, boss.abilities.tertiary), 240);
 console.log('Sovereign movement, targeted interrupt, warning cleanup, cooldowns and damage passed.');

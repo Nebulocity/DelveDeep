@@ -60,13 +60,27 @@ assert.ok(battle.braceUntil > battle.time.now);
 assert.equal(battle.focusTargetId, 'boss');
 assert.equal(battle.pendingPausedTactics.length, 0);
 
-// Boss banners use the inclusive two-second boundary; shorter ordinary casts stay quiet.
+// Only bosses winding up for more than three seconds receive the interrupt banner.
+battle.showBattleMessage = function (text, color, persistent, durationMultiplier) {
+  this.message = text;
+  this.messageDurationMultiplier = durationMultiplier;
+};
 battle.message = '';
-battle.announceBossCast(enemies[0], { name: 'Long cast' }, 2000);
-assert.ok(battle.message.includes('Long cast'));
+battle.announceBossCast(enemies[0], { name: 'Long cast' }, 3001);
+assert.equal(battle.message, 'Boss using Long cast, interrupt it!');
+assert.equal(battle.messageDurationMultiplier * 1160, 3001);
 battle.message = '';
-battle.announceBossCast(enemies[0], { name: 'Short cast' }, 1999);
+battle.announceBossCast(enemies[0], { name: 'Short cast' }, 3000);
 assert.equal(battle.message, '');
+battle.announceBossCast({ ...enemies[0], isBoss: false }, { name: 'Long cast' }, 6000);
+assert.equal(battle.message, '');
+
+// Shorter mechanics keep their authored response, while longer casts use the requested wording.
+battle.announceBossCast(enemies[0], { name: 'Circle', responseHint: 'MOVE out of the circle' }, 3000);
+assert.equal(battle.message, 'Circle: MOVE out of the circle');
+battle.announceBossCast(enemies[0], { name: 'Circle', responseHint: 'MOVE out of the circle' }, 6000);
+assert.equal(battle.message, 'Boss using Circle, interrupt it!');
+assert.equal(battle.messageDurationMultiplier * 1160, 6000);
 
 // Automatic targets survive tiny distance changes, but explicit orders still win.
 const second = { ...enemies[0], id: 'second', arenaX: 810 };

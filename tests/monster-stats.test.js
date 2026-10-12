@@ -9,6 +9,7 @@ import enemies from '../data/enemies.js';
 import { MONSTER_STAT_DEFAULTS, monsterStats, monsterAbilities } from '../game/MonsterStats.js';
 import { abilityPower, hitAccuracy } from '../game/CharacterStats.js';
 import { armorReduction, cappedChance } from '../config/characterProgression.js';
+import { replacementMultiplier, replacementChance } from '../combat/ReplacementEffects.js';
 
 for (const enemy of Object.values(enemies)) {
   for (const stat of Object.keys(MONSTER_STAT_DEFAULTS)) assert.ok(Number.isFinite(enemy[stat]), `${enemy.name}: ${stat}`);
@@ -45,7 +46,7 @@ function loadClass(path, name, globals) {
 
   return context.Subject;
 }
-const Unit = loadClass('../combat/BattleUnit.js', 'BattleUnit', { armorReduction });
+const Unit = loadClass('../combat/BattleUnit.js', 'BattleUnit', { armorReduction, replacementMultiplier });
 
 // Object.assign writes these fields into its first argument. Later sources replace earlier
 // fields; nested values are not deep-copied.
@@ -65,7 +66,12 @@ assert.equal(defender.hp, 400);
 
 const random = Object.create(Math);
 random.random = () => 0.99;
-const Battle = loadClass('../scenes/BattleScene.js', 'BattleScene', { Phaser: { Scene: class {} }, hitAccuracy, abilityPower, cappedChance, Math: random });
+const Battle = loadClass('../scenes/BattleScene.js', 'BattleScene', {
+  Phaser: { Scene: class {} }, hitAccuracy, abilityPower, cappedChance, Math: random, replacementMultiplier, replacementChance,
+
+  // These stat checks have no renderer. Effect lifecycle has its own real checks.
+  playSlimeAbilityEffect: () => false, landSlimeGlobFlight() {}, startThornbriarAbilityEffect() {}
+});
 const battle = Object.assign(Object.create(Battle.prototype), {
   time: { now: 0 }, isEnemyEngaged: () => true, getLivingEnemies: () => [],
 

@@ -11,11 +11,13 @@ import { getEquippedAdventurer, restoreEquipment } from '../game/Equipment.js';
 import { rankedAbility, battleAbilities } from '../game/AdventurerAbilities.js';
 
 import { CLASS_DEFINITIONS } from '../data/classes.js';
+import { LEGACY_CLASS_DEFINITIONS } from '../data/classes.js';
+import { replacementMultiplier, replacementChance } from '../combat/ReplacementEffects.js';
 import ClassAbilitySystem from '../combat/ClassAbilitySystem.js';
 import { getEquipmentDefinition } from '../data/items.js';
 
 const className = 'Mage of the Umbral Veil';
-const base = CLASS_DEFINITIONS[className];
+const base = LEGACY_CLASS_DEFINITIONS[className];
 
 // ... copies the source's own fields into this object; fields listed later replace earlier
 // ones. This is a shallow copy, so nested objects are still shared.
@@ -41,7 +43,7 @@ assert.equal(abilityStatBonus({ ...geared, attackPower: 999, spellDamage: 999 },
 
 hero.abilityRanks = { nightbolt: 3 };
 hero.abilityLoadout = ['nightbolt'];
-assert.deepEqual(rankedAbility(base.abilities.nightbolt, 3), battleAbilities(hero).nightbolt);
+assert.equal(battleAbilities(hero).nightbolt, undefined, 'Retired skills are unavailable to current loadouts.');
 const target = { alive: true, hp: 100, maxHp: 100, status: {} };
 const unit = { ...stats, hp: 80, maxHp: 80, status: {}, alive: true };
 const scene = {
@@ -67,7 +69,7 @@ system.resolve(unit, target, base.abilities.nightbolt, 0);
 assert.equal(scene.damage, base.abilities.nightbolt.power + 11);
 console.log('Character defaults, separate attack/spell/healing bonuses, rank previews and spell resolution passed.');
 
-const context = vm.createContext({ Phaser: { Scene: class {} }, hitAccuracy });
+const context = vm.createContext({ Phaser: { Scene: class {} }, hitAccuracy, replacementMultiplier, replacementChance });
 vm.runInContext(fs.readFileSync(new URL('../scenes/BattleScene.js', import.meta.url), 'utf8')
   .replace(/^import .*;\r?\n/gm, '').replace('export default class BattleScene', 'globalThis.Battle = class BattleScene'), context);
 
@@ -78,7 +80,7 @@ const battle = Object.assign(Object.create(context.Battle.prototype), {
 
   // We build or display floating text using the current inputs. The objects and values
   // made below are the pieces this part of the screen needs.
-  createFloatingText() {}, createProjectile() {}
+  createFloatingText() {}, createProjectile() {}, createMeleePulse() {}
 });
 
 const actor = { name: 'Caster', role: 'Tank', status: {}, hitChance: 0, critChance: 1, critMultiplier: 2 };
@@ -117,7 +119,7 @@ assert.equal(later.spellDamage, 804);
 assert.equal(later.spellHealing, 502);
 console.log('Percentage ability potency and accuracy ratings above 100% passed.');
 
-const armorContext = vm.createContext({ Phaser: {}, armorReduction });
+const armorContext = vm.createContext({ Phaser: {}, armorReduction, replacementMultiplier });
 vm.runInContext(fs.readFileSync(new URL('../combat/BattleUnit.js', import.meta.url), 'utf8')
   .replace(/^import .*;\r?\n/gm, '').replace('export default class BattleUnit', 'globalThis.Unit = class BattleUnit'), armorContext);
 const defender = Object.assign(Object.create(armorContext.Unit.prototype), {

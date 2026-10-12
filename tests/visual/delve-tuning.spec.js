@@ -35,7 +35,7 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
           noticeBounds: { left: notice.getBounds().left, right: notice.getBounds().right },
           frameBounds: { left: frame.getBounds().left, right: frame.getBounds().right } };
       }, { nextWave, cappedCount });
-      expect(camp.labels).toContain(`FARM WAVE ${nextWave}`);
+      expect(camp.labels).toContain('FARM NEXT WAVE');
       expect(camp.labels).toContain(nextWave === 15 ? 'CONTINUE DELVE' : 'FACE THE BOSS');
       expect(camp.notice).toMatch(cappedCount === 5 ? /materials only.*No XP, Gold or Happiness/ : /reduced Gold.*no XP/);
       expect(camp.notice).toContain('Happiness');

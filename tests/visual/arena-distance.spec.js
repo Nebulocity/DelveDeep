@@ -61,7 +61,7 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
     await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('TitleScene').selectionDetailsClose());
     const boundaries = [];
 
-    for (const delve of ['slime-cave', 'thornbriar-hollow', 'dolmark-den', 'murmuring-abyss', 'verdant-tear']) {
+    for (const delve of ['slime-cave', 'thornbriar-hollow', 'dolmark-den', 'murmuring-abyss']) {
       await page.evaluate(id => window.__DELVE_DEEP_VISUAL_QA__.activate('BattleScene', { delve: id }), delve);
       await page.waitForFunction(() => {
         const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');

@@ -28,8 +28,8 @@ export async function reviewHall(page, output, width) {
     const hero = state.roster.find((entry) => entry.id === 'caramon-gladiator');
     hero.level = 6;
     hero.skillPoints = 8;
-    hero.abilityRanks = { roar: 1, cleave: 1, secondWind: 1 };
-    hero.abilityLoadout = ['roar', 'cleave', 'secondWind'];
+    hero.abilityRanks = { ability_v2_gladiator_defiant_roar: 1, ability_v2_gladiator_offensive_drill: 1, ability_v2_generic_physical_interpose: 1 };
+    hero.abilityLoadout = ['ability_v2_gladiator_defiant_roar', 'ability_v2_gladiator_offensive_drill', 'ability_v2_generic_physical_interpose'];
     hero.equipment = {};
     const blade = (id) => ({ id, itemId: 'field-blade', name: 'Field Blade', slot: 'weapon', rarity: 'common', usableBy: ['Gladiator', 'Dawnwarden'], stats: { attackPower: 2 } });
     state.inventory.equipment = [blade('gear-901'), blade('gear-903'), blade('gear-906'), blade('gear-907'), blade('gear-908'), blade('gear-909'),
@@ -119,7 +119,7 @@ export async function reviewHall(page, output, width) {
     // return value becomes that output entry. filter keeps entries whose callback returns
     // true. It builds a new list and leaves the original list in place.
     const text = scene.children.list.filter(object => object.depth >= 11000).map(object => object.text);
-    return text.includes('Known Skills') && text.includes('Roar (Rank 1)') && !text.includes('Throw Net');
+    return text.includes('Known Skills') && text.includes('Defiant Roar (Rank 1)') && !text.includes('Brutal Thrust (Rank 1)');
   }), 'Registry must show only known skills with their ranks');
 
   await capture('registry');
@@ -218,11 +218,11 @@ export async function reviewHall(page, output, width) {
   await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene').rosterList.set(0));
   await click('RosterScene', 'hall-tab-skills');
 
-  await revealSkill('cleave');
-  await click('RosterScene', 'hall-equip-skill-cleave');
-  ensure(!(await snapshot()).loadout.includes('cleave'), 'Unequip must remove the ability');
-  await click('RosterScene', 'hall-equip-skill-cleave');
-  ensure((await snapshot()).loadout.includes('cleave'), 'Equip must restore the ability');
+  await revealSkill('ability_v2_gladiator_offensive_drill');
+  await click('RosterScene', 'hall-equip-skill-ability_v2_gladiator_offensive_drill');
+  ensure(!(await snapshot()).loadout.includes('ability_v2_gladiator_offensive_drill'), 'Unequip must remove the ability');
+  await click('RosterScene', 'hall-equip-skill-ability_v2_gladiator_offensive_drill');
+  ensure((await snapshot()).loadout.includes('ability_v2_gladiator_offensive_drill'), 'Equip must restore the ability');
   await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene').skillList.set(0));
   ensure(await page.evaluate(() => {
     const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene');
@@ -233,29 +233,29 @@ export async function reviewHall(page, output, width) {
     return hidden && !hidden.input.hitAreaCallback(hidden.input.hitArea, hidden.displayOriginX, hidden.displayOriginY, hidden);
   }), 'Masked skill controls must reject off-screen taps');
 
-  await click('RosterScene', 'hall-skill-roar', false, true);
+  await click('RosterScene', 'hall-skill-ability_v2_gladiator_defiant_roar', false, true);
   ensure((await snapshot()).modal, 'Skill held details did not open');
   await click('RosterScene', 'CLOSE', true);
-  await revealSkill('cleave');
+  await revealSkill('ability_v2_gladiator_offensive_drill');
   const beforeTrain = await snapshot();
-  await click('RosterScene', 'hall-train-cleave');
+  await click('RosterScene', 'hall-train-ability_v2_gladiator_offensive_drill');
   await click('RosterScene', 'CANCEL', true);
   ensure((await snapshot()).gold === beforeTrain.gold, 'Cancelled training spent gold');
 
-  await click('RosterScene', 'hall-train-cleave');
+  await click('RosterScene', 'hall-train-ability_v2_gladiator_offensive_drill');
   await click('RosterScene', 'CONFIRM', true);
   const trained = await snapshot();
-  ensure(trained.ranks.cleave === 2 && trained.sp === beforeTrain.sp - 2 && trained.gold < beforeTrain.gold, 'Confirmed training did not apply its rank and costs');
+  ensure(trained.ranks.ability_v2_gladiator_offensive_drill === 2 && trained.sp === beforeTrain.sp - 2 && trained.gold < beforeTrain.gold, 'Confirmed training did not apply its rank and costs');
   const fixedSlotY = await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene').children.list.find((object) => object.name === 'hall-ability-slot-0').y);
 
-  for (const key of ['net', 'sand']) {
+  for (const key of ['ability_v2_gladiator_brutal_thrust', 'ability_v2_gladiator_punishing_blow']) {
     await revealSkill(key);
     await click('RosterScene', `hall-train-${key}`);
     await click('RosterScene', 'CONFIRM', true);
   }
   ensure((await snapshot()).loadout.length === 4, 'Learning must preserve the four-slot limit');
-  await revealSkill('sand');
-  await click('RosterScene', 'hall-equip-skill-sand');
+  await revealSkill('ability_v2_gladiator_punishing_blow');
+  await click('RosterScene', 'hall-equip-skill-ability_v2_gladiator_punishing_blow');
   ensure((await snapshot()).loadout.length === 4 && (await snapshot()).message.includes('free a slot'), 'A fifth equipped ability must be refused');
   ensure(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene').children.list.find((object) => object.name === 'hall-ability-slot-0').y) === fixedSlotY, 'Skill scrolling moved the fixed battle slots');
 
@@ -270,8 +270,8 @@ export async function reviewHall(page, output, width) {
   }), 'Training cost must use the requested sentence');
 
   await capture('skills');
-  await revealSkill('cleave');
-  await click('RosterScene', 'hall-skill-cleave', false, true);
+  await revealSkill('ability_v2_gladiator_brutal_thrust');
+  await click('RosterScene', 'hall-skill-ability_v2_gladiator_brutal_thrust', false, true);
   ensure(await page.evaluate(() => {
     const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene');
     const flatten = list => list.flatMap(object => [object, ...(object.list ? flatten(object.list) : [])]);
@@ -282,7 +282,7 @@ export async function reviewHall(page, output, width) {
     const text = flatten(scene.children.list).filter(object => object.depth >= 11000).map(object => object.text).join(' ');
 
     // Current catalog skills can have one damage amount; conditional skills have a range.
-    return /Deal \d+(?:-\d+)? physical damage/.test(text) && text.includes('Range:') && text.includes('Cooldown:');
+    return /Deals? \d+(?:-\d+)? physical damage/.test(text) && text.includes('Range:') && text.includes('Cooldown:');
   }), 'Skill details must show numeric damage, measured reach and cooldown');
 
   await capture('skill-potency');
@@ -319,6 +319,6 @@ export async function reviewHall(page, output, width) {
     return { gold: state.gold, gear: hero.equipment, ranks: hero.abilityRanks, loadout: hero.abilityLoadout, tactics: state.leader.battleLoadout };
   });
 
-  ensure(restored.gold === saved.gold && restored.gear.weapon === 'gear-901' && restored.gear.potion === 'gear-905' && restored.ranks.cleave === 2 && restored.loadout.length === 4 && restored.tactics.includes('brace'), 'Reload lost Hall equipment, training or tactics');
+  ensure(restored.gold === saved.gold && restored.gear.weapon === 'gear-901' && restored.gear.potion === 'gear-905' && restored.ranks.ability_v2_gladiator_offensive_drill === 2 && restored.loadout.length === 4 && restored.tactics.includes('brace'), 'Reload lost Hall equipment, training or tactics');
   ensure(errors.length === 0, `Browser errors: ${errors.join('; ')}`);
 }

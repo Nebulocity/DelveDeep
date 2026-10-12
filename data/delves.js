@@ -8,7 +8,6 @@ import slimeCave from './levels/SlimeCave.js';
 import thornbriarHollow from './levels/ThornbriarHollow.js';
 import dolmarkDen from './levels/DolmarkDen.js';
 import murmuringAbyss from './levels/MurmuringAbyss.js';
-import verdantTear from './levels/VerdantTear.js';
 import sunkenWatch from './levels/SunkenWatch.js';
 import oldQuarry from './levels/OldQuarry.js';
 
@@ -17,7 +16,6 @@ const delves = [
   thornbriarHollow,
   dolmarkDen,
   murmuringAbyss,
-  verdantTear,
   sunkenWatch,
   oldQuarry
 ];

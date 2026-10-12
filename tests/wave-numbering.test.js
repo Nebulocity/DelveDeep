@@ -6,11 +6,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import { createEncounterWaves, encounterEnemyCounts } from '../data/encounters.js';
-import enemies, { forgottenCavernWaves, voidPortalWaves } from '../data/enemies.js';
+import enemies from '../data/enemies.js';
 
-// ... expands these entries into the new list or call. It does not deep-copy the objects
-// inside.
-for (const wave of [...forgottenCavernWaves, ...voidPortalWaves]) assert.equal(Object.hasOwn(wave, 'name'), false);
 
 // map builds one output entry for each input entry, in the same order. The callback's
 // return value becomes that output entry.
@@ -18,7 +15,7 @@ for (const delve of [
   { id: 'slime-cave', difficulty: 'Easy' },
   { id: 'thornbriar-hollow', difficulty: 'Easy' },
   { id: 'dolmark-den', difficulty: 'Easy' },
-  { id: 'verdant-tear', type: 'void' },
+  { id: 'sunken-watch', difficulty: 'Very Tough' },
 
   { id: 'void-portal', type: 'void', depth: 5 },
   ...Object.keys(encounterEnemyCounts).map(difficulty => ({ id: 'fallback', difficulty }))
@@ -50,7 +47,7 @@ for (const random of [() => 0, () => 0.999]) {
   assert.deepEqual(waves.map(wave => wave.boss), [false, false, false, false, false, true]);
 }
 
-const context = vm.createContext({ Phaser: { Scene: class {} }, GameState: {} });
+const context = vm.createContext({ Phaser: { Scene: class {} }, GameState: { run: { entry: 'delve' } } });
 vm.runInContext(fs.readFileSync(new URL('../scenes/BattleScene.js', import.meta.url), 'utf8')
   .replace(/^import .*;\r?\n/gm, '').replace('export default class BattleScene', 'globalThis.Battle = class BattleScene'), context);
 
@@ -73,4 +70,11 @@ assert.equal(scene.announcement.boss, false);
 scene.startWave(1);
 assert.equal(scene.announcement.title, 'WAVE 2');
 assert.equal(scene.announcement.boss, true);
-console.log('All encounter waves have numbers only; monster names and boss announcements remain.');
+
+// Farming repeats the same saved wave index, but the countdown names the next
+// repetition instead of repeatedly showing that encounter's progression number.
+context.GameState.run.entry = 'farm';
+scene.startWave(0);
+assert.equal(scene.announcement.title, 'NEXT WAVE');
+assert.equal(scene.announcement.boss, false);
+console.log('Progression waves retain numbers; farm countdowns say Next Wave.');

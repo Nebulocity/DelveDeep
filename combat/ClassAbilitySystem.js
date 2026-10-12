@@ -9,6 +9,8 @@ import { abilityPower, linkedHealing } from '../game/CharacterStats.js';
 
 import { arenaDistance, ADJACENT_DISTANCE } from '../config/combatRanges.js';
 import { findAbilityEffect } from '../data/abilityEffects.js';
+import { incomingPressure, missingHealth, healingUrgency, reserveHealing, usefulHeal } from './CombatDecisions.js';
+import ReplacementAbilitySystem from './ReplacementAbilitySystem.js';
 
 // Convert logical arena distance into the skill system's 100-unit reach measures. scene is
 // the Phaser screen that owns the objects, clock and input used here.
@@ -58,6 +60,7 @@ export default class ClassAbilitySystem {
     this.scene = scene;
     this.traps = [];
     this.chargeTweens = new Set();
+    this.replacement = new ReplacementAbilitySystem(this);
   }
 
   // Set gameplay charge tween speed to zero while paused and one while running.
@@ -68,9 +71,9 @@ export default class ClassAbilitySystem {
   // Return only the living party members eligible for this skill decision.
   allies() { return this.scene.partyUnits.filter(u => u.alive); }
 
-  // Return living enemies that this unit is allowed to engage under the role rules.
+  // Every adventurer may engage immediately. Threat decides who gets attacked back.
   enemies(unit) {
-    return this.scene.getLivingEnemies().filter(e => unit.role === 'Tank' || this.scene.isEnemyEngaged(e));
+    return this.scene.getLivingEnemies();
   }
 
   // Read the shared logical arena distance in the skill system's reach measures.
@@ -182,6 +185,7 @@ export default class ClassAbilitySystem {
   // Apply all overdue poison ticks and test whether a living enemy triggers a current-wave
   // trap. time is a timestamp on the gameplay clock in milliseconds, not a duration.
   tickWorld(time) {
+    this.replacement.tick(time);
 
     // Apply overdue poison ticks so frame timing cannot skip damage.
     for (const enemy of this.scene.getLivingEnemies()) {
@@ -265,6 +269,7 @@ export default class ClassAbilitySystem {
   // live combatant, with current resources and arena position.
   canTeleport(unit, point) {
     const scene = this.scene, g = scene.battlefield;
+    if ((unit.status?.replacementCostRootUntil ?? 0) > scene.time.now) return false;
     if (point.x < 0 || point.y < 0 || point.x > g.logicalWidth || point.y > g.logicalHeight) return false;
 
     // some stops with true as soon as one entry passes the check; an empty list gives
@@ -323,17 +328,19 @@ export default class ClassAbilitySystem {
   }
 
   // Choose a ready class skill by its effect, targets, range and current combat needs.
-  update(unit, time, delta) {
+  update(unit, time, delta, alreadyMoved = false) {
     const scene = this.scene;
-    if (!unit.canStartAction(time) || !unit.canCast(time)) return;
+    if (!unit.canStartAction(time)) return;
+    if (this.replacement.update(unit, time, delta)) return;
 
-    // Ability order follows the class data; healing takes priority for injured allies.
+    // Use class data to find available actions, then rank support by the current need.
     const enemies = this.enemies(unit), allies = this.allies();
 
     // sort rearranges this array in place. A negative comparator result puts a before b;
     // positive puts it after; zero keeps them tied. filter keeps entries whose callback
     // returns true. It builds a new list and leaves the original list in place.
-    const injured = allies.filter(a => a.hp < a.maxHp).sort((a,b) => a.hp/a.maxHp - b.hp/b.maxHp);
+    const injured = allies.filter(a => missingHealth(scene, a) > 0)
+      .sort((a,b) => healingUrgency(scene, b) - healingUrgency(scene, a));
 
     // The condition before ? chooses the first value when true and the value after : when
     // false. ?. only follows this link when the value exists; a missing optional value
@@ -352,10 +359,33 @@ export default class ClassAbilitySystem {
     const ordered = !healingNeeded && scene.attackTargets.get(unit.id);
     const preferred = scene.getPrimaryTarget(unit);
 
-    // Object.entries turns own fields into [key, value] pairs so we can visit or transform
-    // them.
-    for (const [key, a] of Object.entries(unit.abilities)) {
-      if (a.reactive || !unit.abilityReady(key, time)) continue;
+    // Emergency recovery and rescue come before preparation or offense. Within the heal
+    // choices, expected useful HP per mana and windup favors efficient, timely recovery.
+    const priority = ability => {
+      if (ability.effect === 'heal') {
+        const power = abilityPower(unit, ability, ability.power, true);
+        const eligible = injured.filter(ally => this.distance(unit, ally) <= ability.range
+          && (ability.target !== 'self' || ally === unit));
+        const restoration = ally => Math.min(power, missingHealth(scene, ally));
+
+        // An area heal only counts allies around a reachable anchor. A single-target
+        // heal counts one recipient, rather than pretending it heals the whole party.
+        const useful = Math.max(0, ...eligible.map(anchor => ability.zone
+          ? injured.filter(ally => this.distance(anchor, ally) <= ability.zone)
+            .reduce((sum, ally) => sum + restoration(ally), 0) : restoration(anchor)));
+        const emergency = eligible.some(ally => ally.hp / ally.maxHp < 0.4);
+        return (unit.role === 'Healer' || emergency ? 1000 : 700)
+          + Math.min(100, useful / Math.max(1, ability.manaCost ?? 1)
+            / Math.max(1, (ability.windup ?? 300) / 300));
+      }
+      if (ability.effect === 'taunt' && enemies.some(enemy => enemy.currentTargetId !== unit.id)) return 900;
+      if (ability.effect === 'protect' || ability.effect === 'vow') return 800;
+      return 0;
+    };
+    const choices = Object.entries(unit.abilities).filter(([, ability]) => !ability.replacement)
+      .sort((a, b) => priority(b[1]) - priority(a[1]));
+    for (const [key, a] of choices) {
+      if (a.reactive || !unit.canCast(time) || !unit.abilityReady(key, time)) continue;
       let target = unit;
       if (a.effect === 'sacrifice') {
         if (!this.canSacrifice(unit)) continue;
@@ -403,31 +433,44 @@ export default class ClassAbilitySystem {
 
         // find returns the first matching entry, or undefined when none matches. Check for
         // that missing result before using its fields.
-        target = a.target === 'self' ? (unit.hp < unit.maxHp ? unit : null)
-          : (healingPriority ? [healingPriority] : injured).find(t => this.distance(unit,t) <= a.range);
-        if (a.zone) target = this.bestZone(unit, a, injured);
+        target = a.target === 'self' ? (usefulHeal(scene, unit, unit, a) ? unit : null)
+          : (healingPriority ? [healingPriority] : injured)
+            .find(t => this.distance(unit,t) <= a.range && usefulHeal(scene, unit, t, a));
+        if (a.zone) target = this.bestZone(unit, a, injured.filter(t => usefulHeal(scene, unit, t, a)));
 
         if (!target) continue;
       } else if (a.effect === 'protect') {
         if (!enemies.length) continue;
-        target = a.target === 'ally' ? allies.filter(t => this.distance(unit, t) <= a.range)
-          .sort((x, y) => x.hp / x.maxHp - y.hp / y.maxHp)[0] : unit;
+        const threatened = allies.filter(t => incomingPressure(scene, t) >= 0.5
+          && !(t.status.abilityProtectionUntil > time));
+        target = a.target === 'ally' ? threatened.filter(t => this.distance(unit, t) <= a.range)
+          .sort((x, y) => incomingPressure(scene, y) / Math.max(0.2, y.hp / y.maxHp)
+            - incomingPressure(scene, x) / Math.max(0.2, x.hp / x.maxHp))[0] : unit;
 
         if (!target) continue;
+        if (a.target === 'allies' ? !threatened.some(t => this.distance(unit, t) <= (a.radius ?? 2))
+          : incomingPressure(scene, target) < 0.5) continue;
         if (a.target !== 'allies' && target.status.abilityProtectionUntil > time) continue;
       } else if (a.effect === 'prepare') {
         if (!enemies.length || unit.status.abilityPreparationUntil > time) continue;
+
+        // Prepare support only when its next action has a beneficiary. This prevents
+        // opening a fight with healing or shield bonuses that expire unused.
+        if (a.powerUnit.includes('heal') && !injured.some(t => t.hp / t.maxHp < 0.8)) continue;
+        if ((a.nextProtectionBonus || a.nextProtectionDurationBonus || a.protectiveOnlyWindup)
+          && !allies.some(t => incomingPressure(scene, t) >= 0.5)) continue;
       } else if (a.effect === 'trap') {
-        if (!enemies.length) continue;
+        if (!enemies.length || this.traps.some(trap => trap.owner === unit && trap.wave === scene.currentWaveIndex)) continue;
         target = this.trapPoint(unit, enemies);
         if (!target) continue;
       } else if (a.effect === 'damage' || a.effect === 'mark') {
-        if (healingNeeded) continue;
+        if (healingNeeded && !a.healRatio) continue;
         if (a.requiresStealth && !unit.stealthed) continue;
         if (unit.stealthed && !a.requiresStealth) continue;
 
         if ((a.charge || a.behind) && scene.isPositionLocked(unit)) continue;
-        const inRange = enemies.filter(e => this.distance(unit,e) <= (a.radius ?? (a.range + (unit.status.nextRangeBonus ?? 0))));
+        const inRange = enemies.filter(e => this.distance(unit,e) <= (a.radius ?? (a.range + (unit.status.nextRangeBonus ?? 0)))
+          && (a.effect !== 'mark' || !(e.status.damageTakenBoostUntil > time)));
         if (a.farthest) inRange.sort((x,y) => this.distance(unit,y)-this.distance(unit,x));
         target = !a.farthest && inRange.includes(preferred) ? preferred : inRange[0];
 
@@ -438,13 +481,17 @@ export default class ClassAbilitySystem {
         const threatened = scene.getLivingEnemies().some(e => e.currentTargetId === unit.id);
         if (a.effect === 'stealth' && (threatened || unit.stealthed || !enemies.length || !unit.abilityReady('surprise', time))) continue;
         if (a.effect === 'enrage' && !enemies.some(e => this.distance(unit,e) <= 6)) continue;
+        if (a.effect === 'enrage' && unit.hp / unit.maxHp < 0.4 && threatened
+          && (a.incomingMultiplier ?? 1) > 1) continue;
 
-        if (a.effect === 'aegis' && (!injured.length || unit.status.solarAegis || ordered)) continue;
+        if (a.effect === 'aegis' && (!injured.some(ally => missingHealth(scene, ally) / ally.maxHp >= 0.15)
+          || unit.status.solarAegis || ordered)) continue;
         if (a.effect === 'stabilize' && !enemies.length) continue;
         if (a.effect === 'refuge' && unit.hp === unit.maxHp && !threatened) continue;
 
-        if (a.effect === 'armor' && !threatened) continue;
-        if (a.effect === 'ascendance' && !injured.length && !threatened) continue;
+        if (a.effect === 'armor' && (!threatened || unit.status.armorUntil > time)) continue;
+        if (a.effect === 'ascendance' && (!injured.some(ally => ally.hp / ally.maxHp < 0.8) && !threatened
+          || unit.status.healingBoostUntil > time)) continue;
       }
 
       this.cast(unit, target, key, time);
@@ -452,8 +499,9 @@ export default class ClassAbilitySystem {
     }
 
     const basicHealTarget = unit.role === 'Healer' && !ordered
-      ? (healingPriority ? [healingPriority] : injured).find(target => this.distance(unit, target) <= unit.basicHealRange) : null;
-    if (basicHealTarget && unit.canHeal(time)) {
+      ? (healingPriority ? [healingPriority] : injured)
+        .find(target => missingHealth(scene, target) > 0 && this.distance(unit, target) <= unit.basicHealRange) : null;
+    if (basicHealTarget && unit.canCast(time) && unit.canHeal(time)) {
       scene.beginBasicHeal(unit, basicHealTarget, time);
       return;
     }
@@ -462,7 +510,7 @@ export default class ClassAbilitySystem {
       scene.beginBasicAttack(unit, preferred, time, ['Tank', 'Melee DPS'].includes(unit.role) ? 'melee' : unit.className === 'Ranger' ? 'ranged' : 'spell');
     }
 
-    if (scene.isPositionLocked(unit)) return;
+    if (scene.isPositionLocked(unit) || alreadyMoved) return;
     const healTarget = unit.role === 'Healer' && !ordered ? injured[0] : null;
     if (healTarget) {
       if (this.distance(unit,healTarget)>unit.basicHealRange) unit.moveToward(healTarget.arenaX,healTarget.arenaY,delta,100);
@@ -501,7 +549,10 @@ export default class ClassAbilitySystem {
 
       // filter keeps entries whose callback returns true. It builds a new list and leaves
       // the original list in place.
-      const count = candidates.filter(t => zoneContains(this.scene, t, target, ability.zone)).length;
+      const recipients = candidates.filter(t => zoneContains(this.scene, t, target, ability.zone));
+      const count = ability.effect === 'heal' ? recipients.reduce((sum, ally) => sum
+        + Math.min(abilityPower(unit, ability, ability.power, true), missingHealth(this.scene, ally))
+          * (1 + incomingPressure(this.scene, ally) * 0.3), 0) : recipients.length;
       if (count > score) {
         best = { arenaX: target.arenaX, arenaY: target.arenaY, alive: true };
         score = count;
@@ -514,6 +565,7 @@ export default class ClassAbilitySystem {
   // Commit a chosen ability's cost and timing before scheduling its effect. unit is the
   // live combatant, with current resources and arena position.
   cast(unit,target,key,time) {
+    if (unit.abilities[key]?.replacement) return this.replacement.cast(unit, target, key, time);
     const scene=this.scene, base=unit.abilities[key];
 
     // The condition before ? chooses the first value when true and the value after : when
@@ -542,6 +594,11 @@ export default class ClassAbilitySystem {
     scene.logActionStart(unit,target===unit||a.zone?null:target,a.name);
     const action=unit.pendingAction;
 
+    if (a.effect === 'heal') {
+      const recipients = a.zone ? this.allies().filter(ally => zoneContains(scene, ally, target, a.zone)) : [target];
+      reserveHealing(unit, recipients, abilityPower(unit, a, a.power, true));
+    }
+
     // Volley warns and supplied projectiles fly during this existing windup. Drawing
     // is optional so saved and headless combat retain the same timing and targeting.
     scene.createAbilityTelegraph?.(unit, target, a, action);
@@ -559,9 +616,23 @@ export default class ClassAbilitySystem {
     scene.clearAbilityTelegraph?.(unit, action);
     if(!scene.isActionCurrent(unit,action)) return;
 
+    // Fallen targets are legal only for revival. Saved actions retain their resolved
+    // ranked definition, so an old encounter does not change kits during a respec.
+    if (a.replacement) {
+      const valid = target && (target.alive || a.handler === 'revive');
+      if (valid && (target === unit || this.distance(unit, target) <= a.range)) {
+        if (a.handler === 'chargeLine') {
+          const charge = { ...a, charge: true, replacementOrigin: { arenaX: unit.arenaX, arenaY: unit.arenaY } };
+          if (this.startCharge(unit, target, charge, action)) return;
+        } else this.replacement.resolve(unit, target, a, scene.time.now);
+      }
+      unit.finishAction();
+      return;
+    }
+
     // some stops with true as soon as one entry passes the check; an empty list gives
     // false.
-    if(unit.role === 'Healer' && (a.effect === 'damage' || a.effect === 'mark')
+    if(unit.role === 'Healer' && !a.healRatio && (a.effect === 'damage' || a.effect === 'mark')
       && this.allies().some(ally => ally.hp / ally.maxHp < 0.8)) {
       unit.finishAction();
       return;
@@ -664,6 +735,7 @@ export default class ClassAbilitySystem {
   // Apply the selected effect, using the shared damage/healing rules and actual eligible
   // targets. unit is the live combatant, with current resources and arena position.
   resolve(unit,target,a,time,skipChargeMove=false) {
+    if (a.replacement) return this.replacement.resolve(unit, target, a, time);
     const scene=this.scene,s=unit.status,allies=this.allies();
 
     // Movement effects resolve before damage so range and terrain use the landing point.
@@ -908,8 +980,8 @@ export default class ClassAbilitySystem {
     else if(a.targets) targets=[target,...targets.filter(t=>t!==target&&this.distance(unit,t)<=a.range)].slice(0,a.targets);
     else targets=[target];
 
-    // A resolved area skill gets one cosmetic effect at its center, rather than a copy
-    // for every victim. Optional drawing keeps headless background combat compatible.
+    // Pass the resolved recipients to presentation so ground fields can show the area
+    // and body clouds can fit each victim. Optional drawing supports background combat.
     if (targets.length > 0 && a.name !== 'Exploding Arrow') scene.createAbilityEffect?.(unit, target, a, targets);
 
     // Work from the ranked potency and apply the skill's situational modifiers.

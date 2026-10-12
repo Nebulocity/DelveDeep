@@ -75,7 +75,7 @@ export const leaderAbilities = [
     name: 'Shield Wall!',
     shortName: 'SHIELD WALL',
     branch: 'Survival',
-    description: 'Tank characters gain 20 percentage points of Block for 10 seconds.',
+    description: 'Tank characters gain 20% Block for 10 seconds.',
     cost: 1,
     cooldown: 60000,
     duration: 10000,

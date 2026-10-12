@@ -2,8 +2,38 @@
 // template keeps its environment's floor boundary and art. The world entry can still have
 // its own clear record and checkpoint.
 
-import { forgottenCavernWaves, voidPortalWaves } from './enemies.js';
 import { catalogWaves, expandCatalogWaves } from './catalogWaves.js';
+
+// These small fallback groups use active monsters if a future Delve reuses this builder.
+const forgottenCavernWaves = [
+  { enemies: [
+    { type: 'caveSlime', arenaX: 390, arenaY: 790 },
+    { type: 'caveSlime', arenaX: 650, arenaY: 825 }
+  ] },
+  { enemies: [
+    { type: 'caveSlime', arenaX: 360, arenaY: 760 },
+    { type: 'caveSlime', arenaX: 535, arenaY: 830 },
+    { type: 'elderSlime', arenaX: 700, arenaY: 750 }
+  ] },
+  { boss: true, enemies: [{ type: 'elderSlime', arenaX: 520, arenaY: 810 }] }
+];
+const voidPortalWaves = [
+  { enemies: [
+    { type: 'voidCrawler', arenaX: 360, arenaY: 770 },
+    { type: 'voidStalker', arenaX: 650, arenaY: 800 },
+    { type: 'voidWisp', arenaX: 520, arenaY: 845 }
+  ] },
+  { enemies: [
+    { type: 'voidKeeper', arenaX: 500, arenaY: 790 },
+    { type: 'voidStalker', arenaX: 310, arenaY: 750 },
+    { type: 'voidStalker', arenaX: 710, arenaY: 750 }
+  ] },
+  { boss: true, enemies: [
+    { type: 'abyssalSovereign', arenaX: 520, arenaY: 810 },
+    { type: 'voidStalker', arenaX: 300, arenaY: 745 },
+    { type: 'voidStalker', arenaX: 735, arenaY: 745 }
+  ] }
+];
 
 export const encounterWaveCounts = Object.freeze({
   Easy: 6,
@@ -90,22 +120,22 @@ const finalWaves = {
 
   Unknown: [
     { enemies: [
-      { type: 'riftSentinel', arenaX: 450, arenaY: 760 },
-      { type: 'riftSentinel', arenaX: 950, arenaY: 760 },
+      { type: 'voidStalker', arenaX: 450, arenaY: 760 },
+      { type: 'voidStalker', arenaX: 950, arenaY: 760 },
       { type: 'voidStalker', arenaX: 700, arenaY: 830 }
     ] },
 
     { enemies: [
-      { type: 'voidWarden', arenaX: 700, arenaY: 810 },
-      { type: 'riftSentinel', arenaX: 420, arenaY: 740 },
-      { type: 'riftSentinel', arenaX: 980, arenaY: 740 }
+      { type: 'voidKeeper', arenaX: 700, arenaY: 810 },
+      { type: 'voidStalker', arenaX: 420, arenaY: 740 },
+      { type: 'voidStalker', arenaX: 980, arenaY: 740 }
     ] },
 
     { boss: true, enemies: [
       { type: 'abyssalSovereign', arenaX: 700, arenaY: 830 },
-      { type: 'riftSentinel', arenaX: 350, arenaY: 760 },
-      { type: 'riftSentinel', arenaX: 1050, arenaY: 760 },
-      { type: 'riftSentinel', arenaX: 700, arenaY: 620 }
+      { type: 'voidStalker', arenaX: 350, arenaY: 760 },
+      { type: 'voidStalker', arenaX: 1050, arenaY: 760 },
+      { type: 'voidStalker', arenaX: 700, arenaY: 620 }
     ] }
   ]
 };
@@ -140,31 +170,6 @@ const dolmarkWaves = [
   { wardens: { base: 3 }, protectors: 2, colossi: 1, silvanark: 1, boss: true }
 ];
 
-const verdantTearWaves = [
-  { enemies: [
-    { type: 'voidStalker', arenaX: 440, arenaY: 770 },
-    { type: 'voidStalker', arenaX: 940, arenaY: 770 },
-    { type: 'riftSentinel', arenaX: 700, arenaY: 820 }
-  ] },
-
-  { enemies: [
-    { type: 'voidWarden', arenaX: 700, arenaY: 800 },
-    { type: 'voidStalker', arenaX: 420, arenaY: 750 },
-    { type: 'voidStalker', arenaX: 980, arenaY: 750 }
-  ] },
-
-  { enemies: [
-    { type: 'abyssalMaw', arenaX: 700, arenaY: 810 },
-    { type: 'riftSentinel', arenaX: 400, arenaY: 750 },
-    { type: 'riftSentinel', arenaX: 1000, arenaY: 750 }
-  ] },
-
-  { boss: true, enemies: [
-    { type: 'abyssalSovereign', arenaX: 700, arenaY: 830 },
-    { type: 'riftSentinel', arenaX: 430, arenaY: 760 },
-    { type: 'riftSentinel', arenaX: 970, arenaY: 760 }
-  ] }
-];
 
 // These six authored stages seed the longer Abyss run. Difficulty expansion below keeps
 // its guardian stage inside the progression and reserves the final Sovereign stage.
@@ -323,6 +328,9 @@ function buildOldQuarryWaves(random) {
 // Thornbriar, Dolmark, Quarry and Sunken Watch have authored waves; others use difficulty waves.
 export function createEncounterWaves(delve = {}, arenaWidth = 1400, random = Math.random) {
 
+  // Retired Delves cannot silently turn into a fallback encounter through old saved IDs.
+  if (delve.id === 'verdant-tear' || delve.encounterId === 'verdant-tear') return [];
+
   const isVoid = delve.type === 'void';
 
   // The condition before ? chooses the first value when true and the value after : when
@@ -361,11 +369,9 @@ export function createEncounterWaves(delve = {}, arenaWidth = 1400, random = Mat
           ? buildOldQuarryWaves(random)
           : encounterId === 'dolmark-den'
             ? buildDolmarkWaves(random)
-            : encounterId === 'verdant-tear'
-              ? verdantTearWaves
-              : encounterId === 'murmuring-abyss'
-                ? murmuringAbyssWaves
-                : [...difficultyWaves, ...finale]);
+            : encounterId === 'murmuring-abyss'
+              ? murmuringAbyssWaves
+              : [...difficultyWaves, ...finale]);
 
   // Authored encounters keep their own monsters when difficulty extends the run.
   // Their farm group stays second-to-last, and their final boss is never duplicated.
@@ -380,8 +386,8 @@ export function createEncounterWaves(delve = {}, arenaWidth = 1400, random = Mat
       boss: true, milestoneBoss: true,
       enemies: [
         { type: 'elderSlime', arenaX: 700, arenaY: 790 },
-        { type: 'stoneCrawler', arenaX: 450, arenaY: 760 },
-        { type: 'stoneCrawler', arenaX: 950, arenaY: 760 }
+        { type: 'caveSlime', arenaX: 450, arenaY: 760 },
+        { type: 'caveSlime', arenaX: 950, arenaY: 760 }
       ]
     });
   }

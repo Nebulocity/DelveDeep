@@ -68,7 +68,7 @@ test('All five authored delves render real stone textures', async ({ page }) => 
   await page.goto('/?visualQa=1');
   await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__?.game.scene.getScene('TitleScene').sys.isActive());
 
-  for (const id of ['slime-cave', 'thornbriar-hollow', 'dolmark-den', 'murmuring-abyss', 'verdant-tear']) {
+  for (const id of ['slime-cave', 'thornbriar-hollow', 'dolmark-den', 'murmuring-abyss']) {
     await page.evaluate(delve => window.__DELVE_DEEP_VISUAL_QA__.activate('BattleScene', { delve }), id);
     await page.waitForFunction(() => {
       const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');

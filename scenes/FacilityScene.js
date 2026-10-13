@@ -7,6 +7,7 @@ import { FACILITIES, renderFacilityMenu } from '../ui/FacilityMenu.js';
 import GameState from '../game/GameState.js';
 import { saveProfile } from '../game/GameStorage.js';
 import { buyPotionPack, equipmentOwner, equipmentStatsText } from '../game/Equipment.js';
+import { equipmentDetails } from '../game/EquipmentDescriptions.js';
 import { fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import { POTION_ITEMS, CRAFTING_RECIPES } from '../data/items.js';
 
@@ -19,7 +20,7 @@ import { hallScroll } from '../ui/HallUI.js';
 import HapticsService from '../services/HapticsService.js';
 import { canCraft, craftItem, recipeIngredientText } from '../game/Crafting.js';
 
-import { GEAR_STOCK, saleRows, sellOwnedItem, sellAllOwnedItem, buyGear, inscribeEnchantment, applyEnchantment, disenchantItem } from '../game/ShopServices.js';
+import { GEAR_STOCK, saleRows, sellOwnedItem, sellAllOwnedItem, buyGear, inscribeEnchantment, applyEnchantment, disenchantItem, sortShopRows } from '../game/ShopServices.js';
 
 const THEMES = {
   Blacksmith: { panel: 0x1b2023, face: 0x353535, edge: 0xd58b55, text: '#fff0d8' },
@@ -176,7 +177,7 @@ export default class FacilityScene extends Phaser.Scene {
   // Display the selected facility item's details and available transaction controls.
   renderFacilityDetail(choice) {
     const theme = THEMES[this.facility.name];
-    const allRows = this.rowsFor(choice);
+    const allRows = sortShopRows(this.rowsFor(choice));
 
     // ... expands these entries into the new list or call. It does not deep-copy the
     // objects inside. filter keeps entries whose callback returns true. It builds a new
@@ -194,6 +195,18 @@ export default class FacilityScene extends Phaser.Scene {
     const heading = this.add.text(255, 252, choice.id === 'sell' ? 'YOUR INVENTORY' : choice.label, { fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx('heading42'), fontStyle: UI_FONT_WEIGHTS.bold, color: theme.text }).setOrigin(0.5);
     if (heading.width > 330) heading.setScale(330 / heading.width);
     addFacilityDetailsHint(this, this.facility.name, 252, { x: 1400 });
+    if (choice.id === 'enchant' && this.selectedScroll) {
+      const back = addShopButton(this, theme, 2090, 252, 300, 68, 'Back to Scrolls', { prominent: true, fontSize: fontPx('shopCategory') });
+      back.target.setName('enchant-back-to-scrolls');
+      bindSelectionDetails(this, back.target, { title: 'Choose another scroll', description: 'Return to your scrolls without consuming the selected one.', shopTheme: theme }, () => {
+        HapticsService.tap();
+        this.selectedScroll = null;
+        this.category = 'all';
+        this.itemOffset = 0;
+        this.render();
+      });
+      bindShopButtonFeedback(this, back);
+    }
     this.add.rectangle(255, 578, 350, 570, theme.face, 0.45).setStrokeStyle(2, theme.edge, 0.45);
     categories.forEach((category, index) => {
       const y = 333 + index * 76;
@@ -245,7 +258,9 @@ export default class FacilityScene extends Phaser.Scene {
       this.add.text(x - 363, y - 106, row.name, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body34'), fontStyle: UI_FONT_WEIGHTS.bold, color: theme.text,
         wordWrap: { width: 770 }, maxLines: 2 }).setOrigin(0, 0);
       this.add.text(x - 409, y - 16, row.description, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('shopDescription'), color: '#ddd5c7', wordWrap: { width: 804 }, maxLines: 2 });
-      const details = { title: row.name, description: row.detailsDescription ?? row.description, shopTheme: theme };
+      const inspectedItem = row.item ?? GEAR_STOCK.find(item => item.id === row.id) ?? POTION_ITEMS.find(item => item.id === row.id);
+      const details = { ...(inspectedItem && inspectedItem.slot !== 'scroll'
+        ? equipmentDetails(inspectedItem) : { title: row.name, description: row.detailsDescription ?? row.description }), shopTheme: theme };
       bindSelectionDetails(this, card, details);
 
       // Boolean converts an unavailable recipe's missing value into an explicit false.

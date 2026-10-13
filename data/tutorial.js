@@ -16,7 +16,7 @@ export const tutorialSlides = [
 
   {
     title: 'Use battle tactics',
-    caption: 'Tap a ready tactic to help your party. Focus Fire is known from the start. Learn more tactics in town as your Renown Level increases.',
+    caption: 'Tap a ready tactic to help your party. Spend your starting Renown Point on Focus Fire or another affordable tactic in town. Earn more points from character milestones, new bosses and portal closures.',
     video: new URL('../assets/tutorial/tactics.mp4', import.meta.url).href
   },
 

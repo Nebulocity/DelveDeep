@@ -72,6 +72,8 @@ import { cappedChance } from '../config/characterProgression.js';
 import { advanceIdleBattle, resumeIdleBattle, recordIdleEvent } from '../combat/IdleBattle.js';
 import { prepareDeathNotifications } from '../services/DeathNotifications.js';
 import { idleRewardLines } from '../game/IdleSummary.js';
+import { advanceOfflineFarm, finishOfflineFarm } from '../combat/OfflineFarm.js';
+import { recordFarmClear } from '../combat/FarmTiming.js';
 import { migrateEncounterSnapshot, legacyPortalCheckpoint } from '../game/EncounterSaveMigration.js';
 
 export default class BattleScene extends Phaser.Scene {
@@ -187,6 +189,8 @@ export default class BattleScene extends Phaser.Scene {
     this.idlePhaseRemainingMs = undefined;
     this.idleSimulation = null;
     this.idleSimulating = false;
+    this.farmTiming = null;
+    this.offlineFarm = null;
 
     // These bit operators work with 32-bit integers. >>> shifts in zero bits, while ^
     // mixes bits with XOR. They are different from ordinary multiplication or
@@ -352,6 +356,9 @@ export default class BattleScene extends Phaser.Scene {
       { wordWrap: { width: 1430 }, align: 'center' });
 
     this.battleMessagePlaque = addStonePanel(this, width / 2, this.battleLayout.messageY, 1500, 74, 4999).setVisible(false);
+
+    // A reused scene starts without a warning fade from its previous encounter.
+    this.battleMessageFade = null;
 
     // Keep recent player actions together in one readable place above the battlefield.
     this.createCombatAnnounceLog(width);
@@ -767,8 +774,8 @@ export default class BattleScene extends Phaser.Scene {
     showConfirmation(this, {
       title: 'Retreat?',
       description: isOrdinaryDelve()
-        ? 'Leave this combat? Cleared wave rewards stay banked. Retreat costs 1 Tactics Point.'
-        : 'Leave this combat? This encounter resets and its rewards are lost. Retreat costs 1 Tactics Point.',
+        ? 'Leave this combat? Cleared wave rewards stay banked.'
+        : 'Leave this combat? This encounter resets and its rewards are lost.',
       confirmLabel: 'RETREAT',
 
       // Run the committed action after the player confirms this decision.
@@ -799,7 +806,7 @@ export default class BattleScene extends Phaser.Scene {
     // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
-    const equipped = (GameState.leader?.battleLoadout ?? ['focusFire']).slice(0, 5);
+    const equipped = (GameState.leader?.battleLoadout ?? []).slice(0, 5);
     const layout = getBattleLayout(width, this.scale.height, equipped.length);
     this.leaderButtons = [];
 
@@ -1744,6 +1751,13 @@ export default class BattleScene extends Phaser.Scene {
 
     this.currentWaveIndex = index;
     GameState.currentRoom = index;
+
+    // A fresh farm countdown starts the first cycle's partial-time credit. Later clears
+    // provide the full cycle measurements, including the return and rest between fights.
+    if (GameState.run.entry === 'farm') {
+      this.farmTiming ??= { samples: [] };
+      this.farmTiming.startedAt = this.time.now;
+    }
     this.refreshFarmControls();
     const wave = this.waves[index];
     this.waveTransitioning = true;
@@ -2161,6 +2175,7 @@ export default class BattleScene extends Phaser.Scene {
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
     const replaying = this.game.backgroundProgress?.isReplaying === true;
+    this.updateBattleMessageFade(time, replaying);
     if (!replaying && !this.combatPaused) this.updateCombatAnnounceLog(time);
 
     // Real knockback advances once per frame for both sides, including saved-battle
@@ -3529,9 +3544,8 @@ export default class BattleScene extends Phaser.Scene {
     // Windup is measured in milliseconds, so exactly 3000 ms keeps authored guidance.
     if (attacker.isBoss && windup > 3000) {
 
-      // A normal banner lasts 900 + 260 ms. Scale that lifetime to cover the cast,
-      // with at least two normal lifetimes for a readable short boss warning.
-      this.showBattleMessage(`${attacker.name} using ${ability.name}, interrupt it!`, '#fde68a', false, Math.max(2, windup / 1160));
+      // Start fading immediately for three combat seconds, regardless of cast length.
+      this.showBattleMessage(`${attacker.name} using ${ability.name}, interrupt it!`, '#fde68a', false, 1, 3000);
     } else if (ability.responseHint) {
       this.showBattleMessage(`${ability.name}: ${ability.responseHint}`, '#fde68a');
     }
@@ -3576,7 +3590,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   // This helper displays battle guidance until it fades or is explicitly replaced.
-  showBattleMessage(text, color = '#d6a85f', persistent = false, durationMultiplier = 1) {
+  showBattleMessage(text, color = '#d6a85f', persistent = false, durationMultiplier = 1, fadeDurationMs = 0) {
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
@@ -3585,6 +3599,7 @@ export default class BattleScene extends Phaser.Scene {
     if (!this.battleMessageText) return;
 
     this.tweens.killTweensOf(this.battleMessageText);
+    this.battleMessageFade = null;
     this.battleMessageText.setText(text).setColor(color).setAlpha(1);
     if (this.battleMessagePlaque) {
 
@@ -3599,7 +3614,14 @@ export default class BattleScene extends Phaser.Scene {
       this.battleMessagePlaque.setY(messageY);
     }
 
-    this.battleMessagePlaque?.setVisible(Boolean(text));
+    this.battleMessagePlaque?.setAlpha(1).setVisible(Boolean(text));
+
+    // Boss warnings fade both text and stone on the paused battle clock. Other
+    // messages keep their existing hold, fade and persistent guidance timings.
+    if (!persistent && fadeDurationMs > 0) {
+      this.battleMessageFade = { startAt: this.time.now, duration: fadeDurationMs };
+      return;
+    }
 
     if (!persistent) {
       this.tweens.add({
@@ -3620,16 +3642,34 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
+  // Refresh the boss warning's opacity using milliseconds on the combat clock.
+  updateBattleMessageFade(time, replaying = false) {
+    if (!this.battleMessageFade) return;
+    if (replaying) {
+      this.clearBattleMessage();
+      return;
+    }
+    if (this.combatPaused) return;
+
+    // Linear opacity falls from 1 to 0 over the full three seconds, with no hold.
+    const { startAt, duration } = this.battleMessageFade;
+    const alpha = Math.max(0, 1 - Math.max(0, time - startAt) / duration);
+    this.battleMessageText?.setAlpha(alpha);
+    this.battleMessagePlaque?.setAlpha(alpha);
+    if (alpha === 0) this.clearBattleMessage();
+  }
+
   // This helper dismisses guidance when the current interaction no longer needs it.
   clearBattleMessage() {
 
+    this.battleMessageFade = null;
     if (!this.battleMessageText) return;
     this.tweens.killTweensOf(this.battleMessageText);
     this.battleMessageText.setText('').setAlpha(1);
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
-    this.battleMessagePlaque?.setVisible(false);
+    this.battleMessagePlaque?.setAlpha(1).setVisible(false);
   }
 
   // This helper clears wave visuals and paces the transition to the next result.
@@ -3646,6 +3686,7 @@ export default class BattleScene extends Phaser.Scene {
     // warnings.
     this.waveTransitioning = true;
     let waveReward = null;
+    if (GameState.run.entry === 'farm') recordFarmClear(this);
     if (isOrdinaryDelve() && this.currentWaveIndex < this.bossWaveIndex) {
       waveReward = awardOrdinaryWave(GameState.currentDelve, this.currentWaveIndex,
         this.bossWaveIndex, GameState.run.entry === 'farm', this.partyUnits, () => this.combatRandom());
@@ -3665,6 +3706,8 @@ export default class BattleScene extends Phaser.Scene {
       if (waveReward) {
         summary.gold += waveReward.gold;
         summary.xp += waveReward.xp;
+        summary.renownPoints = (summary.renownPoints ?? 0) + (waveReward.leaderResult?.renownPointsEarned ?? 0);
+        summary.renownLevels = (summary.renownLevels ?? 0) + (waveReward.leaderResult?.levelsGained ?? 0);
 
         // ??= fills a missing value once. It leaves an existing value, including zero or
         // false, alone. Object.fromEntries turns [key, value] pairs back into an object. A
@@ -3794,6 +3837,8 @@ export default class BattleScene extends Phaser.Scene {
     // value after : when false. map builds one output entry for each input entry, in the
     // same order. The callback's return value becomes that output entry.
     return [`+${reward.gold} GOLD  +${reward.xp} XP`,
+      ...(reward.leaderResult?.renownPointsEarned > 0
+        ? [`+${reward.leaderResult.renownPointsEarned} RP · Renown Level ${GameState.leader.level}`] : []),
       ...(reward.happiness ? [`+${reward.happiness} HAPPINESS per living adventurer`] : []),
       ...Object.entries(materials).filter(([, count]) => count > 0)
         .map(([id, count]) => `+${count} ${getMaterialDefinition(id)?.name ?? id}`),
@@ -3904,6 +3949,12 @@ export default class BattleScene extends Phaser.Scene {
     this.waveRetreating = false;
     GameState.run.entry = 'camp';
     this.farmStopRequested = false;
+
+    // Time spent choosing at camp is never part of a farming cycle or speed sample.
+    if (this.farmTiming) {
+      this.farmTiming.lastClearAt = null;
+      this.farmTiming.measuredClearAt = null;
+    }
     this.refreshFarmControls();
     GameState.currentRoom = getDelveCheckpoint(GameState.currentDelve, this.bossWaveIndex)?.nextWave ?? this.bossWaveIndex;
     this.clearBattleMessage();
@@ -4175,6 +4226,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
+    finishOfflineFarm(this);
     resumeIdleBattle(this);
     this.partyUnits?.forEach(unit => unit.syncPresentation());
     this.enemies?.forEach(enemy => enemy.updateDeathPresentation?.(0));
@@ -4190,7 +4242,8 @@ export default class BattleScene extends Phaser.Scene {
   // Let the background service advance real battle gameplay by the requested missed time.
   // durationMs is a duration in milliseconds, rather than an absolute clock time.
   advanceIdleProgress(durationMs, budgetNow) {
-    return advanceIdleBattle(this, durationMs, budgetNow);
+    const farm = advanceOfflineFarm(this, durationMs);
+    return farm === false ? advanceIdleBattle(this, durationMs, budgetNow) : farm;
   }
 
   // Refresh the visible battle when the host returns to the foreground.
@@ -4200,6 +4253,7 @@ export default class BattleScene extends Phaser.Scene {
     // undefined.
     if (this.game.backgroundProgress?.hidden || this.restoringBattle
       || this.game.backgroundProgress?.pendingMs >= 50) return;
+    finishOfflineFarm(this);
     resumeIdleBattle(this);
     this.showIdleSummary();
   }
@@ -4464,6 +4518,10 @@ export default class BattleScene extends Phaser.Scene {
       this.idleSummary.gold += gold;
     }
     const summary = completeExpedition();
+    if (this.idleSimulating) {
+      this.idleSummary.renownPoints = (this.idleSummary.renownPoints ?? 0) + summary.leaderResult.renownPointsEarned;
+      this.idleSummary.renownLevels = (this.idleSummary.renownLevels ?? 0) + summary.leaderResult.levelsGained;
+    }
     this.updateHud();
 
     // Boss XP can also grant levels. Finish saving rewards immediately, but let the

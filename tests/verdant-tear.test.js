@@ -48,7 +48,7 @@ for (const [width, height] of [[2400, 1080], [960, 432]]) {
 // routing code with saved identities, while keeping roster progress and banked Gold intact.
 let savedBattle;
 const context = vm.createContext({ Phaser: { Scene: class {} }, GameState, adventurers: [],
-  prepareBuildSave() {}, loadProfile() { GameState.activeBattle = savedBattle; },
+  recoverInterruptedRestore() {}, prepareBuildSave() {}, loadProfile() { GameState.activeBattle = savedBattle; },
   loadLeaderProgression() { return { level: 4 }; }, getDelveById, enemies });
 vm.runInContext(fs.readFileSync(new URL('../scenes/BootScene.js', import.meta.url), 'utf8')
   .replace(/^import .*;\r?\n/gm, '').replaceAll('import.meta.env.DEV', 'true')

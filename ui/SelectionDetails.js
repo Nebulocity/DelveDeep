@@ -12,6 +12,7 @@ import { addRegionPanel, addRegionNotice, regionMessageBounds } from './RegionMa
 
 import { isGuildHall } from './GuildHallTheme.js';
 import { showGuildDetails } from './GuildHallDialogs.js';
+import { addEnchantmentScroll } from './EnchantmentScroll.js';
 import { showShopDetails } from './ShopDetails.js';
 import { UI_FONT_SIZES, fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import { abilitySummary } from '../game/AbilityDescriptions.js';
@@ -233,7 +234,10 @@ export function showSelectionDetails(scene, details) {
       const y = top + panelHeight - 235;
       objects.push(addStonePanel(scene, x, y, cardWidth, 220, depth + 2));
       objects.push(stoneText(scene, x, y - 72, item.slot.toUpperCase(), UI_FONT_SIZES.compact26, depth + 3, { color: STONE.muted }));
-      objects.push(stoneText(scene, x, y - 12, item.name, UI_FONT_SIZES.body30, depth + 3, { wordWrap: { width: cardWidth - 40 } }));
+      const title = stoneText(scene, x + (item.enchantmentId ? 14 : 0), y - 12, item.name, UI_FONT_SIZES.body30, depth + 3,
+        { wordWrap: { width: cardWidth - (item.enchantmentId ? 70 : 40) } });
+      objects.push(title);
+      if (item.enchantmentId) objects.push(addEnchantmentScroll(scene, title.x - title.width / 2 - 21, y - 12, 30, depth + 4));
       objects.push(stoneText(scene, x, y + 65, item.summary, UI_FONT_SIZES.compact26, depth + 3, { fontFamily: UI_FONT_FAMILIES.sans, wordWrap: { width: cardWidth - 40 } }));
     });
   }

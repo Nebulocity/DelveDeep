@@ -3,6 +3,7 @@
 
 import Phaser from 'phaser';
 import { ownedEquipment, equipmentOwner, equipmentStatsText } from '../game/Equipment.js';
+import { equipmentDetails } from '../game/EquipmentDescriptions.js';
 import { HALL, hallText, hallPanel, hallButton, hallDetails, hallIcon, addHallFrame } from '../ui/HallUI.js';
 import GameState from '../game/GameState.js';
 import { ENCHANTMENTS } from '../data/enchantments.js';
@@ -10,6 +11,7 @@ import { CRAFTING_RECIPES, getMaterialDefinition, getPotionDefinition } from '..
 import { canCraft, recipeIngredientText } from '../game/Crafting.js';
 
 import { guildSurface } from '../ui/GuildHallTheme.js';
+import { addEnchantmentScroll } from '../ui/EnchantmentScroll.js';
 import { UI_FONT_SIZES, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 
 const CATEGORIES = [
@@ -44,7 +46,12 @@ export default class ItemsScene extends Phaser.Scene {
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
     this.selectionDetailsClose?.();
-    this.children.removeAll(true);
+
+    // Destroy old category controls as well as their artwork so held details always
+    // belong to the visible items. A snapshot stays stable during destroy callbacks.
+    for (const object of [...this.children.list]) {
+      if (object.active) object.destroy();
+    }
     addHallFrame(this, 'Items');
     hallPanel(this, 272, 638, 440, 736);
     hallPanel(this, 1431, 638, 1834, 736);
@@ -92,9 +99,14 @@ export default class ItemsScene extends Phaser.Scene {
       guildSurface(this, 1431, y, 1760, 126, 'row');
       const card = this.add.rectangle(1431, y, 1760, 126, 0, 0).setName(`hall-item-${item.id}`);
 
-      hallDetails(this, card, { title: item.name, description: `${stats}${equipmentOwner(item.id) ? `\n\nEquipped by ${equipmentOwner(item.id).name}` : ''}` });
+      const details = ['weapon', 'armor', 'accessory', 'potion'].includes(item.slot)
+        ? equipmentDetails(item, equipmentOwner(item.id)) : { title: item.name, description: stats };
+      if (equipmentOwner(item.id)) details.description += `\n\nEquipped by ${equipmentOwner(item.id).name}`;
+      hallDetails(this, card, details);
       hallIcon(this, this.category === 'materials' ? 'ingot' : this.category === 'recipes' ? 'scroll' : item.slot === 'weapon' ? 'sword' : item.slot === 'potion' ? 'flask' : item.slot === 'scroll' ? 'scroll' : 'shield', 606, y);
-      hallText(this, 660, y - 29, item.name, UI_FONT_SIZES.body35, { fontStyle: UI_FONT_WEIGHTS.bold, wordWrap: { width: 1170 } });
+      const nameX = item.enchantmentId ? 692 : 660;
+      if (item.enchantmentId) addEnchantmentScroll(this, 657, y - 29, 28, 2);
+      hallText(this, nameX, y - 29, item.name, UI_FONT_SIZES.body35, { fontStyle: UI_FONT_WEIGHTS.bold, wordWrap: { width: 1170 } });
       const craftCheck = this.category === 'recipes' ? canCraft(item.id) : null;
       const recipeLabel = craftCheck?.ok ? 'Ready' : craftCheck?.message?.startsWith('Learn this') ? 'Learn recipe' : 'Gather materials';
 

@@ -14,7 +14,8 @@ for (const { id } of adventurers) assert.ok(CHARACTER_SPRITES[id], `missing comb
 for (const name of names) {
   const sprite = CHARACTER_SPRITES[name];
   assert.ok(sprite, `missing sprite for ${name}`);
-  assert.equal(sprite.textures.length, states.length);
+  const temporaryWalk = sprite.textures.find(texture => texture.key === 'sturm-temporary-walk');
+  assert.equal(sprite.textures.length, states.length + (temporaryWalk ? 1 : 0));
   const layout = JSON.parse(fs.readFileSync(new URL(`../assets/characters/${name}/sheets/layout.json`, import.meta.url), 'utf8'));
   assert.equal(layout.frameWidth, 256);
   assert.equal(layout.frameHeight, 256);
@@ -31,14 +32,20 @@ for (const name of names) {
 
     // function toString() { [native code] }
     assert.equal(png.subarray(1, 4).toString(), 'PNG');
-    assert.equal(png.readUInt32BE(20), 1024, 'four direction rows');
-    assert.equal(png.readUInt32BE(16), layout.states[states[index]].columns * 256);
+
+    // Sturm's optional walking test has 36 sequential cells in a six-by-six atlas.
+    // Original sheets still follow their four authored direction rows and layout file.
+    const isTemporaryWalk = texture === temporaryWalk;
+    const columns = isTemporaryWalk ? 6 : layout.states[states[index]].columns;
+    const rows = isTemporaryWalk ? 6 : layout.directions.length;
+    assert.equal(png.readUInt32BE(20), rows * 256);
+    assert.equal(png.readUInt32BE(16), columns * 256);
     assert.equal(png[25], 6, 'sprite sheet keeps RGBA transparency');
     assert.equal(png.subarray(-8, -4).toString(), 'IEND');
 
-    // Four authored rows fill each atlas. Clip indices must stay inside those cells,
+    // The measured rows fill each atlas. Clip indices must stay inside those cells,
     // including the aliases used for the extra four movement headings.
-    capacities.set(texture.key, layout.states[states[index]].columns * layout.directions.length);
+    capacities.set(texture.key, columns * rows);
   }
 
   // Object.entries turns own fields into [key, value] pairs so we can visit or transform
@@ -83,7 +90,7 @@ preloadCharacterSprites({
   textures: { exists: () => false },
   load: { spritesheet: (key, url, options) => loaded.push({ key, url, options }) },
 });
-assert.equal(loaded.length, names.length * states.length);
+assert.equal(loaded.length, names.reduce((count, name) => count + CHARACTER_SPRITES[name].textures.length, 0));
 
 // every requires all entries to pass the check; an empty list gives true.
 assert.ok(loaded.every(({ options }) => options.frameWidth === 256 && options.frameHeight === 256));

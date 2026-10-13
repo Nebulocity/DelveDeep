@@ -1,8 +1,9 @@
-// The player's Renown and Tactics Points are separate from adventurer XP and skill points.
+// The player's Renown Level and Renown Points are separate from adventurer XP and skill points.
 // Legacy storage still calls Renown level "level". Keep that saved name compatible while
 // using the current player-facing label. Unlocks and equipped tactics are separate lists.
 
 import { LEADER_STORAGE_KEY } from './BuildSave.js';
+import { MAX_RENOWN_LEVEL, CHARACTER_RENOWN_INTERVAL, LEADERSHIP_RARITIES } from '../config/renown.js';
 
 const STORAGE_KEY = LEADER_STORAGE_KEY;
 
@@ -14,11 +15,11 @@ export const leaderAbilities = [
     shortName: 'FOCUS!',
     branch: 'Command',
     description: 'Direct all non-healers to the target. They deal 5% more damage to it for 10 seconds.',
-    cost: 0,
+    rarity: 'common',
+    cost: 1,
     cooldown: 45000,
     duration: 10000,
-    damageBonus: 0.05,
-    unlockedByDefault: true
+    damageBonus: 0.05
   },
 
   {
@@ -28,7 +29,8 @@ export const leaderAbilities = [
     shortName: 'COORDINATE',
     branch: 'Command',
     description: 'Melee damage dealers strike one enemy and root it for 6 seconds. Once per encounter.',
-    cost: 1,
+    rarity: 'uncommon',
+    cost: 15,
     oncePerEncounter: true
   },
 
@@ -39,7 +41,8 @@ export const leaderAbilities = [
     shortName: 'LUNAR',
     branch: 'Command',
     description: 'Mages damage enemies within 4 paces of the target and root them for 8 seconds. Once per encounter.',
-    cost: 1,
+    rarity: 'uncommon',
+    cost: 18,
     oncePerEncounter: true
   },
 
@@ -50,7 +53,8 @@ export const leaderAbilities = [
     shortName: 'FIGHT ON',
     branch: 'Command',
     description: 'All characters deal 10% more damage for 6 seconds.',
-    cost: 1,
+    rarity: 'common',
+    cost: 2,
     cooldown: 45000,
     duration: 6000,
     damageBonus: 0.1
@@ -63,7 +67,8 @@ export const leaderAbilities = [
     shortName: 'BRACE!',
     branch: 'Survival',
     description: 'All characters take 30% less damage for 8 seconds.',
-    cost: 1,
+    rarity: 'common',
+    cost: 2,
     cooldown: 45000,
     duration: 8000,
     damageReduction: 0.3
@@ -76,7 +81,8 @@ export const leaderAbilities = [
     shortName: 'SHIELD WALL',
     branch: 'Survival',
     description: 'Tank characters gain 20% Block for 10 seconds.',
-    cost: 1,
+    rarity: 'common',
+    cost: 4,
     cooldown: 60000,
     duration: 10000,
     blockBonus: 0.2
@@ -89,7 +95,8 @@ export const leaderAbilities = [
     shortName: 'ARISE!',
     branch: 'Survival',
     description: 'Restore all fallen characters to life at full health and mana. Once per encounter.',
-    cost: 2,
+    rarity: 'rare',
+    cost: 35,
     oncePerEncounter: true,
     healthFraction: 1,
     manaFraction: 1
@@ -102,7 +109,8 @@ export const leaderAbilities = [
     shortName: 'MANA VORTEX',
     branch: 'Morale',
     description: 'Restore all mana to every mana-using character. Once per encounter.',
-    cost: 1,
+    rarity: 'uncommon',
+    cost: 20,
     oncePerEncounter: true
   },
 
@@ -113,7 +121,8 @@ export const leaderAbilities = [
     shortName: 'ENCOURAGE',
     branch: 'Morale',
     description: 'Restore Health to every living ally.',
-    cost: 1,
+    rarity: 'common',
+    cost: 2,
     cooldown: 45000,
     healFraction: 0.25
   },
@@ -125,7 +134,8 @@ export const leaderAbilities = [
     shortName: 'REGEN!',
     branch: 'Morale',
     description: 'Restore 100 health to all living allies every 3 seconds for 12 seconds.',
-    cost: 1,
+    rarity: 'common',
+    cost: 4,
     cooldown: 45000,
     duration: 12000,
     healAmount: 100,
@@ -139,7 +149,8 @@ export const leaderAbilities = [
     shortName: 'SUPPLIES',
     branch: 'Preparation',
     description: 'Restore all uses in every equipped potion pack. Once per encounter.',
-    cost: 1,
+    rarity: 'common',
+    cost: 5,
     oncePerEncounter: true
   },
 
@@ -150,7 +161,8 @@ export const leaderAbilities = [
     shortName: 'READY!',
     branch: 'Preparation',
     description: 'The next damage-dealing ability for each character is a guaranteed critical hit.',
-    cost: 1,
+    rarity: 'common',
+    cost: 3,
     cooldown: 45000
   },
 
@@ -161,96 +173,70 @@ export const leaderAbilities = [
     shortName: 'REVIVE!',
     branch: 'Survival',
     description: 'Restore one fallen character to full health and mana.',
-    cost: 1,
+    rarity: 'common',
+    cost: 3,
     cooldown: 45000,
     healthFraction: 1,
     manaFraction: 1
   }
 ];
 
+// A fresh leader has one point to choose a first tactic in town. Unlocks and the
+// five-slot equipped list are separate, so buying never silently replaces a loadout.
 const defaultLeader = () => ({
   level: 1,
-  highestClearedDepth: 0,
-  tacticsPoints: 0,
-  spentTacticsPoints: 0,
-  unlockedAbilities: ['focusFire'],
-  battleLoadout: ['focusFire']
+  renownPoints: 1,
+  spentRenownPoints: 0,
+  claimedCharacterMilestones: [],
+  claimedDelveBosses: [],
+  closedVoidPortals: [],
+  unlockedAbilities: [],
+  battleLoadout: []
 });
 
-// Restore Renown, tactic unlocks and loadout while migrating retired tactic IDs.
+// Keep existing local unlocks readable, but do not invent achievement history for old
+// saves. The new reward schedule is balanced for a fresh profile.
 export function loadLeaderProgression() {
   const fallback = defaultLeader();
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return fallback;
     const saved = JSON.parse(raw);
-
-    // The braces pull named fields into local variables. This reads those fields without
-    // copying the whole source object.
-    const { inspirationPoints, spentInspiration, ...progress } = saved;
-
-    // A Set keeps each value once. has checks membership without searching a list for
-    // duplicate entries. map builds one output entry for each input entry, in the same
-    // order. The callback's return value becomes that output entry.
-    const known = new Set(leaderAbilities.map((ability) => ability.id));
-
-    // The condition before ? chooses the first value when true and the value after : when
-    // false. ?. only follows this link when the value exists; a missing optional value
-    // gives undefined.
-    let refund = saved.unlockedAbilities?.includes('preparedSupplies') === true ? 1 : 0;
-    const migrateId = (id) => {
-      if (id === 'rally') {
-        refund += 1;
-        return null;
-      }
-      if (id === 'coordinatedAssault') return 'fightOn';
-      if (id === 'preparedSupplies') return null;
-
-      return id;
-    };
-
-    // filter keeps entries whose callback returns true. It builds a new list and leaves
-    // the original list in place. ... expands these entries into the new list or call. It
-    // does not deep-copy the objects inside. ?? uses the fallback only for null or
-    // undefined. A real zero or false stays intact.
-    const unlocked = Array.from(new Set(['focusFire', ...(saved.unlockedAbilities ?? []).map(migrateId).filter(Boolean)]))
-      .filter((id) => known.has(id));
-    const oldLoadout = saved.battleLoadout ?? ['focusFire'];
-    const battleLoadout = Array.from(new Set(oldLoadout.map(id => id === 'rally' ? null
-      : id === 'coordinatedAssault' ? 'fightOn' : id === 'preparedSupplies' ? null : id)
-      .filter((id) => id && unlocked.includes(id)))).slice(0, 5);
-
-    // Math.max chooses the largest value; pairing it with Math.min can keep a result
-    // inside both a lower and an upper bound.
-    const leader = {
+    const known = new Set(leaderAbilities.map(ability => ability.id));
+    const migrateId = id => id === 'coordinatedAssault' ? 'fightOn' : id;
+    const unlocked = [...new Set((saved.unlockedAbilities ?? []).map(migrateId))]
+      .filter(id => known.has(id));
+    const refund = ['rally', 'preparedSupplies'].filter(id => saved.unlockedAbilities?.includes(id)).length;
+    return {
       ...fallback,
-      ...progress,
-      tacticsPoints: Math.max(0, saved.tacticsPoints ?? inspirationPoints ?? 0) + refund,
-      spentTacticsPoints: Math.max(0, (saved.spentTacticsPoints ?? spentInspiration ?? 0) - refund),
+      level: Math.max(1, Math.min(MAX_RENOWN_LEVEL, saved.level ?? 1)),
+      renownPoints: Math.max(0, saved.renownPoints ?? saved.tacticsPoints ?? saved.inspirationPoints ?? 0) + refund,
+      spentRenownPoints: Math.max(0, (saved.spentRenownPoints ?? saved.spentTacticsPoints ?? saved.spentInspiration ?? 0) - refund),
+      claimedCharacterMilestones: [...new Set(saved.claimedCharacterMilestones ?? [])],
+      claimedDelveBosses: [...new Set(saved.claimedDelveBosses ?? [])],
+      closedVoidPortals: [...new Set(saved.closedVoidPortals ?? [])],
       unlockedAbilities: unlocked,
-      battleLoadout
+      battleLoadout: [...new Set((saved.battleLoadout ?? []).map(migrateId))]
+        .filter(id => unlocked.includes(id)).slice(0, 5)
     };
-
-    // some stops with true as soon as one entry passes the check; an empty list gives
-    // false.
-    if (refund || saved.unlockedAbilities?.some(id => ['rally', 'coordinatedAssault', 'preparedSupplies'].includes(id))) {
-      saveLeaderProgression(leader);
-    }
-
-    return leader;
   } catch (error) {
-    console.warn('Could not load Battle Tactics progression.', error);
+    console.warn('Could not load Renown progression.', error);
     return fallback;
   }
 }
 
-// Store the leader's persistent progress under its compatible legacy storage key.
+// Store the leader under the existing key so installing a build never erases a profile.
 export function saveLeaderProgression(leader) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(leader));
   } catch (error) {
-    console.warn('Could not save Battle Tactics progression.', error);
+    console.warn('Could not save Renown progression.', error);
   }
+}
+
+// Read rarity requirements from one table used by both presentation and purchases.
+export function leadershipRequirements(ability) {
+  return LEADERSHIP_RARITIES[ability.rarity] ?? LEADERSHIP_RARITIES.common;
 }
 
 // Check whether this tactic is already unlocked for the leader.
@@ -258,49 +244,64 @@ export function hasLeaderAbility(leader, abilityId) {
   return leader.unlockedAbilities.includes(abilityId);
 }
 
-// Check unlock requirements and TP before buying the tactic.
+// Enforce earned Renown and the point balance here, even if a caller skips the UI.
 export function purchaseLeaderAbility(leader, abilityId) {
-
-  // find returns the first matching entry, or undefined when none matches. Check for that
-  // missing result before using its fields.
-  const ability = leaderAbilities.find((entry) => entry.id === abilityId);
-  if (!ability || hasLeaderAbility(leader, abilityId) || leader.tacticsPoints < ability.cost) return false;
-  leader.tacticsPoints -= ability.cost;
-  leader.spentTacticsPoints += ability.cost;
+  const ability = leaderAbilities.find(entry => entry.id === abilityId);
+  if (!ability) return false;
+  const requirement = leadershipRequirements(ability);
+  if (requirement.questOnly || leader.level < requirement.level
+    || hasLeaderAbility(leader, abilityId) || leader.renownPoints < ability.cost) return false;
+  leader.renownPoints -= ability.cost;
+  leader.spentRenownPoints += ability.cost;
   leader.unlockedAbilities.push(abilityId);
   saveLeaderProgression(leader);
-
   return true;
 }
 
-// Apply Renown gains and the normal Tactics Point milestones.
+// Dev Tools awards one point per actual level gained, stopping at the configurable cap.
 export function grantLeaderLevels(leader, amount = 1) {
-  const previousLevel = leader.level;
-
-  // The condition before ? chooses the first value when true and the value after : when
-  // false. Math.max chooses the largest value; pairing it with Math.min can keep a result
-  // inside both a lower and an upper bound. Math.floor rounds toward the smaller whole
-  // number, so 3.8 becomes 3.
-  const gained = Number.isFinite(amount) ? Math.max(0, Math.floor(amount)) : 0;
+  const requested = Number.isFinite(amount) ? Math.max(0, Math.floor(amount)) : 0;
+  const gained = Math.min(requested, Math.max(0, MAX_RENOWN_LEVEL - leader.level));
   leader.level += gained;
-  const tacticsPointsEarned = Math.floor(leader.level / 5) - Math.floor(previousLevel / 5);
-  leader.tacticsPoints += tacticsPointsEarned;
+  leader.renownPoints = (leader.renownPoints ?? 0) + gained;
   saveLeaderProgression(leader);
-
-  return { leveledUp: gained > 0, tacticsPointsEarned };
+  return { leveledUp: gained > 0, levelsGained: gained, renownPointsEarned: gained };
 }
 
-// Record clear progression and any corresponding leader gains. depth controls draw order;
-// higher values draw over lower values.
-export function recordDepthClear(leader, depth) {
-  if (!Number.isFinite(depth) || depth <= leader.highestClearedDepth) {
-    return { leveledUp: false, tacticsPointsEarned: 0 };
-  }
-  leader.highestClearedDepth = depth;
+// Claim a unique achievement once. At level 50 its point is still awarded, but the
+// level stays capped. Spending points never changes standing or restores a claim.
+function claimRenownAchievement(leader, field, key) {
+  leader[field] ??= [];
+  if (leader[field].includes(key)) return { leveledUp: false, levelsGained: 0, renownPointsEarned: 0 };
+  leader[field].push(key);
+  const levelsGained = leader.level < MAX_RENOWN_LEVEL ? 1 : 0;
+  leader.level += levelsGained;
+  leader.renownPoints = (leader.renownPoints ?? 0) + 1;
+  saveLeaderProgression(leader);
+  return { leveledUp: levelsGained > 0, levelsGained, renownPointsEarned: 1 };
+}
 
-  // Math.max chooses the largest value; pairing it with Math.min can keep a result inside
-  // both a lower and an upper bound.
-  return grantLeaderLevels(leader, Math.max(0, depth + 1 - leader.level));
+// Visit every crossed five-level threshold. Claims belong to the player, so a second
+// adventurer reaching the same level earns nothing, including in an offline batch.
+export function recordCharacterMilestones(leader, previousLevel, currentLevel) {
+  const result = { leveledUp: false, levelsGained: 0, renownPointsEarned: 0 };
+  if (!leader) return result;
+  const first = (Math.floor(previousLevel / CHARACTER_RENOWN_INTERVAL) + 1) * CHARACTER_RENOWN_INTERVAL;
+  for (let milestone = first; milestone <= currentLevel; milestone += CHARACTER_RENOWN_INTERVAL) {
+    const gained = claimRenownAchievement(leader, 'claimedCharacterMilestones', milestone);
+    result.levelsGained += gained.levelsGained;
+    result.renownPointsEarned += gained.renownPointsEarned;
+  }
+  result.leveledUp = result.levelsGained > 0;
+  return result;
+}
+
+// World destination IDs identify achievements, rather than enemy types or inherited
+// encounter depth. A portal pays for closure instead of also paying as a Delve boss.
+export function recordDelveCompletion(leader, delve) {
+  if (!leader || !delve?.id) return { leveledUp: false, levelsGained: 0, renownPointsEarned: 0 };
+  const id = { 'old-quarry': 'march-west-delves', 'sunken-watch': 'verge-delves' }[delve.id] ?? delve.id;
+  return claimRenownAchievement(leader, delve.type === 'void' ? 'closedVoidPortals' : 'claimedDelveBosses', id);
 }
 
 // Equip or remove an unlocked tactic within the five-slot limit.

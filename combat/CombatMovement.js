@@ -568,7 +568,11 @@ export default class CombatMovement {
       && Math.hypot(other.arenaX - destination.x, other.arenaY - destination.y)
         > this.getRequiredUnitSpacing(unit, other));
     const fallenAllies = [...this.getFallenPartyUnits().filter(fallenAlly => fallenAlly !== unit), ...opponents];
-    const getBodyClearance = fallenAlly => this.getRequiredUnitSpacing(unit, fallenAlly);
+
+    // Body sizes and spacing stay fixed during this one route search. Calculate each
+    // clearance once instead of repeating it for every candidate stone and segment.
+    const bodyClearances = new Map(fallenAllies.map(other => [other, this.getRequiredUnitSpacing(unit, other)]));
+    const getBodyClearance = fallenAlly => bodyClearances.get(fallenAlly);
 
     // Automatic travel avoids entering warning circles. Player Move orders and authored
     // manual-response boss attacks keep their existing control rules.
@@ -688,6 +692,18 @@ export default class CombatMovement {
         this.config.terrainFootRadius
       );
 
+    // A* can visit the same candidate from eight neighbors. Keep its exact safety result
+    // for this search only; moving bodies, warnings and floor changes are checked afresh
+    // on the next call. Uint8Array stores small numbers: 0 unknown, 1 blocked, 2 safe.
+    const standingSafety = new Uint8Array(gridWidth * gridHeight);
+    const isSafeCell = (cellX, cellY) => {
+      const id = getCellId(cellX, cellY);
+      if (standingSafety[id] === 0) {
+        standingSafety[id] = isSafeStandingPoint(getCellCenter(cellX, cellY)) ? 2 : 1;
+      }
+      return standingSafety[id] === 2;
+    };
+
     // Math.max chooses the largest value; pairing it with Math.min can keep a result
     // inside both a lower and an upper bound. Math.floor rounds toward the smaller whole
     // number, so 3.8 becomes 3.
@@ -698,7 +714,7 @@ export default class CombatMovement {
     let goalCellX = targetCellX;
     let goalCellY = targetCellY;
 
-    if (!isSafeStandingPoint(getCellCenter(goalCellX, goalCellY))) {
+    if (!isSafeCell(goalCellX, goalCellY)) {
 
       // If the goal is inside a wall or body, use the closest safe stone nearby.
       let nearestGoalDistance = Infinity;
@@ -721,7 +737,7 @@ export default class CombatMovement {
               candidatePoint.y - destination.y
             );
 
-            if (distanceToDestination < nearestGoalDistance && isSafeStandingPoint(candidatePoint)) {
+            if (distanceToDestination < nearestGoalDistance && isSafeCell(cellX, cellY)) {
               nearestGoalDistance = distanceToDestination;
               goalCellX = cellX;
               goalCellY = cellY;
@@ -838,7 +854,7 @@ export default class CombatMovement {
 
         // Only step onto safe stones, and only when the line between stones is clear.
           if (alreadyCheckedCellIds.has(nextCellId)
-            || !isSafeStandingPoint(nextCellCenter)
+            || !isSafeCell(nextCellX, nextCellY)
             || isSegmentBlocked(segmentStart, nextCellCenter)) continue;
 
           const isDiagonalStep = horizontalOffset !== 0 && verticalOffset !== 0;

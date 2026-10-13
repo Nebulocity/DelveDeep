@@ -336,11 +336,21 @@ export default class ClassAbilitySystem {
     // Use class data to find available actions, then rank support by the current need.
     const enemies = this.enemies(unit), allies = this.allies();
 
+    // Current kits use replacement skills. Only healers or a legacy saved kit need this
+    // second support ranking after replacement choices finish. Basic attacks and movement
+    // below still run normally, including old saved abilities.
+    const legacyChoices = Object.entries(unit.abilities).filter(([, ability]) => !ability.replacement);
+    const needsInjured = unit.role === 'Healer' || legacyChoices.length > 0;
+
     // sort rearranges this array in place. A negative comparator result puts a before b;
     // positive puts it after; zero keeps them tied. filter keeps entries whose callback
     // returns true. It builds a new list and leaves the original list in place.
-    const injured = allies.filter(a => missingHealth(scene, a) > 0)
-      .sort((a,b) => healingUrgency(scene, b) - healingUrgency(scene, a));
+    const injured = needsInjured ? allies.filter(a => missingHealth(scene, a) > 0) : [];
+
+    // Sorting compares the same ally several times. Its health and incoming attacks
+    // cannot change inside this synchronous ranking, so calculate each score once.
+    const urgency = new Map(injured.map(ally => [ally, healingUrgency(scene, ally)]));
+    injured.sort((a, b) => urgency.get(b) - urgency.get(a));
 
     // The condition before ? chooses the first value when true and the value after : when
     // false. ?. only follows this link when the value exists; a missing optional value
@@ -382,8 +392,7 @@ export default class ClassAbilitySystem {
       if (ability.effect === 'protect' || ability.effect === 'vow') return 800;
       return 0;
     };
-    const choices = Object.entries(unit.abilities).filter(([, ability]) => !ability.replacement)
-      .sort((a, b) => priority(b[1]) - priority(a[1]));
+    const choices = legacyChoices.sort((a, b) => priority(b[1]) - priority(a[1]));
     for (const [key, a] of choices) {
       if (a.reactive || !unit.canCast(time) || !unit.abilityReady(key, time)) continue;
       let target = unit;

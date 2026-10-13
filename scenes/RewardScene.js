@@ -55,7 +55,7 @@ export default class RewardScene extends Phaser.Scene {
 
     // The condition before ? chooses the first value when true and the value after : when
     // false.
-    const tacticsReward = summary?.leaderResult?.tacticsPointsEarned > 0 ? `+${summary.leaderResult.tacticsPointsEarned} Tactics Points` : `Renown Level ${GameState.leader?.level ?? 1}`;
+    const tacticsReward = summary?.leaderResult?.renownPointsEarned > 0 ? `+${summary.leaderResult.renownPointsEarned} Renown Points` : `Renown Level ${GameState.leader?.level ?? 1}`;
     this.add.text(leftX, panelY + 115, tacticsReward, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body32'), color: '#c4b5fd' }).setOrigin(0.5);
 
     // Build the right panel from the adventurer advancement entries in the run summary.

@@ -40,9 +40,9 @@ grantAdventurerXp(plannedEnd, totalPlan);
 assert.equal(plannedEnd.level, 50);
 assert.equal(plannedEnd.xp, 0);
 
-// Planning through 50 does not invalidate older level-54/55 rank-10 training paths.
-assert.equal(grantAdventurerLevels(plannedEnd, 5).levelsGained, 5);
-assert.equal(plannedEnd.level, 55);
+// The global cap also applies to direct development level grants.
+assert.equal(grantAdventurerLevels(plannedEnd, 5).levelsGained, 0);
+assert.equal(plannedEnd.level, 50);
 
 const delve = getDelveById('murmuring-abyss');
 GameState.currentDelve = delve;

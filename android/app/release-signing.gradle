@@ -1,0 +1,95 @@
+// Signing secrets belong in an ignored local file or the build machine's environment.
+// Apply this after the app's android block so debug builds keep their existing signing.
+def signingProperties = new Properties()
+def signingFile = rootProject.file('keystore.properties')
+if (signingFile.exists()) {
+    signingFile.withInputStream { signingProperties.load(it) }
+}
+
+// Android Studio supplies this complete set through its signed-bundle wizard.
+// Use the wizard's values together, rather than mixing them with a different local key.
+def studioSigningProperties = [
+    storeFile: 'android.injected.signing.store.file',
+    storePassword: 'android.injected.signing.store.password',
+    keyAlias: 'android.injected.signing.key.alias',
+    keyPassword: 'android.injected.signing.key.password'
+]
+def usesStudioSigning = studioSigningProperties.values().any {
+    providers.gradleProperty(it).isPresent()
+}
+
+// Outside the wizard, environment values take priority over the ignored local file.
+// Passwords are not trimmed because whitespace can be part of a legitimate password.
+def signingValue = { String propertyName, String environmentName ->
+    if (usesStudioSigning) {
+        return providers.gradleProperty(studioSigningProperties[propertyName]).orNull
+    }
+    return providers.environmentVariable(environmentName).orNull ?: signingProperties.getProperty(propertyName)
+}
+def uploadStore = signingValue('storeFile', 'DELVE_UPLOAD_STORE_FILE')
+def uploadStorePassword = signingValue('storePassword', 'DELVE_UPLOAD_STORE_PASSWORD')
+def uploadAlias = signingValue('keyAlias', 'DELVE_UPLOAD_KEY_ALIAS')
+def uploadKeyPassword = signingValue('keyPassword', 'DELVE_UPLOAD_KEY_PASSWORD')
+def signingValues = [storeFile: uploadStore, storePassword: uploadStorePassword,
+                     keyAlias: uploadAlias, keyPassword: uploadKeyPassword]
+
+// Relative keystore paths start at android/, rather than android/app/.
+// Configure release signing only when all four values exist; the task below blocks
+// release packaging otherwise. This lets developers build debug without any secrets.
+// The Android Gradle plugin applies the wizard's signing override itself.
+// Only create our own signing configuration for terminal builds.
+if (!usesStudioSigning && signingValues.values().every { it != null && !it.isEmpty() }) {
+    android.signingConfigs {
+        upload {
+            storeFile rootProject.file(uploadStore)
+            storePassword uploadStorePassword
+            keyAlias uploadAlias
+            keyPassword uploadKeyPassword
+        }
+    }
+    android.buildTypes.release.signingConfig = android.signingConfigs.upload
+}
+
+// This preflight never prints passwords. Gradle performs the cryptographic signing
+// checks during packaging; this task checks the file, credentials, and certificate early.
+def checkReleaseSigning = tasks.register('checkReleaseSigning') {
+    group = 'verification'
+    description = 'Checks private upload signing settings before preparing a release.'
+    doLast {
+        def missing = signingValues.findAll { key, value -> value == null || value.isEmpty() }.keySet()
+        if (!missing.isEmpty()) {
+            throw new GradleException('Release signing is not configured. Missing: ' + missing.join(', ') +
+                '. Supply all signing fields in the Android Studio signed-bundle wizard, or copy ' +
+                'android/keystore.properties.example to android/keystore.properties and fill it in, ' +
+                'or set the DELVE_UPLOAD_* environment variables. See docs/GOOGLE_PLAY_RELEASE.md.')
+        }
+        def store = rootProject.file(uploadStore)
+        if (!store.isFile()) {
+            throw new GradleException('Upload keystore file does not exist. Check storeFile in your private signing settings.')
+        }
+        try {
+            def keyStore = java.security.KeyStore.getInstance(store, uploadStorePassword.toCharArray())
+            def privateKey = keyStore.getKey(uploadAlias, uploadKeyPassword.toCharArray())
+            if (!(privateKey instanceof java.security.PrivateKey)) {
+                throw new IllegalArgumentException('Alias does not contain a private key.')
+            }
+            def certificate = keyStore.getCertificate(uploadAlias)
+            certificate.checkValidity()
+            if (certificate.subjectX500Principal.name.contains('CN=Android Debug')) {
+                throw new IllegalArgumentException('Debug certificates cannot be uploaded to Play.')
+            }
+        } catch (Exception ignored) {
+            throw new GradleException('Upload signing validation failed. Check the keystore, passwords, alias, ' +
+                'and certificate validity. Use an upload key, not the Android debug key.')
+        }
+        logger.lifecycle('Upload signing settings verified. No secrets are included in this output.')
+    }
+}
+
+// Wire the check into both release preparation and Android's signing validation.
+// Direct Gradle builds receive the same protection as the npm helper.
+tasks.configureEach {
+    if (name == 'preReleaseBuild' || name == 'validateSigningRelease') {
+        dependsOn(checkReleaseSigning)
+    }
+}

@@ -1,4 +1,4 @@
-// This is the leader's tactic workspace. Unlocking spends Tactics Points; equipping
+// This is the leader's tactic workspace. Unlocking spends Renown Points; equipping
 // chooses a loadout of up to five already unlocked tactics. Each category scrolls
 // independently, so clipping and hit areas must follow the corresponding list.
 
@@ -8,7 +8,7 @@ import { showSelectionDetails } from '../ui/SelectionDetails.js';
 import { showConfirmation } from '../ui/ConfirmationDialog.js';
 import GameState from '../game/GameState.js';
 import HapticsService from '../services/HapticsService.js';
-import { leaderAbilities, hasLeaderAbility, purchaseLeaderAbility, toggleLeaderLoadoutAbility } from '../game/LeaderProgression.js';
+import { leaderAbilities, hasLeaderAbility, purchaseLeaderAbility, toggleLeaderLoadoutAbility, leadershipRequirements } from '../game/LeaderProgression.js';
 
 import { HALL, hallText, hallPanel, hallButton, hallIcon, hallScroll, addHallFrame } from '../ui/HallUI.js';
 import { leaderAbilityDescription } from '../game/AbilityDescriptions.js';
@@ -26,7 +26,10 @@ const tacticDescription = ability => {
   // filter keeps entries whose callback returns true. It builds a new list and leaves the
   // original list in place.
   const party = GameState.roster.filter(hero => partyIds.includes(hero.id)).map(hero => getEquippedAdventurer(hero));
-  return leaderAbilityDescription(ability, party);
+  const requirement = leadershipRequirements(ability);
+  const acquisition = requirement.questOnly ? 'Earned through a quest chain.' : 'Costs ' + ability.cost + ' Renown Points.';
+  return leaderAbilityDescription(ability, party) + '\n\n' + requirement.name
+    + ' · Requires Renown Level ' + requirement.level + '\n' + acquisition;
 };
 
 export default class PartyLeaderScene extends Phaser.Scene {
@@ -41,7 +44,7 @@ export default class PartyLeaderScene extends Phaser.Scene {
 
     // ??= fills a missing value once. It leaves an existing value, including zero or
     // false, alone.
-    GameState.leader.battleLoadout ??= ['focusFire'];
+    GameState.leader.battleLoadout ??= [];
     this.message = '';
     this.render();
   }
@@ -61,7 +64,7 @@ export default class PartyLeaderScene extends Phaser.Scene {
     // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the center
     // and 1 is the right/bottom edge. x/y place that anchor, not necessarily the object's
     // corner.
-    hallText(this, 2310, 321, `Renown Level ${leader.level} · ${leader.tacticsPoints} TP available`, UI_FONT_SIZES.hallTacticRenown, { color: '#ffe0a7' }).setOrigin(1, 0.5);
+    hallText(this, 2310, 321, `Renown Level ${leader.level} · ${leader.renownPoints} RP available`, UI_FONT_SIZES.hallTacticRenown, { color: '#ffe0a7' }).setOrigin(1, 0.5);
     hallText(this, 90, 380, `Equipped ${leader.battleLoadout.length}/5 · Hold a tactic for its effect.`, UI_FONT_SIZES.hallTacticMeta, { color: HALL.muted });
 
     // ??= fills a missing value once. It leaves an existing value, including zero or
@@ -81,22 +84,29 @@ export default class PartyLeaderScene extends Phaser.Scene {
       entries.forEach((ability, row) => {
         const y = 615 + row * rowHeight;
         const unlocked = hasLeaderAbility(leader, ability.id), equipped = leader.battleLoadout.includes(ability.id);
+        const requirement = leadershipRequirements(ability);
+        const locked = !unlocked && (leader.level < requirement.level || requirement.questOnly);
         const childStart = this.children.length;
-        hallButton(this, x, y, 513, 206, '', () => this.choose(ability), {
+        const button = hallButton(this, x, y, 513, 206, '', () => this.choose(ability), {
           selected: equipped, details: { title: ability.name, description: tacticDescription(ability) }, name: `hall-tactic-${ability.id}`
         });
+
+        // Dim the surface only; the effect text and held details stay readable and active.
+        if (locked) button.pressVisuals.forEach(face => face.setAlpha(0.55));
         hallText(this, x - 224, y - 66, ability.name, UI_FONT_SIZES.hallTacticName, { fontStyle: UI_FONT_WEIGHTS.bold, wordWrap: { width: 448 } });
 
         // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the
         // center and 1 is the right/bottom edge. x/y place that anchor, not necessarily
         // the object's corner.
-        hallText(this, x - 224, y - 22, ability.description, UI_FONT_SIZES.hallTacticSummary,
+        hallText(this, x - 224, y - 28, ability.description, UI_FONT_SIZES.hallTacticSummary,
           { color: HALL.muted, wordWrap: { width: 448 }, maxLines: 2 }).setOrigin(0, 0);
 
         // The condition before ? chooses the first value when true and the value after :
         // when false.
-        hallText(this, x - 224, y + 75, ability.oncePerEncounter ? 'Once per encounter' : `${ability.cooldown / 1000}s cooldown`, UI_FONT_SIZES.hallTacticSummary, { color: HALL.muted });
-        hallText(this, x + 224, y + 75, equipped ? 'Equipped' : unlocked ? 'Tap to equip' : `Unlock · ${ability.cost} TP`, UI_FONT_SIZES.hallTacticSummary,
+        hallText(this, x - 224, y + 42, requirement.name + ' · Renown ' + requirement.level + (requirement.questOnly ? '' : ' · ' + ability.cost + ' RP'),
+          UI_FONT_SIZES.hallTacticSummary, { color: locked ? HALL.muted : '#ffe0a7' });
+        hallText(this, x - 224, y + 82, ability.oncePerEncounter ? 'Once per encounter' : `${ability.cooldown / 1000}s cooldown`, UI_FONT_SIZES.hallTacticSummary, { color: HALL.muted });
+        hallText(this, x + 224, y + 82, equipped ? 'Equipped' : unlocked ? 'Tap to equip' : requirement.questOnly ? 'Quest reward' : locked ? 'Locked' : `Unlock · ${ability.cost} RP`, UI_FONT_SIZES.hallTacticSummary,
           { color: equipped ? HALL.green : '#ffe0a7' }).setOrigin(1, 0.5);
 
         // ... expands these entries into the new list or call. It does not deep-copy the
@@ -114,12 +124,17 @@ export default class PartyLeaderScene extends Phaser.Scene {
   choose(ability) {
     const leader = GameState.leader;
     if (!hasLeaderAbility(leader, ability.id)) {
-      if (leader.tacticsPoints < ability.cost) {
-        showSelectionDetails(this, { title: 'Not enough TP', description: `${ability.name} costs ${ability.cost} TP.\nYou have ${leader.tacticsPoints} TP.` });
+      const requirement = leadershipRequirements(ability);
+      if (requirement.questOnly || leader.level < requirement.level) {
+        showSelectionDetails(this, { title: ability.name, description: tacticDescription(ability) });
+        return;
+      }
+      if (leader.renownPoints < ability.cost) {
+        showSelectionDetails(this, { title: 'Not enough RP', description: `${ability.name} costs ${ability.cost} RP.\nYou have ${leader.renownPoints} RP.` });
         return;
       }
       showConfirmation(this, {
-        title: `Unlock ${ability.name}`, description: `${tacticDescription(ability)}\n\nSpend ${ability.cost} TP? Available: ${leader.tacticsPoints} TP.`,
+        title: `Unlock ${ability.name}`, description: `${tacticDescription(ability)}\n\nSpend ${ability.cost} RP? Available: ${leader.renownPoints} RP.`,
 
         // Run the committed action after the player confirms this decision.
         onConfirm: () => {

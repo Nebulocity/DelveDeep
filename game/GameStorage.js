@@ -251,8 +251,10 @@ function writeProfile() {
 
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+    return true;
   } catch (error) {
     console.warn('Could not save Delve Deep profile.', error);
+    return false;
   }
 }
 
@@ -267,4 +269,12 @@ export function clearSavedProfile() {
   } catch (error) {
     console.warn('Could not clear Delve Deep profile.', error);
   }
+}
+
+// Private transfer needs an immediate, confirmed write rather than a queued autosave.
+// Invalidate the queued callback so it cannot overwrite a later imported profile.
+export function flushProfileSave() {
+  saveGeneration += 1;
+  pendingSave = false;
+  return writeProfile() === true;
 }

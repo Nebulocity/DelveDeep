@@ -12,6 +12,7 @@ import GameState from '../game/GameState.js';
 import { saveProfile } from '../game/GameStorage.js';
 import { equippedItem, getEquippedAdventurer, ownedEquipment, equipmentOwner, equipItem, unequipItem, equipmentStatsText, canEquipItem } from '../game/Equipment.js';
 import { abilityGoldCost, abilityLevelRequired, sortedAbilityEntries, MAX_ABILITY_RANK, MAX_EQUIPPED_ABILITIES, purchaseAdventurerAbility, toggleAdventurerAbility, rankedAbility } from '../game/AdventurerAbilities.js';
+import { MAX_CHARACTER_LEVEL } from '../config/renown.js';
 import { happinessLabel, xpRequired } from '../game/AdventurerProgression.js';
 import { characterDetails } from '../ui/SelectionDetails.js';
 import { showConfirmation } from '../ui/ConfirmationDialog.js';
@@ -19,7 +20,9 @@ import { HALL, HALL_ARCHETYPES, hallText, hallPanel, hallButton, hallDetails, ha
 
 import HapticsService from '../services/HapticsService.js';
 import { getPotionDefinition } from '../data/items.js';
+import { equipmentDetails } from '../game/EquipmentDescriptions.js';
 import { guildSurface, guildCrest, guildRule } from '../ui/GuildHallTheme.js';
+import { addEnchantmentScroll } from '../ui/EnchantmentScroll.js';
 
 const format = (value) => Number.isFinite(value) ? `${Math.round(value * 100) / 100}` : 'None';
 const percent = (value) => `${format((value ?? 0) * 100)}%`;
@@ -72,7 +75,12 @@ export default class RosterScene extends Phaser.Scene {
     // undefined.
     this.selectionDetailsClose?.();
     this.equipmentModalClose?.();
-    this.children.removeAll(true);
+
+    // DisplayList.removeAll only detaches artwork. Destroy a snapshot instead so old
+    // hit targets, hold timers and scroll listeners cannot survive a tab switch.
+    for (const object of [...this.children.list]) {
+      if (object.active) object.destroy();
+    }
     this.detailObjects = [];
     addHallFrame(this, 'Adventurers', this.message);
     hallPanel(this, 272, 638, 440, 736);
@@ -93,7 +101,7 @@ export default class RosterScene extends Phaser.Scene {
       return;
     }
 
-    [['gear', 'Gear & potions'], ['skills', 'Skills & training']].forEach(([key, label], index) => {
+    [['gear', 'Equipment'], ['skills', 'Abilities']].forEach(([key, label], index) => {
       hallButton(this, 1414 + index * 618, 186, 586, 112, label, () => {
         this.tab = key;
         this.render();
@@ -205,12 +213,12 @@ export default class RosterScene extends Phaser.Scene {
     hallText(this, 728, 437, hero.role, UI_FONT_SIZES.hallRole, { color: HALL.muted });
     hallPortrait(this, hero, 794, 578, 216);
     hallText(this, 547, 709, `Character level ${hero.level}`, UI_FONT_SIZES.hallSummary);
-    hallText(this, 1040, 709, `${hero.xp ?? 0} / ${xpRequired(hero.level)} XP`, UI_FONT_SIZES.hallRoleCount, { color: HALL.muted }).setOrigin(1, 0.5);
+    hallText(this, 1040, 709, hero.level >= MAX_CHARACTER_LEVEL ? 'Maximum level' : `${hero.xp ?? 0} / ${xpRequired(hero.level)} XP`, UI_FONT_SIZES.hallRoleCount, { color: HALL.muted }).setOrigin(1, 0.5);
     this.add.rectangle(547, 742, 493, 10, 0x170f0a).setOrigin(0, 0.5);
 
     // Math.min chooses the smallest value; pairing it with Math.max can keep a result
     // inside both a lower and an upper bound.
-    this.add.rectangle(547, 742, 493 * Math.min(1, (hero.xp ?? 0) / xpRequired(hero.level)), 10, HALL.gold).setOrigin(0, 0.5);
+    this.add.rectangle(547, 742, 493 * (hero.level >= MAX_CHARACTER_LEVEL ? 1 : Math.min(1, (hero.xp ?? 0) / xpRequired(hero.level))), 10, HALL.gold).setOrigin(0, 0.5);
     [['Health', format(effective.maxHp)], ['Attack', format(effective.attackPower)], ['Armor', format(effective.armor)], ['Skill points', `${hero.skillPoints ?? 0}`]].forEach(([label, value], index) => {
 
       // % gives the remainder. With a nonnegative index and positive list length, it wraps
@@ -249,25 +257,28 @@ export default class RosterScene extends Phaser.Scene {
       // gives undefined. The condition before ? chooses the first value when true and the
       // value after : when false.
       hallButton(this, x, y, 563, 216, '', () => this.openEquipment(hero, slot), {
-        name: `hall-slot-${slot}`, details: { title: item?.name ?? slot, description: item
-          ? slot === 'potion' ? `${item.charges}/3 uses. ${getPotionDefinition(item.itemId)?.description ?? ''}` : equipmentStatsText(item.stats)
-          : `Equip an owned, compatible ${slot} for ${hero.name}.` }
+        name: `hall-slot-${slot}`, details: item ? equipmentDetails(item, hero)
+          : { title: slot, description: `Equip an owned, compatible ${slot} for ${hero.name}.` }
       });
       hallIcon(this, slotIcons[slot], x - 220, y, HALL.gold, 1.4);
       hallText(this, x - 160, y - 64, slot.toUpperCase(), UI_FONT_SIZES.support27, { color: HALL.muted });
 
       hallText(this, x - 160, y - 9, item?.name ?? 'Empty slot', UI_FONT_SIZES.body36, { fontStyle: UI_FONT_WEIGHTS.bold, wordWrap: { width: 412 } });
-      if (item && slot !== 'potion') {
-        hallButton(this, x, y + 61, 300, 72, 'View Stats', () => {
-          showSelectionDetails(this, { title: `${item.name} bonuses`, description: equipmentStatsText(item.stats) || 'No stat bonuses.' });
+      if (item?.enchantmentId) addEnchantmentScroll(this, x + 238, y - 78, 36, 10);
+      if (item) {
+        hallButton(this, x - 124, y + 61, 238, 72, 'View Stats', () => {
+          showSelectionDetails(this, equipmentDetails(item, hero));
         }, { name: `hall-slot-bonuses-${slot}`, size: UI_FONT_SIZES.hallGearSummary,
-          details: { title: `${item.name} bonuses`, description: equipmentStatsText(item.stats) || 'No stat bonuses.' } });
-      } else hallText(this, x - 160, y + 66, item ? `${item.charges}/3 potions` : 'Unequipped', UI_FONT_SIZES.hallGearEmpty, {
-        color: item ? HALL.green : HALL.muted, wordWrap: { width: 412 }
+          details: equipmentDetails(item, hero) });
+      } else hallText(this, x - 220, y + 66, 'Unequipped', UI_FONT_SIZES.hallGearEmpty, {
+        color: HALL.muted, wordWrap: { width: 270 }
+      });
+      hallButton(this, x + 137, y + 61, 210, 72, 'Equip', () => this.openEquipment(hero, slot), {
+        name: `hall-slot-equip-${slot}`, size: UI_FONT_SIZES.hallGearSummary
       });
     });
 
-    hallText(this, 1130, 976, 'Tap a slot to compare compatible items you own.', UI_FONT_SIZES.hallSlotHint, { color: HALL.muted });
+    hallText(this, 1130, 976, 'Tap Equip to choose compatible items you own.', UI_FONT_SIZES.hallSlotHint, { color: HALL.muted });
   }
 
   // Display learned ranks, next training costs and the current battle-slot choices.
@@ -484,11 +495,11 @@ export default class RosterScene extends Phaser.Scene {
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
     hallText(this, 564, 250, `Currently: ${current?.name ?? 'Empty slot'}`, UI_FONT_SIZES.body32, { color: HALL.muted });
-    if (current) hallButton(this, 1680, 250, 280, 112, 'Unequip', () => {
+    if (current && !['weapon', 'armor'].includes(slot)) hallButton(this, 1680, 250, 280, 112, 'Unequip', () => {
       modal.close();
       this.commit(unequipItem(hero.id, slot));
     }, { modal: true });
-    if (!entries.length) hallText(this, 1200, 528, 'No compatible, unequipped items owned.', UI_FONT_SIZES.body36, { color: HALL.muted }).setOrigin(0.5);
+    if (!entries.length) hallText(this, 1200, 528, 'No unequipped items match your class and level.', UI_FONT_SIZES.body36, { color: HALL.muted }).setOrigin(0.5);
     entries.slice(page * 3, page * 3 + 3).forEach((item, index) => {
       const y = 395 + index * 170;
       hallPanel(this, 1200, y, 1260, 150);
@@ -501,41 +512,13 @@ export default class RosterScene extends Phaser.Scene {
       hallText(this, 594, y + 37, slot === 'potion' ? `${item.charges}/3 uses · ${getPotionDefinition(item.itemId)?.description ?? ''}` : equipmentStatsText(item.stats), UI_FONT_SIZES.itemSummary, {
         color: HALL.muted, wordWrap: { width: 840 }
       });
-      hallButton(this, 1680, y, 270, 112, 'Compare', () => {
+      hallButton(this, 1680, y, 270, 112, 'Equip', () => {
         modal.close();
-        const effective = getEquippedAdventurer(hero);
 
-        // A Set keeps each value once. has checks membership without searching a list for
-        // duplicate entries. ... expands these entries into the new list or call. It does
-        // not deep-copy the objects inside. ?? uses the fallback only for null or
-        // undefined. A real zero or false stays intact.
-        const keys = new Set([...Object.keys(current?.stats ?? {}), ...Object.keys(item.stats ?? {})]);
-        const labels = { maxHp: 'Health', attackPower: 'Attack Power', spellDamage: 'Spell Damage', spellHealing: 'Spell Healing', healPower: 'Spell Healing', armor: 'Armor' };
-
-        // map builds one output entry for each input entry, in the same order. The
-        // callback's return value becomes that output entry.
-        const comparison = [...keys].map((key) => {
-
-          // ?? uses the fallback only for null or undefined. A real zero or false stays
-          // intact. ?. only follows this link when the value exists; a missing optional
-          // value gives undefined.
-          const before = effective[key] ?? 0, after = before - (current?.stats?.[key] ?? 0) + (item.stats?.[key] ?? 0);
-          return `${labels[key] ?? key}: ${format(before)} → ${format(after)}`;
-        }).join('\n');
-
-        // ?. only follows this link when the value exists; a missing optional value gives
-        // undefined.
-        showConfirmation(this, {
-          title: `Equip ${item.name}?`, confirmLabel: 'EQUIP',
-          description: `${hero.name} · Replaces ${current?.name ?? 'empty ' + slot + ' slot'}\n\n${comparison || `${item.charges}/3 uses · ${getPotionDefinition(item.itemId)?.description ?? 'No stat bonuses'}`}`,
-
-          // Dismiss this decision and restore the caller's previous state.
-          onCancel: () => this.openEquipment(hero, slot, page),
-
-          // Run the committed action after the player confirms this decision.
-          onConfirm: () => this.commit(equipItem(hero.id, item.id))
-        });
-      }, { modal: true, name: `hall-compare-${item.id}` });
+        // This shared path checks ownership, class and level, saves the choice, and
+        // refreshes the default Equipment screen for every slot, including potions.
+        this.commit(equipItem(hero.id, item.id));
+      }, { modal: true, name: `hall-equip-item-${item.id}`, details: equipmentDetails(item, hero) });
     });
 
     hallButton(this, 710, 930, 230, 112, 'Prev', () => this.openEquipment(hero, slot, page - 1), { enabled: page > 0, modal: true });

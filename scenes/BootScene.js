@@ -8,6 +8,7 @@ import OrientationService from '../services/OrientationService.js';
 import { loadLeaderProgression } from '../game/LeaderProgression.js';
 import { loadProfile } from '../game/GameStorage.js';
 import { prepareBuildSave } from '../game/BuildSave.js';
+import { recoverInterruptedRestore } from '../game/SaveTransfer.js';
 
 import { unpackBattleValue } from '../game/BattleSnapshot.js';
 import enemies from '../data/enemies.js';
@@ -112,6 +113,8 @@ export default class BootScene extends Phaser.Scene {
   // This helper restores persistent progress and prepares clean encounter state.
   initializeGameState() {
 
+    // Roll back an interrupted two-record import before loading either legacy save.
+    recoverInterruptedRestore();
     prepareBuildSave();
 
     // Rebuild base stats from current definitions, then merge saved growth.

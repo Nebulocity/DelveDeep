@@ -1,6 +1,5 @@
-// These helpers collect the actual gains and deaths during missed battle time. The summary
-// explains what the combat simulation already did. It does not estimate a separate battle
-// outcome or award a second set of resources.
+// These helpers display already banked gains from combat or estimated offline farming.
+// The summary never awards a second set of resources when it opens or closes.
 
 export function idleRewardLines(summary, party, materialName) {
 
@@ -18,6 +17,7 @@ export function idleRewardLines(summary, party, materialName) {
   return [
     `- ${summary.waves} waves cleared.`,
     `- You gained ${summary.gold} Gold.`,
+    ...(summary.renownPoints > 0 ? [`- You gained ${summary.renownPoints} Renown Points and ${summary.renownLevels ?? 0} Renown Levels.`] : []),
     ...party.map(hero => `- ${hero.name} gained ${summary.xpByHero?.[hero.id] ?? summary.xp} Exp.`),
     `- Rewards: ${rewards.length ? rewards.join(', ') : 'None'}.`
   ];

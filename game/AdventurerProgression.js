@@ -5,6 +5,9 @@
 
 import { rebuildCharacterStats } from './CharacterStats.js';
 import { ADVENTURER_XP_COSTS } from '../config/adventurerXp.js';
+import { MAX_CHARACTER_LEVEL } from '../config/renown.js';
+import GameState from './GameState.js';
+import { recordCharacterMilestones } from './LeaderProgression.js';
 
 // Read the authored XP needed to advance from this level to the next one.
 export function xpRequired(level) {
@@ -23,7 +26,12 @@ export function grantAdventurerLevels(adventurer, amount = 1) {
   // false. Math.max chooses the largest value; pairing it with Math.min can keep a result
   // inside both a lower and an upper bound. Math.floor rounds toward the smaller whole
   // number, so 3.8 becomes 3.
-  const gained = Number.isFinite(amount) ? Math.max(0, Math.floor(amount)) : 0;
+  const previousLevel = adventurer.level;
+
+  // Both normal XP and Dev Tools use this cap. Existing higher-level local characters
+  // retain their saved stats, but cannot gain more levels while the cap is 50.
+  const requested = Number.isFinite(amount) ? Math.max(0, Math.floor(amount)) : 0;
+  const gained = Math.min(requested, Math.max(0, MAX_CHARACTER_LEVEL - previousLevel));
   for (let index = 0; index < gained; index += 1) {
 
     // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
@@ -37,6 +45,7 @@ export function grantAdventurerLevels(adventurer, amount = 1) {
     }
   }
 
+  recordCharacterMilestones(GameState.leader, previousLevel, adventurer.level);
   return { levelsGained: gained };
 }
 
@@ -45,9 +54,8 @@ export function grantAdventurerLevels(adventurer, amount = 1) {
 // stat is present; leftover experience remains toward the next level.
 export function grantAdventurerXp(adventurer, amount, levelCap = Infinity) {
 
-  // Delve callers supply their boss level as the cap. Infinity means other XP sources
-  // keep the existing progression rules, including characters already above level 50.
-  const cap = levelCap;
+  // Delves can impose a lower cap, but no XP source can exceed the global cap.
+  const cap = Math.min(levelCap, MAX_CHARACTER_LEVEL);
   const result = { levelsGained: 0, xpGained: 0 };
   if (adventurer.level >= cap) return result;
 

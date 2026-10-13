@@ -7,7 +7,7 @@ import { ATTRIBUTE_STATS, CHANCE_STATS } from '../config/characterProgression.js
 import GameState from './GameState.js';
 import { characterStats, rebuildCharacterStats } from './CharacterStats.js';
 import { ENCHANTMENT_BY_ID, LEGACY_ENCHANTMENT_IDS } from '../data/enchantments.js';
-import { getEquipmentDefinition, getMaterialDefinition, getPotionDefinition } from '../data/items.js';
+import { getEquipmentDefinition, getMaterialDefinition, getPotionDefinition, itemMinimumLevel } from '../data/items.js';
 
 export const EQUIPMENT_SLOTS = ['weapon', 'armor', 'accessory', 'potion'];
 export const EQUIPMENT_SCHEMA_VERSION = 2;
@@ -193,6 +193,7 @@ export function canEquipItem(hero, item) {
   // false. ?. only follows this link when the value exists; a missing optional value gives
   // undefined.
   return hero && item && EQUIPMENT_SLOTS.includes(item.slot)
+    && (hero.level ?? 1) >= itemMinimumLevel(item)
     && (item.slot === 'potion'
       ? Number.isInteger(item.charges) && item.charges > 0 && item.charges <= 3
         && (getPotionDefinition(item.itemId)?.effect.resource !== 'mana' || hero.maxMana > 0)
@@ -319,6 +320,9 @@ export function equipItem(heroId, instanceId, state = GameState) {
   // missing result before using its fields.
   const hero = state.roster.find((entry) => entry.id === heroId);
   const item = ownedEquipment(state).find((entry) => entry.id === instanceId);
+  if (hero && item && (hero.level ?? 1) < itemMinimumLevel(item)) {
+    return { ok: false, message: `${item.name} requires level ${itemMinimumLevel(item)}.` };
+  }
   if (!canEquipItem(hero, item)) return { ok: false, message: 'This character cannot use that equipment.' };
   const owner = equipmentOwner(instanceId, state);
 

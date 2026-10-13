@@ -11,6 +11,7 @@ import delves from '../data/delves.js';
 import { saveProfile } from '../game/GameStorage.js';
 
 import HapticsService from '../services/HapticsService.js';
+import { privateTransfersEnabled, showSaveTransferDialog } from '../ui/SaveTransferDialog.js';
 import { bindSelectionDetails, addDetailsHint, delveDetails } from '../ui/SelectionDetails.js';
 import { TILE, WORLD_COLUMNS, WORLD_ROWS, regions, nodes, roads, pois, nodePoint, roadPoint, mapPoint, branchLock, regionExit, routeBetween, routeFromEdge, nearestTown } from '../data/worldMap.js';
 import { everdeepUnlocked, settleEverdeep } from '../game/Everdeep.js';
@@ -455,6 +456,18 @@ export function createScrollingWorldMap(scene) {
     HapticsService.tap();
     scene.showDevelopmentTools();
   });
+  // Private builds add a transfer button; normal release builds omit this control.
+  if (privateTransfersEnabled) {
+    const transfer = addRegionPanel(scene, 2200, height - 65, 300, 100, 1000).setInteractive({ useHandCursor: true });
+    scene.add.text(2200, height - 65, 'SAVE TRANSFER', { fontFamily: UI_FONT_FAMILIES.sans,
+      fontSize: fontPx('body32'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff1d2' })
+      .setOrigin(0.5).setScrollFactor(0).setDepth(1001);
+    transfer.on('pointerdown', () => {
+      persistTravel(scene);
+      HapticsService.tap();
+      showSaveTransferDialog(scene);
+    });
+  }
   syncRegionMapCameras(scene);
 
   scene.time.addEvent({ delay: 2000, loop: true, callback: () => persistTravel(scene) });

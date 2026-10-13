@@ -61,14 +61,14 @@ assert.equal(battle.focusTargetId, 'boss');
 assert.equal(battle.pendingPausedTactics.length, 0);
 
 // Only bosses winding up for more than three seconds receive the interrupt banner.
-battle.showBattleMessage = function (text, color, persistent, durationMultiplier) {
+battle.showBattleMessage = function (text, color, persistent, durationMultiplier, fadeDurationMs) {
   this.message = text;
-  this.messageDurationMultiplier = durationMultiplier;
+  this.messageFadeDurationMs = fadeDurationMs;
 };
 battle.message = '';
 battle.announceBossCast(enemies[0], { name: 'Long cast' }, 3001);
 assert.equal(battle.message, 'Boss using Long cast, interrupt it!');
-assert.equal(battle.messageDurationMultiplier * 1160, 3001);
+assert.equal(battle.messageFadeDurationMs, 3000);
 battle.message = '';
 battle.announceBossCast(enemies[0], { name: 'Short cast' }, 3000);
 assert.equal(battle.message, '');
@@ -80,7 +80,28 @@ battle.announceBossCast(enemies[0], { name: 'Circle', responseHint: 'MOVE out of
 assert.equal(battle.message, 'Circle: MOVE out of the circle');
 battle.announceBossCast(enemies[0], { name: 'Circle', responseHint: 'MOVE out of the circle' }, 6000);
 assert.equal(battle.message, 'Boss using Circle, interrupt it!');
-assert.equal(battle.messageDurationMultiplier * 1160, 6000);
+assert.equal(battle.messageFadeDurationMs, 3000);
+
+// Both parts fade on combat time, freeze while paused, and clear at three seconds.
+const messagePart = () => ({ active: true, alpha: 1, text: 'Warning', visible: true,
+  setAlpha(value) { this.alpha = value; return this; },
+  setText(value) { this.text = value; return this; },
+  setVisible(value) { this.visible = value; return this; } });
+battle.battleMessageText = messagePart();
+battle.battleMessagePlaque = messagePart();
+battle.tweens = { killTweensOf() {} };
+battle.battleMessageFade = { startAt: 1000, duration: 3000 };
+battle.updateBattleMessageFade(2500);
+assert.equal(battle.battleMessageText.alpha, 0.5);
+assert.equal(battle.battleMessagePlaque.alpha, 0.5);
+battle.combatPaused = true;
+battle.updateBattleMessageFade(4000);
+assert.equal(battle.battleMessageText.alpha, 0.5);
+battle.combatPaused = false;
+battle.updateBattleMessageFade(4000);
+assert.equal(battle.battleMessageText.text, '');
+assert.equal(battle.battleMessagePlaque.visible, false);
+assert.equal(battle.battleMessageFade, null);
 
 // Automatic targets survive tiny distance changes, but explicit orders still win.
 const second = { ...enemies[0], id: 'second', arenaX: 810 };

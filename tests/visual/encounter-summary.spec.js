@@ -47,7 +47,7 @@ for (const result of ['fled', 'defeat']) {
             summary: { partyDamageTaken: 100, partyHealing: 50, partyDeaths: 1 }
           }));
           qa.activate('EncounterSummaryScene', { result });
-          return { gold: qa.state.gold, points: qa.state.leader.tacticsPoints,
+          return { gold: qa.state.gold, points: qa.state.leader.renownPoints,
             checkpoint: qa.state.delveCheckpoints['slime-cave'], party: qa.state.activeParty.map(hero => hero.id) };
         }, { unlocked: camp, result });
         await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('EncounterSummaryScene').sys.isActive());
@@ -77,7 +77,7 @@ for (const result of ['fled', 'defeat']) {
         await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('PartySelectScene').sys.isActive());
         const after = await page.evaluate(() => {
           const qa = window.__DELVE_DEEP_VISUAL_QA__;
-          return { gold: qa.state.gold, points: qa.state.leader.tacticsPoints,
+          return { gold: qa.state.gold, points: qa.state.leader.renownPoints,
             checkpoint: qa.state.delveCheckpoints['slime-cave'], party: [...qa.game.scene.getScene('PartySelectScene').selectedIds],
             delve: qa.state.currentDelve.id, entry: qa.state.run.entry };
         });

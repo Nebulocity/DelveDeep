@@ -31,6 +31,9 @@ android {
     }
 }
 
+// Load private upload signing settings after defining the Android build types.
+apply from: 'release-signing.gradle'
+
 repositories {
     flatDir{
         dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'

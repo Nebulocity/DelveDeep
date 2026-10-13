@@ -82,9 +82,7 @@ const context = vm.createContext({ ...typography,
   saveProfile, grantAdventurerLevels, grantLeaderLevels(leader, amount) {
     leader.level += amount;
 
-    // The condition before ? chooses the first value when true and the value after : when
-    // false.
-    return { tacticsPointsEarned: amount === 5 ? 1 : 0 };
+    return { renownPointsEarned: amount };
   }
 });
 
@@ -93,7 +91,7 @@ vm.runInContext(source, context);
 const scene = new context.TitleScene();
 scene.currencyText = { setText(value) { this.value = value; } };
 scene.showToast = (message) => { scene.lastToast = message; };
-GameState.leader = { level: 1, tacticsPoints: 0 };
+GameState.leader = { level: 1, renownPoints: 0 };
 scene.showDevelopmentTools();
 
 // We work out button here so callers can use the result. Keep the calculation together
@@ -120,10 +118,10 @@ function tap(label, y) {
 const panelTop = (1080 - 850) / 2;
 const row = (index) => panelTop + 180 + index * 84;
 const primaryButtons = [
-  getButton('OFF', row(0)), getButton('+1', row(1)), getButton('+100', row(3)),
+  getButton('OFF', row(0)), getButton('+1', row(1)), getButton('+1,000', row(3)),
   getButton('ON', row(4)), getButton('RESET', row(6))
 ];
-const secondaryButtons = [getButton('+5', row(1)), getButton('+500', row(3))];
+const secondaryButtons = [getButton('+5', row(1)), getButton('+5,000', row(3))];
 const closeButton = getButton('CLOSE', panelTop + 850 - 52);
 
 // every requires all entries to pass the check; an empty list gives true.
@@ -136,7 +134,7 @@ assert.ok([...primaryButtons, ...secondaryButtons, closeButton].every((button) =
 assert.equal(closeButton.x, scene.scale.width / 2);
 assert.equal(getButton('OFF', row(0)).regionMapState, 'normal');
 assert.equal(getButton('+1', row(1)).regionMapState, 'normal');
-assert.equal(getButton('+100', row(3)).regionMapState, 'normal');
+assert.equal(getButton('+1,000', row(3)).regionMapState, 'normal');
 assert.equal(getButton('ON', row(4)).regionMapState, 'selected');
 tap('+1', row(1));
 
@@ -153,10 +151,10 @@ assert.equal(GameState.roster[0].attackPower, heroBefore.attackPower + 12);
 assert.equal(GameState.roster[0].xp, heroBefore.xp);
 assert.equal(GameState.roster[0].skillPoints, heroBefore.skillPoints + 6);
 
-tap('+100', row(3));
-tap('+500', row(3));
-assert.equal(GameState.gold, 600);
-assert.match(scene.currencyText.value, /Gold: 600/);
+tap('+1,000', row(3));
+tap('+5,000', row(3));
+assert.equal(GameState.gold, 6000);
+assert.match(scene.currencyText.value, /Gold: 6000/);
 tap('ON', row(4));
 assert.equal(GameState.development.showArenaBorder, false);
 assert.equal(getButton('OFF', row(4)).regionMapState, 'normal');
@@ -164,7 +162,7 @@ assert.equal(getButton('OFF', row(4)).regionMapState, 'normal');
 assert.equal(JSON.parse(storage.get('delveDeep.profile.v2')).development.showArenaBorder, false);
 loadProfile(adventurers);
 assert.equal(GameState.development.showArenaBorder, false);
-assert.equal(GameState.gold, 600);
+assert.equal(GameState.gold, 6000);
 
 storage.set('delveDeep.profile.v2', JSON.stringify({ development: { showGridLines: true } }));
 loadProfile(adventurers);

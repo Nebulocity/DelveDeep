@@ -4,7 +4,7 @@
 
 import GameState from './GameState.js';
 import { grantAdventurerXp, adjustHappiness } from './AdventurerProgression.js';
-import { recordDepthClear, saveLeaderProgression } from './LeaderProgression.js';
+import { recordDelveCompletion } from './LeaderProgression.js';
 import { saveProfile } from './GameStorage.js';
 import { isOrdinaryDelve, delveRewardEligibility } from './DelveCheckpoints.js';
 
@@ -21,6 +21,10 @@ export function beginExpedition() {
 // experience and happiness, updates clear records and map discoveries, advances player
 // progression, and saves a summary for the reward screen.
 export function completeExpedition() {
+
+  // Snapshot before party XP because a boss reward can also cross a character milestone.
+  const previousRenown = GameState.leader?.level ?? 1;
+  const previousPoints = GameState.leader?.renownPoints ?? 0;
 
   // The condition before ? chooses the first value when true and the value after : when
   // false.
@@ -58,9 +62,6 @@ export function completeExpedition() {
   const previousBest = prior.bestTimeMs;
   const isNewBest = elapsedMs > 0 && (previousBest == null || elapsedMs < previousBest);
 
-  // ?. only follows this link when the value exists; a missing optional value gives
-  // undefined.
-  const depth = GameState.currentDelve?.depth ?? 1;
 
   // Save the clear count, best time, and a copy of the latest reward list for map reviews.
   GameState.records[delveId] = {
@@ -89,8 +90,11 @@ export function completeExpedition() {
     if (!GameState.world.discoveredLocations.includes(id)) GameState.world.discoveredLocations.push(id);
   });
 
-  // Apply leader depth progress and gather all results into the reward-screen summary.
-  const leaderResult = GameState.leader ? recordDepthClear(GameState.leader, depth) : { leveledUp: false, tacticsPointsEarned: 0 };
+  // Apply unique boss or portal progression and gather all results into the reward-screen summary.
+  recordDelveCompletion(GameState.leader, GameState.currentDelve);
+  const levelsGained = (GameState.leader?.level ?? previousRenown) - previousRenown;
+  const leaderResult = { leveledUp: levelsGained > 0, levelsGained,
+    renownPointsEarned: (GameState.leader?.renownPoints ?? previousPoints) - previousPoints };
   GameState.run.summary = {
     result: 'victory',
     elapsedMs,
@@ -129,23 +133,13 @@ export function failExpedition() {
   saveProfile();
 }
 
-// This helper handles retreat, deducts up to one Tactics Point, and saves the summary.
+// Retreat keeps leadership currency and saves the existing encounter outcome.
 export function fleeExpedition() {
 
   // Ordinary Delve waves bank their rewards when cleared.
   if (!isOrdinaryDelve()) GameState.gold = GameState.run.startingGold ?? GameState.gold;
   GameState.rewards = [];
   GameState.currentRoom = 0;
-
-  // Charge the retreat penalty without letting Tactics Points fall below zero.
-  if (GameState.leader) {
-
-    // Math.max chooses the largest value; pairing it with Math.min can keep a result
-    // inside both a lower and an upper bound. ?? uses the fallback only for null or
-    // undefined. A real zero or false stays intact.
-    GameState.leader.tacticsPoints = Math.max(0, (GameState.leader.tacticsPoints ?? 0) - 1);
-    saveLeaderProgression(GameState.leader);
-  }
 
   // The condition before ? chooses the first value when true and the value after : when
   // false.
@@ -154,8 +148,8 @@ export function fleeExpedition() {
     elapsedMs: GameState.run.startedAt > 0 ? Date.now() - GameState.run.startedAt : 0,
     title: 'PARTY FLED',
     message: isOrdinaryDelve()
-      ? 'Cleared wave rewards remain banked. Tactics Points was reduced.'
-      : 'The encounter was reset. Run rewards were abandoned and Tactics Points was reduced.'
+      ? 'Cleared wave rewards remain banked.'
+      : 'The encounter was reset. Run rewards were abandoned.'
   };
 
   saveProfile();

@@ -52,7 +52,7 @@ export function installVisualQaBridge(game) {
           result: defeated ? 'defeat' : 'fled', title: defeated ? 'DEFEAT' : 'PARTY FLED', elapsedMs: 65000,
           message: defeated
             ? 'The party was driven back. Cleared wave rewards and the camp checkpoint remain saved.'
-            : 'Cleared wave rewards remain banked. Tactics Points was reduced.'
+            : 'Cleared wave rewards remain banked.'
         };
       }
 

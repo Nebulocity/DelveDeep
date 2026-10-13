@@ -153,7 +153,7 @@ export default class TitleScene extends Phaser.Scene {
       addButton(x, rowY(1), `+${amount}`, 0x0e9c4b, 0x86efac, () => {
         HapticsService.confirm();
         const result = grantLeaderLevels(GameState.leader, amount);
-        this.showToast(`Renown Level ${GameState.leader.level}  (+${result.tacticsPointsEarned} TP)`);
+        this.showToast(`Renown Level ${GameState.leader.level}  (+${result.renownPointsEarned} RP)`);
       });
     }
 
@@ -164,15 +164,14 @@ export default class TitleScene extends Phaser.Scene {
         GameState.roster.forEach(hero => grantAdventurerLevels(hero, amount));
         saveProfile();
 
-        // The condition before ? chooses the first value when true and the value after :
-        // when false.
-        this.showToast(`All characters gained ${amount} level${amount === 1 ? '' : 's'}.`);
+        // A character already at the cap receives fewer levels, possibly none.
+        this.showToast(`Granted up to ${amount} levels per character, within the level cap.`);
       });
     }
 
     addLabel(3, 'Gold');
-    for (const [amount, x] of [[100, firstX], [500, secondX]]) {
-      addButton(x, rowY(3), `+${amount}`, 0xb38c0c, 0xfde047, () => {
+    for (const [amount, x] of [[1000, firstX], [5000, secondX]]) {
+      addButton(x, rowY(3), `+${amount.toLocaleString('en-US')}`, 0xb38c0c, 0xfde047, () => {
         HapticsService.confirm();
         GameState.gold += amount;
         saveProfile();

@@ -77,7 +77,7 @@ const SCENE_FIELDS = [
   'waveReturnPositions', 'waveReturnTargets', 'waveReturnReadyAt', 'waveReturnStartedAt',
   'waveReturnTimedOut', 'waveReturnProgress', 'waveReturnSettled', 'pendingWaveSpawns',
   'idlePhaseRemainingMs', 'idleSummary', 'idleSummaryResumePaused', 'combatRngState', 'abilityDecoySerial',
-  'delveTimerStartedAt'
+  'delveTimerStartedAt', 'farmTiming', 'offlineFarm'
 ];
 
 // Extract one unit's durable state while excluding live scene and graphics references.
@@ -178,6 +178,19 @@ export function validBattleSnapshot(snapshot, roster) {
 
     for (const key of ['selectedUnitIds', 'heldUnitIds', 'usedLeaderAbilities', 'waveReturnSettled']) {
       if (model[key] !== undefined && !(model[key] instanceof Set)) return false;
+    }
+
+    // These optional fields were added without changing the version-1 save format.
+    // Reject corrupt arithmetic before it can produce infinite debt or duplicate waves.
+    if (model.farmTiming != null && (!Array.isArray(model.farmTiming.samples)
+      || model.farmTiming.samples.length > 8
+      || !model.farmTiming.samples.every(value => Number.isFinite(value) && value > 0))) return false;
+    if (model.offlineFarm != null) {
+      const farm = model.offlineFarm;
+      if (farm.active !== true || !Number.isFinite(farm.cycleMs) || farm.cycleMs < 8000
+        || !Number.isFinite(farm.carryMs) || farm.carryMs < 0 || farm.carryMs >= farm.cycleMs
+        || !Number.isSafeInteger(farm.waves) || farm.waves < 0
+        || !Number.isFinite(farm.elapsedMs) || farm.elapsedMs < 0) return false;
     }
 
     // map builds one output entry for each input entry, in the same order. The callback's

@@ -1,10 +1,18 @@
 package com.waywardkobold.app;
 
 import com.getcapacitor.BridgeActivity;
+import android.os.Bundle;
 
 
 // Capacitor hosts the web game in this Android activity. Most gameplay stays in JavaScript.
 public class MainActivity extends BridgeActivity {
+
+    // Register our document picker before Capacitor creates the bridge.
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        registerPlugin(PrivateSaveFilesPlugin.class);
+        super.onCreate(savedInstanceState);
+    }
 
     @Override
     public void onPause() {

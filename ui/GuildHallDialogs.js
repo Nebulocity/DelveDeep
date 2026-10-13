@@ -14,6 +14,7 @@ import { bindSelectionDetails } from './SelectionDetails.js';
 import { abilityDescription } from '../game/AbilityDescriptions.js';
 import { rankedAbility } from '../game/AdventurerAbilities.js';
 import { getEquippedAdventurer } from '../game/Equipment.js';
+import { addEnchantmentScroll } from './EnchantmentScroll.js';
 
 // Build styled text at the requested position using this screen's shared text defaults.
 function text(scene, x, y, value, size, options = {}) {
@@ -58,7 +59,7 @@ function button(scene, x, y, width, label, callback, depth) {
 }
 
 // Prepare the temporary dialog objects and blocker that the details view owns.
-function start(scene, title, width, height, label, preserveEquipment = false) {
+function start(scene, title, width, height, label, preserveEquipment = false, enchantmentId = null) {
 
   // ?. only follows this link when the value exists; a missing optional value gives
   // undefined.
@@ -105,7 +106,11 @@ function start(scene, title, width, height, label, preserveEquipment = false) {
   guildCrest(scene, x - width / 2 + 96, top + 87, 70).setDepth(depth + 4);
   guildCrest(scene, x + width / 2 - 96, top + 87, 70).setDepth(depth + 4);
   text(scene, x, top + 48, label, UI_FONT_SIZES.compact24, { color: '#cfaa70', letterSpacing: 4 }).setDepth(depth + 4);
-  text(scene, x, top + 100, title, UI_FONT_SIZES.heading46, { color: GUILD.paper, fontFamily: UI_FONT_FAMILIES.serif, wordWrap: { width: width - 320 } }).setDepth(depth + 4);
+  const enchanted = Boolean(enchantmentId);
+  const titleText = text(scene, x + (enchanted ? 22 : 0), top + 100, title, UI_FONT_SIZES.heading46, {
+    color: GUILD.paper, fontFamily: UI_FONT_FAMILIES.serif, wordWrap: { width: width - (enchanted ? 390 : 320) }
+  }).setDepth(depth + 4);
+  if (enchanted) addEnchantmentScroll(scene, titleText.x - titleText.width / 2 - 27, top + 100, 38, depth + 5);
 
   return { x, top, width, height, depth, close, finish: (...extra) => objects.push(...scene.children.list.filter(object => !existing.has(object)), ...extra.filter(Boolean)), panel };
 }
@@ -121,10 +126,11 @@ export function showGuildDetails(scene, details) {
   // Math.min chooses the smallest value; pairing it with Math.max can keep a result inside
   // both a lower and an upper bound. The condition before ? chooses the first value when
   // true and the value after : when false.
-  const width = Math.min(hero ? 1560 : 1380, scene.scale.width - 120);
-  const body = !hero ? text(scene, 0, 0, details.description, UI_FONT_SIZES.detailBody, { align: 'center', fixedWidth: width - 180, wordWrap: { width: width - 180 }, lineSpacing: 12 }) : null;
+  const width = Math.min(details.panelWidth ?? (hero ? 1560 : 1380), scene.scale.width - 120);
+  const body = !hero ? text(scene, 0, 0, details.description, UI_FONT_SIZES.detailBody, { align: details.align ?? 'center', fixedWidth: width - 180, wordWrap: { width: width - 180 }, lineSpacing: 12 }) : null;
   const height = hero ? Math.min(970, scene.scale.height - 90) : Math.min(scene.scale.height - 90, Math.max(540, body.height + 430));
-  const modal = start(scene, details.title, width, height, hero ? 'GUILD REGISTRY' : 'GUILD HANDBOOK', details.preserveEquipment);
+  const modal = start(scene, details.title, width, height, hero ? 'GUILD REGISTRY' : 'GUILD HANDBOOK',
+    details.preserveEquipment, details.enchantmentId);
 
   // The braces pull named fields into local variables. This reads those fields without
   // copying the whole source object.

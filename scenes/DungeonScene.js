@@ -172,8 +172,8 @@ export default class DungeonScene extends Phaser.Scene {
         // intact. ?. only follows this link when the value exists; a missing optional
         // value gives undefined. The condition before ? chooses the first value when true
         // and the value after : when false.
-        return { slot, name: item?.name ?? 'Empty slot', summary: item ? slot === 'potion'
-          ? `${item.charges}/3 potions` : equipmentStatsText(item.stats) : 'Unequipped' };
+        return { slot, name: item?.name ?? 'Empty slot', enchantmentId: item?.enchantmentId ?? null,
+          summary: item ? slot === 'potion' ? `${item.charges}/3 potions` : equipmentStatsText(item.stats) : 'Unequipped' };
       })
     };
   }

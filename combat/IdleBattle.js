@@ -18,7 +18,7 @@ const PRESENTATION_METHODS = ['updateHud', 'updatePotionHud', 'refreshFarmContro
   'createFloatingText', 'createProjectile', 'createMeleePulse', 'announceAbility', 'flashPartyHudName'];
 
 // Keep the actual combat clock, AI, threat, movement, abilities and charge tweens running.
-function beginIdleBattle(scene) {
+export function beginIdleBattle(scene) {
   if (scene.idleSimulation) return;
   scene.idleSimulating = true;
 

@@ -9,6 +9,7 @@ import GameState from './GameState.js';
 import { grantMaterial } from './Equipment.js';
 import { grantAdventurerXp, adjustHappiness } from './AdventurerProgression.js';
 import { saveProfile } from './GameStorage.js';
+import { MAX_CHARACTER_LEVEL } from '../config/renown.js';
 
 export const WAVE_REWARDS = {
   Easy: { gold: 1, goldStep: 0, xp: 1, materialCount: 1 },
@@ -58,7 +59,7 @@ export function delveFarmWaveIndex(delve, bossIndex = (delve?.rooms ?? 1) - 1) {
 // keep Gold whole and avoid zero payouts for a small uncapped party on Easy. The roster
 // is authoritative because live units keep their departure stats while earning levels.
 export function delveRewardEligibility(delve = GameState.currentDelve) {
-  const cap = delve?.bossPreparation?.level ?? Infinity;
+  const cap = Math.min(delve?.bossPreparation?.level ?? Infinity, MAX_CHARACTER_LEVEL);
   const ids = new Set(GameState.activeParty.map(hero => hero.id));
   const party = GameState.roster.filter(hero => ids.has(hero.id));
   const eligible = party.filter(hero => hero.level < cap);
@@ -166,6 +167,8 @@ export function awardOrdinaryWave(delve, waveIndex, bossIndex, farming = false, 
   // actually lives, without depending on party list order.
   const partyIds = new Set((farming ? partyUnits.filter(unit => unit.alive) : GameState.activeParty).map(hero => hero.id));
   const xpByHero = {};
+  const previousRenown = GameState.leader?.level ?? 1;
+  const previousPoints = GameState.leader?.renownPoints ?? 0;
 
   // Report actual level gains with this payout so presentation cannot replay old levels.
   const levelsGainedByHero = {};
@@ -198,6 +201,8 @@ export function awardOrdinaryWave(delve, waveIndex, bossIndex, farming = false, 
 
   const materialId = Object.keys(materials)[0];
   const actualXp = Math.max(0, ...Object.values(xpByHero));
-  return { gold, xp: actualXp, xpByHero, levelsGainedByHero, happiness: eligibility.eligibleIds.size ? values.happiness ?? 0 : 0, materials,
+  const leaderResult = { levelsGained: (GameState.leader?.level ?? previousRenown) - previousRenown,
+    renownPointsEarned: (GameState.leader?.renownPoints ?? previousPoints) - previousPoints };
+  return { leaderResult, gold, xp: actualXp, xpByHero, levelsGainedByHero, happiness: eligibility.eligibleIds.size ? values.happiness ?? 0 : 0, materials,
     materialId, materialCount: materials[materialId] ?? 0, farming };
 }

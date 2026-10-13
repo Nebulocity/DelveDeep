@@ -1,6 +1,7 @@
 // The held battle sheet shows live resources and the four equipped skill slots.
 // Drawing this modal does not pause combat; its shade only blocks underlying taps.
 import GameState from '../game/GameState.js';
+import { MAX_CHARACTER_LEVEL } from '../config/renown.js';
 import { xpRequired } from '../game/AdventurerProgression.js';
 import { abilityCardDetails } from '../game/AbilityDescriptions.js';
 import { addStonePanel, addStoneButton, stoneText, STONE } from './CarvedStone.js';
@@ -46,7 +47,7 @@ export function showBattleCharacterDetails(scene, unit) {
   objects.push(stoneText(scene, left + 46, top + 104,
     `${unit.role} · Lv ${level} ${unit.className}`, 30, depth + 2).setOrigin(0, 0.5));
   objects.push(stoneText(scene, left + panelWidth - 46, top + 104,
-    `XP to Level: ${remainingXp.toLocaleString('en-US')}`, 30, depth + 2,
+    level >= MAX_CHARACTER_LEVEL ? 'Maximum level' : `XP to Level: ${remainingXp.toLocaleString('en-US')}`, 30, depth + 2,
     { color: '#ffd166' }).setOrigin(1, 0.5));
   objects.push(stoneText(scene, left + 46, top + 149,
     `Health: ${Math.floor(unit.hp)} / ${unit.maxHp}`, 30, depth + 2,

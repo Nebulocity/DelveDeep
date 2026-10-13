@@ -1207,6 +1207,38 @@ export const CHARACTER_SPRITES={"laurana":{
   footY:30
 }};
 
+// Set this to false to restore Sturm's original walking clips for every direction.
+const USE_STURM_WALK_TEST = true;
+
+if (USE_STURM_WALK_TEST) {
+  const texture = {
+    character: 'sturm',
+    key: 'sturm-temporary-walk',
+    url: new URL('../assets/characters/sturm/temporary/walk-test.png', import.meta.url).href
+  };
+
+  // The supplied six-by-six grid is packed into 256-pixel cells with its aspect ratio
+  // preserved. The clean replacement sheet retains its supplied transparency.
+  textures.push(texture);
+  CHARACTER_SPRITES.sturm.textures.push(texture);
+
+  // Read all 36 frames left to right, then top to bottom. At 24 FPS the loop takes
+  // 1.5 seconds. The shared combat clock already freezes walking when combat pauses.
+  const frames = Array.from({ length: 36 }, (_, frame) => ({
+    key: texture.key,
+    frame,
+    originX: 0.5,
+    originY: 0.97,
+    flipX: false
+  }));
+
+  // This sheet has one front-facing view. Use it for every movement direction without
+  // mirroring the sword and shield. Anchor near the bottom to keep the boots on the floor.
+  for (const direction of Object.keys(CHARACTER_SPRITES.sturm.clips.walk)) {
+    CHARACTER_SPRITES.sturm.clips.walk[direction] = { frameMs: 1000 / 24, frames };
+  }
+}
+
 // Queue accepted character textures and animation sheets by their stable asset keys. scene
 // is the Phaser screen that owns the objects, clock and input used here.
 export function preloadCharacterSprites(scene){

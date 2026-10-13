@@ -3,12 +3,20 @@
 // must match material IDs, and aliases preserve compatibility with old saves.
 
 export const ITEM_RARITIES = {
-  common: { label: 'Common', color: '#d6d3d1' },
-  uncommon: { label: 'Uncommon', color: '#4ade80' },
+  common: { label: 'Common', color: '#d6d3d1', minimumLevel: 1 },
+  uncommon: { label: 'Uncommon', color: '#4ade80', minimumLevel: 10 },
   rare: { label: 'Rare', color: '#60a5fa' },
   epic: { label: 'Epic', color: '#c084fc' },
   legendary: { label: 'Legendary', color: '#fb923c' }
 };
+
+// Future rarities need an authored requirement before characters can use them.
+// Read catalog data each time so old owned copies need no new saved field.
+export function itemMinimumLevel(item) {
+  const definition = getCatalogItemDefinition(item?.itemId ?? item?.id);
+  return definition?.minimumLevel ?? item?.minimumLevel
+    ?? ITEM_RARITIES[definition?.rarity ?? item?.rarity ?? 'common']?.minimumLevel ?? Infinity;
+}
 
 
 // id names the reusable definition; an owned copy receives a separate instance ID.

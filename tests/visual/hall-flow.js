@@ -40,7 +40,7 @@ export async function reviewHall(page, output, width) {
 
     state.roster.find((entry) => entry.id === 'laurana').equipment = { weapon: 'gear-903' };
     state.inventory.materials = { iron: 4, cloth: 0 };
-    state.leader.tacticsPoints = 4;
+    state.leader.renownPoints = 4;
     const scene = qa.game.scene.getScene('RosterScene');
     scene.heroId = hero.id;
     scene.tab = 'gear';
@@ -150,37 +150,29 @@ export async function reviewHall(page, output, width) {
   await click('RosterScene', 'CLOSE', true);
   await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene').rosterList.set(0));
   await click('RosterScene', 'hall-slot-weapon');
-  const compareNames = await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene').children.list.filter((object) => object.name?.startsWith('hall-compare-')).map((object) => object.name));
-  ensure(compareNames.length === 3 && !compareNames.includes('hall-compare-gear-902') && !compareNames.includes('hall-compare-gear-903'), 'Picker must exclude incompatible and assigned equipment');
+  const equipNames = await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene').children.list.filter((object) => object.name?.startsWith('hall-equip-item-')).map((object) => object.name));
+  ensure(equipNames.length === 3 && !equipNames.includes('hall-equip-item-gear-902') && !equipNames.includes('hall-equip-item-gear-903'), 'Picker must exclude incompatible and assigned equipment');
   await capture('picker');
   await click('RosterScene', 'Next >');
 
-  ensure(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene').children.list.some((object) => object.name === 'hall-compare-gear-909')), 'Equipment pagination must reach the final copy');
+  ensure(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene').children.list.some((object) => object.name === 'hall-equip-item-gear-909')), 'Equipment pagination must reach the final copy');
   await click('RosterScene', 'Prev');
-  await click('RosterScene', 'hall-compare-gear-901');
-  ensure(!(await snapshot()).gear.weapon, 'Comparison must not equip before confirmation');
-  await capture('comparison');
-  await click('RosterScene', 'CANCEL', true);
-  ensure(!(await snapshot()).gear.weapon, 'Cancelled comparison changed gear');
-
-  await click('RosterScene', 'hall-compare-gear-901');
 
   // Transaction refreshes keep the roster alive instead of recreating every card.
   await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene').rosterList.container.setData('transactionMarker', true));
-  await click('RosterScene', 'EQUIP', true);
-  ensure((await snapshot()).gear.weapon === 'gear-901', 'Confirmed weapon did not equip');
+  await click('RosterScene', 'hall-equip-item-gear-901');
+  ensure((await snapshot()).gear.weapon === 'gear-901' && !(await snapshot()).modal, 'Equip must apply immediately and return to Equipment');
   await click('RosterScene', 'hall-slot-weapon');
-  await click('RosterScene', 'Unequip');
-  ensure(!(await snapshot()).gear.weapon, 'Unequip did not clear the weapon');
-  await click('RosterScene', 'hall-slot-weapon');
-  await click('RosterScene', 'hall-compare-gear-901');
-  await click('RosterScene', 'EQUIP', true);
+  ensure(await page.evaluate(() => {
+    const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene');
+    return !scene.children.list.some(object => object.name === 'Unequip');
+  }) && (await snapshot()).gear.weapon === 'gear-901', 'Weapons stay equipped and have no Unequip action');
+  await click('RosterScene', 'Done');
   ensure(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene').rosterList.container.getData('transactionMarker')),
     'Gear changes must preserve the roster objects');
   await click('RosterScene', 'hall-slot-potion');
-  ensure(!await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene').children.list.some((object) => object.name === 'hall-compare-gear-904')), 'Mana pack must be excluded for a non-mana hero');
-  await click('RosterScene', 'hall-compare-gear-905');
-  await click('RosterScene', 'EQUIP', true);
+  ensure(!await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene').children.list.some((object) => object.name === 'hall-equip-item-gear-904')), 'Mana pack must be excluded for a non-mana hero');
+  await click('RosterScene', 'hall-equip-item-gear-905');
   ensure((await snapshot()).gear.potion === 'gear-905', 'Potion pack did not equip');
 
   await capture('equipped');

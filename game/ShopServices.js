@@ -3,12 +3,29 @@
 // That second check keeps a stale UI from spending resources the player no longer has.
 
 import GameState from './GameState.js';
-import { EQUIPMENT_ITEMS, EQUIPMENT_BY_ID, getPotionDefinition, getMaterialDefinition } from '../data/items.js';
+import { EQUIPMENT_ITEMS, EQUIPMENT_BY_ID, getPotionDefinition, getMaterialDefinition, getCatalogItemDefinition } from '../data/items.js';
 import { ENCHANTMENT_BY_ID } from '../data/enchantments.js';
 import { grantEquipment, equipmentOwner, sellMaterial, sellPotionPack } from './Equipment.js';
 import { CRAFTING_RECIPES } from '../data/items.js';
 
 export const GEAR_STOCK = EQUIPMENT_ITEMS.filter(item => Number.isFinite(item.price) && item.price > 0);
+
+const RARITY_ORDER = { legendary: 5, epic: 4, rare: 3, uncommon: 2, common: 1 };
+
+// Sort every shop list consistently, using the item's name to break same-rarity ties.
+export function sortShopRows(rows) {
+  const rarityFor = row => {
+    const recipe = CRAFTING_RECIPES.find(entry => entry.id === row.id);
+    const itemId = row.item?.itemId ?? row.itemId ?? recipe?.output.itemId ?? row.id;
+    return row.rarity ?? row.item?.rarity
+      ?? getCatalogItemDefinition(itemId)?.rarity
+      ?? getPotionDefinition(itemId)?.rarity
+      ?? getMaterialDefinition(itemId)?.rarity ?? 'common';
+  };
+
+  return [...rows].sort((left, right) => (RARITY_ORDER[rarityFor(right)] ?? 0) - (RARITY_ORDER[rarityFor(left)] ?? 0)
+    || left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }));
+}
 
 // Calculate the Gold received for the owned item being sold.
 export function saleValue(item) {
@@ -46,16 +63,16 @@ export function saleRows(state = GameState) {
   // callback's return value becomes that output entry. filter keeps entries whose callback
   // returns true. It builds a new list and leaves the original list in place.
   return [
-    ...state.inventory.equipment.map(item => ({
+    ...state.inventory.equipment.filter(item => !equipmentOwner(item.id, state)).map(item => ({
       id: item.id,
       category: item.slot,
       name: item.name,
-      description: equipmentOwner(item.id, state) ? `Equipped by ${equipmentOwner(item.id, state).name}. Unequip to sell.` : item.slot === 'potion' ? `${item.charges}/3 uses remaining` : 'One owned item',
+      description: item.slot === 'potion' ? `${item.charges}/3 uses remaining` : 'One owned item',
       value: saleValue(item),
 
       // reduce adds each matching copy's price to a running total that starts at zero.
       allValue: matchingSaleItems(item, state).reduce((total, entry) => total + saleValue(entry), 0),
-      enabled: !equipmentOwner(item.id, state),
+      enabled: true,
       item
     })),
     ...Object.entries(state.inventory.materials ?? {}).filter(([, count]) => count > 0).map(([id, count]) => ({

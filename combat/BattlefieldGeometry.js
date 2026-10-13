@@ -165,10 +165,12 @@ export default class BattlefieldGeometry {
   // foot position too close to the edge, even if its center is inside.
   containsArenaPoint(x, y, padding = 0) {
 
-    // A 64-unit square safely inside the floor can answer repeated foot queries without
+    // A 16-unit square safely inside the floor can answer repeated foot queries without
     // walking every polygon edge. The enclosing circle reaches every corner, so checking
     // its center with that extra clearance proves the entire square is legal. Positions
     // near an edge still use the exact original test below, with no coordinate rounding.
+    // Small squares cover more of an irregular floor without forcing repeated polygon
+    // checks. These are only lookup regions, never tactical cells or snapped positions.
     if (padding >= 0 && padding <= 64 && x >= 0 && y >= 0
       && x < this.logicalWidth && y < this.logicalHeight) {
       if (this.floorQueryPolygon !== this.logicalBoundary) {
@@ -183,13 +185,13 @@ export default class BattlefieldGeometry {
         cells = new Map();
         this.floorQueryCache.set(padding, cells);
       }
-      const column = Math.floor(x / 64);
-      const row = Math.floor(y / 64);
-      const key = row * Math.ceil(this.logicalWidth / 64) + column;
+      const column = Math.floor(x / 16);
+      const row = Math.floor(y / 16);
+      const key = row * Math.ceil(this.logicalWidth / 16) + column;
       let safe = cells.get(key);
       if (safe === undefined) {
-        safe = this.containsArenaPointExact(column * 64 + 32, row * 64 + 32,
-          padding + Math.SQRT2 * 32 + 0.000001);
+        safe = this.containsArenaPointExact(column * 16 + 8, row * 16 + 8,
+          padding + Math.SQRT2 * 8 + 0.000001);
         cells.set(key, safe);
       }
       if (safe) return true;

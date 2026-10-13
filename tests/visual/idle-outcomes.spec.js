@@ -7,11 +7,11 @@ import { test, expect } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 
 // Prepare the temporary dialog objects and blocker that the details view owns.
-async function start(page) {
+async function start(page, delve = 'slime-cave') {
   await page.goto('/?visualQa=1');
   await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__?.game.scene.getScene('TitleScene').sys.isActive());
   await page.locator('#loading-screen').waitFor({ state: 'hidden' });
-  await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.activate('BattleScene'));
+  await page.evaluate(delve => window.__DELVE_DEEP_VISUAL_QA__.activate('BattleScene', { delve }), delve);
   await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene').sys.isActive());
   await page.locator('#loading-screen').waitFor({ state: 'hidden' });
 }
@@ -23,7 +23,7 @@ test('fourteen idle hours settle farm outcomes without scene replay and summariz
   // Long-lived emitters need matching listener cleanup.
   page.on('console', message => { if (message.text().startsWith('Idle benchmark debt:')) console.log(message.text()); });
   await page.setViewportSize({ width: 915, height: 412 });
-  await start(page);
+  await start(page, 'thornbriar-hollow');
   const outcome = await page.evaluate(async () => {
     const qa = window.__DELVE_DEEP_VISUAL_QA__;
     const scene = qa.game.scene.getScene('BattleScene');
@@ -41,14 +41,12 @@ test('fourteen idle hours settle farm outcomes without scene replay and summariz
     scene.waveRetreating = false;
 
     scene.idleSummary = null;
-    scene.partyUnits.forEach(unit => {
-      unit.maxHp = unit.hp = 1000000;
-      unit.attackPower = unit.spellDamage = 100000;
-    });
+    scene.partyUnits.forEach(unit => { unit.hp = 1; unit.mana = 0; });
     qa.state.delveCheckpoints[qa.state.currentDelve.id] = { nextWave: scene.bossWaveIndex, campUnlocked: true };
     qa.state.run.entry = 'farm';
 
     scene.startWave(scene.bossWaveIndex - 1);
+    scene.farmTiming.samples = [40000, 40000];
     const gold = qa.state.gold;
     let steps = 0;
     const original = progress.originalUpdate;
@@ -56,8 +54,7 @@ test('fourteen idle hours settle farm outcomes without scene replay and summariz
       if (progress.isReplaying) steps += 1;
       return original.apply(this, args);
     };
-    const wall = progress.now();
-    progress.now = () => wall + 14 * 3600000;
+    progress.lastWallTime = progress.now() - 14 * 3600000;
 
     const began = performance.now();
     const monitor = setInterval(() => console.log(`Idle benchmark debt: ${progress.pendingMs}; time ${scene.time.now}; hidden ${document.hidden}`), 5000);
@@ -69,18 +66,33 @@ test('fourteen idle hours settle farm outcomes without scene replay and summariz
     clearInterval(monitor);
 
     return { elapsed, steps, gold: qa.state.gold - gold, summary: scene.idleSummary,
-      debt: progress.pendingMs, open: scene.idleSummaryOpen, difficulty: qa.state.currentDelve.difficulty };
+      debt: progress.pendingMs, open: scene.idleSummaryOpen,
+      party: scene.partyUnits.map(unit => ({ hp: unit.hp / unit.maxHp, mana: unit.maxMana ? unit.mana / unit.maxMana : null, alive: unit.alive })),
+      enemies: scene.enemies.map(unit => ({ hp: unit.hp / unit.maxHp, landing: Boolean(unit.landing) })),
+      fullWave: scene.waves[scene.currentWaveIndex].enemies.length,
+      oldEvents: scene.battleEvents.size };
   });
 
   console.log(`Fourteen idle hours: ${outcome.summary.waves} waves in ${outcome.elapsed.toFixed(1)} ms; ${outcome.steps} scene replay steps.`);
   expect(outcome.steps).toBe(0);
   expect(outcome.debt).toBeLessThan(50);
-  expect(outcome.elapsed).toBeLessThan(60000);
-  expect(outcome.summary.waves).toBeGreaterThan(1000);
+  expect(outcome.elapsed).toBeLessThan(2000);
+  expect(outcome.summary.waves).toBe(1260);
+  expect(outcome.summary.estimatedWaves).toBe(1260);
   expect(outcome.gold).toBe(outcome.summary.gold);
-  const xpPerWave = { Easy: 1, Difficult: 2, Tough: 3, 'Very Tough': 4, 'Incredibly Tough': 5, Impossible: 6 };
-  expect(outcome.summary.xp).toBe(outcome.summary.waves * xpPerWave[outcome.difficulty]);
+  expect(outcome.summary.xp).toBeGreaterThan(0);
+  expect(outcome.summary.xp).toBeLessThanOrEqual(outcome.summary.waves);
   expect(outcome.summary.deaths).toEqual([]);
+  expect(outcome.oldEvents).toBe(0);
+  expect(outcome.enemies.length).toBeGreaterThan(0);
+  expect(outcome.enemies.length).toBeLessThan(outcome.fullWave);
+  for (const unit of outcome.party) {
+    expect(unit.alive).toBe(true);
+    expect(unit.hp).toBeGreaterThanOrEqual(0.74);
+    expect(unit.hp).toBeLessThanOrEqual(0.96);
+    if (unit.mana !== null) expect(unit.mana).toBeGreaterThanOrEqual(0.64);
+  }
+  expect(outcome.enemies.every(enemy => !enemy.landing && enemy.hp > 0 && enemy.hp < 1)).toBe(true);
 
   expect(outcome.open).toBe(true);
   await mkdir('output/qa/screenshots', { recursive: true });
@@ -104,7 +116,10 @@ test('fourteen idle hours settle farm outcomes without scene replay and summariz
   });
 
   await page.mouse.click(button.x, button.y);
-  expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene').idleSummary)).toBeNull();
+  expect(await page.evaluate(() => {
+    const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
+    return { open: scene.idleSummaryOpen, waves: scene.idleSummary?.waves ?? 0 };
+  })).toEqual({ open: false, waves: 0 });
 });
 
 test('idle deaths stop a lost run, persist the summary and do not repay on reload', async ({ page }) => {

@@ -59,9 +59,11 @@ export function showTutorialSlideshow(scene) {
   keep(scene.add.rectangle(cx, height / 2, width, height, 0x000000, 0.78)
     .setScrollFactor(0).setDepth(depth).setInteractive());
   keep(addRegionPanel(scene, cx, height / 2, width - 120, height - 60, depth + 1)).setInteractive();
-  text(cx, 80, 'WELCOME TO DELVE DEEP', UI_FONT_SIZES.heading38, { fontStyle: UI_FONT_WEIGHTS.bold, color: '#f2d79f' });
+  text(cx, 80, 'HOW TO PLAY', UI_FONT_SIZES.heading38, { fontStyle: UI_FONT_WEIGHTS.bold, color: '#f2d79f' });
   const title = text(cx, 137, '', UI_FONT_SIZES.body36, { fontStyle: UI_FONT_WEIGHTS.bold });
-  const caption = text(cx, height - 236, '', UI_FONT_SIZES.body32, { wordWrap: { width: width - 330 }, fixedWidth: width - 330 });
+
+  // Keep each short instruction below the video, with larger phone-readable text.
+  const caption = text(cx, height - 236, '', UI_FONT_SIZES.body36, { wordWrap: { width: width - 330 }, fixedWidth: width - 330 }).setName('tutorial-caption');
   const status = text(cx, 472, 'Loading gameplay...', UI_FONT_SIZES.body34);
 
   const count = text(cx, height - 66, '', UI_FONT_SIZES.support28, { color: '#b4c4af' });

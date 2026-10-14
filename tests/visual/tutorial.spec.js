@@ -5,10 +5,11 @@
 
 import { test, expect } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
+import { tutorialSlides } from '../../data/tutorial.js';
 
 for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080 }]) {
   test(`gameplay tutorial navigation and playback at ${viewport.width}`, async ({ page }) => {
-    test.setTimeout(180000);
+    test.setTimeout(300000);
     await page.setViewportSize(viewport);
     const errors = [];
 
@@ -36,15 +37,25 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
       return video?.frameReady && video.video.currentTime > 0.1;
     });
 
+    const slideCount = tutorialSlides.length;
     const count = () => page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('TitleScene').children.list
-      .find(object => /^\d of 5$/.test(object.text))?.text);
+      .find(object => /^\d+ of \d+$/.test(object.text))?.text);
     await click(640, 1015);
     await ready();
     await mkdir('output/qa/screenshots', { recursive: true });
 
-    for (let i = 0; i < 5; i++) {
-      expect(await count()).toBe(`${i + 1} of 5`);
+    for (let i = 0; i < slideCount; i++) {
+      expect(await count()).toBe(`${i + 1} of ${slideCount}`);
       await ready();
+      expect(await page.evaluate(() => {
+        const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('TitleScene');
+        const videos = scene.children.list.filter(object => object.name === 'tutorial-video');
+        const caption = scene.children.getByName('tutorial-caption');
+
+        // Check the decoded frame and its instruction together, not just the slide count.
+        return videos.length === 1 && videos[0].video.videoWidth > 0
+          && caption.getBounds().top > videos[0].getBounds().bottom;
+      })).toBe(true);
       expect(await page.evaluate(() => {
         const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('TitleScene');
 
@@ -58,14 +69,14 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
       })).toBe(true);
 
       await page.screenshot({ path: `output/qa/screenshots/tutorial-${viewport.width}-${i + 1}.png` });
-      if (i < 4) await click(1950, 944);
+      if (i < slideCount - 1) await click(1950, 944);
     }
 
     await click(1950, 944);
-    expect(await count()).toBe('5 of 5');
+    expect(await count()).toBe(`${slideCount} of ${slideCount}`);
     await click(450, 944);
     await ready();
-    expect(await count()).toBe('4 of 5');
+    expect(await count()).toBe(`${slideCount - 1} of ${slideCount}`);
     await click(950, 944);
     const pausedTime = await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('TitleScene').children.list
       .find(object => object.name === 'tutorial-video').video.currentTime);
@@ -86,7 +97,7 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
 
     await click(640, 1015);
     await ready();
-    expect(await count()).toBe('1 of 5');
+    expect(await count()).toBe(`1 of ${slideCount}`);
     await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.activate('TownScene'));
     await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('TownScene').sys.isActive());
     expect(await page.evaluate(() => Boolean(window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('TitleScene').selectionDetailsClose))).toBe(false);

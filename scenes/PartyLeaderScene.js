@@ -139,7 +139,9 @@ export default class PartyLeaderScene extends Phaser.Scene {
         // Run the committed action after the player confirms this decision.
         onConfirm: () => {
           if (purchaseLeaderAbility(leader, ability.id)) {
-            this.message = `${ability.name} unlocked. Tap to equip.`;
+            this.message = leader.battleLoadout.includes(ability.id)
+              ? `${ability.name} unlocked and equipped.`
+              : `${ability.name} unlocked. All five tactic slots are full; unequip one to make room.`;
             HapticsService.confirm();
           }
           else this.message = 'This tactic could not be unlocked.';

@@ -51,7 +51,6 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
     await click('hall-tactic-focusFire');
     await click('CONFIRM', true);
     expect((await state()).points).toBe(0);
-    await click('hall-tactic-focusFire');
     expect((await state()).equipped).toEqual(['focusFire']);
 
     // Supplying extra points does not satisfy the level gate; eligible standing does.
@@ -74,7 +73,7 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
     await page.reload();
     await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__?.game.scene.getScene('TitleScene').sys.isActive());
     expect((await state()).unlocked).toContain('coordinatedAttack');
-    expect((await state()).equipped).toEqual(['focusFire']);
+    expect((await state()).equipped).toEqual(['focusFire', 'coordinatedAttack']);
     expect(errors).toEqual([]);
   });
 }

@@ -5,7 +5,7 @@ export async function simulateRegionalDelve(page, options) {
     const qa = window.__DELVE_DEEP_VISUAL_QA__;
     const { game, state } = qa;
     const { default: adventurers } = await import('/data/adventurers.js');
-    const { leaderAbilities, purchaseLeaderAbility, toggleLeaderLoadoutAbility } = await import('/game/LeaderProgression.js');
+    const { leaderAbilities, purchaseLeaderAbility } = await import('/game/LeaderProgression.js');
     const { itemMinimumLevel, CATALOG_ITEMS } = await import('/data/items.js');
     const { ENCHANTMENTS } = await import('/data/enchantments.js');
     const { applyEnchantment } = await import('/game/ShopServices.js');
@@ -177,8 +177,7 @@ export async function simulateRegionalDelve(page, options) {
         for (const ability of [...leaderAbilities].sort((a, b) => options.activeLeadership
           ? (priority.includes(a.id) ? priority.indexOf(a.id) : 99) - (priority.includes(b.id) ? priority.indexOf(b.id) : 99)
           : a.cost - b.cost)) {
-          if (purchaseLeaderAbility(state.leader, ability.id) && state.leader.battleLoadout.length < 5)
-            toggleLeaderLoadoutAbility(state.leader, ability.id);
+          purchaseLeaderAbility(state.leader, ability.id);
         }
       }
 

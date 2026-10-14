@@ -254,6 +254,13 @@ export function purchaseLeaderAbility(leader, abilityId) {
   leader.renownPoints -= ability.cost;
   leader.spentRenownPoints += ability.cost;
   leader.unlockedAbilities.push(abilityId);
+
+  // A new purchase fills a free battle slot immediately. A full loadout keeps its five
+  // chosen tactics; the new tactic stays unlocked for the player to equip later.
+  leader.battleLoadout ??= [];
+  if (leader.battleLoadout.length < 5 && !leader.battleLoadout.includes(abilityId)) {
+    leader.battleLoadout.push(abilityId);
+  }
   saveLeaderProgression(leader);
   return true;
 }

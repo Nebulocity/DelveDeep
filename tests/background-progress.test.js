@@ -261,8 +261,16 @@ assert.equal(monster.maxHp, 1150);
 availabilitySurface.focused = false;
 availabilityListeners.get('blur')();
 assert.equal(availabilityProgress.hidden, true);
+assert.equal(availabilityProgress.canRenderWhileIdle(), true);
 assert.equal(monster.maxHp, 1000);
 assert.equal(monster.hp, 400);
+
+// Visible idle windows keep normal rendered frames without restoring active monster stats.
+const idleFrameTime = availabilityProgress.time;
+wallTime += 17;
+availabilityGame.scene.update(34, 17);
+assert.equal(availabilityProgress.time, idleFrameTime + 17);
+assert.equal(monster.maxHp, 1000);
 availabilitySurface.focused = true;
 availabilityListeners.get('focus')();
 assert.equal(availabilityProgress.hidden, false);
@@ -271,6 +279,7 @@ assert.equal(monster.hp, 460);
 // Focus cannot resume a hidden tab or Android app. Each must return to the foreground.
 availabilitySurface.hidden = true;
 availabilityListeners.get('visibilitychange')();
+assert.equal(availabilityProgress.canRenderWhileIdle(), false);
 availabilityListeners.get('focus')();
 assert.equal(monster.maxHp, 1000);
 availabilitySurface.hidden = false;

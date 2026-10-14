@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import GameState from '../game/GameState.js';
 import { loadLeaderProgression, saveLeaderProgression, leaderAbilities, purchaseLeaderAbility,
-  grantLeaderLevels, recordDelveCompletion, toggleLeaderLoadoutAbility } from '../game/LeaderProgression.js';
+  grantLeaderLevels, recordDelveCompletion } from '../game/LeaderProgression.js';
 import { grantAdventurerLevels, grantAdventurerXp, xpRequired } from '../game/AdventurerProgression.js';
 import { awardOrdinaryWave, delveRewardEligibility } from '../game/DelveCheckpoints.js';
 import { awardOfflineFarmWaves } from '../game/OfflineFarmRewards.js';
@@ -27,8 +27,18 @@ assert.deepEqual(leader.battleLoadout, []);
 assert.equal(purchaseLeaderAbility(leader, 'focusFire'), true);
 assert.equal(leader.renownPoints, 0);
 assert.equal(leader.level, 1);
-assert.equal(toggleLeaderLoadoutAbility(leader, 'focusFire'), true);
+assert.deepEqual(leader.battleLoadout, ['focusFire']);
+assert.deepEqual(loadLeaderProgression().battleLoadout, ['focusFire']);
 assert.equal(purchaseLeaderAbility(leader, 'focusFire'), false);
+
+// Buying a sixth tactic unlocks it without replacing any of the five chosen tactics.
+const fullLeader = { ...leader, level: 50, renownPoints: 100, spentRenownPoints: 0,
+  unlockedAbilities: ['focusFire', 'brace', 'shieldWall', 'supplies', 'ready'],
+  battleLoadout: ['focusFire', 'brace', 'shieldWall', 'supplies', 'ready'] };
+assert.equal(purchaseLeaderAbility(fullLeader, 'encouragement'), true);
+assert.ok(fullLeader.unlockedAbilities.includes('encouragement'));
+assert.deepEqual(fullLeader.battleLoadout, ['focusFire', 'brace', 'shieldWall', 'supplies', 'ready']);
+saveLeaderProgression(leader);
 
 // Two adventurers reaching five in the same banked wave award only one shared claim.
 const cave = getDelveById('slime-cave');

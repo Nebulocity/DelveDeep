@@ -80,11 +80,9 @@ export default class MusicService {
     // undefined.
     if (scene.waves?.[scene.currentWaveIndex]?.boss) return 'music-boss';
 
-    // The condition before ? chooses the first value when true and the value after : when
-    // false. ?? uses the fallback only for null or undefined. A real zero or false stays
-    // intact.
-    return (GameState.currentDelve?.encounterId ?? GameState.currentDelve?.id) === 'slime-cave'
-      ? 'music-slime-cave' : null;
+    // Every Delve shares the bundled ordinary battle theme. Keep its existing audio
+    // key so this adds no duplicate audio file; the boss check above always takes priority.
+    return 'music-slime-cave';
   }
 
   // Select only the current visible state, without playing historical idle wave

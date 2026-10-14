@@ -4227,7 +4227,11 @@ export default class BattleScene extends Phaser.Scene {
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
-    if (this.game.backgroundProgress?.hidden) {
+    const progress = this.game.backgroundProgress;
+
+    // A visible window can finish catch-up while another app has focus. Restore its
+    // artwork now so Phaser does not clear the hidden battle to a black canvas.
+    if (progress?.hidden && !progress.canRenderWhileIdle?.()) {
 
       // ?? uses the fallback only for null or undefined. A real zero or false stays
       // intact.

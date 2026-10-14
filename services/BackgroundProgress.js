@@ -125,6 +125,12 @@ export default class BackgroundProgress {
     if (hidden !== this.hidden) this.setHidden(hidden);
   }
 
+  // An unfocused window may still be visible beside another app. Keep drawing and
+  // animating it with idle combat stats. Hidden tabs and Android suspension use catch-up.
+  canRenderWhileIdle() {
+    return this.hidden && !this.windowFocused && !this.pageUnavailable && !this.nativeInactive;
+  }
+
   // Account for elapsed time, notify shared services of visibility and begin appropriate
   // catch-up work.
   setHidden(hidden) {
@@ -153,7 +159,7 @@ export default class BackgroundProgress {
     // ??= fills a missing value once. It leaves an existing value, including zero or
     // false, alone.
     this.time ??= time - delta;
-    if (this.hidden) return;
+    if (this.hidden && !this.canRenderWhileIdle()) return;
     const previousDebt = this.pendingMs;
     this.account();
 
@@ -168,7 +174,7 @@ export default class BackgroundProgress {
 
   // Check elapsed time outside normal visible frames and process queued background work.
   pump() {
-    if (!this.hidden && this.pendingMs < BACKGROUND_STEP_MS) return;
+    if ((!this.hidden || this.canRenderWhileIdle()) && this.pendingMs < BACKGROUND_STEP_MS) return;
     this.account();
     this.drain();
   }

@@ -29,7 +29,7 @@ export const tutorialSlides = [
   },
   {
     title: 'Unlock and equip a tactic',
-    caption: 'Open Tactics. Spend your starting Renown Point on Focus!, confirm, then tap it again to equip it for battle.',
+    caption: 'Open Tactics. Spend your starting Renown Point on Focus! and confirm. New tactics equip automatically if a slot is free.',
     video: new URL('../assets/tutorial/tactics-town.mp4', import.meta.url).href
   },
   {

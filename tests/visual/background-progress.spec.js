@@ -5,6 +5,51 @@
 
 import { test, expect } from '@playwright/test';
 
+test('a visible unfocused battle keeps drawing with idle stats and survives catch-up', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.routeWebSocket('**/*', () => {});
+  await page.goto('/?visualQa=1');
+  await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__?.game.scene.getScene('TitleScene').sys.isActive());
+  await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.activate('BattleScene'));
+  await page.waitForFunction(() => {
+    const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
+    return scene.sys.isActive() && scene.enemies.some(enemy => enemy.alive && !enemy.landing);
+  });
+  const before = await page.evaluate(() => {
+    const game = window.__DELVE_DEEP_VISUAL_QA__.game;
+    window.dispatchEvent(new Event('blur'));
+
+    // Force one real idle catch-up pass, which previously left this visible scene hidden.
+    game.backgroundProgress.pendingMs += 1000;
+    game.backgroundProgress.pump();
+    return game.scene.getScene('BattleScene').time.now;
+  });
+  await page.waitForFunction(() => {
+    const game = window.__DELVE_DEEP_VISUAL_QA__.game;
+    return game.backgroundProgress.pendingMs < 50 && !game.scene.getScene('BattleScene').idleSimulation;
+  });
+  await page.waitForTimeout(600);
+  const idle = await page.evaluate(() => {
+    const game = window.__DELVE_DEEP_VISUAL_QA__.game;
+    const scene = game.scene.getScene('BattleScene');
+    return { hidden: game.backgroundProgress.hidden, drawing: game.backgroundProgress.canRenderWhileIdle(),
+      visible: scene.sys.settings.visible, time: scene.time.now,
+      activeStats: scene.enemies.some(enemy => enemy.activeCombatBalance?.active) };
+  });
+  expect(idle).toMatchObject({ hidden: true, drawing: true, visible: true, activeStats: false });
+  expect(idle.time).toBeGreaterThan(before);
+  const pixel = await page.evaluate(() => new Promise(resolve => {
+    window.__DELVE_DEEP_VISUAL_QA__.game.renderer.snapshotPixel(1200, 650,
+      color => resolve(color.r + color.g + color.b));
+  }));
+  expect(pixel).toBeGreaterThan(70);
+  await page.screenshot({ path: 'output/qa/visible-idle-battle.png' });
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.backgroundProgress.hidden)).toBe(false);
+  expect(errors).toEqual([]);
+});
+
 test('suspended combat resolves countdown, landings, actions and pause on resume', async ({ page }) => {
   const errors = [];
 

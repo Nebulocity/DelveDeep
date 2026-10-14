@@ -1,3 +1,4 @@
+import { classIcon, categoryIcon, titleIcon, abilityClasses } from '../ui/IdentityIcons.js';
 // This screen presents the roster and character inspection. Selection uses stable
 // character IDs, while display values come from current progression and gear.
 
@@ -199,8 +200,8 @@ export default class RosterScene extends Phaser.Scene {
 
     // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
     hallButton(this, 794, 382, 488, 66, `${hero.shortName ?? hero.className} ⓘ`, () => {
-      showSelectionDetails(this, { title: hero.className, description: CLASS_DESCRIPTIONS[hero.className] });
-    }, { name: 'hall-class-info', size: UI_FONT_SIZES.hallClass, details: { title: hero.className, description: CLASS_DESCRIPTIONS[hero.className] } });
+      showSelectionDetails(this, { title: hero.className, className: hero.className, description: CLASS_DESCRIPTIONS[hero.className] });
+    }, { name: 'hall-class-info', size: UI_FONT_SIZES.hallClass, details: { title: hero.className, className: hero.className, description: CLASS_DESCRIPTIONS[hero.className] } });
     guildRule(this, 794, 462, 420);
 
     // find returns the first matching entry, or undefined when none matches. Check for
@@ -209,7 +210,7 @@ export default class RosterScene extends Phaser.Scene {
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
-    hallIcon(this, archetype?.icon ?? 'shield', 685, 437, archetype?.color, 0.7);
+    classIcon(this, hero.className, 685, 437, 48);
     hallText(this, 728, 437, hero.role, UI_FONT_SIZES.hallRole, { color: HALL.muted });
     hallPortrait(this, hero, 794, 578, 216);
     hallText(this, 547, 709, `Character level ${hero.level}`, UI_FONT_SIZES.hallSummary);
@@ -305,39 +306,57 @@ export default class RosterScene extends Phaser.Scene {
 
       // ?. only follows this link when the value exists; a missing optional value gives
       // undefined.
-      hallText(this, x, 443, ability?.name ?? 'Empty', UI_FONT_SIZES.hallSkillSlot, { align: 'center', wordWrap: { width: 248 } }).setOrigin(0.5);
+      if (ability) categoryIcon(this, ability.category, x - 108, 443, 34);
+      hallText(this, x + (ability ? 16 : 0), 443, ability?.name ?? 'Empty', UI_FONT_SIZES.hallSkillSlot, { align: 'center', wordWrap: { width: ability ? 208 : 248 } }).setOrigin(0.5);
     }
 
     hallText(this, 1130, 544, 'Skill book', UI_FONT_SIZES.body36, { fontStyle: UI_FONT_WEIGHTS.bold });
     hallText(this, 2295, 544, `${hero.skillPoints ?? 0} SP available`, UI_FONT_SIZES.support29, { color: HALL.muted }).setOrigin(1, 0.5);
     const start = this.children.list.length;
     const entries = sortedAbilityEntries(hero);
-    entries.forEach(([key, ability], index) => {
+
+    // Learned skills appear first. Unlearned generics have their own final divider.
+    const groupFor = ([key, ability]) => hero.abilityRanks?.[key] > 0 ? 'Learned'
+      : ability.origin === 'Generic' ? 'Generic' : ability.category;
+    const groups = ['Learned', 'Assault', 'Protect', 'Restore', 'Prepare', 'Generic'];
+    let cursor = 583;
+    for (const group of groups) {
+      const members = entries.filter(entry => groupFor(entry) === group)
+        .sort((a, b) => a[1].name.localeCompare(b[1].name));
+      if (!members.length) continue;
+      categoryIcon(this, group, 1164, cursor + 32, 46);
+      hallText(this, 1200, cursor + 32, group, UI_FONT_SIZES.body32, { color: HALL.muted });
+      guildRule(this, 1710, cursor + 61, 1120);
+      cursor += 82;
+      members.forEach(([key, ability]) => {
 
       // ?? uses the fallback only for null or undefined. A real zero or false stays
       // intact. ?. only follows this link when the value exists; a missing optional value
       // gives undefined.
-      const y = 678 + index * 198, rank = hero.abilityRanks?.[key] ?? 0, next = rank + 1;
+      const y = cursor + 118, rank = hero.abilityRanks?.[key] ?? 0, next = rank + 1;
       const level = abilityLevelRequired(hero, key, next), cost = abilityGoldCost(hero, key, next);
       const canTrain = next <= MAX_ABILITY_RANK && hero.level >= level && (hero.skillPoints ?? 0) >= next && GameState.gold >= cost;
-      guildSurface(this, 1710, y, 1156, 182, 'row', canTrain);
-      const row = this.add.rectangle(1710, y, 1156, 182, 0, 0);
+      guildSurface(this, 1710, y, 1156, 222, 'row', canTrain);
+      const row = this.add.rectangle(1710, y, 1156, 222, 0, 0);
       row.setName(`hall-skill-${key}`);
 
       // Calculate the long description only when held, using the current rank and gear.
       hallDetails(this, row, () => this.abilityDetails(hero, key, ability), () => {});
 
-      hallText(this, 1152, y - 51, ability.name, UI_FONT_SIZES.hallSkillName, { fontStyle: UI_FONT_WEIGHTS.bold, wordWrap: { width: 688 } });
+      categoryIcon(this, ability.category, 1175, y - 77, 42);
+      hallText(this, 1210, y - 77, `${ability.name}${rank ? ` [R${rank}]` : ''}`, UI_FONT_SIZES.hallSkillName, { fontStyle: UI_FONT_WEIGHTS.bold, wordWrap: { width: 630 } });
 
       // The condition before ? chooses the first value when true and the value after :
       // when false.
       const rankStatus = rank ? `Rank ${rank}/10 · ${loadout.includes(key) ? 'Equipped' : 'Learned'}` : 'Not learned';
       const requirement = next <= MAX_ABILITY_RANK && hero.level < level ? ` · Requires level ${level}` : '';
-      hallText(this, 1152, y + 5, `${rankStatus}${requirement}`, UI_FONT_SIZES.hallSkillDetail, {
+      const summary = abilityDescription(getEquippedAdventurer(hero), rankedAbility(ability, Math.max(1, rank)), { compact: true }).split('Range:')[0].trim();
+      hallText(this, 1152, y - 22, summary, UI_FONT_SIZES.hallSkillDetail, { wordWrap: { width: 688 }, maxLines: 2 });
+      hallText(this, 1152, y + 43, `${rankStatus}${requirement}`, UI_FONT_SIZES.hallSkillDetail, {
         color: rank ? HALL.green : HALL.muted
       });
       const status = next > MAX_ABILITY_RANK ? 'Maximum rank' : `Next rank costs ${next} SP and ${cost} Gold to train`;
-      hallText(this, 1152, y + 55, status, UI_FONT_SIZES.hallSkillDetail, { wordWrap: { width: 688 }, color: canTrain ? '#ffe0a7' : HALL.muted });
+      hallText(this, 1152, y + 83, status, UI_FONT_SIZES.hallSkillDetail, { wordWrap: { width: 688 }, color: canTrain ? '#ffe0a7' : HALL.muted });
 
       if (rank) hallButton(this, 1941, y, 178, 112, loadout.includes(key) ? 'Unequip' : 'Equip', () => this.commit(toggleAdventurerAbility(hero.id, key)), {
         selected: loadout.includes(key), name: `hall-equip-skill-${key}`, size: UI_FONT_SIZES.support29
@@ -348,17 +367,19 @@ export default class RosterScene extends Phaser.Scene {
         // when false. ?? uses the fallback only for null or undefined. A real zero or
         // false stays intact.
         showConfirmation(this, {
-          title: `${rank ? 'Train' : 'Learn'} ${ability.name}`,
-          description: `${hero.name} · Rank ${next} of ${MAX_ABILITY_RANK}\n\nSpend ${next} skill points and ${cost} Gold?\nTraining price includes ${hero.happiness ?? 70}% happiness.\nRequires character level ${level}.`,
+          title: `${rank ? 'Train' : 'Learn'} ${ability.name}`, category: ability.category, usableBy: abilityClasses(ability),
+          description: `${hero.name} · Rank ${rank} → ${next} of ${MAX_ABILITY_RANK}\n\n${this.trainingComparison(hero, ability, rank, next)}\n\nSpend ${next} skill points and ${cost} Gold?\nTraining price includes ${hero.happiness ?? 70}% happiness.\nRequires character level ${level}.`,
 
           // Run the committed action after the player confirms this decision.
           onConfirm: () => this.commit(purchaseAdventurerAbility(hero.id, key))
         });
       }, { enabled: canTrain, name: `hall-train-${key}` });
-    });
+        cursor += 246;
+      });
+    }
 
     this.skillList = hallScroll(this, { x: 1128, y: 583, width: 1178, height: 399 },
-      this.children.list.slice(start), entries.length * 198, this.skillOffset, (value) => { this.skillOffset = value; });
+      this.children.list.slice(start), cursor - 583, this.skillOffset, (value) => { this.skillOffset = value; });
   }
 
   // Build held details using this hero's current rank and gear-adjusted skill power. hero
@@ -371,7 +392,26 @@ export default class RosterScene extends Phaser.Scene {
     // value exists; a missing optional value gives undefined.
     const ability = rankedAbility(base, Math.max(1, hero.abilityRanks?.[key] ?? 0));
     const stats = getEquippedAdventurer(hero);
-    return { title: ability.name, description: abilityDescription(stats, ability) };
+    return { title: ability.name, category: ability.category, usableBy: abilityClasses(ability), description: abilityDescription(stats, ability) };
+  }
+
+  // Compare resolved rank values, so gear and healing tuning match the held tooltip.
+  trainingComparison(hero, base, current, next) {
+    const stats = getEquippedAdventurer(hero);
+    const after = rankedAbility(base, next);
+    const effect = ability => abilityDescription(stats, ability, { compact: true }).split('Range:')[0].trim();
+    if (!current) return `Learn: ${effect(after)}`;
+    const before = rankedAbility(base, current);
+
+    // Compare matching numeric facts in the resolved wording. A percentage delta is in points.
+    const previous = [...effect(before).matchAll(/\d+(?:\.\d+)?/g)].map(match => Number(match[0]));
+    let index = 0;
+    const improved = effect(after).replace(/(\d+(?:\.\d+)?)(%|s)?/g, (text, amount, unit = '') => {
+      const delta = Number((Number(amount) - previous[index++]).toFixed(2));
+      return !Number.isFinite(delta) || !delta ? text : `${text} {{(${delta > 0 ? '↑' : '↓'} ${Math.abs(delta)}${unit})}}`;
+    });
+    const saved = Number(((before.cooldown - after.cooldown) / 1000).toFixed(2));
+    return `${improved}\nCooldown: ${after.cooldown / 1000}s${saved ? ` {{(↓ ${saved}s)}}` : ''}`;
   }
 
   // Open held explanations for the selected character's categorized current stats.
@@ -393,7 +433,7 @@ export default class RosterScene extends Phaser.Scene {
       ['Attack Power', format(stats.attackPower)], ['Spell Damage', format(stats.spellDamage)], ['Spell Healing', format(stats.spellHealing)],
       ['Happiness', `${hero.happiness ?? 70}%`], ['Delves Cleared', `${hero.delvesCompleted ?? 0}`]];
 
-    const modal = this.modal(`${hero.name} · Character stats`);
+    const modal = this.modal(`${hero.name} · Character stats`, hero.className);
     const groups = [
       ['Progress', ['Level', 'Happiness', 'Delves Cleared']],
       ['Attributes', ['Strength', 'Agility', 'Constitution', 'Intellect', 'Wisdom']],
@@ -437,7 +477,7 @@ export default class RosterScene extends Phaser.Scene {
   }
 
   // Build the temporary Hall overlay and its input blocker above the workspace.
-  modal(title) {
+  modal(title, className) {
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
@@ -468,7 +508,8 @@ export default class RosterScene extends Phaser.Scene {
     // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the center
     // and 1 is the right/bottom edge. x/y place that anchor, not necessarily the object's
     // corner.
-    hallText(this, 1200, 159, title, UI_FONT_SIZES.heading42, { fontFamily: UI_FONT_FAMILIES.serif, align: 'center', wordWrap: { width: 1240 } }).setOrigin(0.5);
+    const heading = hallText(this, 1200, 159, title, UI_FONT_SIZES.heading42, { fontFamily: UI_FONT_FAMILIES.serif, align: 'center', wordWrap: { width: 1240 } }).setOrigin(0.5);
+    if (className) titleIcon(this, heading, { className }, 58);
     return { close, finish: () => {
       objects = this.children.list.slice(start);
       objects.forEach((object) => object.setDepth(2000 + object.depth));

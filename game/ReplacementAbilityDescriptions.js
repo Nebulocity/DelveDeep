@@ -32,6 +32,9 @@ export function replacementDescription(unit, ability, compact = false, structure
       usedDurations.add(field);
       return seconds(ability[field]);
     });
+    text = text.replace(/\bduring (\d+(?:\.\d+)?s)\b/g, 'for $1');
+    text = text.replace(/The caster cannot move for \d+(?:\.\d+)?s\./g, 'The caster cannot move for the duration.');
+    if (ability.targetLabel === 'Single ally or self') text = text.replace(/the affected allies/g, 'that ally');
     return text;
   };
   let effects = [effectText(ability.primary, '[x]')];
@@ -58,6 +61,7 @@ export function replacementDescription(unit, ability, compact = false, structure
   }
   if (ability.duration && !usedDurations.has('duration')) effects.push(`Lasts ${seconds(ability.duration)}.`);
   if (ability.secondaryDuration && !usedDurations.has('secondaryDuration')) effects.push(`Secondary effect lasts ${seconds(ability.secondaryDuration)}.`);
+  if (ability.restockDamageBonus) effects.push(`Boosts your next physical ability's damage by ${rounded(ability.restockDamageBonus * 100)}%. Use it within 8s.`);
 
   const facts = [ability.range === Infinity ? 'Range: Anywhere' : !ability.range ? 'Range: Self' : `Range: ${distance(ability.range)}`];
   if (ability.shape === 'Circle') facts.push(`Radius: ${distance(ability.radius / 100)}`);

@@ -33,6 +33,10 @@ const CATEGORIES = {
   accessory: ['Accessories', 'rune'], potion: ['Potions', 'flask'], material: ['Materials', 'ingot'], scroll: ['Scrolls', 'scroll']
 };
 
+// Scroll cards state the exact bonus without expanding it into derived character stats.
+const enchantmentText = definition => equipmentStatsText(definition.stats).replace(/\b(STR|AGI|INT|WIS|HP)\b/g,
+  stat => ({ STR: 'Strength', AGI: 'Agility', INT: 'Intellect', WIS: 'Wisdom', HP: 'Health' })[stat]);
+
 export default class FacilityScene extends Phaser.Scene {
 
   // We set up this instance's starting state. Values stored on this belong to this
@@ -100,18 +104,18 @@ export default class FacilityScene extends Phaser.Scene {
       category: recipe.output.type === 'potion' ? 'potion' : recipe.output.type === 'material' ? 'material'
         : recipe.output.type === 'scroll' ? 'scroll' : GEAR_STOCK.find(item => item.id === recipe.output.itemId)?.slot,
       name: recipe.name,
-      description: `${recipeIngredientText(recipe)}${recipe.fee ? ` | ${recipe.fee} Gold fee` : ''}${recipe.knownAtStart ? '' : ' | Learn by buying the item or recipe'}`,
+      description: `Crafted with: ${recipeIngredientText(recipe).replaceAll('  •  ', ' + ')}\n${recipe.fee ?? 0} Gold fee`,
       enabled: canCraft(recipe.id).ok, action: choice.id === 'brew' ? 'BREW' : 'CRAFT', run: () => craftItem(recipe.id)
     }));
 
     if (choice.id === 'buy' && this.facility.name !== 'Enchanter') return (this.facility.name === 'Blacksmith' ? GEAR_STOCK : POTION_ITEMS).map(item => ({
-      id: item.id, category: item.slot, name: item.name, description: `${item.description} ${item.uses ? '| 3 uses' : equipmentStatsText(item.stats)}`,
+      id: item.id, category: item.slot, name: item.name, description: `${item.description}${item.uses ? ' | 3 uses' : ''}`,
       enabled: state.gold >= item.price, action: `BUY ${item.price}g`, run: () => item.slot === 'potion' ? buyPotionPack(item.id) : buyGear(item.id)
     }));
 
     if (choice.id === 'buy' || choice.id === 'inscribe') return ACTIVE_ENCHANTMENTS.map(definition => ({
-      id: definition.id, category: 'scroll', name: `${definition.name} Scroll`,
-      description: `${definition.description} ${choice.id === 'inscribe' ? `${recipeIngredientText(definition)}${definition.craftingFee ? ` | ${definition.craftingFee} Gold fee` : ''}` : 'Consume at Enchant to improve gear.'}`,
+      id: definition.id, category: 'scroll', name: definition.name,
+      description: `${enchantmentText(definition)}\n${choice.id === 'inscribe' ? `Crafted with: ${recipeIngredientText(definition).replaceAll('  •  ', ' + ')}\n${definition.craftingFee ?? 0} Gold fee` : 'Consume at Enchant to improve gear.'}`,
       enabled: choice.id === 'buy' ? state.gold >= definition.price
         : state.inventory.knownRecipes?.includes(CRAFTING_RECIPES.find(recipe => recipe.output.itemId === definition.id)?.id)
           && state.gold >= definition.craftingFee
@@ -133,7 +137,7 @@ export default class FacilityScene extends Phaser.Scene {
       // that missing result before using its fields.
       const scroll = state.inventory.equipment.find(item => item.id === this.selectedScroll && item.slot === 'scroll');
       if (!scroll) return state.inventory.equipment.filter(item => item.slot === 'scroll').map(item => ({
-        id: item.id, category: 'scroll', name: item.name, description: ENCHANTMENT_BY_ID[item.enchantmentId].description, enabled: true, action: 'SELECT',
+        id: item.id, category: 'scroll', name: item.name, description: enchantmentText(ENCHANTMENT_BY_ID[item.enchantmentId]), enabled: true, action: 'SELECT',
 
         // Run the chosen action after the surrounding interaction accepts it.
         run: () => {
@@ -157,8 +161,8 @@ export default class FacilityScene extends Phaser.Scene {
         const ownership = owner ? `Equipped by ${owner.name}` : 'Unequipped';
         return {
           id: item.id, category: item.slot, name: item.name,
-          description: `${ownership} | ${definition.description}`,
-          detailsDescription: `${ownership}\n\n${definition.description} Uses ${scroll.name}.`,
+          description: `${ownership}\n${enchantmentText(definition)}`,
+          detailsDescription: `${ownership}\n\n${enchantmentText(definition)}. Uses ${scroll.name}.`,
           enabled: true, action: 'ENCHANT',
 
           // Run the chosen action after the surrounding interaction accepts it.
@@ -196,7 +200,7 @@ export default class FacilityScene extends Phaser.Scene {
     if (heading.width > 330) heading.setScale(330 / heading.width);
     addFacilityDetailsHint(this, this.facility.name, 252, { x: 1400 });
     if (choice.id === 'enchant' && this.selectedScroll) {
-      const back = addShopButton(this, theme, 2090, 252, 300, 68, 'Back to Scrolls', { prominent: true, fontSize: fontPx('shopCategory') });
+      const back = addShopButton(this, theme, 2160, 252, 272, 58, 'Back to Scrolls', { prominent: true, fontSize: fontPx('shopCategory') });
       back.target.setName('enchant-back-to-scrolls');
       bindSelectionDetails(this, back.target, { title: 'Choose another scroll', description: 'Return to your scrolls without consuming the selected one.', shopTheme: theme }, () => {
         HapticsService.tap();
@@ -236,7 +240,7 @@ export default class FacilityScene extends Phaser.Scene {
 
     if (!rows.length) this.add.text(1400, 520, choice.id === 'sell' ? 'No owned items in this category.' : choice.id === 'disenchant' ? 'No gear with known enchantments.' : choice.id === 'enchant' ? this.selectedScroll ? 'No compatible gear without an enchantment.\nChoose Enchant again to select another scroll.' : 'Buy or inscribe a scroll to begin.' : 'Nothing available.', { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body34'), color: theme.text, align: 'center', wordWrap: { width: 1450 } }).setOrigin(0.5);
     const start = this.children.list.length;
-    const stride = 264;
+    const stride = this.facility.name === 'Enchanter' ? 344 : 290;
     rows.forEach((row, index) => {
 
       // % gives the remainder. With a nonnegative index and positive list length, it wraps
@@ -244,8 +248,8 @@ export default class FacilityScene extends Phaser.Scene {
       const x = 962 + index % 2 * 900;
 
       // Math.floor rounds toward the smaller whole number, so 3.8 becomes 3.
-      const y = 416 + Math.floor(index / 2) * stride;
-      const card = this.add.rectangle(x, y, 872, 246, theme.face, 0.64).setStrokeStyle(2, theme.edge, 0.7).setName(`shop-item-${row.id}`);
+      const y = 291 + (stride - 18) / 2 + Math.floor(index / 2) * stride;
+      const card = this.add.rectangle(x, y, 872, stride - 18, theme.face, 0.64).setStrokeStyle(2, theme.edge, 0.7).setName(`shop-item-${row.id}`);
 
       // ?? uses the fallback only for null or undefined. A real zero or false stays
       // intact. ?. only follows this link when the value exists; a missing optional value
@@ -255,9 +259,9 @@ export default class FacilityScene extends Phaser.Scene {
       // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the center
       // and 1 is the right/bottom edge. x/y place that anchor, not necessarily the
       // object's corner.
-      this.add.text(x - 363, y - 106, row.name, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body34'), fontStyle: UI_FONT_WEIGHTS.bold, color: theme.text,
+      this.add.text(x - 363, y - (stride - 18) / 2 + 17, row.name, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body34'), fontStyle: UI_FONT_WEIGHTS.bold, color: theme.text,
         wordWrap: { width: 770 }, maxLines: 2 }).setOrigin(0, 0);
-      this.add.text(x - 409, y - 16, row.description, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('shopDescription'), color: '#ddd5c7', wordWrap: { width: 804 }, maxLines: 2 });
+      this.add.text(x - 409, y - (stride - 18) / 2 + 94, row.description, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('shopDescription'), color: '#ddd5c7', wordWrap: { width: 804 }, maxLines: 4 });
       const inspectedItem = row.item ?? GEAR_STOCK.find(item => item.id === row.id) ?? POTION_ITEMS.find(item => item.id === row.id);
       const details = { ...(inspectedItem && inspectedItem.slot !== 'scroll'
         ? equipmentDetails(inspectedItem) : { title: row.name, description: row.detailsDescription ?? row.description }), shopTheme: theme };
@@ -265,7 +269,7 @@ export default class FacilityScene extends Phaser.Scene {
 
       // Boolean converts an unavailable recipe's missing value into an explicit false.
       // Only actions allowed by the existing rules get a bright face and input binding.
-      const control = addShopButton(this, theme, x + 247, y + 82, 330, 68, row.action,
+      const control = addShopButton(this, theme, x + 247, y + (stride - 18) / 2 - 44, 330, 68, row.action,
         { enabled: Boolean(row.enabled), prominent: true });
       const button = control.target.setName(`shop-action-${row.id}`);
 
@@ -277,7 +281,7 @@ export default class FacilityScene extends Phaser.Scene {
       // Keep the single-sale control on the right and place bulk selling on the left.
       // Both controls travel with the card inside the existing masked scroll region.
       if (row.runAll) {
-        const allControl = addShopButton(this, theme, x - 224, y + 82, 376, 68, row.allAction,
+        const allControl = addShopButton(this, theme, x - 224, y + (stride - 18) / 2 - 44, 376, 68, row.allAction,
           { enabled: Boolean(row.enabled), prominent: true });
         const allButton = allControl.target.setName(`shop-sell-all-${row.id}`);
 

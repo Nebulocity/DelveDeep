@@ -1,3 +1,4 @@
+import { usableByIcons } from '../ui/IdentityIcons.js';
 // Shop inspection uses a facility-themed temporary details panel. Text wraps inside its
 // inset and long content scrolls rather than shrinking to an unreadable size. Closing
 // removes the blocker so the main shop becomes interactive again.
@@ -51,10 +52,11 @@ export function showShopDetails(scene, details) {
   }).setDepth(depth + 4);
 
   const headerHeight = title.height + 80;
-  const panelHeight = Math.min(height - 120, Math.max(420, headerHeight + body.height + 180));
+  const footerSpace = details.usableBy?.length ? 88 : 0;
+  const panelHeight = Math.min(height - 120, Math.max(420, headerHeight + body.height + 180 + footerSpace));
   const top = (height - panelHeight) / 2;
   const bodyY = top + headerHeight + 30;
-  const bodyHeight = panelHeight - headerHeight - 170;
+  const bodyHeight = panelHeight - headerHeight - 170 - footerSpace;
   title.setY(top + 40);
   body.setY(bodyY);
 
@@ -94,6 +96,7 @@ export function showShopDetails(scene, details) {
     HapticsService.tap();
     close();
   });
+  usableByIcons(scene, details.usableBy, body.x, top + panelHeight - 164, textWidth, depth + 4, details.shopTheme.text);
   const scroll = hallScroll(scene, { x: body.x, y: bodyY, width: textWidth, height: bodyHeight },
     [body], body.height, 0, () => {},
     (owner, sx, sy, sw, sh) => addFacilityPlate(owner, facility, sx, sy, sw, sh).art.setDepth(depth + 4),

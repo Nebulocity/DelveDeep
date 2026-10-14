@@ -1,3 +1,4 @@
+import { classIcon } from '../ui/IdentityIcons.js';
 // The role lists hold selectable adventurers; the lineup holds the chosen party. The list
 // mask limits both visible rows and valid touches. Remembering IDs keeps selection stable
 // across sorting, scrolling and returning to this screen.
@@ -242,13 +243,14 @@ export default class PartySelectScene extends Phaser.Scene {
 
       // ?? uses the fallback only for null or undefined. A real zero or false stays
       // intact.
-      const cls = stoneText(this, textX, cardY + 2, adventurer.shortName ?? adventurer.className, UI_FONT_SIZES.partyClass, 0, { fontFamily: UI_FONT_FAMILIES.sans, fontStyle: UI_FONT_WEIGHTS.normal, color: STONE.muted }).setOrigin(0, 0.5);
+      const cls = stoneText(this, textX + 40, cardY + 2, adventurer.shortName ?? adventurer.className, UI_FONT_SIZES.partyClass, 0, { fontFamily: UI_FONT_FAMILIES.sans, fontStyle: UI_FONT_WEIGHTS.normal, color: STONE.muted }).setOrigin(0, 0.5);
       const level = stoneText(this, textX, cardY + 37, `Lv ${adventurer.level} · ${adventurer.happiness ?? 70}%`, UI_FONT_SIZES.partyLevel, 0, { fontFamily: UI_FONT_FAMILIES.sans, fontStyle: UI_FONT_WEIGHTS.normal, color: STONE.muted }).setOrigin(0, 0.5);
-      [name, cls].forEach(label => { if (label.width > textWidth) label.setScale(textWidth / label.width); });
+      const emblem = classIcon(this, adventurer.className, textX + 16, cardY + 2, 32);
+      [name, cls].forEach(label => { if (label.width > textWidth - (label === cls ? 40 : 0)) label.setScale((textWidth - (label === cls ? 40 : 0)) / label.width); });
 
       // ... expands these entries into the new list or call. It does not deep-copy the
       // objects inside.
-      content.add([...card.pressVisuals, portrait, name, cls, level, card]);
+      content.add([...card.pressVisuals, portrait, name, emblem, cls, level, card]);
       this.cards.set(adventurer.id, { card, portrait, name, cls, level, adventurer });
       this.bindCardInput(card, adventurer);
 
@@ -529,7 +531,8 @@ export default class PartySelectScene extends Phaser.Scene {
         // ?? uses the fallback only for null or undefined. A real zero or false stays
         // intact.
         const cls = stoneText(this, x + 25, 859, hero.shortName ?? hero.className, UI_FONT_SIZES.partyClass, 0, { fontFamily: UI_FONT_FAMILIES.sans, color: STONE.muted });
-        [name, cls].forEach(label => { if (label.width > slotWidth - 135) label.setScale((slotWidth - 135) / label.width); });
+        const emblem = classIcon(this, adventurer.className, textX + 16, cardY + 2, 32);
+      [name, cls].forEach(label => { if (label.width > slotWidth - 135) label.setScale((slotWidth - 135) / label.width); });
         const hit = this.add.rectangle(x, 839, slotWidth - 16, 150, 0, 0);
         bindSelectionDetails(this, hit, null, () => this.toggleAdventurer(hero.id), () => this.showAdventurerDetails(hero));
         this.lineup.add([icon, name, cls, hit]);
@@ -578,7 +581,9 @@ export default class PartySelectScene extends Phaser.Scene {
       `Happiness ${adventurer.happiness ?? 70}% (${happinessLabel(adventurer.happiness ?? 70)})`
     ].filter(Boolean).join('\n');
 
-    showSelectionDetails(this, { title: adventurer.name, description: `${adventurer.className}\n\n${stats}\n\n${adventurer.description ?? ''}` });
+    showSelectionDetails(this, { title: adventurer.name, className: adventurer.className,
+      classHeader: adventurer.shortName ?? adventurer.className,
+      description: `${adventurer.className}\n\n${stats}\n\n${adventurer.description ?? ''}` });
   }
 
   // Show themed feedback at a readable size inside the current screen.

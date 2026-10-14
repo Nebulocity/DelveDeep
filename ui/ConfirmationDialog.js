@@ -14,8 +14,8 @@ import { bindButtonPress } from './ButtonPress.js';
 
 // Nothing is committed until a fresh press and release on CONFIRM. Reusing the modal lock
 // also prevents held selections behind the dialog from firing.
-export function showConfirmation(scene, { title, description, confirmLabel = 'CONFIRM', onConfirm, onCancel }) {
-  if (isGuildHall(scene)) return showGuildConfirmation(scene, { title, description, confirmLabel, onConfirm, onCancel });
+export function showConfirmation(scene, { title, description, category, usableBy, confirmLabel = 'CONFIRM', onConfirm, onCancel }) {
+  if (isGuildHall(scene)) return showGuildConfirmation(scene, { title, description, category, usableBy, confirmLabel, onConfirm, onCancel });
 
   // ?. only follows this link when the value exists; a missing optional value gives
   // undefined.

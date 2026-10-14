@@ -1,3 +1,4 @@
+import { categoryIcon, titleIcon, usableByIcons, abilityClasses } from './IdentityIcons.js';
 // Hall details use temporary parchment and framed controls above the main screen. Text is
 // measured and wrapped within the paper inset, leaving room for the close control. Cleanup
 // must remove masks, blockers and listeners as well as visible text.
@@ -15,6 +16,7 @@ import { abilityDescription } from '../game/AbilityDescriptions.js';
 import { rankedAbility } from '../game/AdventurerAbilities.js';
 import { getEquippedAdventurer } from '../game/Equipment.js';
 import { addEnchantmentScroll } from './EnchantmentScroll.js';
+import { rankComparisonText } from './RankComparisonText.js';
 
 // Build styled text at the requested position using this screen's shared text defaults.
 function text(scene, x, y, value, size, options = {}) {
@@ -112,7 +114,7 @@ function start(scene, title, width, height, label, preserveEquipment = false, en
   }).setDepth(depth + 4);
   if (enchanted) addEnchantmentScroll(scene, titleText.x - titleText.width / 2 - 27, top + 100, 38, depth + 5);
 
-  return { x, top, width, height, depth, close, finish: (...extra) => objects.push(...scene.children.list.filter(object => !existing.has(object)), ...extra.filter(Boolean)), panel };
+  return { x, top, width, height, depth, close, titleText, finish: (...extra) => objects.push(...scene.children.list.filter(object => !existing.has(object)), ...extra.filter(Boolean)), panel };
 }
 
 // Open the Hall's parchment details view with bounded text and shared dismissal cleanup.
@@ -128,13 +130,15 @@ export function showGuildDetails(scene, details) {
   // true and the value after : when false.
   const width = Math.min(details.panelWidth ?? (hero ? 1560 : 1380), scene.scale.width - 120);
   const body = !hero ? text(scene, 0, 0, details.description, UI_FONT_SIZES.detailBody, { align: details.align ?? 'center', fixedWidth: width - 180, wordWrap: { width: width - 180 }, lineSpacing: 12 }) : null;
-  const height = hero ? Math.min(970, scene.scale.height - 90) : Math.min(scene.scale.height - 90, Math.max(540, body.height + 430));
+  const footerSpace = details.usableBy?.length ? (details.usableBy.length > 10 ? 156 : 88) : 0;
+  const height = hero ? Math.min(970, scene.scale.height - 90) : Math.min(scene.scale.height - 90, Math.max(540, body.height + 430 + footerSpace));
   const modal = start(scene, details.title, width, height, hero ? 'GUILD REGISTRY' : 'GUILD HANDBOOK',
     details.preserveEquipment, details.enchantmentId);
 
   // The braces pull named fields into local variables. This reads those fields without
   // copying the whole source object.
   const { x, top, depth } = modal;
+  if (!hero) titleIcon(scene, modal.titleText, details, 56, depth + 5);
   let bodyScroll;
 
   // Depth is drawing order, not distance or size. Higher-depth objects draw on top of
@@ -149,43 +153,52 @@ export function showGuildDetails(scene, details) {
     guildSurface(scene, left + 235, top + 405, 290, 350, 'panel').setDepth(depth + 4);
     if (frame && scene.textures.exists(frame.key)) scene.add.image(left + 235, top + 407, frame.key, frame.frame).setDisplaySize(256, 256).setDepth(depth + 5);
     const columnX = left + 970;
-    text(scene, columnX, top + 237, `${hero.className} · ${hero.role} · Level ${hero.level}`, UI_FONT_SIZES.body31, {
+    const identity = text(scene, columnX, top + 237, `${hero.shortName ?? hero.className} · ${hero.role} · Level ${hero.level}`, UI_FONT_SIZES.body36, {
       wordWrap: { width: 970 }, align: 'center', fontStyle: UI_FONT_WEIGHTS.bold
     }).setDepth(depth + 5);
-
-    const paragraphs = details.description.split('\n\n');
+    titleIcon(scene, identity, { className: hero.className }, 56, depth + 5);
 
     // filter keeps entries whose callback returns true. It builds a new list and leaves
     // the original list in place.
-    const stats = paragraphs.filter((line) => line.startsWith('HP:') || line.startsWith('Mana:')).join('     ');
-    text(scene, columnX, top + 309, stats, UI_FONT_SIZES.body31, { align: 'center', wordWrap: { width: 970 } }).setDepth(depth + 5);
+    const effective = getEquippedAdventurer(hero);
+    const stats = `Health: ${effective.maxHp}${effective.maxMana ? ` · Mana: ${effective.maxMana}` : ''}`;
+    text(scene, columnX, top + 309, stats, UI_FONT_SIZES.body36, { align: 'center', wordWrap: { width: 970 } }).setDepth(depth + 5);
     guildRule(scene, columnX, top + 365, 880).setDepth(depth + 5);
-    text(scene, columnX, top + 409, 'Known Skills', UI_FONT_SIZES.body35, { fontFamily: UI_FONT_FAMILIES.serif }).setDepth(depth + 5);
+    text(scene, columnX, top + 409, 'Equipped Abilities', UI_FONT_SIZES.body35, { fontFamily: UI_FONT_FAMILIES.serif }).setDepth(depth + 5);
 
     // Object.entries turns own fields into [key, value] pairs so we can visit or transform
     // them. ?? uses the fallback only for null or undefined. A real zero or false stays
     // intact.
-    Object.entries(hero.abilities ?? {}).filter(([key]) => (hero.abilityRanks?.[key] ?? 0) > 0).forEach(([key, ability], index) => {
+    const known = (hero.abilityLoadout ?? []).filter(key => hero.abilities?.[key] && hero.abilityRanks?.[key] > 0)
+      .map(key => [key, hero.abilities[key]]);
+    const knownStart = scene.children.list.length;
+    known.forEach(([key, ability], index) => {
 
       // % gives the remainder. With a nonnegative index and positive list length, it wraps
       // the index back to the start of the list. Math.floor rounds toward the smaller
       // whole number, so 3.8 becomes 3.
-      const tx = left + 610 + index % 2 * 470, ty = top + 465 + Math.floor(index / 2) * 57;
+      const tx = left + 610 + index % 2 * 470, ty = top + 485 + Math.floor(index / 2) * 92;
 
       // Depth is drawing order, not distance or size. Higher-depth objects draw on top of
       // lower-depth objects.
-      scene.add.circle(tx - 17, ty, 3, 0x9b7643).setDepth(depth + 5);
+      categoryIcon(scene, ability.category, tx - 22, ty, 36, depth + 5);
 
       // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the center
       // and 1 is the right/bottom edge. x/y place that anchor, not necessarily the
       // object's corner.
-      const skill = text(scene, tx, ty, `${ability.name} (Rank ${hero.abilityRanks[key]})`, UI_FONT_SIZES.body30, { wordWrap: { width: 445 } }).setOrigin(0, 0.5).setDepth(depth + 5);
-      const hit = scene.add.rectangle(tx + 208, ty, 445, 57, 0, 0).setDepth(depth + 5);
-      bindSelectionDetails(scene, hit, () => ({ title: ability.name,
+      const skill = text(scene, tx, ty, `${ability.name} (Rank ${hero.abilityRanks[key]})`, UI_FONT_SIZES.body36, { wordWrap: { width: 445 } }).setOrigin(0, 0.5).setDepth(depth + 5);
+      const hit = scene.add.rectangle(tx + 208, ty, 445, 88, 0, 0).setDepth(depth + 5);
+      bindSelectionDetails(scene, hit, () => ({ title: ability.name, category: ability.category, usableBy: abilityClasses(ability),
         description: abilityDescription(getEquippedAdventurer(hero), rankedAbility(ability, hero.abilityRanks[key])) }),
       undefined, undefined, { allowSceneInput: true, allowWhileModal: true });
       skill.setName(`known-skill-${key}`);
     });
+
+    // Larger skill names keep their font size. A growing learned list scrolls within the paper.
+    bodyScroll = hallScroll(scene, { x: left + 585, y: top + 441, width: 940, height: height - 640 },
+      scene.children.list.slice(knownStart), Math.ceil(known.length / 2) * 92, 0, () => {},
+      (owner, sx, sy, sw, sh, style) => guildSurface(owner, sx, sy, sw, sh, style).setDepth(depth + 5), () => false);
+    bodyScroll.container.setDepth(depth + 5);
 
     text(scene, left + 235, top + 618, hero.shortName ?? hero.className, UI_FONT_SIZES.support29, { align: 'center', wordWrap: { width: 290 }, fontFamily: UI_FONT_FAMILIES.serif }).setDepth(depth + 5);
   } else {
@@ -194,7 +207,8 @@ export function showGuildDetails(scene, details) {
     // and 1 is the right/bottom edge. x/y place that anchor, not necessarily the object's
     // corner.
     body.setPosition(x - (width - 180) / 2, top + 220).setOrigin(0, 0).setDepth(depth + 5);
-    bodyScroll = hallScroll(scene, { x: body.x, y: body.y, width: width - 180, height: height - 402 },
+    const footer = usableByIcons(scene, details.usableBy, body.x, top + height - 225, width - 180, depth + 5, GUILD.ink);
+    bodyScroll = hallScroll(scene, { x: body.x, y: body.y, width: width - 180, height: height - 402 - footer.height },
       [body], body.height, 0, () => {},
       (owner, sx, sy, sw, sh, style) => guildSurface(owner, sx, sy, sw, sh, style).setDepth(depth + 5),
       () => false);
@@ -208,14 +222,17 @@ export function showGuildDetails(scene, details) {
 
 // Open a Hall-themed confirm/cancel decision above the existing workspace. scene is the
 // Phaser screen that owns the objects, clock and input used here.
-export function showGuildConfirmation(scene, { title, description, confirmLabel = 'CONFIRM', onConfirm, onCancel }) {
+export function showGuildConfirmation(scene, { title, description, category, usableBy, confirmLabel = 'CONFIRM', onConfirm, onCancel }) {
 
   // Math.min chooses the smallest value; pairing it with Math.max can keep a result inside
   // both a lower and an upper bound.
   const width = Math.min(1440, scene.scale.width - 120);
-  const body = text(scene, 0, 0, description, UI_FONT_SIZES.body36, { align: 'center', wordWrap: { width: width - 190 }, lineSpacing: 9 });
-  const height = Math.min(scene.scale.height - 90, Math.max(640, body.height + 430));
+  const body = description.includes('{{')
+    ? rankComparisonText(scene, description, width - 190, UI_FONT_SIZES.body36, GUILD.ink)
+    : text(scene, 0, 0, description, UI_FONT_SIZES.body36, { align: 'center', wordWrap: { width: width - 190 }, lineSpacing: 9 });
+  const height = Math.min(scene.scale.height - 90, Math.max(640, body.height + 430 + (usableBy?.length ? 88 : 0)));
   const modal = start(scene, title, width, height, 'GUILD LEDGER');
+  titleIcon(scene, modal.titleText, { category }, 56, modal.depth + 5);
 
   // The braces pull named fields into local variables. This reads those fields without
   // copying the whole source object.
@@ -224,7 +241,15 @@ export function showGuildConfirmation(scene, { title, description, confirmLabel 
   // Depth is drawing order, not distance or size. Higher-depth objects draw on top of
   // lower-depth objects.
   guildSurface(scene, x, top + (height + 10) / 2, width - 82, height - 350, 'paper').setDepth(depth + 3);
-  body.setPosition(x, top + (height + 10) / 2).setDepth(depth + 5);
+
+  // Training comparisons can be long. Keep readable type and scroll above the two controls.
+  body.setPosition(x - (width - 190) / 2, top + 220).setDepth(depth + 5);
+  body.setOrigin?.(0, 0);
+  const footer = usableByIcons(scene, usableBy, body.x, top + height - 225, width - 190, depth + 5, GUILD.ink);
+  const scroll = hallScroll(scene, { x: body.x, y: body.y, width: width - 190, height: height - 402 - footer.height },
+    [body], body.height, 0, () => {},
+    (owner, sx, sy, sw, sh, style) => guildSurface(owner, sx, sy, sw, sh, style).setDepth(depth + 5), () => false);
+  scroll.container.setDepth(depth + 5);
   button(scene, x - width / 4, top + height - 87, width / 2 - 100, 'CANCEL', () => {
     modal.close();
     onCancel?.();
@@ -233,7 +258,7 @@ export function showGuildConfirmation(scene, { title, description, confirmLabel 
     modal.close();
     onConfirm();
   }, depth + 6);
-  modal.finish(body);
+  modal.finish(scroll.container);
 
   return modal.close;
 }

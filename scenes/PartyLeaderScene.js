@@ -1,3 +1,4 @@
+import { categoryIcon } from '../ui/IdentityIcons.js';
 // This is the leader's tactic workspace. Unlocking spends Renown Points; equipping
 // chooses a loadout of up to five already unlocked tactics. Each category scrolls
 // independently, so clipping and hit areas must follow the corresponding list.
@@ -72,7 +73,7 @@ export default class PartyLeaderScene extends Phaser.Scene {
     this.tacticScroll ??= {};
     CATEGORIES.forEach(([category, icon], index) => {
       const x = 340 + index * 573;
-      hallIcon(this, icon, x - 177, 447);
+      categoryIcon(this, category, x - 177, 447);
       hallText(this, x - 125, 447, category, UI_FONT_SIZES.body36, { fontStyle: UI_FONT_WEIGHTS.bold });
 
       // filter keeps entries whose callback returns true. It builds a new list and leaves
@@ -88,7 +89,7 @@ export default class PartyLeaderScene extends Phaser.Scene {
         const locked = !unlocked && (leader.level < requirement.level || requirement.questOnly);
         const childStart = this.children.length;
         const button = hallButton(this, x, y, 513, 206, '', () => this.choose(ability), {
-          selected: equipped, details: { title: ability.name, description: tacticDescription(ability) }, name: `hall-tactic-${ability.id}`
+          selected: equipped, details: { title: ability.name, category: ability.category, description: tacticDescription(ability) }, name: `hall-tactic-${ability.id}`
         });
 
         // Dim the surface only; the effect text and held details stay readable and active.
@@ -126,7 +127,7 @@ export default class PartyLeaderScene extends Phaser.Scene {
     if (!hasLeaderAbility(leader, ability.id)) {
       const requirement = leadershipRequirements(ability);
       if (requirement.questOnly || leader.level < requirement.level) {
-        showSelectionDetails(this, { title: ability.name, description: tacticDescription(ability) });
+        showSelectionDetails(this, { title: ability.name, category: ability.category, description: tacticDescription(ability) });
         return;
       }
       if (leader.renownPoints < ability.cost) {

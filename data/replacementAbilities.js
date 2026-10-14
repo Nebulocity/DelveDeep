@@ -3,6 +3,7 @@
 
 import { REPLACEMENT_ABILITY_ROWS } from './replacementAbilityCatalog.js';
 import { balancedHealingAbility } from '../config/healingBalance.js';
+import { withAbilityRankCurve } from './abilityRankCurves.js';
 
 export const ABILITY_CATALOG_VERSION = 2;
 export const CLASS_ABILITY_RULES = {
@@ -41,7 +42,7 @@ export function abilityAllowed(className, row) {
 // them in paces, so divide by 100 once here. Shapes retain their arena-unit sizes too.
 export function replacementAbilities(className) {
   const name = CLASS_CATALOG_NAMES[className] ?? className;
-  const rows = REPLACEMENT_ABILITY_ROWS.filter(row => abilityAllowed(className, row)).map(balancedHealingAbility);
+  const rows = REPLACEMENT_ABILITY_ROWS.filter(row => abilityAllowed(className, row)).map(balancedHealingAbility).map(withAbilityRankCurve);
   const order = row => row.starterFor.includes(name)
     ? row.className.startsWith('Generic') ? 2 : CLASS_ABILITY_RULES[name].slice(1).indexOf(row.category) : 3;
   rows.sort((a, b) => order(a) - order(b));
@@ -68,6 +69,13 @@ export function replacementAbilities(className) {
 // would erase small percentage-point gains. Binary rules and costs do not grow.
 export function rankedReplacementAbility(base, rank) {
   const trainedRank = Math.max(1, Math.min(10, Math.floor(rank)));
+
+  // New definitions own explicit ranked values. Historical saved kits retain their old curve.
+  if (base.rankValues) {
+    const values = base.rankValues[trainedRank - 1];
+    return { ...base, ...values, rank: trainedRank, primary: { ...values.primary },
+      secondary: { ...values.secondary }, power: values.primary.potency * 100 };
+  }
   const scale = 1 + (trainedRank - 1) * 0.08;
   const durationScale = 1 + (trainedRank - 1) * 0.02;
   const effect = value => ({ ...value, potency: Math.min(value.cap ?? Infinity, value.potency * scale) });

@@ -1,3 +1,6 @@
+import { ENCHANTMENT_BY_ID } from '../data/enchantments.js';
+import { titleIcon } from '../ui/IdentityIcons.js';
+import { classIcon } from '../ui/IdentityIcons.js';
 // We review the selected party and Delve before starting combat. The environment artwork
 // and stone theme come from the chosen encounter, while saved checkpoints determine
 // whether the next entry is an ordinary wave or the camp.
@@ -163,7 +166,7 @@ export default class DungeonScene extends Phaser.Scene {
     // The condition before ? chooses the first value when true and the value after : when
     // false.
     return {
-      title: hero.name, align: 'left',
+      title: hero.name, className: hero.className, classHeader: `${hero.shortName ?? hero.className} · Level ${hero.level}`, align: 'left',
       description: `${hero.className} | ${hero.role} | Level ${hero.level}\n\nHealth: ${Math.round(stats.maxHp)} | Mana: ${Math.round(stats.maxMana ?? 0)} | Armor: ${Math.round(stats.armor ?? 0)}\nAttack Power: ${Math.round(stats.attackPower)} | Spell Damage: ${Math.round(stats.spellDamage ?? 0)} | Spell Healing: ${Math.round(stats.spellHealing ?? 0)}\nSpeed: ${Math.round(stats.speed ?? 100)} | Dodge: ${Math.round((stats.dodge ?? 0) * 100)}% | Crit: ${Math.round((stats.critChance ?? 0) * 100)}%\n\nEquipped Skills\n${skills.length ? skills.join('\n\n') : 'No skills equipped.'}`,
       gear: ['weapon', 'armor', 'accessory', 'potion'].map(slot => {
         const item = equippedItem(hero, slot);
@@ -173,7 +176,8 @@ export default class DungeonScene extends Phaser.Scene {
         // value gives undefined. The condition before ? chooses the first value when true
         // and the value after : when false.
         return { slot, name: item?.name ?? 'Empty slot', enchantmentId: item?.enchantmentId ?? null,
-          summary: item ? slot === 'potion' ? `${item.charges}/3 potions` : equipmentStatsText(item.stats) : 'Unequipped' };
+          enchantmentName: item?.enchantmentId ? ENCHANTMENT_BY_ID[item.enchantmentId]?.name?.replace(/^Scroll of /, '') : null,
+          summary: item?.slot === 'potion' ? `${item.charges}/3 potions` : '' };
       })
     };
   }

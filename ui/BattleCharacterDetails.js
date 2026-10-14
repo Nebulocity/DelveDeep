@@ -1,3 +1,4 @@
+import { classIcon, categoryIcon } from '../ui/IdentityIcons.js';
 // The held battle sheet shows live resources and the four equipped skill slots.
 // Drawing this modal does not pause combat; its shade only blocks underlying taps.
 import GameState from '../game/GameState.js';
@@ -44,8 +45,9 @@ export function showBattleCharacterDetails(scene, unit) {
   const level = hero.level ?? unit.level;
   const remainingXp = Math.max(0, xpRequired(level) - (hero.xp ?? 0));
   objects.push(stoneText(scene, width / 2, top + 44, unit.name, 42, depth + 2));
-  objects.push(stoneText(scene, left + 46, top + 104,
-    `${unit.role} · Lv ${level} ${unit.className}`, 30, depth + 2).setOrigin(0, 0.5));
+  objects.push(classIcon(scene, unit.className, left + 72, top + 104, 52, depth + 2));
+  objects.push(stoneText(scene, left + 114, top + 104,
+     `Lv ${level} ${unit.shortName ?? unit.className}`, 30, depth + 2).setOrigin(0, 0.5));
   objects.push(stoneText(scene, left + panelWidth - 46, top + 104,
     level >= MAX_CHARACTER_LEVEL ? 'Maximum level' : `XP to Level: ${remainingXp.toLocaleString('en-US')}`, 30, depth + 2,
     { color: '#ffd166' }).setOrigin(1, 0.5));
@@ -92,8 +94,9 @@ export function showBattleCharacterDetails(scene, unit) {
     const [key, ability] = equipped;
     const card = abilityCardDetails(unit, ability);
     const rank = unit.abilityRanks?.[key];
-    const title = stoneText(scene, x + 24, y + 16, ability.name, 32, depth + 3,
-      { color: '#ffd166', wordWrap: { width: cardWidth - 48 } }).setOrigin(0, 0);
+    objects.push(categoryIcon(scene, ability.category, x + 43, y + 36, 40, depth + 3));
+    const title = stoneText(scene, x + 74, y + 16, ability.name, 32, depth + 3,
+      { color: '#ffd166', wordWrap: { width: cardWidth - 98 } }).setOrigin(0, 0);
     objects.push(title);
     const bodyTop = Math.max(65, title.height + 28);
     textRegion(card.description, { x: x + 24, y: y + bodyTop, width: cardWidth - 76,

@@ -1,3 +1,4 @@
+import { classIcon, titleIcon } from '../ui/IdentityIcons.js';
 // Holding an inspectable object opens its details; a short valid release performs the
 // ordinary action. We track the pointer and cancellation paths so dragging or closing an
 // overlay cannot accidentally trigger the original selection underneath it.
@@ -103,7 +104,7 @@ export function characterDetails(unit) {
   // calculated damage and healing appear beside each skill instead of a separate stat list.
   return {
     title: unit.name,
-    battleCharacter: unit,
+    battleCharacter: unit, className: unit.className, classHeader: `${unit.shortName ?? unit.className} · Level ${level}`,
     align: 'left',
     description: [
       `${unit.className ?? 'Monster'} | ${unit.role ?? 'Enemy'}${level ? ` | Level ${level}` : ''}\nHP: ${Math.floor(unit.hp ?? unit.maxHp)}/${unit.maxHp}${(unit.maxMana ?? 0) > 0 ? ` | Mana: ${Math.floor(unit.mana ?? unit.maxMana)}/${unit.maxMana}` : ''}`,
@@ -204,7 +205,8 @@ export function showSelectionDetails(scene, details) {
   // lower-depth objects. Origin is the anchor within the object: 0 is the left/top edge,
   // 0.5 is the center and 1 is the right/bottom edge. x/y place that anchor, not
   // necessarily the object's corner.
-  const body = scene.add.text(bodyCenter, 0, details.description, {
+  const bodyDescription = details.classHeader ? details.description.replace(/^[^\n]*\n/, '').trimStart() : details.description;
+  const body = scene.add.text(bodyCenter, 0, bodyDescription, {
     fontFamily: UI_FONT_FAMILIES.sans, fontSize: `${UI_FONT_SIZES.detailBody}px`, color: stone ? STONE.text : warm ? '#f1dfca' : '#e2e8f0',
     wordWrap: { width: bodyWidth }, fixedWidth: bodyWidth, align: details.align ?? 'center'
   }).setOrigin(0.5, 0).setDepth(depth + 2);
@@ -213,7 +215,14 @@ export function showSelectionDetails(scene, details) {
   body.setY(top + 94);
 
   // Scroll long descriptions without shrinking the reading size.
-  const bodyHeight = panelHeight - (details.gear ? 450 : 190);
+  const bodyHeight = panelHeight - (details.gear ? 450 : 190) - (details.classHeader ? 52 : 0);
+
+  // Keep the class artwork beside its label while the detailed description scrolls below.
+  if (details.classHeader) {
+    objects.push(classIcon(scene, details.className, bodyCenter - bodyWidth / 2 + 26, top + 102, 48, depth + 3));
+    objects.push(stoneText(scene, bodyCenter - bodyWidth / 2 + 66, top + 102, details.classHeader, 34, depth + 3).setOrigin(0, 0.5));
+    body.setY(top + 146);
+  }
 
   // This gives the display object an input hit area. Visible artwork alone does not make
   // an object respond to a tap.
@@ -251,11 +260,10 @@ export function showSelectionDetails(scene, details) {
       const y = top + panelHeight - 235;
       objects.push(addStonePanel(scene, x, y, cardWidth, 220, depth + 2));
       objects.push(stoneText(scene, x, y - 72, item.slot.toUpperCase(), UI_FONT_SIZES.compact26, depth + 3, { color: STONE.muted }));
-      const title = stoneText(scene, x + (item.enchantmentId ? 14 : 0), y - 12, item.name, UI_FONT_SIZES.body30, depth + 3,
-        { wordWrap: { width: cardWidth - (item.enchantmentId ? 70 : 40) } });
+      const title = stoneText(scene, x, y - 12, item.name, UI_FONT_SIZES.body30, depth + 3,
+        { wordWrap: { width: cardWidth - 40 } });
       objects.push(title);
-      if (item.enchantmentId) objects.push(addEnchantmentScroll(scene, title.x - title.width / 2 - 21, y - 12, 30, depth + 4));
-      objects.push(stoneText(scene, x, y + 65, item.summary, UI_FONT_SIZES.compact26, depth + 3, { fontFamily: UI_FONT_FAMILIES.sans, wordWrap: { width: cardWidth - 40 } }));
+      objects.push(stoneText(scene, x + (item.enchantmentId ? 18 : 0), y + 65, item.enchantmentName ?? item.summary, UI_FONT_SIZES.compact26, depth + 3, { fontFamily: UI_FONT_FAMILIES.sans, wordWrap: { width: cardWidth - 40 } }));
     });
   }
 
@@ -293,6 +301,14 @@ export function showSelectionDetails(scene, details) {
       fontFamily: town ? UI_FONT_FAMILIES.serif : UI_FONT_FAMILIES.sans, fontSize: fontPx('body32'), color: warm ? '#fff1d2' : '#ffffff',
       stroke: town ? '#24170f' : undefined, strokeThickness: town ? 2 : 0
     }).setOrigin(0.5).setDepth(depth + 4));
+  const heading = objects.find(object => object.type === 'Text' && object.text === details.title);
+  if (details.className && !details.classHeader) objects.push(titleIcon(scene, heading, details, 52, depth + 3));
+  if (details.gear) details.gear.forEach((item, index) => {
+    if (!item.enchantmentId) return;
+    const cardWidth = (panelWidth - 178) / 4;
+    const x = centerX - panelWidth / 2 + 65 + cardWidth / 2 + index * (cardWidth + 16);
+    objects.push(addEnchantmentScroll(scene, x - cardWidth / 2 + 27, top + panelHeight - 170, 30, depth + 4));
+  });
 }
 
 // Bind after a selection's normal pointerdown action. Defer that action until release, and

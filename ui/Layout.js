@@ -13,35 +13,31 @@ export function topBarY() {
   return UI_SAFE_TOP + 34;
 }
 
-// This helper reserves separate rows for battle headings and a centered tactics bar. The
-// arena starts below the controls with room for enemy labels, so adding a fifth tactic
-// never squeezes it into the status text.
+// The banner shares one row between the wave counter, tactics, BGM and Pause.
+// Battlefield geometry stays unchanged when the buttons move into the header.
 export function getBattleLayout(width, height, count = 5) {
 
   // We reserve at least one position and at most five, matching the tactic loadout limit.
   const slots = Math.max(1, Math.min(5, count));
 
   // gap is the empty space between neighboring buttons, in logical canvas pixels.
-  const gap = 20;
+  const gap = 16;
 
-  // 690 pixels are reserved for the side controls. Subtract those and all the gaps from
-  // the canvas width, then share the remaining width among the slots. The 300-pixel
-  // ceiling keeps a short loadout from producing oversized buttons.
-  const buttonWidth = Math.min(300, (width - 690 - gap * (slots - 1)) / slots);
+  // The wave counter owns the first 320 logical pixels. BGM starts 580 pixels from the right.
+  // A small gutter on each side leaves room for five smaller, full-height touch targets.
+  const left = 340, right = width - 600;
+  const buttonWidth = Math.min(270, (right - left - gap * (slots - 1)) / slots);
 
   // The row includes every button width plus one gap between each pair. There are slots -
   // 1 gaps because there is no gap after the last button.
   const totalWidth = slots * buttonWidth + (slots - 1) * gap;
 
-  // These y positions reserve separate rows for the banner, tactic labels and buttons.
-  // arenaTop is at least 450 pixels down, or 42% of the canvas height if that is larger.
-  // For each x position, half the leftover space centers the entire row. Half a button
-  // width moves from its left edge to its center, and index steps through the row.
+  // Center short loadouts inside their available banner segment, keeping the floor unchanged.
   return {
-    titleY: 46, messageY: 290, statusY: 42, labelY: 122,
-    buttonY: 178, buttonHeight: 80, buttonWidth,
+    titleY: 46, messageY: 290, statusY: 34, labelY: 48,
+    buttonY: 48, buttonHeight: 84, buttonWidth,
     arenaTop: Math.max(450, height * 0.42),
     positions: Array.from({ length: slots }, (_, index) =>
-      (width - totalWidth) / 2 + buttonWidth / 2 + index * (buttonWidth + gap))
+      left + (right - left - totalWidth) / 2 + buttonWidth / 2 + index * (buttonWidth + gap))
   };
 }

@@ -468,6 +468,14 @@ export default class ReplacementAbilitySystem {
       if (h === 'partyRestoreCharges') for (const ally of this.allies()) if (ally !== caster) this.refill(ally, y);
       if (h === 'restoreChargesNextBoost') this.resolve(caster, caster, { ...ability, handler: 'nextPhysicalBoost', primary: ability.secondary }, time);
 
+      // Full packs cannot hold extra charges. Training instead improves one subsequent physical skill.
+      // Reuse the saved preparation record and consume it at commitment, without another cast or cost.
+      if (ability.restockDamageBonus) {
+        this.addPreparation(caster, { ...ability, handler: 'nextPhysicalBoost', duration: 8000,
+          primary: { ...ability.primary, potency: ability.restockDamageBonus, cap: null },
+          secondary: { ...ability.secondary, potency: 0 } }, time + 8000);
+      }
+
       // Charge restoration has no saved status, so start its one-shot art here.
       if (ability.id === 'ability_v2_oathwarden_oath_of_the_supplicant'
         || ability.id === 'ability_v2_gladiator_reequip'

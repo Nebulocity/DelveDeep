@@ -346,13 +346,9 @@ export default class BattleScene extends Phaser.Scene {
     // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
-    const title = stoneText(this, width * 0.40, 46, (GameState.currentDelve?.name ?? 'The Delve').toUpperCase(), UI_FONT_SIZES.heading48, 4501);
-
-    // Reserve room for wave status and the BGM/Pause controls on this header row.
-    if (title.width > width * 0.46) title.setScale(width * 0.46 / title.width);
-    addStoneOrnaments(this, width * 0.40, 44, width * 0.46, this.stoneTheme, 4502);
-    this.encounterStatusText = stoneText(this, width * 0.69, 42, '', UI_FONT_SIZES.battleWave, 4501);
-    this.encounterTimerText = stoneText(this, width * 0.69, 75, '', UI_FONT_SIZES.battleTimer, 4501, { color: STONE.muted });
+    // The left counter replaces the Delve title. Tactics share the remaining banner space.
+    this.encounterStatusText = stoneText(this, 170, 34, '', UI_FONT_SIZES.battleWave, 4501);
+    this.encounterTimerText = stoneText(this, 170, 70, '', UI_FONT_SIZES.battleTimer, 4501, { color: STONE.muted });
     this.battleMessageText = stoneText(this, width / 2, this.battleLayout.messageY, '', UI_FONT_SIZES.body34, 5000,
       { wordWrap: { width: 1430 }, align: 'center' });
 
@@ -376,6 +372,7 @@ export default class BattleScene extends Phaser.Scene {
     const x = commandRailLeft - panelWidth / 2 - 16;
     const y = 222;
     this.combatAnnounceEntries = [];
+    this.lastCombatAnnounceAt = this.time.now;
     this.combatAnnouncePanel = this.add.rectangle(x, y, panelWidth, panelHeight, 0x080d18, 0.78)
       .setStrokeStyle(2, 0x748093, 0.7).setDepth(4450);
   }
@@ -423,6 +420,8 @@ export default class BattleScene extends Phaser.Scene {
       span.setX(textX);
       textX += span.width;
     });
+    this.lastCombatAnnounceAt = this.time.now;
+    this.combatAnnouncePanel.setAlpha(1);
     const entry = { label, createdAt: this.time.now, fadeStartedAt: null };
     this.combatAnnounceEntries.unshift(entry);
 
@@ -434,6 +433,10 @@ export default class BattleScene extends Phaser.Scene {
 
   // This helper expires announces on combat time, which stops while the battle is paused.
   updateCombatAnnounceLog(time) {
+
+    // The entire feed fades after two quiet combat seconds. A new message restores it.
+    const quietAlpha = 1 - Math.min(1, Math.max(0, time - this.lastCombatAnnounceAt - 2000) / 600);
+    this.combatAnnouncePanel?.setAlpha(quietAlpha);
     for (let index = (this.combatAnnounceEntries?.length ?? 0) - 1; index >= 0; index -= 1) {
       const entry = this.combatAnnounceEntries[index];
       if (entry.fadeStartedAt === null && time - entry.createdAt >= 6000) {
@@ -444,7 +447,7 @@ export default class BattleScene extends Phaser.Scene {
       const fadeProgress = entry.fadeStartedAt === null
         ? 0 : Math.min(1, (time - entry.fadeStartedAt) / 260);
       const stackAlpha = 1 - index * 0.1125;
-      entry.label.setAlpha(stackAlpha * (1 - fadeProgress));
+      entry.label.setAlpha(quietAlpha * stackAlpha * (1 - fadeProgress));
 
       if (fadeProgress >= 1) {
         entry.label.destroy();
@@ -815,10 +818,6 @@ export default class BattleScene extends Phaser.Scene {
     // lower-depth objects. Origin is the anchor within the object: 0 is the left/top edge,
     // 0.5 is the center and 1 is the right/bottom edge. x/y place that anchor, not
     // necessarily the object's corner.
-    this.add.text(width / 2, layout.labelY, 'BATTLE TACTICS', {
-      fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('support28'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#94a3b8'
-    }).setOrigin(0.5).setDepth(4700);
-
     // Each button has a name row and a separate cooldown or usage row. Center the entire
     // group, including loadouts with fewer than five slots.
     equipped.forEach((id, index) => {
@@ -837,6 +836,7 @@ export default class BattleScene extends Phaser.Scene {
       const name = this.add.text(x, layout.buttonY - 17, ability.shortName, {
         fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body32'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#bef264'
       }).setOrigin(0.5).setDepth(4701);
+      if (name.width > layout.buttonWidth - 26) name.setScale((layout.buttonWidth - 26) / name.width);
       const status = this.add.text(x, layout.buttonY + 20, '', {
         fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('compact25'), color: '#d6d3d1'
       }).setOrigin(0.5).setDepth(4701);

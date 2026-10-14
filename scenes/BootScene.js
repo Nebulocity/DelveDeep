@@ -1,3 +1,4 @@
+import { preloadIdentityIcons } from '../ui/IdentityIcons.js';
 // We load the initial assets, restore the profile and route into the first playable
 // screen. Assets loaded here become available by their texture keys in later scenes.
 
@@ -52,6 +53,7 @@ export default class BootScene extends Phaser.Scene {
 
     trackLoading(this);
     preloadMusic(this);
+    preloadIdentityIcons(this);
     this.load.image('world-pineshire-final', pineshireMapUrl);
     this.load.spritesheet('world-party-idle', partyIdleUrl, { frameWidth: 256, frameHeight: 256 });
     this.load.spritesheet('world-party-walk', partyWalkUrl, { frameWidth: 256, frameHeight: 256 });

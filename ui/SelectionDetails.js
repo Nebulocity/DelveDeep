@@ -119,14 +119,31 @@ export function delveDetails(delve) {
   // These are preparation targets for every adventurer, not entry locks. Keep them in
   // the scrollable details so the full gear and skill advice fits at phone text sizes.
   const preparation = delve.bossPreparation;
-  const bossAdvice = preparation ? `\n\nBoss preparation per adventurer: Level ${preparation.level}, fully equipped Common gear, and at least ${preparation.abilityCount} equipped abilities at rank ${preparation.abilityRank} or higher.\n\nDelve level cap: ${preparation.level}. Capped members earn no XP or Happiness and reduce shared Gold. When everyone is capped, farming earns materials only.` : '';
+
+  // Read the preparation profile rather than giving every Delve the same gear advice.
+  // Some classes currently lack Uncommon armor, so the new profile keeps valid Common
+  // alternatives. Rank prices can leave an SP remainder that cannot buy another rank.
+  const gearAdvice = preparation?.gearRarity === 'best'
+    ? 'your best available class-compatible gear with enchantments'
+    : preparation?.gearRarity === 'uncommon'
+    ? 'class-compatible Uncommon gear, using your best Common gear where Uncommon is unavailable'
+    : 'fully equipped Common gear';
+  const skillAdvice = preparation?.spendSkillPoints
+    ? `all ${preparation.abilityCount} ability slots equipped, with earned skill points spent on their ranks as costs and level limits allow`
+    : `at least ${preparation?.abilityCount} equipped abilities at rank ${preparation?.abilityRank} or higher`;
+  const bossAdvice = preparation ? `\n\nBoss preparation per adventurer: Level ${preparation.level}, ${gearAdvice}, and ${skillAdvice}.\n\nDelve level cap: ${preparation.level}. Capped members earn no XP or Happiness and reduce shared Gold. When everyone is capped, farming earns materials only.` : '';
+
+  // Abyss needs preparation before its ordinary waves too. Keep this advice separate
+  // from the boss cap, because the first farm camp helps players earn their next level.
+  const entry = delve.entryPreparation;
+  const entryAdvice = entry ? `\n\nProgression preparation: Level ${entry.level} or higher, your best available class-compatible gear with enchantments, all ${entry.abilityCount} ability slots equipped, and earned skill points spent on ranks. Buy as many Tactics as you can afford and equip up to five. Level ${entry.farmLevel} is recommended for farming; the early camp can help you reach it.` : '';
 
   // map builds one output entry for each input entry, in the same order. The callback's
   // return value becomes that output entry. ?. only follows this link when the value
   // exists; a missing optional value gives undefined.
   return {
     title: delve.name,
-    description: `${delve.subtitle}\n\n${delve.difficulty} | Starting level ${delve.recommendedLevel} | ${delve.rooms} waves${bossAdvice}\n\nPossible Drops:\n${delveDropNames(delve).map(name => `• ${name}`).join('\n')}`,
+    description: `${delve.subtitle}\n\n${delve.difficulty} | Starting level ${delve.recommendedLevel} | ${delve.rooms} waves${entryAdvice}${bossAdvice}\n\nPossible Drops:\n${delveDropNames(delve).map(name => `• ${name}`).join('\n')}`,
     image: delve.visuals?.environment?.layers[0]?.key,
     align: 'left',
     titleAboveBody: true,

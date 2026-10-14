@@ -75,7 +75,11 @@ const rows = {
   south: 0, 'south-east': 0, east: 0, 'south-west': 1,
   west: 1, north: 2, 'north-east': 2, 'north-west': 3
 };
-const scales = { voidCrawler: 0.85, voidStalker: 0.95, voidKeeper: 1.1, abyssalSovereign: 1.6, voidWisp: 0.8 };
+
+// Ordinary monsters use 1.5 times their accepted sizes; the Sovereign uses 2 times its
+// accepted size. These are artwork multipliers, not changes to combat distances.
+const scales = { voidCrawler: 0.85 * 1.5, voidStalker: 0.95 * 1.5, voidKeeper: 1.1 * 1.5,
+  abyssalSovereign: 1.6 * 2, voidWisp: 0.8 * 1.5 };
 const projectileUrl = new URL('../assets/enemies/murmuring-abyss/voidWisp/sheets/projectile.png', import.meta.url).href;
 
 // Match each playable clip to its accepted row, keeping equipment and limbs unmirrored.

@@ -54,6 +54,19 @@ assert.equal(validBattleSnapshot({ ...snapshot, version: 99 }, GameState.roster)
 assert.equal(validBattleSnapshot({ ...snapshot, partyIds: ['missing'] }, GameState.roster), false);
 assert.equal(validBattleSnapshot({ ...snapshot, events: [{ remainingMs: -1, data: { kind: 'attack' } }] }, GameState.roster), false);
 
+// The optional monster baseline must survive serialization without allowing broken
+// arithmetic to enter a restored battle. Units without the field remain compatible.
+const activeSnapshot = structuredClone(snapshot);
+activeSnapshot.party[0].activeCombatBalance = { active: true, maxHp: 500, healthScale: 1.15,
+  powerScale: 1.75, attackPower: 20, spellDamage: 10, spellHealing: 0 };
+assert.equal(validBattleSnapshot(activeSnapshot, GameState.roster), true);
+for (const [key, value] of [['powerScale', Infinity], ['powerScale', 1e308], ['maxHp', 0],
+  ['healthScale', Number.MIN_VALUE], ['spellDamage', -1], ['active', 'true']]) {
+  const invalid = structuredClone(activeSnapshot);
+  invalid.party[0].activeCombatBalance[key] = value;
+  assert.equal(validBattleSnapshot(invalid, GameState.roster), false);
+}
+
 // Intermediate reward writes wait for the completed transition, committing one coherent
 // profile.
 GameState.gold = 10;

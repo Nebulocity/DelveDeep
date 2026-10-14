@@ -53,4 +53,14 @@ assert.equal(enemies.abyssalSovereign.abilities.tertiary.name, "Sovereign's Ruin
 assert.equal(abilityPower(enemies.slimeSovereign, enemies.slimeSovereign.abilities.tertiary), 690);
 assert.equal(enemies.rongarTheCrusher.abilities.secondary.stunDuration, 3000);
 assert.equal(enemies.rongarTheCrusher.abilities.tertiary.damageType, 'spell');
+
+// The response window and fixed caster-centered warning must survive normalization.
+// The warning is one 4.5-second phase, not a windup followed by another warning.
+const belch = enemies.rongarTheCrusher.abilities.tertiary;
+assert.equal(belch.telegraph, 4500);
+assert.equal(belch.windup, 4500);
+assert.equal(belch.radius, 400);
+assert.equal(belch.autoAvoid, false);
+assert.equal(belch.areaCenter, 'caster');
+assert.equal(abilityPower(enemies.rongarTheCrusher, belch), 2475);
 console.log('Revised catalog, authored wave counts, independent spawns and final boss mechanics passed.');

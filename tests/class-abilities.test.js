@@ -90,7 +90,7 @@ assert.ok(roster.every(unit=>classes[unit.className]));
 
 // find returns the first matching entry, or undefined when none matches. Check for that
 // missing result before using its fields.
-assert.equal(roster.find(unit=>unit.id==='raistlin').className,'Mage of the Crimson Spire');
+assert.equal(roster.find(unit=>unit.id==='valtheris').className,'Mage of the Crimson Spire');
 const caster=make('Mage of the Luminous Archive'), ally=make('Scoundrel',2), e=enemy(1);
 let s=scene([caster,ally],[e]), system=new System(s);
 
@@ -145,13 +145,13 @@ defender.takeDamage(20,{time:0});assert.equal(defender.hp,96);assert.equal(defen
 defender.takeDamage(20,{time:8000});assert.equal(defender.hp,78);
 
 // Old gear is discarded while character progression stays intact.
-globalThis.localStorage={getItem:()=>JSON.stringify({roster:[{id:'caramon-gladiator',level:4,xp:9,equipment:{weapon:'gear-1'}}],lastPartyIds:['caramon-gladiator'],inventory:{equipment:[{id:'gear-1',itemId:'gladiator-weapon'}]}})};
+globalThis.localStorage={getItem:()=>JSON.stringify({roster:[{id:'garrick',level:4,xp:9,equipment:{weapon:'gear-1'}}],lastPartyIds:['garrick'],inventory:{equipment:[{id:'gear-1',itemId:'gladiator-weapon'}]}})};
 loadProfile(roster);
-const caramon=GameState.roster.find(u=>u.id==='caramon-gladiator');
-assert.equal(caramon.level,4);
-assert.equal(caramon.className,'Gladiator');
-assert.equal(GameState.inventory.equipment.find(item=>item.id===caramon.equipment.weapon)?.itemId,'BLS01');
-assert.equal(caramon.equipment.accessory,null);
+const garrick=GameState.roster.find(u=>u.id==='garrick');
+assert.equal(garrick.level,4);
+assert.equal(garrick.className,'Gladiator');
+assert.equal(GameState.inventory.equipment.find(item=>item.id===garrick.equipment.weapon)?.itemId,'BLS01');
+assert.equal(garrick.equipment.accessory,null);
 assert.equal(GameState.inventory.equipment.length,roster.length*2);
 console.log('New class geometry, taunts, damage/healing, shields, roots, teleports, buffs, and save migration passed.');
 
@@ -277,19 +277,19 @@ const trapCell=system.trapPoint(ranger,[foe]);assert.equal(abilityDistance(s,ran
 system.resolve(ranger,trapCell,ranger.abilities.trap,0);system.tickWorld(1);assert.equal(s.hits.length,0);
 foe.arenaX=trapCell.arenaX;foe.arenaY=trapCell.arenaY;system.tickWorld(2);assert.equal(s.hits[0].p,26);assert.equal(foe.status.hardStunUntil,2200);assert.equal(system.traps.length,0);
 
-// Previously equipped Caramon/Goldmoon gear is removed.
-globalThis.localStorage={getItem:()=>JSON.stringify({roster:[{id:'caramon-gladiator',equipment:{weapon:'c'}},{id:'goldmoon',equipment:{weapon:'g'}}],inventory:{equipment:[{id:'c',itemId:'paladin-weapon'},{id:'g',itemId:'priest-weapon'}]}})};
+// Previously equipped Garrick/Sylva gear is removed.
+globalThis.localStorage={getItem:()=>JSON.stringify({roster:[{id:'garrick',equipment:{weapon:'c'}},{id:'sylva',equipment:{weapon:'g'}}],inventory:{equipment:[{id:'c',itemId:'paladin-weapon'},{id:'g',itemId:'priest-weapon'}]}})};
 loadProfile(roster);
-assert.equal(GameState.inventory.equipment.find(item=>item.id===GameState.roster.find(u=>u.id==='goldmoon').equipment.weapon)?.itemId,'PST01');
-assert.equal(GameState.inventory.equipment.find(item=>item.id===GameState.roster.find(u=>u.id==='caramon-gladiator').equipment.weapon)?.itemId,'BLS01');
+assert.equal(GameState.inventory.equipment.find(item=>item.id===GameState.roster.find(u=>u.id==='sylva').equipment.weapon)?.itemId,'PST01');
+assert.equal(GameState.inventory.equipment.find(item=>item.id===GameState.roster.find(u=>u.id==='garrick').equipment.weapon)?.itemId,'BLS01');
 assert.equal(GameState.inventory.equipment.length,roster.length*2);
 console.log('Martial kits, poison cadence, trap entry, control durations and reassigned equipment passed.');
 
 // The active catalog contains only the requested roster and its classes.
 assert.deepEqual(Object.fromEntries(roster.map(u=>[u.name,u.className])), {
-  Caramon:'Gladiator',Sturm:'Oathwarden',Laurana:'Dawnwarden',Goldmoon:'Cleric of the Verdant Covenant',
-  Mishakal:'Cleric of the Everbright',Fistandantilus:'Cleric of the Sanguine Song',Riverwind:'Barbarian',Flint:'Barbarian',
-  Tasslehoff:'Scoundrel',Tika:'Barmaid',Dalamar:'Mage of the Umbral Veil',Palin:'Mage of the Luminous Archive',Raistlin:'Mage of the Crimson Spire',Tanis:'Ranger'
+  Garrick:'Gladiator',Aldren:'Oathwarden',Elyra:'Dawnwarden',Sylva:'Cleric of the Verdant Covenant',
+  Selenne:'Cleric of the Everbright',Malrec:'Cleric of the Sanguine Song',Chaska:'Barbarian',Durgrim:'Barbarian',
+  Yasmin:'Scoundrel',Zahra:'Barmaid',Zareth:'Mage of the Umbral Veil',Nadira:'Mage of the Luminous Archive',Valtheris:'Mage of the Crimson Spire',Orwen:'Ranger'
 });
 
 // A Set keeps each value once. has checks membership without searching a list for
@@ -358,21 +358,21 @@ assert.equal(secondOath.alive,false);assert.equal(secondHealer.alive,true);asser
 console.log('Exact roster, Barmaid line/AoE, Oathwarden vow, parry and sacrifice conditions passed.');
 
 // Retained characters keep progression; removed characters cannot remain selected.
-globalThis.localStorage={getItem:()=>JSON.stringify({lastPartyIds:['justarius','sturm','tika'],roster:[{id:'sturm',level:3,equipment:{weapon:'s'}},{id:'tika',level:2,equipment:{weapon:'t'}}],inventory:{equipment:[{id:'s',itemId:'paladin-weapon'},{id:'t',itemId:'rogue-weapon'}]}})};
+globalThis.localStorage={getItem:()=>JSON.stringify({lastPartyIds:['justarius','aldren','zahra'],roster:[{id:'aldren',level:3,equipment:{weapon:'s'}},{id:'zahra',level:2,equipment:{weapon:'t'}}],inventory:{equipment:[{id:'s',itemId:'paladin-weapon'},{id:'t',itemId:'rogue-weapon'}]}})};
 loadProfile(roster);
-assert.deepEqual(GameState.lastPartyIds,['sturm','tika']);
-assert.equal(GameState.inventory.equipment.find(item=>item.id===GameState.roster.find(u=>u.id==='sturm').equipment.weapon)?.itemId,'BLS01');
-assert.equal(GameState.inventory.equipment.find(item=>item.id===GameState.roster.find(u=>u.id==='tika').equipment.weapon)?.itemId,'BSS01');
+assert.deepEqual(GameState.lastPartyIds,['aldren','zahra']);
+assert.equal(GameState.inventory.equipment.find(item=>item.id===GameState.roster.find(u=>u.id==='aldren').equipment.weapon)?.itemId,'BLS01');
+assert.equal(GameState.inventory.equipment.find(item=>item.id===GameState.roster.find(u=>u.id==='zahra').equipment.weapon)?.itemId,'BSS01');
 assert.equal(GameState.inventory.equipment.length,roster.length*2);
 
-// Fistandantilus keeps progression and party selection from the old roster ID.
-globalThis.localStorage={getItem:()=>JSON.stringify({lastPartyIds:['aoth'],roster:[{id:'aoth',level:5,xp:17,happiness:63,equipment:{weapon:'bloodstaff'}}],inventory:{equipment:[{id:'bloodstaff',itemId:'bloodwarder-weapon'}]}})};
+// Malrec keeps progression and party selection from the old roster ID.
+globalThis.localStorage={getItem:()=>JSON.stringify({lastPartyIds:['malrec'],roster:[{id:'malrec',level:5,xp:17,happiness:63,equipment:{weapon:'bloodstaff'}}],inventory:{equipment:[{id:'bloodstaff',itemId:'bloodwarder-weapon'}]}})};
 loadProfile(roster);
-const fistandantilus=GameState.roster.find(u=>u.id==='fistandantilus');
-assert.ok(fistandantilus);assert.equal(fistandantilus.level,5);assert.equal(fistandantilus.xp,17);
-assert.equal(fistandantilus.happiness,63);
-assert.equal(GameState.inventory.equipment.find(item=>item.id===fistandantilus.equipment.weapon)?.itemId,'PST01');
-assert.deepEqual(GameState.lastPartyIds,['fistandantilus']);
+const malrec=GameState.roster.find(u=>u.id==='malrec');
+assert.ok(malrec);assert.equal(malrec.level,5);assert.equal(malrec.xp,17);
+assert.equal(malrec.happiness,63);
+assert.equal(GameState.inventory.equipment.find(item=>item.id===malrec.equipment.weapon)?.itemId,'PST01');
+assert.deepEqual(GameState.lastPartyIds,['malrec']);
 
 // The current ability system honors an assigned healer priority ahead of a more injured
 // ally.

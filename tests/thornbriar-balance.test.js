@@ -18,6 +18,6 @@ const boss = enemies.rongarTheCrusher;
 assert.equal(thornbriarEnemyDefinition('rongarTheCrusher', boss, 'thornbriar-hollow', true), boss);
 const lasher = thornbriarEnemyDefinition('lasher', enemies.lasher, 'thornbriar-hollow', false);
 const mage = thornbriarEnemyDefinition('hedgeMage', enemies.hedgeMage, 'thornbriar-hollow', false);
-assert.equal(abilityPower(lasher, lasher.abilities.primary), 12);
-assert.equal(abilityPower(mage, mage.abilities.primary), 10.8);
+assert.equal(abilityPower(lasher, lasher.abilities.primary), 6);
+assert.equal(abilityPower(mage, mage.abilities.primary), 5.4);
 console.log('Thornbriar ordinary-wave tuning preserves boss groups, other Delves and authored skills.');

@@ -19,7 +19,7 @@ export async function simulateBattles(page, options) {
   const original = structuredClone(enemies);
   const roster = structuredClone(state.roster);
   const inventory = structuredClone(state.inventory);
-  const partyNames = ['Caramon', 'Flint', 'Tika', 'Tanis', 'Goldmoon'];
+  const partyNames = ['Garrick', 'Durgrim', 'Zahra', 'Orwen', 'Sylva'];
   console.info = () => {};
   game.loop.stop();
   const results = [];

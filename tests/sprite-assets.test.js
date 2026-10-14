@@ -7,14 +7,14 @@ import fs from 'node:fs';
 import adventurers from '../data/adventurers.js';
 import { CHARACTER_SPRITES, preloadCharacterSprites } from '../data/characterSprites.js';
 
-const names = ['laurana', 'tika', 'tanis', 'sturm', 'goldmoon', 'caramon-gladiator', 'raistlin', 'dalamar', 'palin', 'tasslehoff', 'flint', 'riverwind', 'fistandantilus', 'mishakal'];
+const names = ['elyra', 'zahra', 'orwen', 'aldren', 'sylva', 'garrick', 'valtheris', 'zareth', 'nadira', 'yasmin', 'durgrim', 'chaska', 'malrec', 'selenne'];
 const states = ['idle', 'walk', 'attack', 'block', 'hit', 'death'];
 const loaded = [];
 for (const { id } of adventurers) assert.ok(CHARACTER_SPRITES[id], `missing combat sprite for roster ID ${id}`);
 for (const name of names) {
   const sprite = CHARACTER_SPRITES[name];
   assert.ok(sprite, `missing sprite for ${name}`);
-  const temporaryWalk = sprite.textures.find(texture => texture.key === 'sturm-temporary-walk');
+  const temporaryWalk = sprite.textures.find(texture => texture.key === 'aldren-temporary-walk');
   assert.equal(sprite.textures.length, states.length + (temporaryWalk ? 1 : 0));
   const layout = JSON.parse(fs.readFileSync(new URL(`../assets/characters/${name}/sheets/layout.json`, import.meta.url), 'utf8'));
   assert.equal(layout.frameWidth, 256);
@@ -33,7 +33,7 @@ for (const name of names) {
     // function toString() { [native code] }
     assert.equal(png.subarray(1, 4).toString(), 'PNG');
 
-    // Sturm's optional walking test has 36 sequential cells in a six-by-six atlas.
+    // Aldren's optional walking test has 36 sequential cells in a six-by-six atlas.
     // Original sheets still follow their four authored direction rows and layout file.
     const isTemporaryWalk = texture === temporaryWalk;
     const columns = isTemporaryWalk ? 6 : layout.states[states[index]].columns;
@@ -80,9 +80,9 @@ for (const direction of ['south', 'south-east', 'east']) {
   // map builds one output entry for each input entry, in the same order. The callback's
   // return value becomes that output entry.
   assert.deepEqual(
-    CHARACTER_SPRITES.tika.clips.idle[direction].frames.map(({ frame }) => frame),
+    CHARACTER_SPRITES.zahra.clips.idle[direction].frames.map(({ frame }) => frame),
     [0, 1, 1, 0],
-    'Tika idle should avoid the frames with the bright pan trail',
+    'Zahra idle should avoid the frames with the bright pan trail',
   );
 }
 

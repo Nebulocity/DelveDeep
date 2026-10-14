@@ -7,6 +7,8 @@
 import { rebuildCharacterStats } from './CharacterStats.js';
 import GameState from './GameState.js';
 import { restoreEverdeep } from './EverdeepState.js';
+import { refreshSavedCharacterNames } from './SavedCharacterNames.js';
+import { migrateCharacterIdentities } from './CharacterIdentityMigration.js';
 import { restoreEquipment } from './Equipment.js';
 import { grantStartingEquipment } from './StartingEquipment.js';
 import { restoreAdventurerAbilities } from './AdventurerAbilities.js';
@@ -46,15 +48,15 @@ export function loadProfile(baseRoster) {
 
     // The condition before ? chooses the first value when true and the value after : when
     // false.
-    saved = raw ? JSON.parse(raw) : null;
+    saved = raw ? migrateCharacterIdentities(JSON.parse(raw)) : null;
   } catch (error) {
     console.warn('Could not load Delve Deep profile.', error);
   }
 
   // Index records by stable character ID, rather than their position in the old roster.
-  // The aoth alias is a save migration for Fistandantilus; changing list order must not
-  // hand one character's progress to another.
-  const savedRoster = new Map((saved?.roster ?? []).map((entry) => [entry.id === 'aoth' ? 'fistandantilus' : entry.id, entry]));
+  // Former IDs have already been migrated throughout the save, including battle links.
+  // Changing list order must not hand one character's progress to another.
+  const savedRoster = new Map((saved?.roster ?? []).map((entry) => [entry.id, entry]));
 
   // Restore currencies, inventory, world state, and development options with defaults for
   // missing save fields.
@@ -107,7 +109,7 @@ export function loadProfile(baseRoster) {
     .filter(([id, entry]) => id && Number.isSafeInteger(entry?.nextWave) && entry.nextWave >= 0)
     .map(([id, entry]) => [id, { nextWave: entry.nextWave, campUnlocked: entry.campUnlocked === true }]));
   GameState.lastPartyIds = Array.isArray(saved?.lastPartyIds)
-    ? saved.lastPartyIds.map((id) => id === 'aoth' ? 'fistandantilus' : id) : [];
+    ? saved.lastPartyIds : [];
   GameState.development = {
     unlockAll: saved?.development?.unlockAll === true,
     replayCleared: saved?.development?.replayCleared === true,
@@ -173,6 +175,10 @@ export function loadProfile(baseRoster) {
   // Discard saved party IDs that no longer exist in the current roster.
   GameState.lastPartyIds = GameState.lastPartyIds.filter((id) => GameState.roster.some((adventurer) => adventurer.id === id));
   GameState.activeBattle = validBattleSnapshot(saved?.activeBattle, GameState.roster) ? saved.activeBattle : null;
+
+  // Frozen party records carry display names too. Refresh only those labels while
+  // keeping saved combat resources, expedition power and stable IDs unchanged.
+  refreshSavedCharacterNames(GameState);
 }
 
 // This helper writes the persistent portion of GameState to local storage. It includes

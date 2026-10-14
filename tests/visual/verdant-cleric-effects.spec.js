@@ -10,8 +10,8 @@ test('Verdant Cleric sheets, flight and fade render in combat', async ({ page })
   await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__?.game.scene.getScene('TitleScene').sys.isActive());
   await page.evaluate(async () => {
     const { default: state } = await import('/game/GameState.js');
-    const goldmoon = state.roster.find(unit => unit.id === 'goldmoon');
-    if (goldmoon) state.roster = [goldmoon, ...state.roster.filter(unit => unit !== goldmoon)];
+    const sylva = state.roster.find(unit => unit.id === 'sylva');
+    if (sylva) state.roster = [sylva, ...state.roster.filter(unit => unit !== sylva)];
     window.__DELVE_DEEP_VISUAL_QA__.activate('BattleScene');
   });
   await page.waitForFunction(() => {

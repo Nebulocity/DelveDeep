@@ -228,11 +228,12 @@ enemies.abyssalSovereign.abilities = {
     power: 180, damageType: 'spell', manaCost: 0,
     responseHint: 'INTERRUPT the cast' },
 
-  // The larger blast stays at the boss's cast-start position, leaving the rest of the
-  // authored arena available for escape. autoAvoid prevents automatic warning dodges.
-  tertiary: { name: "Sovereign's Ruin", animation: 'area', cooldown: 30000,
-    windup: 6000, telegraph: 6000, radius: 300, castRange: 300, areaCenter: 'caster',
-    autoAvoid: false, power: 240, damageType: 'spell', manaCost: 0,
+  // The larger blast stays at the boss's cast-start position. Its 500-unit warning leaves
+  // escape space on the authored floor; autoAvoid requires a manual response. Percentage
+  // power means 22 times this boss's scaled Spell Damage, before shields and reductions.
+  tertiary: { name: "Sovereign's Ruin", animation: 'area', cooldown: 18000,
+    windup: 6000, telegraph: 6000, radius: 500, castRange: 300, areaCenter: 'caster',
+    autoAvoid: false, power: 2200, powerUnit: 'percent', damageType: 'spell', manaCost: 0,
     responseHint: 'MOVE away from the boss or INTERRUPT' }
 };
 

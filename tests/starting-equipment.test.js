@@ -76,7 +76,7 @@ loadProfile(adventurers);
 assert.deepEqual(JSON.parse(JSON.stringify(GameState.inventory)), freshInventory);
 
 // Saved choices stay empty after unequipping or selling starting gear.
-const hero = GameState.roster.find((entry) => entry.id === 'caramon-gladiator');
+const hero = GameState.roster.find((entry) => entry.id === 'garrick');
 const weaponId = hero.equipment.weapon;
 assert.equal(unequipItem(hero.id, 'weapon').ok, true);
 assert.equal(sellOwnedItem(weaponId).ok, true);

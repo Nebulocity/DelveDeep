@@ -3,6 +3,8 @@
 // save size, while summary totals and casualty evidence must survive a long farming
 // session.
 
+import { migrateCharacterIdentities } from '../game/CharacterIdentityMigration.js';
+
 const STORAGE_KEY = 'delveDeep.lastCombatLog.v1';
 
 export default class CombatLog {
@@ -151,7 +153,9 @@ export function loadLastCombatLog() {
   try {
 
     // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null');
+    // Completed encounters live outside the profile. Refresh their old character
+    // labels too, keeping the recorded events, amounts and timestamps unchanged.
+    return migrateCharacterIdentities(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null'));
   } catch (error) {
     console.warn('Could not load the last combat log.', error);
     return null;

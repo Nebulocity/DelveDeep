@@ -629,7 +629,11 @@ function createSprite(id, urls) {
   clips.dead = Object.fromEntries(Object.entries(clips.death).map(([direction, clip]) => [
     direction, { frameMs: 1000, frames: [clip.frames.at(-1)] }
   ]));
-  return { textures, clips, scale: layout.scale, footY: layout.footY };
+
+  // Enlarge ordinary monsters by 1.5 and the Depths Sovereign by 2 relative to
+  // their accepted sheet layouts. This does not change combat body sizes.
+  const multiplier = id === 'depthsSovereign' ? 2 : 1.5;
+  return { textures, clips, scale: layout.scale * multiplier, footY: layout.footY };
 }
 
 export const QUARRY_SPRITES = Object.fromEntries(

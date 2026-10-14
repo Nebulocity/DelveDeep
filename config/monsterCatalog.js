@@ -57,7 +57,13 @@ export const MONSTER_SKILLS = {
     primary: circle('Mace Sweep', 137.5, 6, 2, 145),
     secondary: circle('Intimidating Stomp', 156, 6, 1.25, 145, 'physical',
       { areaCenter: 'caster', stunDuration: 3000, allowCrit: true }),
-    tertiary: circle('Belch', 160, 10, 3, 300, 'spell', { areaCenter: 'caster', stunDuration: 3000 })
+
+    // Belch is the player-response cast: its 4.5-second warning allows an interrupt or
+    // manual movement beyond 400 arena units. The 900% potency uses Rongar's locally scaled
+    // Spell Damage, not eight times an adventurer's Health. Fresh Thornbriar spawns deal
+    // about 569 damage before shields and reductions; saved fights retain their recorded skill.
+    tertiary: circle('Belch', 900, 10, 4.5, 400, 'spell',
+      { areaCenter: 'caster', stunDuration: 3000, autoAvoid: false })
   },
   denProtector: { primary: circle('Bark Slam', 180, 5.4, 1.35, 165, 'physical', { castRange: 220 }) },
   denColossus: {
@@ -67,7 +73,11 @@ export const MONSTER_SKILLS = {
   silvanarkTheForestLord: {
     primary: strike('Root Lance', 100, 2, 0.4, 'physical', { castRange: 500, animation: 'attack' }),
     secondary: circle('Shatterbark', 180, 10, 2, 250, 'physical', { areaCenter: 'caster' }),
-    tertiary: circle('Forest Quake', 300, 16, 6, 500, 'physical',
+
+    // Forest Quake uses six combat seconds for a manual interrupt or escape. Its 600%
+    // physical potency is six times Silvanark's locally scaled Attack Power, before Armor
+    // and Block. Existing saved encounters retain their recorded ability and combat stats.
+    tertiary: circle('Forest Quake', 600, 16, 6, 500, 'physical',
       { castRange: Number.MAX_SAFE_INTEGER, areaCenter: 'caster', autoAvoid: false })
   },
   quarryWorm: {
@@ -85,7 +95,10 @@ export const MONSTER_SKILLS = {
   depthsSovereign: {
     primary: strike('Crown of Spikes', 150, 8, 2, 'spell'),
     secondary: circle('Seismic Rupture', 180, 14, 3, 240),
-    tertiary: circle("Mountain's Wrath", 300, 30, 6, 500, 'physical',
+
+    // Lower sustained boss-wave power leaves room to heal between warning attacks.
+    // Wrath deals 13.5 times the locally scaled Attack Power, with six seconds to respond.
+    tertiary: circle("Mountain's Wrath", 1350, 18, 6, 500, 'physical',
       { castRange: Number.MAX_SAFE_INTEGER, areaCenter: 'caster', autoAvoid: false })
   },
   sunkenWatcher: {
@@ -103,7 +116,10 @@ export const MONSTER_SKILLS = {
   earthsinker: {
     primary: circle('Call the Deep', 150, 10, 2, 190, 'spell'),
     secondary: circle('Sinkhole', 180, 14, 3, 240),
-    tertiary: circle('Boulder Splash', 300, 30, 6, 500, 'physical',
+
+    // Splash is the dangerous response check; the 18-second cooldown spaces repeated
+    // casts without raising every escort's damage. Six warning seconds allow an interrupt.
+    tertiary: circle('Boulder Splash', 1300, 18, 6, 500, 'physical',
       { castRange: Number.MAX_SAFE_INTEGER, areaCenter: 'caster', autoAvoid: false })
   },
   voidWisp: { primary: strike('Void Lance', 130.76923076923077, 5.2, 0.6, 'spell') },

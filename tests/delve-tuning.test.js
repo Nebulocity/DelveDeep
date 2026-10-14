@@ -23,7 +23,10 @@ for (const [id, start, boss, difficulty, count, rank, waves] of targets) {
   assert.equal(delve.recommendedLevel, start);
   assert.equal(delve.difficulty, difficulty);
   assert.equal(delve.rooms, waves);
-  assert.deepEqual(delve.bossPreparation, { level: boss, gearRarity: 'common', abilityCount: count, abilityRank: rank });
+  const preparation = id !== 'slime-cave'
+    ? { level: boss, gearRarity: id === 'murmuring-abyss' ? 'best' : 'uncommon', abilityCount: 4, spendSkillPoints: true }
+    : { level: boss, gearRarity: 'common', abilityCount: count, abilityRank: rank };
+  assert.deepEqual(delve.bossPreparation, preparation);
 
   // Fresh spawn metadata follows the encounter while the reusable catalog stays intact.
   const original = enemies.caveSlime;

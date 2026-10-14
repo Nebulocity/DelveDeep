@@ -139,7 +139,7 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
     await page.waitForFunction(() => Boolean(window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene').selectionDetailsClose));
     await press('RosterScene', 'CLOSE');
     await checkClosed('RosterScene');
-    await press('RosterScene', 'hall-hero-caramon-gladiator', true);
+    await press('RosterScene', 'hall-hero-garrick', true);
     const knownSkill = await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene')
       .children.list.find(object => object.name.startsWith('known-skill-')).name);
     await press('RosterScene', knownSkill, true);

@@ -19,7 +19,7 @@ for (const width of [915, 1920]) {
 
       // find returns the first matching entry, or undefined when none matches. Check for
       // that missing result before using its fields.
-      const hero = qa.state.roster.find(hero => hero.id === 'caramon-gladiator');
+      const hero = qa.state.roster.find(hero => hero.id === 'garrick');
       hero.level = 6;
       hero.skillPoints = 8;
       qa.state.gold = 700;

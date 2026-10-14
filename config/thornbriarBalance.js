@@ -1,10 +1,11 @@
-// These totals target an ungeared level-5 Caramon, Flint, Tika, Tanis and Goldmoon party
-// using rank-1 starter skills. Ten enemies share the farming wave, so individual damage
-// stays modest while their combined health gives abilities time to matter.
+// These totals target varied level-5 parties wearing the cheapest compatible Common
+// weapons and armor, using their three rank-1 starters without tactics or potions.
+// Shorter fights prevent mage-heavy parties from exhausting their resources; modest
+// damage keeps repeated ten-enemy farm waves safe without removing their authored skills.
 export const THORNBRIAR_NON_BOSS_STATS = {
-  ruffian: { maxHp: 2400, armor: 96, attackPower: 6, spellDamage: 6 },
-  lasher: { maxHp: 4000, armor: 144, attackPower: 6, spellDamage: 6 },
-  hedgeMage: { maxHp: 3200, armor: 144, attackPower: 6, spellDamage: 6 }
+  ruffian: { maxHp: 1680, armor: 96, attackPower: 3, spellDamage: 3 },
+  lasher: { maxHp: 2800, armor: 144, attackPower: 3, spellDamage: 3 },
+  hedgeMage: { maxHp: 2240, armor: 144, attackPower: 3, spellDamage: 3 }
 };
 
 // Apply this local balance only to Thornbriar's ordinary fights, including repeated farm

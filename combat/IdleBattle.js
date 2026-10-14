@@ -9,6 +9,7 @@ import { criticalHitPose } from './SpritePresentation.js';
 import GameState from '../game/GameState.js';
 import { deferUnitPresentation, deferredDisplay, UNIT_VIEWS } from './DeferredPresentation.js';
 import { notifyIdleDeath } from '../services/DeathNotifications.js';
+import { syncActiveCombat } from '../config/activeCombatBalance.js';
 
 const STEP_MS = 50;
 const PRESENTATION_METHODS = ['updateHud', 'updatePotionHud', 'refreshFarmControls',
@@ -21,6 +22,9 @@ const PRESENTATION_METHODS = ['updateHud', 'updatePotionHud', 'refreshFarmContro
 export function beginIdleBattle(scene) {
   if (scene.idleSimulation) return;
   scene.idleSimulating = true;
+
+  // Remove visible-play pressure before replay advances timers or resolves attacks.
+  syncActiveCombat(scene, false);
 
   // A Map pairs a key with a value. Unlike an array index, the key can be an ID or an
   // object; get/set read and write that same key.
@@ -211,6 +215,9 @@ export function resumeIdleBattle(scene) {
 
   scene.idleSimulating = false;
   scene.idleSimulation = null;
+
+  // Returned ordinary monsters resume their stronger stats at the same Health fraction.
+  syncActiveCombat(scene);
   scene.sys.settings.visible = simulation.visible;
   scene.add = simulation.add;
   scene.terrain.isBlocked = simulation.isBlocked;

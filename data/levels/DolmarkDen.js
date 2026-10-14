@@ -9,7 +9,7 @@ export default {
   mapLabel: 'Dolmark Den',
   subtitle: 'An old den carved into the mountains beyond Duskfall.',
   difficulty: 'Tough', recommendedLevel: 10, depth: 3, type: 'delve',
-  bossPreparation: { level: 15, gearRarity: 'common', abilityCount: 2, abilityRank: 3 },
+  bossPreparation: { level: 15, gearRarity: 'uncommon', abilityCount: 4, spendSkillPoints: true },
   materialEnvironments: ['Caves'],
   prerequisites: ['thornbriar-hollow'],
   requiresLocation: 'duskfall',

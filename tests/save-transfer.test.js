@@ -7,7 +7,7 @@ import { PROFILE_STORAGE_KEY, LEADER_STORAGE_KEY } from '../game/BuildSave.js';
 const passphrase = 'private QA backup passphrase';
 const snapshot = {
   app: 'com.waywardkobold.app', version: 1, createdAt: 1791834116000,
-  profile: JSON.stringify({ gold: 73, roster: [{ id: 'caramon', level: 2, xp: 12 }],
+  profile: JSON.stringify({ gold: 73, roster: [{ id: 'garrick', level: 2, xp: 12 }],
     inventory: { equipment: [], materials: {}, knownRecipes: [], nextEquipmentId: 1 },
     world: { currentLocation: 'pineshire', discoveredLocations: ['pineshire'], clearedDelves: [] } }),
   leader: JSON.stringify({ level: 2, xp: 3, tacticsPoints: 1, spentTacticsPoints: 0,
@@ -15,7 +15,7 @@ const snapshot = {
 };
 const encrypted = await encryptSnapshot(snapshot, passphrase);
 assert.deepEqual(await decryptSnapshot(encrypted, passphrase), snapshot);
-assert.equal(encrypted.includes('caramon'), false);
+assert.equal(encrypted.includes('garrick'), false);
 assert.notEqual(await encryptSnapshot(snapshot, passphrase), encrypted);
 await assert.rejects(decryptSnapshot(encrypted, 'a different passphrase'), /Incorrect passphrase/);
 await assert.rejects(decryptSnapshot(JSON.stringify(snapshot), passphrase), /Unsupported/);
@@ -34,9 +34,9 @@ assert.throws(() => validateSnapshot({ ...snapshot, profile: JSON.stringify(badB
 const battleProfile = JSON.parse(snapshot.profile);
 battleProfile.activeBattle = {
   version: 1, delveId: 'slime-cave', time: 400, savedAtMs: snapshot.createdAt,
-  partyIds: ['caramon'], party: [{ id: 'caramon', hp: 10, maxHp: 10, arenaX: 20, arenaY: 30, status: {} }],
+  partyIds: ['garrick'], party: [{ id: 'garrick', hp: 10, maxHp: 10, arenaX: 20, arenaY: 30, status: {} }],
   enemies: [], traps: [], events: [], scene: { currentWaveIndex: 0,
-    enemyThreat: { battleType: 'map', entries: [] } }, partyTemplates: [{ id: 'caramon' }],
+    enemyThreat: { battleType: 'map', entries: [] } }, partyTemplates: [{ id: 'garrick' }],
   movement: { slots: [], rangeStates: [] }, preferences: { battleType: 'map', entries: [] },
   log: { entries: [], summary: {} }, run: { entry: 'progress' },
   lastCooldown: { battleType: 'number', value: '-Infinity' }

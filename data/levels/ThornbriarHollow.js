@@ -9,7 +9,7 @@ export default {
   mapLabel: 'Thornbriar Hollow',
   subtitle: 'A thorn-choked hollow where the road grows strangely quiet.',
   difficulty: 'Difficult', recommendedLevel: 5, depth: 2, type: 'delve',
-  bossPreparation: { level: 10, gearRarity: 'common', abilityCount: 3, abilityRank: 2 },
+  bossPreparation: { level: 10, gearRarity: 'uncommon', abilityCount: 4, spendSkillPoints: true },
   materialEnvironments: ['Forests', 'Humanoid'],
   prerequisites: ['slime-cave'],
   map: { x: 0.503, y: 0.503, radius: 0.060 },

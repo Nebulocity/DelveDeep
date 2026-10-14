@@ -11,6 +11,18 @@ test('private transfer preserves progress and provides recovery on phone landsca
   await page.goto('/?visualQa=1');
   await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__?.game.scene.getScene('TitleScene').sys.isActive());
   await page.locator('#loading-screen').waitFor({ state: 'hidden' });
+  const footerBounds = await page.evaluate(() => {
+    const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('TitleScene');
+    return ['SAVE TRANSFER', 'FIND PARTY'].map(text => {
+      const label = scene.children.list.find(object => object.type === 'Text' && object.text === text);
+      const button = scene.children.list.find(object => object.input?.enabled && object.x === label.x && object.y === label.y);
+      const bounds = button.getBounds();
+      return { left: bounds.left, right: bounds.right };
+    });
+  });
+  expect(footerBounds[0].right).toBeLessThan(footerBounds[1].left);
+  await mkdir('output/qa/save-transfer', { recursive: true });
+  await page.screenshot({ path: path.resolve('output/qa/save-transfer/phone-footer.png') });
   const setGold = async gold => page.evaluate(async amount => {
     const { default: state } = await import('/game/GameState.js');
     const { flushProfileSave } = await import('/game/GameStorage.js');

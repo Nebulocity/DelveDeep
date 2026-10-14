@@ -107,8 +107,8 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
       const qa = window.__DELVE_DEEP_VISUAL_QA__;
 
       // The QA bridge uses the first five roster members. Put the reported lineup first
-      // in this isolated browser session so the screenshot includes Flint's actual art.
-      const ids = ['flint', 'fistandantilus', 'caramon-gladiator', 'tika', 'tasslehoff'];
+      // in this isolated browser session so the screenshot includes Durgrim's actual art.
+      const ids = ['durgrim', 'malrec', 'garrick', 'zahra', 'yasmin'];
       qa.state.roster = [...ids.map(id => qa.state.roster.find(unit => unit.id === id)),
         ...qa.state.roster.filter(unit => !ids.includes(unit.id))];
       qa.activate('BattleScene', { delve: 'slime-cave' });
@@ -147,24 +147,24 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
       }
       marker.destroy();
 
-      // Put Flint above the left-hand gap from the reported clipping. Keep his gameplay
+      // Put Durgrim above the left-hand gap from the reported clipping. Keep his gameplay
       // position on the same walkable floor and use an ordinary idle frame for review.
-      const flint = scene.partyUnits.find(unit => unit.id === 'flint');
+      const durgrim = scene.partyUnits.find(unit => unit.id === 'durgrim');
       const position = scene.battlefield.screenToArenaUnchecked(t.x + 450 * t.scale,
         t.y + 770 * t.scale);
-      flint.setArenaPosition(position.x, position.y);
-      flint.spriteVisual.action = null;
-      flint.spriteVisual.motion.state = 'idle';
-      flint.spriteVisual.motion.direction = 'south-east';
-      flint.spriteVisual.applyFrame(flint.spriteVisual.currentFrame());
-      flint.spriteVisual.applyPose();
+      durgrim.setArenaPosition(position.x, position.y);
+      durgrim.spriteVisual.action = null;
+      durgrim.spriteVisual.motion.state = 'idle';
+      durgrim.spriteVisual.motion.direction = 'south-east';
+      durgrim.spriteVisual.applyFrame(durgrim.spriteVisual.currentFrame());
+      durgrim.spriteVisual.applyPose();
 
       // Dismiss the paused opening-wave announcement so the review shows his whole body.
       scene.clearWaveAnnouncement();
       return result;
     });
 
-    await page.screenshot({ path: `output/qa/cave-clipping/flint-${viewport.width}.png` });
+    await page.screenshot({ path: `output/qa/cave-clipping/durgrim-${viewport.width}.png` });
     for (const sample of samples.floor) {
       expect(sample.markerVisible, `Open floor at artwork ${sample.point}`).toBe(true);
     }

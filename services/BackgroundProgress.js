@@ -39,20 +39,46 @@ export default class BackgroundProgress {
     this.catchUpTimer = null;
     this.catchUpTotalMs = 0;
     this.catchUpPercent = -1;
-    this.hidden = page.hidden;
+
+    // Track these signals separately so a browser focus event cannot override Android
+    // backgrounding or a hidden tab. Missing hasFocus in a test fixture means focused.
+    this.pageUnavailable = page.hidden;
+    this.windowFocused = page.hasFocus?.() ?? true;
+    this.nativeInactive = false;
+    this.hidden = this.pageUnavailable || !this.windowFocused;
 
     this.originalUpdate = game.scene.update;
     game.scene.update = (time, delta) => this.frame(time, delta);
-    this.visibilityChanged = () => this.setHidden(page.hidden);
-    this.pageHidden = () => this.setHidden(true);
-    this.pageShown = () => this.setHidden(page.hidden);
-    this.nativeStateChanged = (event) => this.setHidden(!event.isActive);
+    this.visibilityChanged = () => {
+      this.pageUnavailable = page.hidden;
+      this.windowFocused = page.hasFocus?.() ?? this.windowFocused;
+      this.syncAvailability();
+    };
+    this.pageHidden = () => {
+      this.pageUnavailable = true;
+      this.syncAvailability();
+    };
+    this.pageShown = this.visibilityChanged;
+    this.windowBlurred = () => {
+      this.windowFocused = false;
+      this.syncAvailability();
+    };
+    this.windowFocusedAgain = () => {
+      this.windowFocused = true;
+      this.syncAvailability();
+    };
+    this.nativeStateChanged = (event) => {
+      this.nativeInactive = !event.isActive;
+      this.syncAvailability();
+    };
     page.addEventListener('visibilitychange', this.visibilityChanged);
 
     page.addEventListener('freeze', this.pageHidden);
     page.addEventListener('resume', this.pageShown);
     host.addEventListener('pagehide', this.pageHidden);
     host.addEventListener('pageshow', this.pageShown);
+    host.addEventListener('blur', this.windowBlurred);
+    host.addEventListener('focus', this.windowFocusedAgain);
     host.addEventListener('delveAppState', this.nativeStateChanged);
     this.timer = host.setInterval(() => this.pump(), 250);
 
@@ -91,11 +117,23 @@ export default class BackgroundProgress {
     this.showCatchUp(!this.hidden && this.pendingMs >= BACKGROUND_STEP_MS);
   }
 
+
+  // The shared hidden flag means commands are unavailable, including an unfocused but
+  // still visible browser window. No timer measures how long the player goes without taps.
+  syncAvailability() {
+    const hidden = this.pageUnavailable || !this.windowFocused || this.nativeInactive;
+    if (hidden !== this.hidden) this.setHidden(hidden);
+  }
+
   // Account for elapsed time, notify shared services of visibility and begin appropriate
   // catch-up work.
   setHidden(hidden) {
     this.account();
     this.hidden = hidden;
+
+    // Swap live monster totals immediately, even when combat is paused. Catch-up itself
+    // keeps idle totals until all missed time has settled, before normal frames resume.
+    for (const scene of this.game.scene.getScenes?.(true) ?? []) scene.syncActiveCombatBalance?.();
     this.onBackground(hidden || this.pendingMs > BACKGROUND_STEP_MS);
     this.onSettle();
     this.pump();
@@ -317,6 +355,8 @@ export default class BackgroundProgress {
     this.page.removeEventListener('resume', this.pageShown);
     this.host.removeEventListener('pagehide', this.pageHidden);
     this.host.removeEventListener('pageshow', this.pageShown);
+    this.host.removeEventListener('blur', this.windowBlurred);
+    this.host.removeEventListener('focus', this.windowFocusedAgain);
 
     this.host.removeEventListener('delveAppState', this.nativeStateChanged);
     this.game.scene.update = this.originalUpdate;

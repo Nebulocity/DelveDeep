@@ -440,7 +440,7 @@ export function createScrollingWorldMap(scene) {
   });
   addRegionPanel(scene, (width + REGION_RAIL_WIDTH) / 2, height - MAP_FOOTER_HEIGHT / 2, width - REGION_RAIL_WIDTH, MAP_FOOTER_HEIGHT, 999);
 
-  addDetailsHint(scene, height - 65, 'Drag map to explore. Hold for details.', { x: 1430, fontSize: UI_FONT_SIZES.support28, fixed: true, width: 570 });
+  addDetailsHint(scene, height - 65, 'Drag map to explore. Hold for details.', { x: privateTransfersEnabled ? 1390 : 1430, fontSize: UI_FONT_SIZES.support28, fixed: true, width: privateTransfersEnabled ? 500 : 570 });
   const help = addRegionPanel(scene, 640, height - 65, 300, 100, 1000).setInteractive({ useHandCursor: true });
   scene.add.text(640, height - 65, 'HOW TO PLAY', { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('heading38'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#f1f8ec' })
     .setOrigin(0.5).setScrollFactor(0).setDepth(1001);
@@ -458,8 +458,10 @@ export function createScrollingWorldMap(scene) {
   });
   // Private builds add a transfer button; normal release builds omit this control.
   if (privateTransfersEnabled) {
-    const transfer = addRegionPanel(scene, 2200, height - 65, 300, 100, 1000).setInteractive({ useHandCursor: true });
-    scene.add.text(2200, height - 65, 'SAVE TRANSFER', { fontFamily: UI_FONT_FAMILIES.sans,
+    // Leave a separate slot before FIND PARTY, whose center follows the right edge.
+    const transferX = width - 530;
+    const transfer = addRegionPanel(scene, transferX, height - 65, 300, 100, 1000).setInteractive({ useHandCursor: true });
+    scene.add.text(transferX, height - 65, 'SAVE TRANSFER', { fontFamily: UI_FONT_FAMILIES.sans,
       fontSize: fontPx('body32'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff1d2' })
       .setOrigin(0.5).setScrollFactor(0).setDepth(1001);
     transfer.on('pointerdown', () => {

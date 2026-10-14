@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 
 // Check actual sprite opacity and projected movement at all three hop peaks.
-test('Tasslehoff stealth and three physical critical bounces', async ({ page }) => {
+test('Yasmin stealth and three physical critical bounces', async ({ page }) => {
   await page.goto('/?visualQa=1');
   await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__?.game.scene.getScene('TitleScene').sys.isActive());
   await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.activate('BattleScene'));
@@ -16,7 +16,7 @@ test('Tasslehoff stealth and three physical critical bounces', async ({ page }) 
     s.combatPaused = true;
     const { default: BattleUnit } = await import('/combat/BattleUnit.js');
     const { getEquippedAdventurer } = await import('/game/Equipment.js');
-    const hero = qa.state.roster.find(hero => hero.name === 'Tasslehoff');
+    const hero = qa.state.roster.find(hero => hero.name === 'Yasmin');
     const point = s.movement.getSafeArenaPoint(600, 300);
     const unit = new BattleUnit(s, { ...getEquippedAdventurer(hero), battlefield: s.battlefield,
       arenaX: point.x, arenaY: point.y });

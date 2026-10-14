@@ -116,8 +116,14 @@ function createSprite(id, urls) {
   clips.dead = Object.fromEntries(Object.entries(clips.death).map(([direction, clip]) => [
     direction, { frameMs: 1000, frames: [clip.frames.at(-1)] }
   ]));
-  const scale = id === 'rongarTheCrusher' ? 1.17 : id === 'silvanarkTheForestLord' ? 0.78
+  const baseScale = id === 'rongarTheCrusher' ? 1.17 : id === 'silvanarkTheForestLord' ? 0.78
     : id === 'denProtector' ? 1.2 : id === 'denWarden' ? 1.05 : 0.66;
+
+  // Dolmark's ordinary monsters use 1.5 times their accepted artwork sizes, and
+  // its boss uses 2 times. Thornbriar's roster keeps its original display sizes.
+  const multiplier = id === 'silvanarkTheForestLord' ? 2
+    : ['denWarden', 'denProtector'].includes(id) ? 1.5 : 1;
+  const scale = baseScale * multiplier;
 
   return { textures, clips, scale, footY: 0 };
 }

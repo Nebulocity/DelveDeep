@@ -9,7 +9,7 @@ export default {
   mapLabel: 'The Sunken Watch',
   subtitle: 'Drowned guardians haunt a ruined watchtower beside the river.',
   difficulty: 'Very Tough', recommendedLevel: 20,
-  bossPreparation: { level: 25, gearRarity: 'common', abilityCount: 2, abilityRank: 4 },
+  bossPreparation: { level: 25, gearRarity: 'uncommon', abilityCount: 4, spendSkillPoints: true },
   prerequisites: ['march-west-delves'],
   visuals: {
     environment: {

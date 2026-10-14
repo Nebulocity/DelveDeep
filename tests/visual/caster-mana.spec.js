@@ -1,11 +1,11 @@
-// Check real spell payments against the text and blue bar on Mishakal's character card.
+// Check real spell payments against the text and blue bar on Selenne's character card.
 // Freeze cast timers while rendered frames continue, so automatic HUD refresh is tested.
 
 import { test, expect } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 
 for (const width of [915, 1920]) {
-  test(`Mishakal's card follows Mend, class spell and regeneration Mana at ${width}`, async ({ page }) => {
+  test(`Selenne's card follows Mend, class spell and regeneration Mana at ${width}`, async ({ page }) => {
     await page.setViewportSize({ width, height: width === 915 ? 412 : 1080 });
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
@@ -27,7 +27,7 @@ for (const width of [915, 1920]) {
       [...scene.partyUnits, ...scene.enemies].forEach(unit => {
         unit.finishAction(); unit.status = {}; unit.criticalKnockback = null;
       });
-      const healer = scene.partyUnits.find(unit => unit.id === 'mishakal');
+      const healer = scene.partyUnits.find(unit => unit.id === 'selenne');
       const ally = scene.partyUnits[0];
       healer.setArenaPosition(ally.arenaX + 100, ally.arenaY);
       healer.manaRegen = 0;
@@ -48,18 +48,18 @@ for (const width of [915, 1920]) {
     const cardMatches = async mana => {
       await page.waitForFunction(expected => {
         const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
-        const card = scene.partyHud.find(card => card.unit.id === 'mishakal');
+        const card = scene.partyHud.find(card => card.unit.id === 'selenne');
         return card.manaText.text === `${Math.floor(expected)} / ${card.unit.maxMana}`
           && Math.abs(card.manaFill.displayWidth - card.hudBarWidth * expected / card.unit.maxMana) < .01;
       }, mana);
     };
     await cardMatches(payment.after);
     await mkdir('output/qa/caster-mana', { recursive: true });
-    await page.screenshot({ path: `output/qa/caster-mana/mishakal-mend-${width}.png` });
+    await page.screenshot({ path: `output/qa/caster-mana/selenne-mend-${width}.png` });
 
     const spellPayment = await page.evaluate(() => {
       const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
-      const healer = scene.partyUnits.find(unit => unit.id === 'mishakal');
+      const healer = scene.partyUnits.find(unit => unit.id === 'selenne');
       const ally = scene.partyUnits[0];
       const before = healer.mana;
       scene.resolveBasicHeal(healer, healer.pendingAction, ally);
@@ -76,7 +76,7 @@ for (const width of [915, 1920]) {
 
     const regenerated = await page.evaluate(() => {
       const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
-      const healer = scene.partyUnits.find(unit => unit.id === 'mishakal');
+      const healer = scene.partyUnits.find(unit => unit.id === 'selenne');
       healer.manaRegen = 8;
       healer.regenMana(1.03125);
       healer.manaRegen = 0;
@@ -85,11 +85,11 @@ for (const width of [915, 1920]) {
     await cardMatches(regenerated);
     await page.evaluate(() => {
       const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
-      scene.partyUnits.find(unit => unit.id === 'mishakal').mana = 0;
+      scene.partyUnits.find(unit => unit.id === 'selenne').mana = 0;
     });
     await cardMatches(0);
     const emptyBarVisible = await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game
-      .scene.getScene('BattleScene').partyHud.find(card => card.unit.id === 'mishakal').manaFill.visible);
+      .scene.getScene('BattleScene').partyHud.find(card => card.unit.id === 'selenne').manaFill.visible);
     expect(emptyBarVisible).toBe(false);
     expect(errors).toEqual([]);
   });

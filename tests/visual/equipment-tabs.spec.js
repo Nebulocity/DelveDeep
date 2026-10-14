@@ -19,9 +19,9 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
     await page.evaluate(fixtures => {
       const qa = window.__DELVE_DEEP_VISUAL_QA__;
       qa.state.inventory.equipment.push(...fixtures);
-      qa.state.roster.find(hero => hero.id === 'caramon-gladiator').level = 10;
+      qa.state.roster.find(hero => hero.id === 'garrick').level = 10;
       const scene = qa.game.scene.getScene('RosterScene');
-      scene.heroId = 'caramon-gladiator';
+      scene.heroId = 'garrick';
       scene.tab = 'gear';
       qa.activate('RosterScene');
     }, fixtures);

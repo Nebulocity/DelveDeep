@@ -33,7 +33,7 @@ assert.equal(purchaseLeaderAbility(leader, 'focusFire'), false);
 // Two adventurers reaching five in the same banked wave award only one shared claim.
 const cave = getDelveById('slime-cave');
 GameState.currentDelve = cave;
-GameState.roster = [hero('Raistlin', 4), hero('Flint', 4)];
+GameState.roster = [hero('Valtheris', 4), hero('Durgrim', 4)];
 GameState.roster.forEach(member => { member.xp = xpRequired(4) - 1; });
 GameState.activeParty = structuredClone(GameState.roster);
 GameState.world.clearedDelves = [];
@@ -45,13 +45,13 @@ assert.equal(leader.level, 2);
 assert.equal(leader.renownPoints, 1);
 assert.deepEqual(leader.claimedCharacterMilestones, [5]);
 leader = GameState.leader = loadLeaderProgression();
-grantAdventurerLevels(hero('Laurana', 4), 1);
+grantAdventurerLevels(hero('Elyra', 4), 1);
 assert.equal(leader.renownPoints, 1);
 assert.deepEqual(leader.battleLoadout, ['focusFire']);
 
 // Boss XP crossing another milestone and first boss victory are separate achievements.
 GameState.currentDelve = getDelveById('thornbriar-hollow');
-GameState.roster = [hero('Raistlin', 9)];
+GameState.roster = [hero('Valtheris', 9)];
 GameState.roster[0].xp = xpRequired(9) - 10;
 GameState.activeParty = structuredClone(GameState.roster);
 GameState.records = {};

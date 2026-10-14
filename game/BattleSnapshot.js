@@ -141,6 +141,20 @@ export function captureBattle(scene, state, savedAtMs = Date.now()) {
   };
 }
 
+// Older units have no active profile. New baseline records must contain finite stats
+// before a later mode switch can use them to rebuild Health and power.
+function validActiveMonsterBalance(unit) {
+  const balance = unit.activeCombatBalance;
+
+  // == null accepts both a missing field and an explicit null from an older save.
+  if (balance == null) return true;
+  return typeof balance.active === 'boolean'
+    && ['maxHp', 'healthScale', 'powerScale'].every(key => Number.isFinite(balance[key]) && balance[key] > 0)
+    && Number.isFinite(balance.maxHp * balance.healthScale) && Math.round(balance.maxHp * balance.healthScale) > 0
+    && ['attackPower', 'spellDamage', 'spellHealing'].every(key => Number.isFinite(balance[key]) && balance[key] >= 0
+      && Number.isFinite(balance[key] * balance.powerScale));
+}
+
 // Reject unsupported or inconsistent saved battles before attempting to reconnect live
 // units and timers.
 export function validBattleSnapshot(snapshot, roster) {
@@ -200,7 +214,7 @@ export function validBattleSnapshot(snapshot, roster) {
     const units = [...snapshot.party, ...snapshot.enemies, ...(snapshot.decoys ?? [])].map(unpackBattleValue);
     return new Set(units.map(unit => unit.id)).size === units.length
       && snapshot.party.every(unit => snapshot.partyIds.includes(unit.id))
-      && units.every(unit => typeof unit.id === 'string' && Number.isFinite(unit.hp)
+      && units.every(unit => validActiveMonsterBalance(unit) && typeof unit.id === 'string' && Number.isFinite(unit.hp)
         && Number.isFinite(unit.maxHp) && unit.maxHp > 0 && unit.hp >= 0 && unit.hp <= unit.maxHp
         && Number.isFinite(unit.arenaX) && Number.isFinite(unit.arenaY) && unit.status && typeof unit.status === 'object')
       && snapshot.events.every(event => Number.isFinite(event.remainingMs) && event.remainingMs >= 0 && EVENT_KINDS.has(event.data?.kind));

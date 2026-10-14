@@ -47,14 +47,14 @@ loadProfile(adventurers);
 
 // find returns the first matching entry, or undefined when none matches. Check for that
 // missing result before using its fields.
-const mage = GameState.roster.find(hero => hero.id === 'raistlin');
+const mage = GameState.roster.find(hero => hero.id === 'valtheris');
 const trainedKey = 'ability_v2_crimson_mage_magic_missile';
 mage.xp = 17; mage.happiness = 65; mage.delvesCompleted = 3; mage.abilityRanks[trainedKey] = 2;
 grantAdventurerLevels(mage, 19);
 assert.equal(mage.maxHp, 359); assert.equal(mage.spellDamage, 804); assert.equal(mage.xp, 17);
 const before = { level: mage.level, strength: mage.strength, intellect: mage.intellect, maxHp: mage.maxHp, mana: mage.maxMana, spellDamage: mage.spellDamage, spellHealing: mage.spellHealing };
 saveProfile(); loadProfile(adventurers);
-const restored = GameState.roster.find(hero => hero.id === 'raistlin');
+const restored = GameState.roster.find(hero => hero.id === 'valtheris');
 
 assert.deepEqual({
   level: restored.level,

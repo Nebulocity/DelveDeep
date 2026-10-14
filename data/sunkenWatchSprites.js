@@ -63,7 +63,11 @@ const rows = {
 
 // These native 128-pixel sprites are smaller than the older 256-pixel source artwork.
 // Display scales keep ordinary monsters readable and make the rocky boss stand taller.
-const scales = { sunkenWatcher: 1.35, deepTongue: 1.55, drownedKnell: 1.65, earthsinker: 2.15 };
+
+// Multiply accepted ordinary sizes by 1.5 and the Earthsinker's size by 2.
+// Feet stay anchored to the same floor position as the artwork grows upward.
+const scales = { sunkenWatcher: 1.35 * 1.5, deepTongue: 1.55 * 1.5,
+  drownedKnell: 1.65 * 1.5, earthsinker: 2.15 * 2 };
 
 // Turn standalone sheet metadata into the clips understood by UnitSprite.
 function createSprite(id, { layout, urls }) {

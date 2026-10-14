@@ -4,6 +4,7 @@
 
 import assert from 'node:assert/strict';
 import BackgroundProgress from '../services/BackgroundProgress.js';
+import { prepareActiveMonster, syncActiveCombat } from '../config/activeCombatBalance.js';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
@@ -228,3 +229,72 @@ assert.equal(attacks, pausedAttacks);
 realProgress.destroy();
 events.emit('shutdown');
 console.log('Real Phaser countdowns, landing tweens, chained callbacks and paused actions passed.');
+
+// Drive actual lifecycle callbacks and the same live stat switch used by BattleScene.
+// Keep the wall clock still here to isolate availability from elapsed replay time.
+const availabilityListeners = new Map();
+const availabilitySurface = {
+  ...surface, hidden: false, focused: true,
+  hasFocus() { return this.focused; },
+  addEventListener(name, callback) { availabilityListeners.set(name, callback); },
+  removeEventListener(name) { availabilityListeners.delete(name); }
+};
+const availabilityScene = { enemies: [], syncActiveCombatBalance() { syncActiveCombat(this); } };
+const availabilityGame = { loop: { time: 0 }, events: { once() {} }, scene: {
+  scenes: [], getScenes: () => [availabilityScene], update() {}
+} };
+availabilityScene.game = availabilityGame;
+const availabilityProgress = new BackgroundProgress(availabilityGame, {
+  now: () => wallTime, budgetNow: () => 0,
+  document: availabilitySurface, window: availabilitySurface
+});
+availabilityGame.backgroundProgress = availabilityProgress;
+const monster = { maxHp: 1000, hp: 400, attackPower: 20, spellDamage: 10, spellHealing: 0 };
+prepareActiveMonster(monster, availabilityScene, { id: 'slime-cave' });
+availabilityScene.enemies = [monster];
+assert.equal(monster.maxHp, 1150);
+assert.equal(monster.hp, 460);
+
+// No commands and ordinary frames keep the stronger profile. Blur changes it at once.
+availabilityGame.scene.update(17, 17);
+assert.equal(monster.maxHp, 1150);
+availabilitySurface.focused = false;
+availabilityListeners.get('blur')();
+assert.equal(availabilityProgress.hidden, true);
+assert.equal(monster.maxHp, 1000);
+assert.equal(monster.hp, 400);
+availabilitySurface.focused = true;
+availabilityListeners.get('focus')();
+assert.equal(availabilityProgress.hidden, false);
+assert.equal(monster.hp, 460);
+
+// Focus cannot resume a hidden tab or Android app. Each must return to the foreground.
+availabilitySurface.hidden = true;
+availabilityListeners.get('visibilitychange')();
+availabilityListeners.get('focus')();
+assert.equal(monster.maxHp, 1000);
+availabilitySurface.hidden = false;
+availabilityListeners.get('visibilitychange')();
+assert.equal(monster.maxHp, 1150);
+availabilityListeners.get('delveAppState')({ isActive: false });
+availabilityListeners.get('focus')();
+availabilityListeners.get('visibilitychange')();
+assert.equal(monster.maxHp, 1000);
+availabilityListeners.get('delveAppState')({ isActive: true });
+assert.equal(monster.maxHp, 1150);
+availabilityListeners.get('pagehide')();
+assert.equal(monster.maxHp, 1000);
+availabilityListeners.get('pageshow')();
+assert.equal(monster.maxHp, 1150);
+availabilityProgress.destroy();
+assert.equal(availabilityListeners.size, 0);
+
+// A page initially loaded in an unfocused browser starts idle before its first frame.
+availabilitySurface.focused = false;
+const unfocusedProgress = new BackgroundProgress(availabilityGame, {
+  now: () => wallTime, budgetNow: () => 0,
+  document: availabilitySurface, window: availabilitySurface
+});
+assert.equal(unfocusedProgress.hidden, true);
+unfocusedProgress.destroy();
+console.log('Focus, visibility, Android lifecycle, immediate monster stats and cleanup passed.');

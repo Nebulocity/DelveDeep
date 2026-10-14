@@ -87,20 +87,21 @@ battle.time.now = 30000;
 battle.tryEnemyAbility(boss, target, 'tertiary', 30000);
 assert.equal(events[0].delay, 6000);
 assert.equal(battle.activeTelegraphs[0].arenaX, 500);
-assert.equal(battle.activeTelegraphs[0].radius, 300);
+assert.equal(battle.activeTelegraphs[0].radius, 500);
 assert.equal(battle.tryEvadeTelegraph(target, 0.1), false);
 boss.arenaX = 600;
-target.arenaX = 800;
-escaped.arenaX = 800.01;
+target.arenaX = 1000;
+escaped.arenaX = 1000.01;
 battle.time.now = 36000;
 events.shift().callback();
-assert.deepEqual(hits.at(-1), { id: 'target', amount: 240, type: 'spell' });
+assert.deepEqual(hits.at(-1), { id: 'target', amount: 418, type: 'spell' });
 assert.equal(hits.length, beforeInterrupt + 1, 'Only the living ally on the circle edge is hit');
-assert.equal(boss.abilityReady('tertiary', 59999), false);
-assert.equal(boss.abilityReady('tertiary', 60000), true);
+assert.equal(boss.abilityReady('tertiary', 47999), false);
+assert.equal(boss.abilityReady('tertiary', 48000), true);
 
 // Canceling a warning destroys both drawings immediately; its queued callback is harmless.
 battle.time.now = 60000;
+target.arenaX = 750;
 battle.tryEnemyAbility(boss, target, 'tertiary', 60000);
 const drawingsBefore = destroyed;
 battle.commandMode = 'INTERRUPT';
@@ -115,5 +116,5 @@ assert.equal(boss.mana, 0);
 // Only the final Sovereign gets these mechanics; the guardian keeps its current kit.
 assert.equal(enemies.abyssalMaw, undefined);
 assert.equal(enemies.voidKeeperGuardian.abilities.tertiary, undefined);
-assert.equal(abilityPower(boss, boss.abilities.tertiary), 240);
+assert.equal(abilityPower(boss, boss.abilities.tertiary), 418);
 console.log('Sovereign movement, targeted interrupt, warning cleanup, cooldowns and damage passed.');

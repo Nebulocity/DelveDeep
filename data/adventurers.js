@@ -1,13 +1,15 @@
 // These are starting roster definitions, not live combat units. Stable IDs link saves,
 // portraits and starter gear. The game rebuilds progression and equipment bonuses from
 // these definitions instead of permanently changing the catalog.
+// Each ID matches its character's asset folder. GameStorage migrates former IDs and
+// names throughout old saves before restoring progression and ongoing battles.
 
 import { createAdventurer } from './classes.js';
 
 const adventurers = [
-  createAdventurer('dalamar', 'Dalamar', 'Mage of the Umbral Veil'),
-  createAdventurer('palin', 'Palin', 'Mage of the Luminous Archive'),
-  createAdventurer('caramon-gladiator', 'Caramon', 'Gladiator', {
+  createAdventurer('zareth', 'Zareth', 'Mage of the Umbral Veil'),
+  createAdventurer('nadira', 'Nadira', 'Mage of the Luminous Archive'),
+  createAdventurer('garrick', 'Garrick', 'Gladiator', {
     maxHp: 168,
     attackPower: 15,
     moveSpeed: 158,
@@ -15,7 +17,7 @@ const adventurers = [
     happiness: 74
   }),
 
-  createAdventurer('sturm', 'Sturm', 'Oathwarden', {
+  createAdventurer('aldren', 'Aldren', 'Oathwarden', {
     maxHp: 190,
     attackPower: 8,
     moveSpeed: 132,
@@ -24,7 +26,7 @@ const adventurers = [
     happiness: 70
   }),
 
-  createAdventurer('laurana', 'Laurana', 'Dawnwarden', {
+  createAdventurer('elyra', 'Elyra', 'Dawnwarden', {
     color: 0xfacc15,
     maxHp: 176,
     attackPower: 10,
@@ -33,7 +35,7 @@ const adventurers = [
     happiness: 78
   }),
 
-  createAdventurer('riverwind', 'Riverwind', 'Barbarian', {
+  createAdventurer('chaska', 'Chaska', 'Barbarian', {
     maxHp: 138,
     attackPower: 17,
     moveSpeed: 178,
@@ -41,7 +43,7 @@ const adventurers = [
     happiness: 75
   }),
 
-  createAdventurer('flint', 'Flint', 'Barbarian', {
+  createAdventurer('durgrim', 'Durgrim', 'Barbarian', {
     color: 0x9a3412,
     maxHp: 149,
     attackPower: 15,
@@ -50,7 +52,7 @@ const adventurers = [
     happiness: 72
   }),
 
-  createAdventurer('tasslehoff', 'Tasslehoff', 'Scoundrel', {
+  createAdventurer('yasmin', 'Yasmin', 'Scoundrel', {
     maxHp: 89,
     attackPower: 14,
     moveSpeed: 215,
@@ -58,7 +60,7 @@ const adventurers = [
     happiness: 84
   }),
 
-  createAdventurer('tika', 'Tika', 'Barmaid', {
+  createAdventurer('zahra', 'Zahra', 'Barmaid', {
     color: 0xc026d3,
     maxHp: 97,
     attackPower: 12,
@@ -67,7 +69,7 @@ const adventurers = [
     happiness: 76
   }),
 
-  createAdventurer('tanis', 'Tanis', 'Ranger', {
+  createAdventurer('orwen', 'Orwen', 'Ranger', {
     maxHp: 108,
     attackPower: 16,
     moveSpeed: 171,
@@ -75,7 +77,7 @@ const adventurers = [
     happiness: 77
   }),
 
-  createAdventurer('raistlin', 'Raistlin', 'Mage of the Crimson Spire', {
+  createAdventurer('valtheris', 'Valtheris', 'Mage of the Crimson Spire', {
     maxHp: 72,
     attackPower: 19,
     moveSpeed: 124,
@@ -83,7 +85,7 @@ const adventurers = [
     happiness: 66
   }),
 
-  createAdventurer('goldmoon', 'Goldmoon', 'Cleric of the Verdant Covenant', {
+  createAdventurer('sylva', 'Sylva', 'Cleric of the Verdant Covenant', {
     maxHp: 116,
     healPower: 18,
     moveSpeed: 150,
@@ -91,7 +93,7 @@ const adventurers = [
     happiness: 82
   }),
 
-  createAdventurer('mishakal', 'Mishakal', 'Cleric of the Everbright', {
+  createAdventurer('selenne', 'Selenne', 'Cleric of the Everbright', {
     maxHp: 97,
     healPower: 24,
     moveSpeed: 132,
@@ -99,7 +101,7 @@ const adventurers = [
     happiness: 79
   }),
 
-  createAdventurer('fistandantilus', 'Fistandantilus', 'Cleric of the Sanguine Song', {
+  createAdventurer('malrec', 'Malrec', 'Cleric of the Sanguine Song', {
     maxHp: 126,
     attackPower: 10,
     healPower: 26,

@@ -12,8 +12,8 @@ import { recoverInterruptedRestore } from '../game/SaveTransfer.js';
 
 import { unpackBattleValue } from '../game/BattleSnapshot.js';
 import enemies from '../data/enemies.js';
-import partyIdleUrl from '../assets/characters/caramon-gladiator/sheets/idle.png?url';
-import partyWalkUrl from '../assets/characters/caramon-gladiator/sheets/walk.png?url';
+import partyIdleUrl from '../assets/characters/garrick/sheets/idle.png?url';
+import partyWalkUrl from '../assets/characters/garrick/sheets/walk.png?url';
 import townUrl from '../assets/screens/town.png?url';
 import adventurersHallUrl from '../assets/screens/adventurerhall.png?url';
 import alchemistUrl from '../assets/screens/alchemist.png?url';

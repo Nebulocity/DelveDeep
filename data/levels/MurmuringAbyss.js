@@ -9,7 +9,11 @@ export default {
   mapLabel: 'The Murmuring Abyss',
   subtitle: 'A tear in the world. Something on the other side is whispering.',
   difficulty: 'Incredibly Tough', recommendedLevel: 25, depth: 4, type: 'void',
-  bossPreparation: { level: 30, gearRarity: 'common', abilityCount: 3, abilityRank: 4 },
+  bossPreparation: { level: 30, gearRarity: 'best', abilityCount: 4, spendSkillPoints: true },
+
+  // These are preparation recommendations, so level-25 parties can still farm the early
+  // camp to earn level 26. Existing checkpoints and lower-level saved parties remain usable.
+  entryPreparation: { level: 25, farmLevel: 26, gearRarity: 'best', abilityCount: 4, spendSkillPoints: true },
 
   // Keep the portal identity and artwork while banking waves and offering two camps.
   // Each number means camp opens after clearing that player-visible wave.

@@ -4,10 +4,10 @@
 export const DELVE_BALANCE = {
   'slime-cave': { normalHealth: 1, normalPower: 1, bossHealth: 1, bossPower: 0.45 },
   'thornbriar-hollow': { normalHealth: 1, normalPower: 1, bossHealth: 0.8, bossPower: 0.23 },
-  'dolmark-den': { normalHealth: 1, normalPower: 1, bossHealth: 0.85, bossPower: 0.35 },
-  'old-quarry': { normalHealth: 0.6, normalPower: 0.1, bossHealth: 0.8, bossPower: 0.24 },
-  'sunken-watch': { normalHealth: 1, normalPower: 0.25, bossHealth: 0.85, bossPower: 0.34 },
-  'murmuring-abyss': { normalHealth: 1, normalPower: 0.1, bossHealth: 1.2, bossPower: 1.8 }
+  'dolmark-den': { normalHealth: 0.7, normalPower: 0.25, bossHealth: 0.85, bossPower: 0.55 },
+  'old-quarry': { normalHealth: 0.6, normalPower: 0.1, bossHealth: 0.8, bossPower: 0.14 },
+  'sunken-watch': { normalHealth: 1, normalPower: 0.2, bossHealth: 0.85, bossPower: 0.28 },
+  'murmuring-abyss': { normalHealth: 1, normalPower: 0.1, bossHealth: 1.2, bossPower: 2.4 }
 };
 
 // Apply the whole wave's scale to its boss and escorts. Multiplying the combat stats

@@ -25,7 +25,7 @@ export async function reviewHall(page, output, width) {
 
     // find returns the first matching entry, or undefined when none matches. Check for
     // that missing result before using its fields.
-    const hero = state.roster.find((entry) => entry.id === 'caramon-gladiator');
+    const hero = state.roster.find((entry) => entry.id === 'garrick');
     hero.level = 6;
     hero.skillPoints = 8;
     hero.abilityRanks = { ability_v2_gladiator_defiant_roar: 1, ability_v2_gladiator_offensive_drill: 1, ability_v2_generic_physical_interpose: 1 };
@@ -38,7 +38,7 @@ export async function reviewHall(page, output, width) {
 
       { id: 'gear-905', itemId: 'mending-potion', name: 'Health Potion', slot: 'potion', rarity: 'common', charges: 3, stats: {} }];
 
-    state.roster.find((entry) => entry.id === 'laurana').equipment = { weapon: 'gear-903' };
+    state.roster.find((entry) => entry.id === 'elyra').equipment = { weapon: 'gear-903' };
     state.inventory.materials = { iron: 4, cloth: 0 };
     state.leader.renownPoints = 4;
     const scene = qa.game.scene.getScene('RosterScene');
@@ -110,7 +110,7 @@ export async function reviewHall(page, output, width) {
   ensure((await snapshot()).modal, 'Holding gear must show details');
   await capture('gear-details');
   await click('RosterScene', 'CLOSE', true);
-  await click('RosterScene', 'hall-hero-caramon-gladiator', false, true);
+  await click('RosterScene', 'hall-hero-garrick', false, true);
 
   ensure(await page.evaluate(() => {
     const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene');
@@ -129,12 +129,12 @@ export async function reviewHall(page, output, width) {
 
     // find returns the first matching entry, or undefined when none matches. Check for
     // that missing result before using its fields.
-    const row = scene.rosterList.container.list.find((object) => object.name === 'hall-hero-goldmoon');
+    const row = scene.rosterList.container.list.find((object) => object.name === 'hall-hero-sylva');
     scene.rosterList.set(row.y - 600);
   });
 
-  await click('RosterScene', 'hall-hero-goldmoon', false, true);
-  await capture('registry-goldmoon');
+  await click('RosterScene', 'hall-hero-sylva', false, true);
+  await capture('registry-sylva');
   ensure(await page.evaluate(() => {
     const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene');
 
@@ -204,7 +204,7 @@ export async function reviewHall(page, output, width) {
   await page.mouse.move(rect.x + 272 * rect.width / 2400, rect.y + 780 * rect.height / 1080);
   await page.mouse.wheel(0, 300);
   const dragState = await snapshot();
-  ensure(dragState.offset > 0 && dragState.id === 'caramon-gladiator' && !dragState.modal,
+  ensure(dragState.offset > 0 && dragState.id === 'garrick' && !dragState.modal,
     `Roster wheel must scroll without selecting or inspecting: ${JSON.stringify(dragState)}`);
 
   await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('RosterScene').rosterList.set(0));
@@ -307,7 +307,7 @@ export async function reviewHall(page, output, width) {
 
     // find returns the first matching entry, or undefined when none matches. Check for
     // that missing result before using its fields.
-    const state = window.__DELVE_DEEP_VISUAL_QA__.state, hero = state.roster.find((hero) => hero.id === 'caramon-gladiator');
+    const state = window.__DELVE_DEEP_VISUAL_QA__.state, hero = state.roster.find((hero) => hero.id === 'garrick');
     return { gold: state.gold, gear: hero.equipment, ranks: hero.abilityRanks, loadout: hero.abilityLoadout, tactics: state.leader.battleLoadout };
   });
 

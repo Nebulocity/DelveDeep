@@ -40,6 +40,7 @@ import { battleAbilities } from '../game/AdventurerAbilities.js';
 import enemies from '../data/enemies.js';
 import { thornbriarEnemyDefinition } from '../config/thornbriarBalance.js';
 import { delveEnemyDefinition } from '../config/delveBalance.js';
+import { prepareActiveMonster, syncActiveCombat } from '../config/activeCombatBalance.js';
 import { createEncounterWaves } from '../data/encounters.js';
 import { leaderAbilities } from '../game/LeaderProgression.js';
 import BattleUnit from '../combat/BattleUnit.js';
@@ -711,7 +712,7 @@ export default class BattleScene extends Phaser.Scene {
       SPREAD: 'Spread selected allies ten paces apart as the floor allows. Tap a character to spread the party around them.',
       STACK: 'Selected allies gather tightly around the chosen point.',
       ATTACK: 'Choose an enemy for selected allies to pursue and attack. Explicitly ordered healers attack until the target dies or the order changes.',
-      INTERRUPT: 'Choose a casting enemy. Selected allies with a ready interrupt try to stop its cast.'
+      INTERRUPT: 'Choose a casting enemy to stop its current cast. No adventurer selection is needed.'
     };
 
     right.forEach((label, index) => {
@@ -1981,6 +1982,10 @@ export default class BattleScene extends Phaser.Scene {
     enemy.definition = definition;
     enemy.rewarded = false;
 
+    // Only ordinary monsters gain visible-play pressure. Save their idle baseline so
+    // leaving and returning to the app can switch stats without resetting the fight.
+    prepareActiveMonster(enemy, this, GameState.currentDelve);
+
     // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
     this.combatMembershipRevision = (this.combatMembershipRevision ?? 0) + 1;
     if (!this.idleSimulating) this.bindEnemyInput(enemy);
@@ -2162,12 +2167,20 @@ export default class BattleScene extends Phaser.Scene {
       enemy.hpBack, enemy.hpFill, enemy.castBack, enemy.castFill]) label.setAlpha(1);
   }
 
+  // Keep the mode refresh callable separately from rendering and combat decisions.
+  syncActiveCombatBalance() {
+    syncActiveCombat(this);
+  }
+
   // This helper advances one frame of combat while the encounter is active. It updates
   // resources and actions, runs party and enemy decisions, separates crowded units, and
   // checks for a cleared wave or defeated party.
   update(time, delta) {
     time = this.time.now;
     if (this.restoringBattle || this.idleSummaryOpen) return;
+
+    // Refresh mode-dependent stats before this frame's AI and damage use them.
+    this.syncActiveCombatBalance();
 
     // Refresh before transition returns so the header timer keeps ticking between waves.
     this.updateEncounterStatus();

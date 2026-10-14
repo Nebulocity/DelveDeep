@@ -26,37 +26,37 @@ loadProfile(adventurers);
 
 // find returns the first matching entry, or undefined when none matches. Check for that
 // missing result before using its fields.
-const caramon = GameState.roster.find((hero) => hero.id === 'caramon-gladiator');
-assert.deepEqual(caramon.abilityLoadout, ['ability_v2_gladiator_defiant_roar', 'ability_v2_gladiator_offensive_drill', 'ability_v2_generic_physical_interpose']);
-assert.deepEqual(Object.keys(battleAbilities(caramon)), ['ability_v2_gladiator_defiant_roar', 'ability_v2_gladiator_offensive_drill', 'ability_v2_generic_physical_interpose']);
-assert.equal(caramon.skillPoints, 1);
-assert.equal(purchaseAdventurerAbility(caramon.id, 'ability_v2_gladiator_offensive_drill').ok, false);
-caramon.level = 5;
-caramon.skillPoints = 5;
+const garrick = GameState.roster.find((hero) => hero.id === 'garrick');
+assert.deepEqual(garrick.abilityLoadout, ['ability_v2_gladiator_defiant_roar', 'ability_v2_gladiator_offensive_drill', 'ability_v2_generic_physical_interpose']);
+assert.deepEqual(Object.keys(battleAbilities(garrick)), ['ability_v2_gladiator_defiant_roar', 'ability_v2_gladiator_offensive_drill', 'ability_v2_generic_physical_interpose']);
+assert.equal(garrick.skillPoints, 1);
+assert.equal(purchaseAdventurerAbility(garrick.id, 'ability_v2_gladiator_offensive_drill').ok, false);
+garrick.level = 5;
+garrick.skillPoints = 5;
 
 GameState.gold = 500;
-assert.equal(purchaseAdventurerAbility(caramon.id, 'ability_v2_gladiator_offensive_drill').ok, true);
-assert.equal(caramon.abilityLoadout.includes('ability_v2_gladiator_offensive_drill'), true);
-assert.equal(purchaseAdventurerAbility(caramon.id, 'ability_v2_gladiator_brutal_thrust').ok, true);
-assert.ok(Math.abs(battleAbilities(caramon).ability_v2_gladiator_offensive_drill.power - 102.6) < 1e-9);
-assert.equal(battleAbilities(caramon).ability_v2_gladiator_offensive_drill.cooldown, 9800);
-assert.equal(caramon.skillPoints, 2);
+assert.equal(purchaseAdventurerAbility(garrick.id, 'ability_v2_gladiator_offensive_drill').ok, true);
+assert.equal(garrick.abilityLoadout.includes('ability_v2_gladiator_offensive_drill'), true);
+assert.equal(purchaseAdventurerAbility(garrick.id, 'ability_v2_gladiator_brutal_thrust').ok, true);
+assert.ok(Math.abs(battleAbilities(garrick).ability_v2_gladiator_offensive_drill.power - 102.6) < 1e-9);
+assert.equal(battleAbilities(garrick).ability_v2_gladiator_offensive_drill.cooldown, 9800);
+assert.equal(garrick.skillPoints, 2);
 
-assert.equal(toggleAdventurerAbility(caramon.id, 'ability_v2_gladiator_brutal_thrust').ok, true);
-assert.equal(battleAbilities(caramon).ability_v2_gladiator_brutal_thrust, undefined);
-assert.equal(toggleAdventurerAbility(caramon.id, 'ability_v2_gladiator_brutal_thrust').ok, true);
+assert.equal(toggleAdventurerAbility(garrick.id, 'ability_v2_gladiator_brutal_thrust').ok, true);
+assert.equal(battleAbilities(garrick).ability_v2_gladiator_brutal_thrust, undefined);
+assert.equal(toggleAdventurerAbility(garrick.id, 'ability_v2_gladiator_brutal_thrust').ok, true);
 saveProfile();
 loadProfile(adventurers);
-const restored = GameState.roster.find((hero) => hero.id === caramon.id);
+const restored = GameState.roster.find((hero) => hero.id === garrick.id);
 assert.equal(restored.abilityRanks.ability_v2_gladiator_offensive_drill, 2);
 
 assert.equal(restored.abilityLoadout.includes('ability_v2_gladiator_brutal_thrust'), true);
 assert.equal(restored.skillPoints, 2);
 
 storage.clear();
-storage.set('delveDeep.profile.v2', JSON.stringify({ roster: [{ id: caramon.id, level: 3 }] }));
+storage.set('delveDeep.profile.v2', JSON.stringify({ roster: [{ id: garrick.id, level: 3 }] }));
 loadProfile(adventurers);
-const legacy = GameState.roster.find((hero) => hero.id === caramon.id);
+const legacy = GameState.roster.find((hero) => hero.id === garrick.id);
 assert.deepEqual(Object.keys(legacy.abilityRanks), ['ability_v2_gladiator_defiant_roar', 'ability_v2_gladiator_offensive_drill', 'ability_v2_generic_physical_interpose']);
 assert.deepEqual(Object.keys(battleAbilities(legacy)), ['ability_v2_gladiator_defiant_roar', 'ability_v2_gladiator_offensive_drill', 'ability_v2_generic_physical_interpose']);
 

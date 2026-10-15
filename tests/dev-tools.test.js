@@ -116,79 +116,18 @@ function tap(label, y) {
 }
 
 const panelTop = (1080 - 850) / 2;
-const row = (index) => panelTop + 180 + index * 84;
-const primaryButtons = [
-  getButton('OFF', row(0)), getButton('+1', row(1)), getButton('+1,000', row(3)),
-  getButton('ON', row(4)), getButton('RESET', row(6))
-];
-const secondaryButtons = [getButton('+5', row(1)), getButton('+5,000', row(3))];
-const closeButton = getButton('CLOSE', panelTop + 850 - 52);
-
-// every requires all entries to pass the check; an empty list gives true.
-assert.ok(primaryButtons.every((button) => button.x === primaryButtons[0].x));
-assert.ok(secondaryButtons.every((button) => button.x > primaryButtons[0].x + primaryButtons[0].value));
-
-// ... expands these entries into the new list or call. It does not deep-copy the objects
-// inside.
-assert.ok([...primaryButtons, ...secondaryButtons, closeButton].every((button) => button.value === 220));
-assert.equal(closeButton.x, scene.scale.width / 2);
-assert.equal(getButton('OFF', row(0)).regionMapState, 'normal');
-assert.equal(getButton('+1', row(1)).regionMapState, 'normal');
-assert.equal(getButton('+1,000', row(3)).regionMapState, 'normal');
-assert.equal(getButton('ON', row(4)).regionMapState, 'selected');
-tap('+1', row(1));
-
-tap('+5', row(1));
-assert.equal(GameState.leader.level, 7);
-assert.match(scene.lastToast, /^Renown Level 7/);
-const heroBefore = { ...GameState.roster[0] };
-tap('+1', row(2));
-tap('+5', row(2));
-assert.equal(GameState.roster[0].level, heroBefore.level + 6);
-
-assert.equal(GameState.roster[0].maxHp, heroBefore.maxHp + 66);
-assert.equal(GameState.roster[0].attackPower, heroBefore.attackPower + 12);
-assert.equal(GameState.roster[0].xp, heroBefore.xp);
-assert.equal(GameState.roster[0].skillPoints, heroBefore.skillPoints + 6);
-
-tap('+1,000', row(3));
-tap('+5,000', row(3));
-assert.equal(GameState.gold, 6000);
-assert.match(scene.currencyText.value, /Gold: 6000/);
-tap('ON', row(4));
+const row = index => panelTop + 180 + index * 120;
+assert.ok(scene.objects.some(object => object.value === 'SETTINGS'));
+assert.ok(!scene.objects.some(object => ['DEV TOOLS','Dev mode','Gold','Renown Level','Character Level','+1','+5','+1,000','+5,000'].includes(object.value)));
+tap('ON', row(0));
 assert.equal(GameState.development.showArenaBorder, false);
-assert.equal(getButton('OFF', row(4)).regionMapState, 'normal');
-
 assert.equal(JSON.parse(storage.get('delveDeep.profile.v2')).development.showArenaBorder, false);
+storage.set('delveDeep.profile.v2', JSON.stringify({ development: { unlockAll: true, replayCleared: true, musicEnabled: true, showGridLines: true } }));
 loadProfile(adventurers);
-assert.equal(GameState.development.showArenaBorder, false);
-assert.equal(GameState.gold, 6000);
-
-storage.set('delveDeep.profile.v2', JSON.stringify({ development: { showGridLines: true } }));
-loadProfile(adventurers);
+assert.equal(GameState.development.unlockAll, false);
+assert.equal(GameState.development.replayCleared, false);
+assert.equal(GameState.development.musicEnabled, true);
 assert.equal(GameState.development.showArenaBorder, true);
-storage.set('delveDeep.profile.v2', JSON.stringify({ development: { showGridLines: true, showArenaBorder: false } }));
-loadProfile(adventurers);
-assert.equal(GameState.development.showArenaBorder, false);
-
-storage.set('delveDeep.profile.v2', JSON.stringify({ development: {} }));
-loadProfile(adventurers);
-assert.equal(GameState.development.showArenaBorder, false);
-tap('OFF', row(0));
-assert.equal(GameState.development.unlockAll, true);
-assert.equal(GameState.development.replayCleared, true);
-assert.equal(scene.restarted, true);
-
-const enabledScene = new context.TitleScene();
-enabledScene.showDevelopmentTools();
-
-// find returns the first matching entry, or undefined when none matches. Check for that
-// missing result before using its fields.
-const enabledCaption = enabledScene.objects.find((object) => object.type === 'text'
-  && object.value === 'ON' && object.y === row(0));
-const enabledButton = enabledScene.objects.find((object) => object.type === 'rectangle'
-  && object.x === enabledCaption.x && object.y === enabledCaption.y);
-assert.equal(enabledButton.regionMapState, 'selected');
 
 const toastScene = new context.TitleScene();
 const tweens = [];
@@ -261,4 +200,4 @@ assert.equal(drawings[1].strokes, 1);
 
 assert.equal(drawings[1].paths, 0);
 assert.equal(battlefield.boundary.length, 4);
-console.log('Development tools grants and saved arena border preference passed.');
+console.log('Player settings retain preferences and remove development grants in every runtime.');

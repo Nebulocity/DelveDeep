@@ -108,7 +108,8 @@ const adventurers = [
     moveSpeed: 144,
     critChance: 0.12,
     happiness: 68
-  })
+  }),
+  createAdventurer('alhanna', 'Alhanna', 'Runedance')
 ];
 
 export default adventurers;

@@ -13,6 +13,7 @@ import { canCraft, recipeIngredientText } from '../game/Crafting.js';
 import { guildSurface } from '../ui/GuildHallTheme.js';
 import { addEnchantmentScroll } from '../ui/EnchantmentScroll.js';
 import { UI_FONT_SIZES, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
+import { itemNameClasses } from '../ui/IdentityIcons.js';
 
 const CATEGORIES = [
   { id: 'equipment', label: 'Equipment', icon: 'sword' },
@@ -106,7 +107,8 @@ export default class ItemsScene extends Phaser.Scene {
       hallIcon(this, this.category === 'materials' ? 'ingot' : this.category === 'recipes' ? 'scroll' : item.slot === 'weapon' ? 'sword' : item.slot === 'potion' ? 'flask' : item.slot === 'scroll' ? 'scroll' : 'shield', 606, y);
       const nameX = item.enchantmentId ? 692 : 660;
       if (item.enchantmentId) addEnchantmentScroll(this, 657, y - 29, 28, 2);
-      hallText(this, nameX, y - 29, item.name, UI_FONT_SIZES.body35, { fontStyle: UI_FONT_WEIGHTS.bold, wordWrap: { width: 1170 } });
+      const title = hallText(this, nameX, y - 29, item.name, UI_FONT_SIZES.body35, { fontStyle: UI_FONT_WEIGHTS.bold, wordWrap: { width: 1170 } });
+      if (details.usableBy?.length) itemNameClasses(this, title, details.usableBy, 1870);
       const craftCheck = this.category === 'recipes' ? canCraft(item.id) : null;
       const recipeLabel = craftCheck?.ok ? 'Ready' : craftCheck?.message?.startsWith('Learn this') ? 'Learn recipe' : 'Gather materials';
 

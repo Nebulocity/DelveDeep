@@ -130,9 +130,11 @@ export default class BattleUnit {
     // entry, in the same order. The callback's return value becomes that output entry.
     // Object.entries turns own fields into [key, value] pairs so we can visit or transform
     // them.
+    // A fixed authored cost, such as Prism Shields' 20 Mana, takes priority over
+    // percentage costs. The latter use this unit's gear-adjusted maximum Mana.
     this.abilities = Object.fromEntries(Object.entries(config.abilities ?? {}).map(([key, ability]) => [key, {
       ...ability, cooldown: ability.cooldown / actionRate, windup: (ability.windup ?? 300) / actionRate,
-      manaCost: ability.replacement ? Math.round(this.maxMana * ability.manaFraction) : ability.manaCost,
+      manaCost: ability.replacement ? ability.manaCost ?? Math.round(this.maxMana * ability.manaFraction) : ability.manaCost,
       telegraph: ability.telegraph === undefined ? undefined : ability.telegraph / actionRate
     }]));
 
@@ -712,6 +714,10 @@ export default class BattleUnit {
     const absorbed = Math.min(adjusted, this.status.temporaryHp ?? 0);
     this.status.temporaryHp = (this.status.temporaryHp ?? 0) - absorbed;
     adjusted -= absorbed;
+
+    // A depleted Prism Shield bursts even when it absorbed the whole incoming hit.
+    // Resolve this here so periodic and triggered damage follow the same rule.
+    if (absorbed > 0) this.scene?.classAbilitySystem?.replacement?.shieldDamaged?.(this);
     adjusted = this.scene?.classAbilitySystem?.replacement?.preventLethal(this, adjusted) ?? adjusted;
     this.hp = Math.max(0, this.hp - adjusted);
 
@@ -856,7 +862,11 @@ export default class BattleUnit {
     this.finishAction();
     Object.keys(this.status).forEach((key) => {
 
-      this.status[key] = 0;
+      // Lists must stay iterable after revival. Clear record objects to null so channels
+      // and reactions become inactive; numeric timers and bonuses still reset to zero.
+      const value = this.status[key];
+      this.status[key] = Array.isArray(value) ? [] : value !== null && typeof value === 'object'
+        ? null : typeof value === 'boolean' ? false : 0;
     });
 
     this.seekingRestealth = false;

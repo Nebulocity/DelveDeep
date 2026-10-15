@@ -231,6 +231,19 @@ export function findParty(scene) {
 // Validate a destination and route the party through connected roads toward it. scene is
 // the Phaser screen that owns the objects, clock and input used here.
 export function selectPoi(scene, poi) {
+
+  // The watchtower waystone returns directly to town. It is available only while
+  // standing at the tower, so it cannot skip outward boss gates or interrupt travel.
+  if (poi?.id === 'pineshire' && !scene.activeEdge && scene.partyNode === 'verge-delves') {
+    HapticsService.confirm();
+    GameState.world.currentLocation = 'pineshire';
+    GameState.world.travel = null;
+    scene.destination = null;
+    scene.travelRoute = [];
+    saveProfile();
+    scene.scene.start('TownScene', { townId: 'pineshire', townName: 'Pineshire' });
+    return;
+  }
   HapticsService.tap();
   if (!available(poi)) {
 
@@ -450,7 +463,7 @@ export function createScrollingWorldMap(scene) {
   });
 
   const reset = addRegionPanel(scene, 970, height - 65, 300, 100, 1000).setInteractive({ useHandCursor: true });
-  scene.add.text(970, height - 65, 'DEV TOOLS', { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('heading38'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff1d2' })
+  scene.add.text(970, height - 65, 'SETTINGS', { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('heading38'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff1d2' })
     .setOrigin(0.5).setScrollFactor(0).setDepth(1001);
   reset.on('pointerdown', () => {
     HapticsService.tap();

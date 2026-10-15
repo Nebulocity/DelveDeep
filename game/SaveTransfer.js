@@ -45,7 +45,11 @@ export function validateSnapshot(snapshot) {
   catch { throw new Error('Backup contains unreadable save records.'); }
   checkTree(profile);
   checkTree(leader);
-  require(object(profile) && count(profile.gold) && Array.isArray(profile.roster)
+
+  // Catalog sales can pay fractional Gold. Keep the exact saved balance instead of
+  // rounding it; inventory counts and progression still require whole numbers below.
+  require(object(profile) && Number.isFinite(profile.gold) && profile.gold >= 0
+    && profile.gold <= Number.MAX_SAFE_INTEGER && Array.isArray(profile.roster)
     && profile.roster.length > 0 && profile.roster.length <= 1000, 'Invalid profile or roster.');
   const ids = new Set();
   for (const hero of profile.roster) {

@@ -1,14 +1,13 @@
 // This is the region map entry screen. It connects the illustrated world, destination
-// controls, travel and development tools to the saved world state.
+// controls, travel and player settings to the saved world state.
 
 import { fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
 import HapticsService from '../services/HapticsService.js';
 import { saveProfile, clearSavedProfile } from '../game/GameStorage.js';
-import { clearLeaderProgression, grantLeaderLevels } from '../game/LeaderProgression.js';
+import { clearLeaderProgression } from '../game/LeaderProgression.js';
 
-import { grantAdventurerLevels } from '../game/AdventurerProgression.js';
 import { hideLoadingScreenAfterRender } from '../ui/LoadingScreen.js';
 import { createScrollingWorldMap, updateScrollingWorldMap } from './ScrollingWorldMap.js';
 import { addRegionPanel, addRegionNotice, setRegionPanelState, regionMessageBounds } from '../ui/RegionMapTheme.js';
@@ -41,8 +40,8 @@ export default class TitleScene extends Phaser.Scene {
     }
   }
 
-  // This helper opens the development controls in labeled rows. Grants and display
-  // preferences save immediately; progress reset asks for confirmation.
+  // Player settings save display and music preferences immediately. Progress reset
+  // still asks for confirmation; development grants are unavailable in every build.
   showDevelopmentTools() {
 
     // ?. only follows this link when the value exists; a missing optional value gives
@@ -67,11 +66,10 @@ export default class TitleScene extends Phaser.Scene {
     const panelHeight = Math.min(850, height * 0.84);
     const panelTop = (height - panelHeight) / 2;
     const panelLeft = (width - panelWidth) / 2;
-    const rowY = (index) => panelTop + 180 + index * 84;
+    const rowY = (index) => panelTop + 180 + index * 120;
     const labelX = panelLeft + 100;
     const firstX = panelLeft + 720;
 
-    const secondX = panelLeft + 995;
     const buttonWidth = 220;
     const objects = [shade];
     const panel = addRegionPanel(this, width / 2, height / 2, panelWidth, panelHeight, depth + 1);
@@ -80,7 +78,7 @@ export default class TitleScene extends Phaser.Scene {
     // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the center
     // and 1 is the right/bottom edge. x/y place that anchor, not necessarily the object's
     // corner.
-    objects.push(this.add.text(width / 2, panelTop + 72, 'DEV TOOLS', {
+    objects.push(this.add.text(width / 2, panelTop + 72, 'SETTINGS', {
       fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('heading48'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#f8fafc'
     }).setOrigin(0.5).setDepth(depth + 2));
 
@@ -133,56 +131,9 @@ export default class TitleScene extends Phaser.Scene {
     // once registers a callback that removes itself after the first matching event.
     this.events?.once('shutdown', destroy);
 
-    addLabel(0, 'Dev mode');
-    const enabled = GameState.development.unlockAll && GameState.development.replayCleared;
-
-    // The condition before ? chooses the first value when true and the value after : when
-    // false.
-    addButton(firstX, rowY(0), enabled ? 'ON' : 'OFF', enabled ? 0x00f2fa : 0x08192e, 0x00f2fa, () => {
-      HapticsService.confirm();
-      const next = !enabled;
-      GameState.development.unlockAll = next;
-      GameState.development.replayCleared = next;
-      saveProfile();
-      destroy();
-      this.scene.restart();
-    }, enabled ? '#08192e' : '#ffffff');
-
-    addLabel(1, 'Renown Level');
-    for (const [amount, x] of [[1, firstX], [5, secondX]]) {
-      addButton(x, rowY(1), `+${amount}`, 0x0e9c4b, 0x86efac, () => {
-        HapticsService.confirm();
-        const result = grantLeaderLevels(GameState.leader, amount);
-        this.showToast(`Renown Level ${GameState.leader.level}  (+${result.renownPointsEarned} RP)`);
-      });
-    }
-
-    addLabel(2, 'Character Level');
-    for (const [amount, x] of [[1, firstX], [5, secondX]]) {
-      addButton(x, rowY(2), `+${amount}`, 0x0e9c4b, 0x86efac, () => {
-        HapticsService.confirm();
-        GameState.roster.forEach(hero => grantAdventurerLevels(hero, amount));
-        saveProfile();
-
-        // A character already at the cap receives fewer levels, possibly none.
-        this.showToast(`Granted up to ${amount} levels per character, within the level cap.`);
-      });
-    }
-
-    addLabel(3, 'Gold');
-    for (const [amount, x] of [[1000, firstX], [5000, secondX]]) {
-      addButton(x, rowY(3), `+${amount.toLocaleString('en-US')}`, 0xb38c0c, 0xfde047, () => {
-        HapticsService.confirm();
-        GameState.gold += amount;
-        saveProfile();
-        this.currencyText.setText(`Gold: ${GameState.gold}`);
-        this.showToast(`Added ${amount} Gold.`);
-      });
-    }
-
-    addLabel(4, 'Arena Border');
+    addLabel(0, 'Arena Border');
     const borderVisible = GameState.development.showArenaBorder !== false;
-    const borderToggle = addButton(firstX, rowY(4), borderVisible ? 'ON' : 'OFF',
+    const borderToggle = addButton(firstX, rowY(0), borderVisible ? 'ON' : 'OFF',
       borderVisible ? 0xebed53 : 0x4e4f19, 0xebed53, () => {
         HapticsService.confirm();
         GameState.development.showArenaBorder = !GameState.development.showArenaBorder;
@@ -195,9 +146,9 @@ export default class TitleScene extends Phaser.Scene {
         borderToggle.caption.setColor('#fff1d2');
       }, borderVisible ? '#1f2937' : '#ffffff');
 
-    addLabel(5, 'BGM');
+    addLabel(1, 'BGM');
     const musicEnabled = GameState.development.musicEnabled === true;
-    const musicToggle = addButton(firstX, rowY(5), musicEnabled ? 'ON' : 'OFF',
+    const musicToggle = addButton(firstX, rowY(1), musicEnabled ? 'ON' : 'OFF',
       0x08192e, 0x00f2fa, () => {
         HapticsService.confirm();
         this.game.music.setEnabled(GameState.development.musicEnabled !== true);
@@ -210,8 +161,8 @@ export default class TitleScene extends Phaser.Scene {
         setRegionPanelState(this, musicToggle.button, enabled ? 'selected' : 'normal');
       });
 
-    addLabel(6, 'Reset progress');
-    addButton(firstX, rowY(6), 'RESET', 0x7f1d1d, 0xf87171, () => {
+    addLabel(2, 'Reset progress');
+    addButton(firstX, rowY(2), 'RESET', 0x7f1d1d, 0xf87171, () => {
       HapticsService.tap();
       destroy();
       this.showResetConfirmation();

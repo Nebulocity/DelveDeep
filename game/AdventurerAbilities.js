@@ -67,9 +67,10 @@ export function abilityLevelRequired(hero, key, rank = 1) {
   // undefined.
   if (!CLASS_DEFINITIONS[hero.className]?.abilities?.[key] || rank < 1 || rank > MAX_ABILITY_RANK) return Infinity;
 
-  // The condition before ? chooses the first value when true and the value after : when
-  // false.
-  return rank === 1 ? 1 : (rank - 1) * 5;
+  // A spell's learning gate remains the minimum for every rank. Normal rank
+  // gates still rise by five levels, so revival cannot bypass later training.
+  const minimumLevel = CLASS_DEFINITIONS[hero.className].abilities[key].minimumLevel ?? 1;
+  return Math.max(minimumLevel, rank === 1 ? 1 : (rank - 1) * 5);
 }
 
 // Calculate the SP needed for the requested next rank.
@@ -123,10 +124,23 @@ export function restoreAdventurerAbilities(hero, saved, legacy = false) {
       }
     }
   }
+
+  // Retiring individual skills preserves all other training. Only removed ranks
+  // are refunded, and saving the cleaned ranks prevents another refund next load.
+  const validKeys = new Set(entries.map(([key]) => key));
+  if (!needsRespec) for (const [key, value] of Object.entries(previousRanks)) {
+    if (validKeys.has(key) || !key.startsWith('ability_v2_') || !Number.isSafeInteger(value) || value < 1) continue;
+    const wasFree = key === 'ability_v2_generic_magical_life_anchor' && hero.className.startsWith('Mage of');
+    for (let trained = wasFree ? 2 : 1; trained <= Math.min(value, MAX_ABILITY_RANK); trained++) {
+      refundedPoints += trained;
+      const earliestLevel = trained === 1 ? 1 : (trained - 1) * 5;
+      goldCredit += Math.ceil((20 + 5 * earliestLevel) * trained / 5) * 5;
+    }
+  }
   hero.abilityCatalogVersion = ABILITY_CATALOG_VERSION;
   hero.abilityMigrationGoldCredit = goldCredit;
   hero.abilityRespec = saved?.abilityRespec;
-  if (needsRespec) hero.abilityRespec = { refundedPoints, goldCredit };
+  if (needsRespec || refundedPoints) hero.abilityRespec = { refundedPoints, goldCredit };
 
   // map builds one output entry for each input entry, in the same order. The callback's
   // return value becomes that output entry.
@@ -157,7 +171,12 @@ export function restoreAdventurerAbilities(hero, saved, legacy = false) {
   // ... expands these entries into the new list or call. It does not deep-copy the objects
   // inside. A Set keeps each value once. has checks membership without searching a list
   // for duplicate entries.
-  hero.abilityLoadout = [...new Set(defaults)]
+
+  // Replace an equipped retired mage starter in its original slot. Other retired
+  // abilities leave free slots so the player can choose their own replacements.
+  const mageStarter = entries.find(([, ability]) => ability.starter && ['Gloomburst', 'Celestial Flow', 'Ritual of Replenishment'].includes(ability.name))?.[0];
+  const migratedDefaults = defaults.map(key => key === 'ability_v2_generic_magical_life_anchor' && mageStarter ? mageStarter : key);
+  hero.abilityLoadout = [...new Set(migratedDefaults)]
     .filter((key) => ranks[key] > 0 && keys.includes(key))
     .slice(0, MAX_EQUIPPED_ABILITIES);
 

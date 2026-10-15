@@ -13,6 +13,7 @@ import { hasAssaultAbilityEffect } from './AssaultAbilityEffects.js';
 import { CLASS_DEFINITIONS } from '../data/classes.js';
 import { rankedReplacementAbility } from '../data/replacementAbilities.js';
 import { retireUmbralDecoy } from './UmbralDecoyEffects.js';
+import { isRune, runeTarget, resolveRune, tickRune, runesAfterDamage } from './RunedanceSystem.js';
 
 // A modifier names the actual stat changed. Negative fractions reduce that stat; chance
 // fields add percentage points. Recipient choice is handled separately from the modifier.
@@ -33,9 +34,9 @@ const SECONDARY_MODIFIERS = {
   enemySpeedPartyArmor: 'armor', armorCooldownBuff: 'cooldown'
 };
 const SETUPS = new Set(['nextPhysicalBoost', 'nextSpellBoost', 'nextWindupReduction', 'nextCritBonus', 'nextProtectionBoost',
-  'nextRestorePotencyCost', 'nextRestorePotencyDuration', 'nextAssaultAccuracyDamage', 'nextAssaultManaReturn', 'duplicateNextAssault']);
+  'nextAssaultPotencyCost', 'nextRestorePotencyCost', 'nextRestorePotencyDuration', 'nextAssaultAccuracyDamage', 'nextAssaultManaReturn', 'duplicateNextAssault']);
 const ZONES = new Set(['slowGroundZone', 'slowDamageZone', 'entryStunZone', 'poisonTrap', 'healingAura']);
-const SHIELDS = new Set(['manaBasedShield', 'shieldReflect']);
+const SHIELDS = new Set(['manaBasedShield', 'shieldReflect', 'shieldBurst']);
 const PERIODIC_PRIMARY = new Set(['damageOverTime', 'healingOverTime', 'healthCostHealingOverTime', 'partyManaOverTime']);
 const REFILLS = new Set(['restoreCharges', 'restoreChargesNextBoost', 'partyRestoreCharges']);
 const REACTIONS = new Set(['conditionalHeal', 'blockStun', 'counterattackWindow', 'reactiveSiphon', 'reflectLinkedHeal', 'criticalPotionReaction', 'lethalExchange', 'damageActionPunishment']);
@@ -154,8 +155,9 @@ export default class ReplacementAbilitySystem {
   // at its full cost without creating or refunding an extra cast.
   manaCost(unit, ability, time) {
     let cost = ability.manaCost ?? 0;
-    if (ability.category === 'Restore') for (const prep of unit.status.replacementPreparations ?? []) {
-      if (prep.until > time && prep.ability.handler === 'nextRestorePotencyCost') cost *= 1 - prep.ability.secondary.potency;
+    for (const prep of unit.status.replacementPreparations ?? []) {
+      if (prep.until > time && ['nextRestorePotencyCost', 'nextAssaultPotencyCost'].includes(prep.ability.handler)
+        && this.preparationMatches(prep.ability.handler, ability)) cost *= 1 - prep.ability.secondary.potency;
     }
     return Math.max(0, Math.round(cost));
   }
@@ -169,6 +171,7 @@ export default class ReplacementAbilitySystem {
   }
 
   target(unit, ability) {
+    if (isRune(ability)) return runeTarget(this, unit, ability);
     const enemies = this.enemies(), allies = this.allies();
     if (!enemies.length) return null;
     const inRange = other => arenaDistance(unit, other) <= ability.range * 100;
@@ -210,6 +213,8 @@ export default class ReplacementAbilitySystem {
     if (ZONES.has(handler) && unit.status.replacementZones?.some(zone => zone.ability.id === ability.id && zone.until > this.now() && zone.wave === this.scene.currentWaveIndex)) return null;
     if (REACTIONS.has(handler) && this.units().some(other => other.status.replacementReactions?.some(reaction => reaction.ability.id === ability.id && reaction.ownerId === unit.id && reaction.until > this.now()))) return null;
     if (ability.targetLabel === 'Self') {
+      if (SHIELDS.has(handler) && (incomingPressure(this.scene, unit) < .5
+        || unit.status.temporaryHp > 0 && unit.status.temporaryHpUntil > this.now())) return null;
       if (ability.category === 'Restore' && (ability.primary.healing || ability.primary.basis === 'Caster Spell Healing') && unit.hp / unit.maxHp > .8) return null;
       return unit;
     }
@@ -229,6 +234,11 @@ export default class ReplacementAbilitySystem {
       if (ability.category === 'Protect' && (!chosen || incomingPressure(this.scene, chosen) < .5)) return null;
       return chosen;
     }
+
+    // Pan Drop uses the Barmaid's current position. Save it until a nearby enemy
+    // can actually be stunned, rather than spending its cooldown across the arena.
+    if (handler === 'areaStun') return this.recipients(unit, unit, ability).some(enemy =>
+      !enemy.controlImmunities?.includes('stun') && !(enemy.status.stunnedUntil > this.now())) ? unit : null;
     if (ability.range === 0) return unit;
     const preferred = this.scene.getPrimaryTarget(unit);
     let eligible = enemies.filter(inRange);
@@ -311,13 +321,17 @@ export default class ReplacementAbilitySystem {
           ability.duration = Math.min(ability.durationCap, ability.duration * (1 + y));
           ability.secondaryDuration = Math.min(ability.secondaryDurationCap, ability.secondaryDuration * (1 + y));
         }
-        if (h === 'nextRestorePotencyCost') ability.manaCost = this.manaCost(unit, base, time);
+        if (h === 'nextRestorePotencyCost' || h === 'nextAssaultPotencyCost') ability.manaCost = this.manaCost(unit, base, time);
       }
     }
     const scene = this.scene;
     if (!unit.startAction(ability.name, time, ability.windup)) return false;
     unit.status.replacementPreparations = preparations.filter(prep => !ready.includes(prep) && prep.until > time);
     unit.markAbilityUsed(key, time, ability.manaCost);
+
+    // The rare runeblade empowers one future landed basic attack. Store this with
+    // the unit so leaving a paused battle cannot lose or duplicate the empowerment.
+    if (unit.equipmentPerks?.some(perk => perk.id === 'runic_refrain')) unit.status.runicRefrainReady = true;
     const payers = ability.healthPayer === 'Every living ally' ? this.allies() : [unit];
     for (const payer of payers) if (ability.healthFraction) { payer.hp = Math.max(1, payer.hp - Math.round(payer.hp * ability.healthFraction)); payer.updateHealthBar?.(); }
     if (ability.oncePerEncounter || ability.oncePerWave) (unit.delvesUsed ??= {})[ability.id] = scene.currentWaveIndex;
@@ -337,7 +351,7 @@ export default class ReplacementAbilitySystem {
     if (handler.includes('Restore')) return ability.category === 'Restore';
     if (handler === 'nextProtectionBoost') return ability.category === 'Protect';
     if (handler === 'nextPhysicalBoost' || handler === 'nextCritBonus') return ability.category === 'Assault' && ability.damageType === 'physical';
-    if (['nextSpellBoost', 'duplicateNextAssault', 'nextAssaultManaReturn', 'nextAssaultAccuracyDamage'].includes(handler)) return ability.category === 'Assault';
+    if (['nextAssaultPotencyCost', 'nextSpellBoost', 'duplicateNextAssault', 'nextAssaultManaReturn', 'nextAssaultAccuracyDamage'].includes(handler)) return ability.category === 'Assault';
     return !SETUPS.has(ability.handler);
   }
 
@@ -436,6 +450,7 @@ export default class ReplacementAbilitySystem {
   // Special setup, zones, costs and reactions are handled first so they never fall through
   // into an unintended immediate hit.
   resolve(caster, target, ability, time, triggered = false) {
+    if (isRune(ability)) return resolveRune(this, caster, target, ability, time);
     if (ability.handler === 'bonusCritDamage') ability = { ...ability, criticalBonus: ability.secondary.potency };
     const h = ability.handler, x = ability.primary.potency, y = ability.secondary.potency;
 
@@ -535,7 +550,7 @@ export default class ReplacementAbilitySystem {
         target.revive(x, y);
 
         // Reclamation forms a local soul silhouette on the newly revived ally.
-        if (ability.id === 'ability_v2_umbral_mage_soul_reclamation') this.scene.createAbilityEffect?.(caster, target, ability);
+        this.scene.createAbilityEffect?.(caster, target, ability);
       }
       return;
     }
@@ -609,6 +624,18 @@ export default class ReplacementAbilitySystem {
       this.scene.createAbilityEffect?.(caster, target, ability);
       return;
     }
+
+    // A pace is 100 arena units. Resolve the authored radius around the caster
+    // after the windup, then let the shared combat-clock stun cancel enemy actions.
+    if (h === 'areaStun') {
+      for (const enemy of this.recipients(caster, caster, ability)) {
+        if (enemy.controlImmunities?.includes('stun')) continue;
+        this.control(enemy, ability, 'stun', ability.duration);
+        this.scene.createAbilityEffect?.(caster, enemy, ability, [enemy]);
+        this.scene.createAbilityEffect?.(caster, enemy, { ...ability, vfxPhase: 'stun' }, [enemy]);
+      }
+      return;
+    }
     if (h === 'disarm' || h === 'abilityLock' || h === 'conditionalStun' || h === 'areaRoot') {
       for (const enemy of this.recipients(caster, target, ability)) {
         this.control(enemy, ability, h === 'areaRoot' ? 'root' : h === 'conditionalStun' ? 'stun' : h, ability.duration);
@@ -636,6 +663,8 @@ export default class ReplacementAbilitySystem {
         recipient.status.temporaryHp = Math.max(recipient.status.temporaryHp ?? 0, Math.round(replacementAmount(caster, recipient, ability.primary)));
         recipient.status.temporaryHpUntil = time + ability.duration;
         if (h === 'manaBasedShield') recipient.status.sunlitWardVisualUntil = time + ability.duration;
+        if (h === 'shieldBurst') recipient.status.replacementShieldBurst = { ownerId: caster.id, ability, until: time + ability.duration };
+        else delete recipient.status.replacementShieldBurst;
         if (h === 'shieldReflect') this.reaction(caster, recipient, ability, 'shieldReflect');
       } else if (PRIMARY_MODIFIERS[h]) {
         const recipientOfBuff = ['attackBuffTaunt', 'armorSelfRoot'].includes(h) ? caster : recipient;
@@ -943,6 +972,7 @@ export default class ReplacementAbilitySystem {
   tickZones(owner, time) {
     for (const zone of owner.status.replacementZones ?? []) {
       if (!owner.alive || zone.wave !== this.scene.currentWaveIndex) continue;
+      if (isRune(zone.ability)) { tickRune(this, owner, zone, time); continue; }
       const a = zone.ability, healing = a.handler === 'healingAura';
       const targets = (healing ? this.allies() : this.enemies()).filter(t => arenaDistance(t, a.anchor === 'Caster' ? owner : zone.point) <= a.radius);
       for (const enemy of this.enemies()) if (zone.inside[enemy.id] && !targets.includes(enemy)) { zone.exitedAt[enemy.id] = time; delete zone.inside[enemy.id]; }
@@ -975,6 +1005,20 @@ export default class ReplacementAbilitySystem {
     return null;
   }
 
+  // Store only plain combat data so a paused shield can resume from a battle save.
+  // Removing the record before damage prevents another reaction from bursting it twice.
+  shieldDamaged(target) {
+    const shield = target.status.replacementShieldBurst;
+    if (!shield || target.status.temporaryHp > 0) return;
+    delete target.status.replacementShieldBurst;
+    const owner = this.unit(shield.ownerId);
+    if (!owner || shield.until <= this.now()) return;
+    for (const enemy of this.enemies()) {
+      if (arenaDistance(target, enemy) > shield.ability.radius) continue;
+      this.damage(owner, enemy, replacementAmount(owner, enemy, shield.ability.secondary), shield.ability, true);
+    }
+  }
+
   actionCommitted(unit) {
     if (this.reactionDepth) return;
     for (const reaction of unit.status.replacementReactions ?? []) if (reaction.kind === 'damageActionPunishment' && reaction.until > this.now()) {
@@ -993,6 +1037,7 @@ export default class ReplacementAbilitySystem {
     if (this.reactionDepth || contact?.replacementTriggered) return;
     this.reactionDepth++;
     try {
+      runesAfterDamage(this, attacker, target, amount, critical, contact);
       const coating = attacker.status.replacementPoisonWeapon;
       if (amount > 0 && target.isEnemy && coating?.until > this.now() && contact?.abilityName === 'Attack') {
         this.periodic(attacker, target, coating.ability, replacementAmount(attacker, target, coating.ability.primary), 'damage', coating.ability.secondaryDuration);

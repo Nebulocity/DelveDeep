@@ -111,8 +111,11 @@ export function loadProfile(baseRoster) {
   GameState.lastPartyIds = Array.isArray(saved?.lastPartyIds)
     ? saved.lastPartyIds : [];
   GameState.development = {
-    unlockAll: saved?.development?.unlockAll === true,
-    replayCleared: saved?.development?.replayCleared === true,
+
+    // Cheat access is retired in local development and every packaged runtime.
+    // Display and music preferences below still survive updates.
+    unlockAll: false,
+    replayCleared: false,
     showArenaBorder: (saved?.development?.showArenaBorder ?? saved?.development?.showGridLines) === true,
     musicEnabled: saved?.development?.musicEnabled === true
   };

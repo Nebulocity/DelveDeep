@@ -118,7 +118,7 @@ export const leaderAbilities = [
     id: 'encouragement',
     category: 'Restore',
     name: 'Encourage!',
-    shortName: 'ENCOURAGE',
+    shortName: 'ENCOURAGE!',
     branch: 'Morale',
     description: 'Restore Health to every living ally.',
     rarity: 'common',

@@ -49,7 +49,8 @@ for (const definition of UMBRAL_MAGE_EFFECTS) {
   const target = { id: 'target', alive: true, arenaX: 450, arenaY: 250, status: {} };
   const caster = definition.targetCaster || definition.groundZone ? target
     : { id: 'caster', alive: true, arenaX: 100, arenaY: 250, status: {} };
-  const ability = { ...kit[definition.abilityId], vfxPhase: definition.vfxPhase };
+  // Retired sheets still support historical battle definitions.
+  const ability = { id: definition.abilityId, ...kit[definition.abilityId], vfxPhase: definition.vfxPhase };
   giveStatus(target, definition, ability);
   scene.partyUnits = target.isDecoy ? [caster] : [...new Set([caster, target])];
   if (target.isDecoy) scene.abilityDecoys = [target];
@@ -153,7 +154,8 @@ for (const suffix of ['shadow_bolt', 'siphon', 'essence_drain']) {
   scene.getLivingEnemies = () => [];
   system.resolve(caster, caster, kit[PREFIX + 'shadow_image'], 100);
   const fallen = { alive: false, revive() { this.alive = true; } };
-  system.resolve(caster, fallen, kit[PREFIX + 'soul_reclamation'], 100);
+  const revival = Object.values(replacementAbilities('Cleric of the Sanguine Song')).find(ability => ability.name === 'Soul Reclamation');
+  system.resolve(caster, fallen, revival, 100);
   assert.deepEqual(calls.map(call => [call.ability.name, call.ability.vfxPhase]), [
     ['Dark Meditation', undefined], ['Shadow Trap', undefined], ['Essence Drain', undefined],
     ['Essence Drain', 'mana'], ['Shadow Image', undefined], ['Soul Reclamation', undefined]

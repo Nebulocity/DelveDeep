@@ -1,8 +1,10 @@
 // Exercise encrypted transfers and interrupted two-record replacements without Phaser.
 import assert from 'node:assert/strict';
 import { encryptSnapshot, decryptSnapshot, validateSnapshot, replaceSnapshot,
-  recoverInterruptedRestore, RECOVERY_KEY, JOURNAL_KEY } from '../game/SaveTransfer.js';
+  readSnapshot, recoverInterruptedRestore, RECOVERY_KEY, JOURNAL_KEY } from '../game/SaveTransfer.js';
 import { PROFILE_STORAGE_KEY, LEADER_STORAGE_KEY } from '../game/BuildSave.js';
+import { grantEquipment } from '../game/Equipment.js';
+import { sellOwnedItem } from '../game/ShopServices.js';
 
 const passphrase = 'private QA backup passphrase';
 const snapshot = {
@@ -52,6 +54,35 @@ function memoryStorage() {
   return { records, getItem: key => records.get(key) ?? null,
     setItem: (key, value) => records.set(key, value), removeItem: key => records.delete(key) };
 }
+
+// Selling an Iron Longsword pays fractional Gold. Transfer those real shop proceeds
+// without rounding them, including when they become the recovery backup on import.
+const soldProfile = JSON.parse(snapshot.profile);
+const sword = grantEquipment('ILS01', soldProfile);
+assert.equal(sellOwnedItem(sword.id, soldProfile).ok, true);
+assert.equal(soldProfile.gold, 73 + 37.24);
+const soldStorage = memoryStorage();
+soldStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(soldProfile));
+soldStorage.setItem(LEADER_STORAGE_KEY, snapshot.leader);
+const soldSnapshot = readSnapshot(soldStorage);
+assert.equal(validateSnapshot(soldSnapshot).gold, soldProfile.gold);
+const soldEncrypted = await encryptSnapshot(soldSnapshot, passphrase);
+const soldRestored = await decryptSnapshot(soldEncrypted, passphrase);
+assert.deepEqual(soldRestored, soldSnapshot);
+replaceSnapshot(soldRestored, encrypted, soldStorage);
+assert.equal(soldStorage.getItem(PROFILE_STORAGE_KEY), soldSnapshot.profile);
+replaceSnapshot(snapshot, soldEncrypted, soldStorage);
+assert.deepEqual(await decryptSnapshot(soldStorage.getItem(RECOVERY_KEY), passphrase), soldSnapshot);
+
+// Only Gold accepts fractions. Invalid balances and fractional material counts remain
+// errors so a broken file cannot reach the normal save loaders.
+for (const gold of [-0.01, null, '110.24', Number.MAX_SAFE_INTEGER + 1, Infinity]) {
+  assert.throws(() => validateSnapshot({ ...snapshot,
+    profile: JSON.stringify({ ...soldProfile, gold }) }), /Invalid profile/);
+}
+assert.throws(() => validateSnapshot({ ...snapshot, profile: JSON.stringify({ ...soldProfile,
+  inventory: { ...soldProfile.inventory, materials: { MAT002: 1.5 } } }) }), /Invalid inventory/);
+
 const storage = memoryStorage();
 replaceSnapshot(snapshot, encrypted, storage);
 assert.equal(storage.getItem(PROFILE_STORAGE_KEY), snapshot.profile);

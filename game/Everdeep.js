@@ -13,7 +13,19 @@ import { getEquippedAdventurer } from './Equipment.js';
 import { saveProfile } from './GameStorage.js';
 
 export const EVERDEEP_REGION_ID = 'pineshire-reach';
-export const EVERDEEP_WRIT_COST = 120;
+export const EVERDEEP_WRIT_COST = 275;
+
+// Writs scale with the current Renown level. Old expeditions never pay again on load.
+export function everdeepWritCost(state = GameState) {
+  return EVERDEEP_WRIT_COST * Math.max(1, Math.floor(state.leader?.level ?? 1));
+}
+
+// Settle wall-clock returns before asking who is away. Stopped parties are available
+// immediately, even when their earned chests have not yet been claimed.
+export function everdeepUnavailableIds(now = Date.now(), state = GameState) {
+  return new Set(settleEverdeep(now, state).filter(run => !run.stoppedAtMs)
+    .flatMap(run => run.party.map(member => member.id)));
+}
 export const EVERDEEP_INTERVAL_MS = 120000;
 export const EVERDEEP_DURATION_MS = 7200000;
 export const EVERDEEP_MAX_WAVES = 60;
@@ -97,8 +109,10 @@ function partyPower(hero, state) {
 // GameState.
 export function startEverdeepRun(characterIds, now = Date.now(), state = GameState) {
   if (!everdeepUnlocked(state)) return { ok: false, message: 'Defeat the boss of The Sunken Watch first.' };
+  const unavailable = everdeepUnavailableIds(now, state);
   const runs = everdeepRuns(state);
-  if (state.gold < EVERDEEP_WRIT_COST) return { ok: false, message: `A Writ costs ${EVERDEEP_WRIT_COST} Gold.` };
+  const writCost = everdeepWritCost(state);
+  if (state.gold < writCost) return { ok: false, message: `A Writ costs ${writCost} Gold (275 per Renown level).` };
 
   // A Set keeps each value once. has checks membership without searching a list for
   // duplicate entries.
@@ -113,6 +127,13 @@ export function startEverdeepRun(characterIds, now = Date.now(), state = GameSta
   // some stops with true as soon as one entry passes the check; an empty list gives false.
   if (party.some((hero) => !hero)) return { ok: false, message: 'One or more selected adventurers are unavailable.' };
 
+  if (characterIds.some(id => unavailable.has(id))) return { ok: false, message: 'An adventurer is in The Everdeep. Recall that expedition first.' };
+
+  // A frozen Delve in progress also owns its party until the player finishes or retreats.
+  if (state.activeBattle?.party?.some(member => characterIds.includes(member.id))) {
+    return { ok: false, message: 'An adventurer is in an unfinished Delve.' };
+  }
+
   // filter keeps entries whose callback returns true. It builds a new list and leaves the
   // original list in place.
   const tanks = party.filter((hero) => hero.role === 'Tank').length;
@@ -123,7 +144,7 @@ export function startEverdeepRun(characterIds, now = Date.now(), state = GameSta
 
   // function toString() { [native code] }
   const seed = `${now}-${hashSeed(characterIds.join('|')).toString(36)}-${Math.random().toString(36).slice(2)}`;
-  state.gold -= EVERDEEP_WRIT_COST;
+  state.gold -= writCost;
   state.everdeep.totals.runsStarted += 1;
   const run = {
     id: seed,

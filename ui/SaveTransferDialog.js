@@ -8,9 +8,8 @@ import { encryptSnapshot, decryptSnapshot, readSnapshot, validateSnapshot,
 import { openBackupFile, saveBackupFile } from '../services/SaveTransferFiles.js';
 import './SaveTransferDialog.css';
 
-// The opt-in private mode is separate from ordinary production builds. This is a
-// distribution boundary, not an anti-cheat guarantee against modified game code.
-export const privateTransfersEnabled = import.meta.env.DEV || import.meta.env.MODE === 'private';
+// Temporarily offer encrypted testing backups in every build, including the APK.
+export const privateTransfersEnabled = true;
 
 function capture() {
   if (!flushProfileSave()) throw new Error('Could not save current progress. Make space on this device and try again.');
@@ -27,7 +26,7 @@ export function showSaveTransferDialog(scene) {
   const root = document.createElement('div');
   root.className = 'save-transfer-overlay';
   root.innerHTML = `<section class="save-transfer-panel" role="dialog" aria-modal="true" aria-labelledby="save-transfer-title">
-    <header><h2 id="save-transfer-title">Private save transfer</h2><button type="button" data-action="close" aria-label="Close save transfer">Close</button></header>
+    <header><h2 id="save-transfer-title">Save import and export</h2><button type="button" data-action="close" aria-label="Close save transfer">Close</button></header>
     <p>Encrypted backups for your own devices. Keep the backup passphrase safe; forgotten passphrases cannot be recovered.</p>
     <label>Backup passphrase (at least 12 characters)<input type="password" autocomplete="off" spellcheck="false" data-field="password" maxlength="1024"></label>
     <label data-field="repeat-label">Repeat passphrase for export<input type="password" autocomplete="off" data-field="repeat" maxlength="1024"></label>

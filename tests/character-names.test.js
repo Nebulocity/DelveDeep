@@ -63,5 +63,5 @@ const refreshed = JSON.stringify({ battle, everdeep: GameState.everdeep });
 refreshSavedCharacterNames(GameState);
 assert.equal(JSON.stringify({ battle, everdeep: GameState.everdeep }), refreshed);
 assert.equal(profile.activeBattle.party[0].name, 'Zareth');
-assert.equal(new Set(adventurers.map(member => member.name)).size, 14);
+assert.equal(new Set(adventurers.map(member => member.name)).size, 15);
 console.log('Current roster names restore across profiles, battles, decoys, logs and frozen expeditions without changing progress.');

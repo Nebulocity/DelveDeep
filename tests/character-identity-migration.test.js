@@ -37,6 +37,7 @@ const oldByCurrentId = new Map(formerCharacters.map(([id, name, provisional, cur
 profile.gold = 321;
 for (const member of profile.roster) {
   const old = oldByCurrentId.get(member.id);
+  if (!old) continue;
   member.id = old.id;
   member.name = old.name;
   member.level = 4;

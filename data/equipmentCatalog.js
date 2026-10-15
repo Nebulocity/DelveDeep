@@ -1,6 +1,12 @@
 // Authored equipment, recipes and regional cascades. Percentages are fractions of one.
 // Keep stable IDs so owned items and recipe knowledge survive catalog updates.
 
+// Level-35/45 weapons follow each level-23 Starsteel/Starseed archetype: primary bonuses
+// grow 4% per level, Speed adds 0.05 per level and critical bonuses add 0.05 percentage
+// points per level. These are authored values, not extra scaling applied to owned items.
+
+import { runebladeEquipment, runebladeRecipes } from './runebladeEquipment.js';
+
 export const AUTHORED_EQUIPMENT = [
   {
     "id": "BDS01",
@@ -1672,292 +1678,338 @@ export const AUTHORED_EQUIPMENT = [
     "name": "Voidsteel Dagger",
     "slot": "weapon",
     "rarity": "uncommon",
-    "minimumLevel": 7,
+    "minimumLevel": 35,
     "usableBy": [
-      "Scoundrel"
+      "Scoundrel",
+      "Barmaid"
     ],
     "stats": {
-      "speed": 2,
-      "agility": 10,
-      "critChance": 0.0175,
-      "critMultiplier": 0.08
+      "attackPower": 74.8,
+      "speed": 3.3,
+      "strength": 37.4,
+      "agility": 74.8,
+      "critChance": 0.0275,
+      "critMultiplier": 0.0447
     },
-    "price": 900,
-    "sellPrice": 270,
-    "description": "A bright and shining Mithril Dagger",
+    "price": null,
+    "sellPrice": 2256,
+    "description": "Highmere smiths quench Voidsteel in sealed troughs. This dagger emerged without a reflection, though its edge catches every fault in the light.",
     "enchantmentSlots": 1,
     "lootRegions": [
-      "pineshire-reach"
+      "highmere-crags"
     ],
     "lootSources": [
+      "wave",
+      "boss",
       "everdeep"
     ],
-    "lootLocations": []
+    "lootLocations": [
+      "*"
+    ]
   },
   {
     "id": "VLS01",
     "name": "Voidsteel Longsword",
     "slot": "weapon",
     "rarity": "uncommon",
-    "minimumLevel": 7,
+    "minimumLevel": 35,
     "usableBy": [
       "Gladiator",
       "Oathwarden",
-      "Dawnwarden",
-      "Barbarian",
-      "Barmaid",
-      "Scoundrel"
+      "Dawnwarden"
     ],
     "stats": {
-      "attackPower": 20,
-      "speed": 2,
-      "strength": 10,
-      "critChance": 0.01
+      "attackPower": 74.8,
+      "speed": 3.3,
+      "strength": 112.2,
+      "critChance": 0.0275,
+      "critMultiplier": 0.026
     },
-    "price": 1197,
-    "sellPrice": 270,
-    "description": "A bright and shining Mithril Longsword",
+    "price": null,
+    "sellPrice": 2775,
+    "description": "A narrow seam of darkness runs through the blade. Highmere sentries say it is easiest to keep watch with a sword that never gleams back at whatever waits beyond the gate.",
     "enchantmentSlots": 1,
     "lootRegions": [
-      "pineshire-reach"
+      "highmere-crags"
     ],
     "lootSources": [
+      "wave",
+      "boss",
       "everdeep"
     ],
-    "lootLocations": []
+    "lootLocations": [
+      "*"
+    ]
   },
   {
     "id": "VSS01",
     "name": "Voidsteel Shortsword",
     "slot": "weapon",
     "rarity": "uncommon",
-    "minimumLevel": 7,
+    "minimumLevel": 35,
     "usableBy": [
       "Gladiator",
-      "Barmaid",
-      "Scoundrel"
+      "Scoundrel",
+      "Barmaid"
     ],
     "stats": {
-      "attackPower": 20,
-      "speed": 2,
-      "strength": 10,
-      "critChance": 0.01
+      "attackPower": 74.8,
+      "speed": 3.3,
+      "strength": 112.2,
+      "critChance": 0.0275,
+      "critMultiplier": 0.026
     },
-    "price": 900,
-    "sellPrice": 270,
-    "description": "A bright and shining Mithril Shortsword",
+    "price": null,
+    "sellPrice": 2775,
+    "description": "The gatewardens of Highmere favor a short blade in the narrow passages beneath their watchposts. Its dark steel carries no maker's stamp, only the number of the gate it guarded.",
     "enchantmentSlots": 1,
     "lootRegions": [
-      "pineshire-reach"
+      "highmere-crags"
     ],
     "lootSources": [
+      "wave",
+      "boss",
       "everdeep"
     ],
-    "lootLocations": []
+    "lootLocations": [
+      "*"
+    ]
   },
   {
     "id": "VHA01",
     "name": "Voidsteel Handaxe",
     "slot": "weapon",
     "rarity": "uncommon",
-    "minimumLevel": 7,
+    "minimumLevel": 35,
     "usableBy": [
-      "Gladiator",
-      "Barmaid",
-      "Scoundrel"
+      "Scoundrel",
+      "Barmaid"
     ],
     "stats": {
-      "attackPower": 20,
-      "speed": 2,
-      "strength": 10,
-      "critChance": 0.01
+      "attackPower": 74.8,
+      "speed": 3.3,
+      "strength": 74.8,
+      "agility": 37.4,
+      "critChance": 0.0275,
+      "critMultiplier": 0.026
     },
-    "price": 1197,
-    "sellPrice": 270,
-    "description": "A bright and shining Mithril Shortsword",
+    "price": null,
+    "sellPrice": 2775,
+    "description": "Highmere pathfinders use these dark axes to cut stakes for the gate roads. The copper nails in the haft mark nights when the paths had to be found again.",
     "enchantmentSlots": 1,
     "lootRegions": [
-      "pineshire-reach"
+      "highmere-crags"
     ],
     "lootSources": [
+      "wave",
+      "boss",
       "everdeep"
     ],
-    "lootLocations": []
+    "lootLocations": [
+      "*"
+    ]
   },
   {
     "id": "VGA01",
     "name": "Voidsteel Greataxe",
     "slot": "weapon",
     "rarity": "uncommon",
-    "minimumLevel": 7,
+    "minimumLevel": 35,
     "usableBy": [
       "Gladiator",
-      "Barmaid",
-      "Scoundrel"
+      "Barbarian"
     ],
     "stats": {
-      "attackPower": 20,
-      "speed": 2,
-      "strength": 10,
-      "critChance": 0.01
+      "attackPower": 130.9,
+      "speed": 3.3,
+      "strength": 112.2,
+      "critChance": 0.0275,
+      "critMultiplier": 0.026
     },
-    "price": 1800,
-    "sellPrice": 270,
-    "description": "A bright and shining Mithril Shortsword",
+    "price": null,
+    "sellPrice": 3649,
+    "description": "Forged for the crews who break ruined gate frames, this axe has a broad, lightless head. Its haft is wrapped twice where the first binding split under a single blow.",
     "enchantmentSlots": 1,
     "lootRegions": [
-      "pineshire-reach"
+      "highmere-crags"
     ],
     "lootSources": [
+      "wave",
+      "boss",
       "everdeep"
     ],
-    "lootLocations": []
+    "lootLocations": [
+      "*"
+    ]
   },
   {
     "id": "ADS01",
     "name": "Aetherium Dagger",
     "slot": "weapon",
     "rarity": "uncommon",
-    "minimumLevel": 7,
+    "minimumLevel": 45,
     "usableBy": [
-      "Scoundrel"
+      "Scoundrel",
+      "Barmaid"
     ],
     "stats": {
-      "speed": 2,
-      "agility": 10,
-      "critChance": 0.0175,
-      "critMultiplier": 0.08
+      "attackPower": 110.72,
+      "speed": 3.8,
+      "strength": 55.36,
+      "agility": 110.72,
+      "critChance": 0.0325,
+      "critMultiplier": 0.0497
     },
-    "price": 900,
-    "sellPrice": 270,
-    "description": "A bright and shining Mithril Dagger",
+    "price": null,
+    "sellPrice": 3674,
+    "description": "Aetherium holds a pale gleam after the forge goes dark. Highmere cutlers wrap each finished dagger before carrying it home, lest its light draw a following on the ridge roads.",
     "enchantmentSlots": 1,
     "lootRegions": [
-      "pineshire-reach"
+      "highmere-crags"
     ],
     "lootSources": [
+      "wave",
+      "boss",
       "everdeep"
     ],
-    "lootLocations": []
+    "lootLocations": [
+      "*"
+    ]
   },
   {
     "id": "ALS01",
     "name": "Aetherium Longsword",
     "slot": "weapon",
     "rarity": "uncommon",
-    "minimumLevel": 7,
+    "minimumLevel": 45,
     "usableBy": [
       "Gladiator",
       "Oathwarden",
-      "Dawnwarden",
-      "Barbarian",
-      "Barmaid",
-      "Scoundrel"
+      "Dawnwarden"
     ],
     "stats": {
-      "attackPower": 20,
-      "speed": 2,
-      "strength": 10,
-      "critChance": 0.01
+      "attackPower": 110.72,
+      "speed": 3.8,
+      "strength": 166.08,
+      "critChance": 0.0325,
+      "critMultiplier": 0.031
     },
-    "price": 1197,
-    "sellPrice": 270,
-    "description": "A bright and shining Mithril Longsword",
+    "price": null,
+    "sellPrice": 4520,
+    "description": "Thin bands of Aetherium are folded through this blade until the seams disappear. The smith signs the tang beneath the grip, where only the next person to repair it will see.",
     "enchantmentSlots": 1,
     "lootRegions": [
-      "pineshire-reach"
+      "highmere-crags"
     ],
     "lootSources": [
+      "wave",
+      "boss",
       "everdeep"
     ],
-    "lootLocations": []
+    "lootLocations": [
+      "*"
+    ]
   },
   {
     "id": "ASS01",
     "name": "Aetherium Shortsword",
     "slot": "weapon",
     "rarity": "uncommon",
-    "minimumLevel": 7,
+    "minimumLevel": 45,
     "usableBy": [
       "Gladiator",
-      "Barmaid",
-      "Scoundrel"
+      "Scoundrel",
+      "Barmaid"
     ],
     "stats": {
-      "attackPower": 20,
-      "speed": 2,
-      "strength": 10,
-      "critChance": 0.01
+      "attackPower": 110.72,
+      "speed": 3.8,
+      "strength": 166.08,
+      "critChance": 0.0325,
+      "critMultiplier": 0.031
     },
-    "price": 900,
-    "sellPrice": 270,
-    "description": "A bright and shining Mithril Shortsword",
+    "price": null,
+    "sellPrice": 4520,
+    "description": "Highmere couriers carry this bright short sword beneath their traveling coats. Its hilt has room for two fingers above the guard, a grip learned on roads too narrow for a sweeping cut.",
     "enchantmentSlots": 1,
     "lootRegions": [
-      "pineshire-reach"
+      "highmere-crags"
     ],
     "lootSources": [
+      "wave",
+      "boss",
       "everdeep"
     ],
-    "lootLocations": []
+    "lootLocations": [
+      "*"
+    ]
   },
   {
     "id": "AHA01",
     "name": "Aetherium Handaxe",
     "slot": "weapon",
     "rarity": "uncommon",
-    "minimumLevel": 7,
+    "minimumLevel": 45,
     "usableBy": [
-      "Gladiator",
-      "Barmaid",
-      "Scoundrel"
+      "Scoundrel",
+      "Barmaid"
     ],
     "stats": {
-      "attackPower": 20,
-      "speed": 2,
-      "strength": 10,
-      "critChance": 0.01
+      "attackPower": 110.72,
+      "speed": 3.8,
+      "strength": 110.72,
+      "agility": 55.36,
+      "critChance": 0.0325,
+      "critMultiplier": 0.031
     },
-    "price": 1197,
-    "sellPrice": 270,
-    "description": "A bright and shining Mithril Shortsword",
+    "price": null,
+    "sellPrice": 4520,
+    "description": "A pale vein runs from this axe's eye to its edge. Highmere smiths judge their work by whether that vein remains unbroken after the first winter's cutting.",
     "enchantmentSlots": 1,
     "lootRegions": [
-      "pineshire-reach"
+      "highmere-crags"
     ],
     "lootSources": [
+      "wave",
+      "boss",
       "everdeep"
     ],
-    "lootLocations": []
+    "lootLocations": [
+      "*"
+    ]
   },
   {
     "id": "AGA01",
     "name": "Aetherium Greataxe",
     "slot": "weapon",
     "rarity": "uncommon",
-    "minimumLevel": 7,
+    "minimumLevel": 45,
     "usableBy": [
       "Gladiator",
-      "Barmaid",
-      "Scoundrel"
+      "Barbarian"
     ],
     "stats": {
-      "attackPower": 20,
-      "speed": 2,
-      "strength": 10,
-      "critChance": 0.01
+      "attackPower": 193.76,
+      "speed": 3.8,
+      "strength": 166.08,
+      "critChance": 0.0325,
+      "critMultiplier": 0.031
     },
-    "price": 1800,
-    "sellPrice": 270,
-    "description": "A bright and shining Mithril Shortsword",
+    "price": null,
+    "sellPrice": 5944,
+    "description": "Aetherium keeps this great head lighter than its size suggests. Highmere weaponmasters hang a bell from the training haft until the wielder can stop a stroke without sounding it.",
     "enchantmentSlots": 1,
     "lootRegions": [
-      "pineshire-reach"
+      "highmere-crags"
     ],
     "lootSources": [
+      "wave",
+      "boss",
       "everdeep"
     ],
-    "lootLocations": []
+    "lootLocations": [
+      "*"
+    ]
   },
   {
     "id": "SBB01",
@@ -2897,8 +2949,212 @@ export const AUTHORED_EQUIPMENT = [
     "lootRegions": [],
     "lootSources": [],
     "lootLocations": []
+  },
+  {
+    "id": "VMA01",
+    "name": "Voidsteel Mace",
+    "slot": "weapon",
+    "rarity": "uncommon",
+    "minimumLevel": 35,
+    "usableBy": [
+      "Cleric of the Verdant Covenant",
+      "Cleric of the Everbright",
+      "Cleric of the Sanguine Song"
+    ],
+    "stats": {
+      "spellPower": 215.05,
+      "speed": 3.3,
+      "critChance": 0.0275,
+      "critMultiplier": 0.026
+    },
+    "price": null,
+    "sellPrice": 2775,
+    "description": "Highmere's field clerics bind prayer cords beneath the head of this mace. Its hollow note carries through the gate winds when a spoken blessing cannot.",
+    "enchantmentSlots": 1,
+    "lootRegions": [
+      "highmere-crags"
+    ],
+    "lootSources": [
+      "wave",
+      "boss",
+      "everdeep"
+    ],
+    "lootLocations": [
+      "*"
+    ]
+  },
+  {
+    "id": "VGST01",
+    "name": "Voidgate Branch",
+    "slot": "weapon",
+    "rarity": "uncommon",
+    "minimumLevel": 35,
+    "usableBy": [
+      "Mage of the Umbral Veil",
+      "Mage of the Luminous Archive",
+      "Mage of the Crimson Spire"
+    ],
+    "stats": {
+      "spellPower": 215.05,
+      "speed": 3.3,
+      "critChance": 0.0275,
+      "critMultiplier": 0.026
+    },
+    "price": null,
+    "sellPrice": 2775,
+    "description": "A branch gathered where a gate opened through a living tree. Its severed buds still turn toward unseen light, and Highmere mages keep its roots wrapped even after the wood has dried.",
+    "enchantmentSlots": 1,
+    "lootRegions": [
+      "highmere-crags"
+    ],
+    "lootSources": [
+      "wave",
+      "boss",
+      "everdeep"
+    ],
+    "lootLocations": [
+      "*"
+    ]
+  },
+  {
+    "id": "VGBR01",
+    "name": "Voidgate Bow",
+    "slot": "weapon",
+    "rarity": "uncommon",
+    "minimumLevel": 35,
+    "usableBy": [
+      "Ranger"
+    ],
+    "stats": {
+      "attackPower": 74.8,
+      "speed": 3.3,
+      "agility": 112.2,
+      "critChance": 0.0275,
+      "critMultiplier": 0.026
+    },
+    "price": null,
+    "sellPrice": 2775,
+    "description": "This bow was shaped from timber bent around a sealed gate. Highmere bowyers leave that curve untouched, saying the wood remembers a farther shore.",
+    "enchantmentSlots": 1,
+    "lootRegions": [
+      "highmere-crags"
+    ],
+    "lootSources": [
+      "wave",
+      "boss",
+      "everdeep"
+    ],
+    "lootLocations": [
+      "*"
+    ]
+  },
+  {
+    "id": "AMA01",
+    "name": "Aetherium Mace",
+    "slot": "weapon",
+    "rarity": "uncommon",
+    "minimumLevel": 45,
+    "usableBy": [
+      "Cleric of the Verdant Covenant",
+      "Cleric of the Everbright",
+      "Cleric of the Sanguine Song"
+    ],
+    "stats": {
+      "spellPower": 318.33,
+      "speed": 3.8,
+      "critChance": 0.0325,
+      "critMultiplier": 0.031
+    },
+    "price": null,
+    "sellPrice": 4520,
+    "description": "Three shallow channels circle this mace's Aetherium head, each left open for a cleric's own blessing. Highmere smiths deliver it without an inscription, refusing to choose the prayer for its bearer.",
+    "enchantmentSlots": 1,
+    "lootRegions": [
+      "highmere-crags"
+    ],
+    "lootSources": [
+      "wave",
+      "boss",
+      "everdeep"
+    ],
+    "lootLocations": [
+      "*"
+    ]
+  },
+  {
+    "id": "ALST01",
+    "name": "Aetherium-lined Staff",
+    "slot": "weapon",
+    "rarity": "uncommon",
+    "minimumLevel": 45,
+    "usableBy": [
+      "Mage of the Umbral Veil",
+      "Mage of the Luminous Archive",
+      "Mage of the Crimson Spire"
+    ],
+    "stats": {
+      "spellPower": 318.33,
+      "speed": 3.8,
+      "critChance": 0.0325,
+      "critMultiplier": 0.031
+    },
+    "price": null,
+    "sellPrice": 4520,
+    "description": "Aetherium wire lines the grain of this staff instead of binding its surface. Highmere mages trace the pale seams with a thumb while waiting for a difficult working to settle.",
+    "enchantmentSlots": 1,
+    "lootRegions": [
+      "highmere-crags"
+    ],
+    "lootSources": [
+      "wave",
+      "boss",
+      "everdeep"
+    ],
+    "lootLocations": [
+      "*"
+    ]
+  },
+  {
+    "id": "ALBR01",
+    "name": "Aetherium-lined Bow",
+    "slot": "weapon",
+    "rarity": "uncommon",
+    "minimumLevel": 45,
+    "usableBy": [
+      "Ranger"
+    ],
+    "stats": {
+      "attackPower": 110.72,
+      "speed": 3.8,
+      "agility": 166.08,
+      "critChance": 0.0325,
+      "critMultiplier": 0.031
+    },
+    "price": null,
+    "sellPrice": 4520,
+    "description": "Fine Aetherium strips follow the inner limbs of this bow. Highmere bowyers tune them beside a running stream, listening for a note that disappears beneath the water.",
+    "enchantmentSlots": 1,
+    "lootRegions": [
+      "highmere-crags"
+    ],
+    "lootSources": [
+      "wave",
+      "boss",
+      "everdeep"
+    ],
+    "lootLocations": [
+      "*"
+    ]
   }
 ];
+
+// New class gear shares the established regional tier and recipe rules.
+AUTHORED_EQUIPMENT.push(...runebladeEquipment(AUTHORED_EQUIPMENT));
+for (const item of AUTHORED_EQUIPMENT) {
+
+  // Only leather armor gains the new class, keeping mail, plate and robes restricted.
+  if (['PV01', 'SAR01', 'R1AL01', 'STAL01'].includes(item.id)) item.usableBy.push('Runedance');
+}
 
 export const AUTHORED_EQUIPMENT_RECIPES = [
   {
@@ -3538,14 +3794,14 @@ export const AUTHORED_EQUIPMENT_RECIPES = [
       "count": 1
     },
     "ingredients": {
-      "MAT003": 3,
-      "MAT004": 2,
-      "MAT014": 2,
-      "MAT020": 2
+      "MAT003": 4,
+      "MAT004": 4,
+      "MAT014": 4,
+      "MAT020": 4
     },
-    "fee": 225,
+    "fee": 2482,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Sold to Blacksmith",
     "crafter": "Blacksmith"
   },
   {
@@ -3559,14 +3815,14 @@ export const AUTHORED_EQUIPMENT_RECIPES = [
       "count": 1
     },
     "ingredients": {
-      "MAT003": 4,
-      "MAT004": 3,
-      "MAT014": 2,
-      "MAT020": 2
+      "MAT003": 6,
+      "MAT004": 6,
+      "MAT014": 4,
+      "MAT020": 4
     },
-    "fee": 225,
+    "fee": 3053,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Sold to Blacksmith",
     "crafter": "Blacksmith"
   },
   {
@@ -3580,14 +3836,14 @@ export const AUTHORED_EQUIPMENT_RECIPES = [
       "count": 1
     },
     "ingredients": {
-      "MAT003": 3,
-      "MAT004": 2,
-      "MAT014": 2,
-      "MAT020": 2
+      "MAT003": 4,
+      "MAT004": 4,
+      "MAT014": 4,
+      "MAT020": 4
     },
-    "fee": 225,
+    "fee": 3053,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Sold to Blacksmith",
     "crafter": "Blacksmith"
   },
   {
@@ -3601,14 +3857,14 @@ export const AUTHORED_EQUIPMENT_RECIPES = [
       "count": 1
     },
     "ingredients": {
-      "MAT003": 4,
-      "MAT004": 3,
-      "MAT014": 2,
-      "MAT020": 2
+      "MAT003": 5,
+      "MAT004": 5,
+      "MAT014": 4,
+      "MAT020": 4
     },
-    "fee": 225,
+    "fee": 3053,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Sold to Blacksmith",
     "crafter": "Blacksmith"
   },
   {
@@ -3622,14 +3878,14 @@ export const AUTHORED_EQUIPMENT_RECIPES = [
       "count": 1
     },
     "ingredients": {
-      "MAT003": 6,
-      "MAT004": 5,
-      "MAT014": 2,
-      "MAT020": 2
+      "MAT003": 8,
+      "MAT004": 8,
+      "MAT014": 4,
+      "MAT020": 4
     },
-    "fee": 225,
+    "fee": 4014,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Sold to Blacksmith",
     "crafter": "Blacksmith"
   },
   {
@@ -3643,14 +3899,14 @@ export const AUTHORED_EQUIPMENT_RECIPES = [
       "count": 1
     },
     "ingredients": {
-      "MAT004": 3,
-      "MAT013": 2,
-      "MAT014": 2,
-      "MAT015": 2
+      "MAT004": 6,
+      "MAT013": 5,
+      "MAT014": 5,
+      "MAT015": 4
     },
-    "fee": 225,
+    "fee": 4042,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Sold to Blacksmith",
     "crafter": "Blacksmith"
   },
   {
@@ -3664,14 +3920,14 @@ export const AUTHORED_EQUIPMENT_RECIPES = [
       "count": 1
     },
     "ingredients": {
-      "MAT004": 4,
-      "MAT013": 2,
-      "MAT014": 2,
-      "MAT015": 2
+      "MAT004": 8,
+      "MAT013": 5,
+      "MAT014": 5,
+      "MAT015": 4
     },
-    "fee": 225,
+    "fee": 4972,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Sold to Blacksmith",
     "crafter": "Blacksmith"
   },
   {
@@ -3685,14 +3941,14 @@ export const AUTHORED_EQUIPMENT_RECIPES = [
       "count": 1
     },
     "ingredients": {
-      "MAT004": 3,
-      "MAT013": 2,
-      "MAT014": 2,
-      "MAT015": 2
+      "MAT004": 6,
+      "MAT013": 5,
+      "MAT014": 5,
+      "MAT015": 4
     },
-    "fee": 225,
+    "fee": 4972,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Sold to Blacksmith",
     "crafter": "Blacksmith"
   },
   {
@@ -3706,14 +3962,14 @@ export const AUTHORED_EQUIPMENT_RECIPES = [
       "count": 1
     },
     "ingredients": {
-      "MAT004": 4,
-      "MAT013": 2,
-      "MAT014": 2,
-      "MAT015": 2
+      "MAT004": 7,
+      "MAT013": 5,
+      "MAT014": 5,
+      "MAT015": 4
     },
-    "fee": 225,
+    "fee": 4972,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Sold to Blacksmith",
     "crafter": "Blacksmith"
   },
   {
@@ -3727,14 +3983,14 @@ export const AUTHORED_EQUIPMENT_RECIPES = [
       "count": 1
     },
     "ingredients": {
-      "MAT004": 6,
-      "MAT013": 2,
-      "MAT014": 2,
-      "MAT015": 2
+      "MAT004": 10,
+      "MAT013": 5,
+      "MAT014": 5,
+      "MAT015": 4
     },
-    "fee": 225,
+    "fee": 6539,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Sold to Blacksmith",
     "crafter": "Blacksmith"
   },
   {
@@ -4071,8 +4327,140 @@ export const AUTHORED_EQUIPMENT_RECIPES = [
     "knownAtStart": true,
     "learnedFrom": "Known at start",
     "crafter": "Blacksmith"
+  },
+  {
+    "id": "RVMA01",
+    "name": "Recipe: Voidsteel Mace",
+    "category": "equipment",
+    "description": "Craft Voidsteel Mace.",
+    "output": {
+      "type": "equipment",
+      "itemId": "VMA01",
+      "count": 1
+    },
+    "ingredients": {
+      "MAT003": 6,
+      "MAT004": 6,
+      "MAT014": 4,
+      "MAT020": 4
+    },
+    "fee": 3053,
+    "knownAtStart": false,
+    "learnedFrom": "Sold to Blacksmith",
+    "crafter": "Blacksmith"
+  },
+  {
+    "id": "RVGST01",
+    "name": "Recipe: Voidgate Branch",
+    "category": "equipment",
+    "description": "Craft Voidgate Branch.",
+    "output": {
+      "type": "equipment",
+      "itemId": "VGST01",
+      "count": 1
+    },
+    "ingredients": {
+      "MAT003": 6,
+      "MAT004": 6,
+      "MAT014": 4,
+      "MAT020": 4,
+      "MAT007": 8
+    },
+    "fee": 3053,
+    "knownAtStart": false,
+    "learnedFrom": "Sold to Blacksmith",
+    "crafter": "Blacksmith"
+  },
+  {
+    "id": "RVGBR01",
+    "name": "Recipe: Voidgate Bow",
+    "category": "equipment",
+    "description": "Craft Voidgate Bow.",
+    "output": {
+      "type": "equipment",
+      "itemId": "VGBR01",
+      "count": 1
+    },
+    "ingredients": {
+      "MAT003": 6,
+      "MAT004": 6,
+      "MAT014": 4,
+      "MAT020": 4,
+      "MAT007": 8
+    },
+    "fee": 3053,
+    "knownAtStart": false,
+    "learnedFrom": "Sold to Blacksmith",
+    "crafter": "Blacksmith"
+  },
+  {
+    "id": "RAMA01",
+    "name": "Recipe: Aetherium Mace",
+    "category": "equipment",
+    "description": "Craft Aetherium Mace.",
+    "output": {
+      "type": "equipment",
+      "itemId": "AMA01",
+      "count": 1
+    },
+    "ingredients": {
+      "MAT004": 8,
+      "MAT013": 5,
+      "MAT014": 5,
+      "MAT015": 4
+    },
+    "fee": 4972,
+    "knownAtStart": false,
+    "learnedFrom": "Sold to Blacksmith",
+    "crafter": "Blacksmith"
+  },
+  {
+    "id": "RALST01",
+    "name": "Recipe: Aetherium-lined Staff",
+    "category": "equipment",
+    "description": "Craft Aetherium-lined Staff.",
+    "output": {
+      "type": "equipment",
+      "itemId": "ALST01",
+      "count": 1
+    },
+    "ingredients": {
+      "MAT004": 8,
+      "MAT013": 5,
+      "MAT014": 5,
+      "MAT015": 4,
+      "MAT007": 8
+    },
+    "fee": 4972,
+    "knownAtStart": false,
+    "learnedFrom": "Sold to Blacksmith",
+    "crafter": "Blacksmith"
+  },
+  {
+    "id": "RALBR01",
+    "name": "Recipe: Aetherium-lined Bow",
+    "category": "equipment",
+    "description": "Craft Aetherium-lined Bow.",
+    "output": {
+      "type": "equipment",
+      "itemId": "ALBR01",
+      "count": 1
+    },
+    "ingredients": {
+      "MAT004": 8,
+      "MAT013": 5,
+      "MAT014": 5,
+      "MAT015": 4,
+      "MAT007": 8
+    },
+    "fee": 4972,
+    "knownAtStart": false,
+    "learnedFrom": "Sold to Blacksmith",
+    "crafter": "Blacksmith"
   }
 ];
+
+AUTHORED_EQUIPMENT_RECIPES.push(...runebladeRecipes(AUTHORED_EQUIPMENT_RECIPES));
 
 export const EQUIPMENT_LOOT_TABLES = [
   {

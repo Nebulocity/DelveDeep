@@ -30,7 +30,7 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
       await page.screenshot({ path: `output/qa/delve-preparation/${name}-${viewport.width}.png` });
     };
 
-    for (const [delve, motif] of [['slime-cave', 'slime'], ['thornbriar-hollow', 'roots'], ['dolmark-den', 'water'], ['murmuring-abyss', 'runes']]) {
+    for (const [delve, motif] of [['slime-cave', 'slime'], ['thornbriar-hollow', 'roots'], ['dolmark-den', 'water'], ['old-quarry', 'roots'], ['murmuring-abyss', 'runes']]) {
       for (const name of ['DelveSelectScene', 'PartySelectScene', 'DungeonScene']) {
         await activate(name, delve);
         const state = await page.evaluate(name => {
@@ -125,7 +125,7 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
     expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('PartySelectScene').selectedIds.size)).toBe(5);
     await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('PartySelectScene').begin());
     await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('DungeonScene').sys.isActive());
-    await activate('PartySelectScene', 'slime-cave');
+    await activate('PartySelectScene', 'old-quarry');
     expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('PartySelectScene').selectedIds.size)).toBe(5);
     expect(errors).toEqual([]);
   });

@@ -54,11 +54,60 @@ battle.handleEnemyTap(enemies[0]);
 assert.equal(battle.braceUntil, undefined);
 assert.equal(battle.focusTargetId, undefined);
 assert.equal(battle.pendingPausedTactics.length, 2);
+assert.equal(battle.leaderAbilityCooldowns.has('focusFire'), false, 'paused selection waits for Resume');
 battle.combatPaused = false;
 battle.flushPausedTactics();
 assert.ok(battle.braceUntil > battle.time.now);
 assert.equal(battle.focusTargetId, 'boss');
 assert.equal(battle.pendingPausedTactics.length, 0);
+assert.equal(battle.leaderAbilityCooldowns.get('focusFire'), battle.time.now);
+
+// Unconfirmed tactics survive a real wave clear, then spend exactly once on selection.
+context.GameState.run = { entry: 'progression' };
+context.isOrdinaryDelve = () => false;
+for (const id of ['focusFire', 'coordinatedAttack', 'lunarAssault', 'revive']) {
+  const events = [];
+  const ally = { ...units[0], attackPower: 10, spellPower: 10, className: 'Mage of the Moon' };
+  const fallen = { ...units[1], alive: false,
+    revive() { this.alive = true; } };
+  const enemy = { ...enemies[0], status: {} };
+  const selection = Object.assign(Object.create(context.Battle.prototype), {
+    partyUnits: [ally, fallen], enemies: [enemy], currentWaveIndex: 0, waves: [{}, {}],
+    time: { now: 2000 }, combatPaused: false, commandMode: null,
+    leaderAbilityCooldowns: new Map(), usedLeaderAbilities: new Set(),
+    selectedUnitIds: new Set(), manualTargets: new Map(), heldUnitIds: new Set(), attackTargets: new Map(),
+    waveReturnPositions: new Map(), activeTelegraphs: [], game: { backgroundProgress: { isReplaying: true } },
+    combatLog: { add(type) { events.push(type); }, persist() {} },
+    showBattleMessage() {}, clearBattleMessage() {}, fadeCombatAnnounceLog() {},
+    refreshTacticsMenus() {}, updateLeaderLoadoutBar() {}, updateHud() {},
+    resolveDamage() { this.hits = (this.hits ?? 0) + 1; }
+  });
+  selection.useLeaderAbility(id);
+  selection.time.now += 5000;
+  assert.equal(selection.leaderAbilityCooldowns.has(id), false, `${id} has no countdown while choosing`);
+  assert.equal(selection.usedLeaderAbilities.has(id), false, `${id} has not spent its use`);
+  assert.equal(events.length, 0, `${id} is not logged before selection`);
+
+  // Dead enemy taps cannot confirm a tactic. The next wave replaces these enemies.
+  if (id !== 'revive') selection.handleEnemyTap({ ...enemy, alive: false });
+  selection.enemies = [];
+  selection.completeWave();
+  assert.equal(selection.commandMode, null, `${id} clears its prompt when the wave ends`);
+  assert.equal(selection.isLeaderAbilityReady(id), true, `${id} remains available next wave`);
+
+  selection.waveTransitioning = false;
+  selection.enemies = [enemy];
+  selection.time.now += 3000;
+  selection.useLeaderAbility(id);
+  if (id === 'revive') selection.toggleUnitSelection(fallen);
+  else selection.handleEnemyTap(enemy);
+  assert.equal(selection.leaderAbilityCooldowns.get(id), selection.time.now, `${id} starts at confirmation`);
+  assert.equal(selection.usedLeaderAbilities.has(id), Boolean(leaderAbilities.find(a => a.id === id).oncePerEncounter));
+  assert.equal(events.filter(type => type === 'tactic').length, 1, `${id} is logged once`);
+  if (id === 'focusFire') assert.equal(selection.focusTargetId, enemy.id);
+  if (id === 'revive') assert.equal(fallen.alive, true);
+  if (id === 'coordinatedAttack' || id === 'lunarAssault') assert.equal(selection.hits, 1);
+}
 
 // Only bosses winding up for more than three seconds receive the interrupt banner.
 battle.showBattleMessage = function (text, color, persistent, durationMultiplier, fadeDurationMs) {

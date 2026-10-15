@@ -356,7 +356,7 @@ export function addAbilityProgression(classDefinitions) {
       if (ability.blind) ability.blind = Math.min(3000, ability.blind);
     }
 
-    for (const entry of NEW_CLASS_ABILITIES[className]) {
+    for (const entry of NEW_CLASS_ABILITIES[className] ?? []) {
       const key = abilityKey(entry.name);
       const kind = targetKind(entry.target);
       const ability = {

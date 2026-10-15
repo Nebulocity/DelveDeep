@@ -18,6 +18,7 @@ import { BARBARIAN_ABILITY_EFFECTS } from '../data/barbarianAbilityEffects.js';
 import { BARMAID_ABILITY_EFFECTS } from '../data/barmaidAbilityEffects.js';
 import { EVERBRIGHT_CLERIC_EFFECTS } from '../data/everbrightClericEffects.js';
 import { UMBRAL_MAGE_EFFECTS } from '../data/umbralMageEffects.js';
+import { RUNEDANCE_EFFECTS } from '../data/runedanceEffects.js';
 import { updateUmbralDecoyEffects, clearUmbralDecoyEffects } from './UmbralDecoyEffects.js';
 import { createPhysicalAbilityEffect, updatePhysicalAbilityEffects, clearPhysicalAbilityEffects } from './PhysicalAbilityEffects.js';
 import { createPrepareAbilityEffect, updatePrepareAbilityEffects, clearPrepareAbilityEffects } from './PrepareAbilityEffects.js';
@@ -478,7 +479,7 @@ function restorePersistentEffects(scene) {
       ...OATHWARDEN_ASSAULT_EFFECTS, ...GLADIATOR_ASSAULT_EFFECTS, ...DAWNWARDEN_ASSAULT_EFFECTS,
       ...OATHWARDEN_PROTECT_EFFECTS, ...GLADIATOR_PROTECT_EFFECTS, ...GENERIC_RESTORE_EFFECTS,
       ...VERDANT_CLERIC_EFFECTS, ...RANGER_ABILITY_EFFECTS, ...EVERBRIGHT_CLERIC_EFFECTS,
-      ...BARBARIAN_ABILITY_EFFECTS, ...BARMAID_ABILITY_EFFECTS, ...UMBRAL_MAGE_EFFECTS]) {
+      ...BARBARIAN_ABILITY_EFFECTS, ...BARMAID_ABILITY_EFFECTS, ...UMBRAL_MAGE_EFFECTS, ...RUNEDANCE_EFFECTS]) {
       if (definition.persistentStatus && definition.restoreFromStatus !== false
         && effectStatusActive(target, definition, now, scene.currentWaveIndex)) {
         requests.push([{ className: definition.className }, { id: definition.abilityId,

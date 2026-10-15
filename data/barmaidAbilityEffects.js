@@ -4,6 +4,12 @@
 const prefix = 'ability_v2_barmaid_';
 const entries = [
   { slug: 'frying-pan', name: 'Frying Pan', suffix: 'frying_pan' },
+
+  // Pan Drop forms a pan hit on each affected enemy. Reuse the finished sheets;
+  // the lasting head cue follows the shared stun deadline and fades when it ends.
+  { slug: 'pan-drop', file: 'frying-pan', name: 'Pan Drop!', suffix: 'pan_drop' },
+  { slug: 'pan-drop-stun', file: 'last-call-dazed', name: 'Pan Drop!', suffix: 'pan_drop', status: 'stun',
+    vfxPhase: 'stun', restoreFromStatus: false, targetAnchorY: 0, clipY: -76, targetSize: 0.8 },
   { slug: 'spilled-drink', name: 'Spilled Drink', suffix: 'spilled_drink', status: 'zone',
     groundZone: true, replacesZoneView: true, groundFootprint: { radius: 40, squash: 0.35 }, clipY: -58, behind: true, opacity: 0.65 },
   { slug: 'cover-the-regulars', name: 'Cover the Regulars', suffix: 'cover_the_regulars', status: 'intercept',
@@ -45,6 +51,7 @@ const artworkBounds = {
   'quick-pour': { left: -27, right: 27, top: -47, bottom: -6 },
   'last-call-dazed': { left: -27, right: 27, top: -44, bottom: -12 },
   'pan-stun': { left: -27, right: 27, top: -44, bottom: -12 },
+  'pan-drop-stun': { left: -27, right: 27, top: -44, bottom: -12 },
   'bottle-bleed': { left: -16, right: 17, top: -18, bottom: 22 },
   'cover-the-regulars': { left: -36, right: 36, top: -30, bottom: 31 }
 };

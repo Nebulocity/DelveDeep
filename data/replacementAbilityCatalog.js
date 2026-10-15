@@ -5,7 +5,10 @@
 // Every magical ability spends a fraction of maximum Mana, including recovery skills.
 // Small recovery costs leave room for a net Mana gain; costs do not increase with rank.
 
+import { RUNEDANCE_ABILITIES } from './runedanceAbilities.js';
+
 export const REPLACEMENT_ABILITY_ROWS = [
+  ...RUNEDANCE_ABILITIES,
   {
     "id": "ability_v2_generic_physical_lacerate",
     "name": "Lacerate",
@@ -96,7 +99,11 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "starterFor": [],
     "trigger": "When useful and ready; respects player orders.",
     "limits": "Same named status refreshes instead of stacking; beneficial amounts cap at missing resources; control respects immunity.",
-    "secondaryArea": "None"
+    "secondaryArea": "None",
+    "excludedClasses": [
+      "Ranger",
+      "Scoundrel"
+    ]
   },
   {
     "id": "ability_v2_generic_physical_cleave",
@@ -143,7 +150,11 @@ export const REPLACEMENT_ABILITY_ROWS = [
     ],
     "trigger": "When useful and ready; respects player orders.",
     "limits": "Same named status refreshes instead of stacking; beneficial amounts cap at missing resources; control respects immunity.",
-    "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
+    "secondaryArea": "Same resolved targets unless effect names the caster or an ally.",
+    "excludedClasses": [
+      "Ranger",
+      "Scoundrel"
+    ]
   },
   {
     "id": "ability_v2_generic_physical_kick",
@@ -513,7 +524,13 @@ export const REPLACEMENT_ABILITY_ROWS = [
     ],
     "trigger": "When useful and ready; respects player orders.",
     "limits": "Same named status refreshes instead of stacking; beneficial amounts cap at missing resources; control respects immunity.",
-    "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
+    "secondaryArea": "Same resolved targets unless effect names the caster or an ally.",
+    "excludedClasses": [
+      "Barbarian",
+      "Scoundrel",
+      "Ranger",
+      "Barmaid"
+    ]
   },
   {
     "id": "ability_v2_generic_physical_interpose",
@@ -560,7 +577,13 @@ export const REPLACEMENT_ABILITY_ROWS = [
     ],
     "trigger": "When useful and ready; respects player orders.",
     "limits": "One hit; does not redirect area damage.",
-    "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
+    "secondaryArea": "Same resolved targets unless effect names the caster or an ally.",
+    "excludedClasses": [
+      "Barbarian",
+      "Scoundrel",
+      "Ranger",
+      "Barmaid"
+    ]
   },
   {
     "id": "ability_v2_generic_magical_spellbind",
@@ -874,14 +897,16 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "healthPayer": "None",
     "tickInterval": 0,
     "starterFor": [
-      "Dawnwarden",
-      "Umbral Mage",
-      "Luminous Mage",
-      "Crimson Mage"
+      "Dawnwarden"
     ],
     "trigger": "Once, after a nonlethal hit crosses or remains below 25% HP.",
     "limits": "Does not prevent lethal damage; cannot resurrect.",
-    "secondaryArea": "None"
+    "secondaryArea": "None",
+    "excludedClasses": [
+      "Umbral Mage",
+      "Luminous Mage",
+      "Crimson Mage"
+    ]
   },
   {
     "id": "ability_v2_generic_magical_rejuvenation_aura",
@@ -926,7 +951,12 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "starterFor": [],
     "trigger": "When useful and ready; respects player orders.",
     "limits": "Same named status refreshes instead of stacking; beneficial amounts cap at missing resources; control respects immunity.",
-    "secondaryArea": "None"
+    "secondaryArea": "None",
+    "excludedClasses": [
+      "Umbral Mage",
+      "Luminous Mage",
+      "Crimson Mage"
+    ]
   },
   {
     "id": "ability_v2_generic_physical_ready_weapon",
@@ -4106,6 +4136,51 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {
+    "id": "ability_v2_barmaid_pan_drop",
+    "name": "Pan Drop!",
+    "className": "Barmaid",
+    "category": "Assault",
+    "targetLabel": "Enemies",
+    "primary": {
+      "text": "Stuns all enemies around the Barmaid for the duration.",
+      "potency": 0,
+      "unit": "n.a.",
+      "basis": "None",
+      "cap": null
+    },
+    "secondary": {
+      "text": "None",
+      "potency": 0,
+      "unit": "n.a.",
+      "basis": "None",
+      "cap": null
+    },
+    "duration": 3000,
+    "secondaryDuration": 0,
+    "durationCap": 6000,
+    "secondaryDurationCap": 0,
+    "cooldown": 20000,
+    "cooldownFloor": 10000,
+    "castRange": "Self",
+    "shape": "Circle",
+    "anchor": "Caster",
+    "radius": 300,
+    "width": 0,
+    "maxTargets": "All",
+    "handler": "areaStun",
+    "damageType": "None",
+    "element": "None",
+    "windup": 300,
+    "manaFraction": 0,
+    "healthFraction": 0,
+    "healthPayer": "None",
+    "tickInterval": 0,
+    "starterFor": [],
+    "trigger": "When an enemy in the area can be stunned; respects player orders.",
+    "limits": "Same named status refreshes instead of stacking; control respects immunity.",
+    "secondaryArea": "None"
+  },
+  {
     "id": "ability_v2_barmaid_tavern_brawl",
     "name": "Tavern Brawl",
     "className": "Barmaid",
@@ -5190,7 +5265,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "healthFraction": 0,
     "healthPayer": "None",
     "tickInterval": 0,
-    "starterFor": [],
+    "starterFor": [
+      "Umbral Mage"
+    ],
     "trigger": "When useful and ready; respects player orders.",
     "limits": "Same named status refreshes instead of stacking; beneficial amounts cap at missing resources; control respects immunity.",
     "secondaryArea": "None"
@@ -5377,55 +5454,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "None"
   },
   {
-    "id": "ability_v2_umbral_mage_dark_rejuvenation",
-    "name": "Dark Rejuvenation",
-    "className": "Umbral Mage",
-    "category": "Restore",
-    "targetLabel": "Single ally or self",
-    "primary": {
-      "text": "Restores [x] health to one ally.",
-      "potency": 1.3,
-      "unit": "% of power basis",
-      "basis": "Caster Spell Power",
-      "healing": true,
-      "cap": null
-    },
-    "secondary": {
-      "text": "None",
-      "potency": 0,
-      "unit": "n.a.",
-      "basis": "None",
-      "cap": null
-    },
-    "duration": 0,
-    "secondaryDuration": 0,
-    "durationCap": 0,
-    "secondaryDurationCap": 0,
-    "cooldown": 24000,
-    "cooldownFloor": 12000,
-    "castRange": 600,
-    "shape": "None",
-    "anchor": "None",
-    "radius": 0,
-    "width": 0,
-    "maxTargets": 1,
-    "handler": "healActualHealthCost",
-    "damageType": "None",
-    "element": "None",
-    "windup": 300,
-    "manaFraction": 0.06,
-    "healthFraction": 0.06,
-    "healthPayer": "Caster",
-    "tickInterval": 0,
-    "starterFor": [],
-    "trigger": "When useful and ready; respects player orders.",
-    "limits": "Health costs use current HP, bypass mitigation, cannot critically hit, and cannot reduce the payer below 1 HP; skip when unsafe. Costs do not grow with rank.",
-    "secondaryArea": "None"
-  },
-  {
-    "id": "ability_v2_umbral_mage_soul_reclamation",
+    "id": "ability_v2_sanguine_cleric_soul_reclamation",
     "name": "Soul Reclamation",
-    "className": "Umbral Mage",
+    "className": "Sanguine Cleric",
     "category": "Restore",
     "targetLabel": "Single fallen ally",
     "primary": {
@@ -5465,7 +5496,8 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "starterFor": [],
     "trigger": "When useful and ready; respects player orders.",
     "limits": "Health costs use current HP, bypass mitigation, cannot critically hit, and cannot reduce the payer below 1 HP; skip when unsafe. Costs do not grow with rank. Once per encounter; cannot revive an ally barred from revival.",
-    "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
+    "secondaryArea": "Same resolved targets unless effect names the caster or an ally.",
+    "minimumLevel": 10
   },
   {
     "id": "ability_v2_luminous_mage_soothing_light",
@@ -5553,7 +5585,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "healthFraction": 0,
     "healthPayer": "None",
     "tickInterval": 1000,
-    "starterFor": [],
+    "starterFor": [
+      "Luminous Mage"
+    ],
     "trigger": "When useful and ready; respects player orders.",
     "limits": "Does not affect non-mana users; total restoration is divided among ticks.",
     "secondaryArea": "None"
@@ -5841,18 +5875,19 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "category": "Prepare",
     "targetLabel": "Self",
     "primary": {
-      "text": "Increases potency of the next Restore ability by [x]%.",
+      "text": "Increases potency of the next Assault ability by [x]%.",
       "potency": 0.2,
       "unit": "% change",
-      "basis": "Next Restore potency",
+      "basis": "Next Assault potency",
       "cap": 0.35
     },
     "secondary": {
       "text": "Reduces its Mana cost by [y]%.",
       "potency": 0.15,
       "unit": "% change",
-      "basis": "Next Restore Mana cost",
-      "cap": 0.3
+      "basis": "Next Assault Mana cost",
+      "cap": 0.3,
+      "fixedPotency": true
     },
     "duration": 8000,
     "secondaryDuration": 0,
@@ -5866,7 +5901,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "radius": 0,
     "width": 0,
     "maxTargets": 1,
-    "handler": "nextRestorePotencyCost",
+    "handler": "nextAssaultPotencyCost",
     "damageType": "None",
     "element": "None",
     "windup": 300,
@@ -5977,43 +6012,44 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "category": "Prepare",
     "targetLabel": "Self",
     "primary": {
-      "text": "Increases potency of the next Restore ability by [x]%.",
+      "text": "Places a shield on the mage that absorbs [x] damage.",
       "potency": 0.15,
-      "unit": "% change",
-      "basis": "Next Restore potency",
-      "cap": 0.3
+      "unit": "% of power basis",
+      "basis": "Caster Spell Power",
+      "cap": null
     },
     "secondary": {
-      "text": "Extends that ability’s periodic or triggered healing duration by [y]%.",
-      "potency": 0.1,
-      "unit": "% change",
-      "basis": "Next Restore duration",
-      "cap": 0.2
+      "text": "When destroyed by damage, deals [y] radiant damage to all enemies within 2 paces.",
+      "potency": 0.3,
+      "unit": "% of power basis",
+      "basis": "Caster Spell Power",
+      "cap": null
     },
     "duration": 8000,
     "secondaryDuration": 0,
-    "durationCap": 20000,
+    "durationCap": 8000,
     "secondaryDurationCap": 0,
     "cooldown": 26000,
     "cooldownFloor": 13000,
     "castRange": "Self",
     "shape": "None",
     "anchor": "None",
-    "radius": 0,
+    "radius": 200,
     "width": 0,
     "maxTargets": 1,
-    "handler": "nextRestorePotencyDuration",
-    "damageType": "None",
-    "element": "None",
+    "handler": "shieldBurst",
+    "damageType": "spell",
+    "element": "radiant",
     "windup": 300,
-    "manaFraction": 0.03,
+    "manaFraction": 0,
     "healthFraction": 0,
     "healthPayer": "None",
     "tickInterval": 0,
     "starterFor": [],
     "trigger": "When useful and ready; respects player orders.",
-    "limits": "Does not extend control or a once-only trigger count.",
-    "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
+    "limits": "Bursts only when damage destroys the shield; expiry does not trigger a burst.",
+    "secondaryArea": "Same resolved targets unless effect names the caster or an ally.",
+    "manaCost": 20
   },
   {
     "id": "ability_v2_crimson_mage_renewal",
@@ -6107,52 +6143,6 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "None"
   },
   {
-    "id": "ability_v2_crimson_mage_cost_of_life",
-    "name": "Cost of Life",
-    "className": "Crimson Mage",
-    "category": "Restore",
-    "targetLabel": "Single ally or self",
-    "primary": {
-      "text": "Restores [x] health to one ally.",
-      "potency": 1.4,
-      "unit": "% of power basis",
-      "basis": "Caster Spell Power",
-      "healing": true,
-      "cap": null
-    },
-    "secondary": {
-      "text": "None",
-      "potency": 0,
-      "unit": "n.a.",
-      "basis": "None",
-      "cap": null
-    },
-    "duration": 0,
-    "secondaryDuration": 0,
-    "durationCap": 0,
-    "secondaryDurationCap": 0,
-    "cooldown": 24000,
-    "cooldownFloor": 12000,
-    "castRange": 600,
-    "shape": "None",
-    "anchor": "None",
-    "radius": 0,
-    "width": 0,
-    "maxTargets": 1,
-    "handler": "healthCostHeal",
-    "damageType": "None",
-    "element": "None",
-    "windup": 300,
-    "manaFraction": 0.06,
-    "healthFraction": 0.08,
-    "healthPayer": "Caster",
-    "tickInterval": 0,
-    "starterFor": [],
-    "trigger": "When useful and ready; respects player orders.",
-    "limits": "Health costs use current HP, bypass mitigation, cannot critically hit, and cannot reduce the payer below 1 HP; skip when unsafe. Costs do not grow with rank.",
-    "secondaryArea": "None"
-  },
-  {
     "id": "ability_v2_crimson_mage_ritual_of_replenishment",
     "name": "Ritual of Replenishment",
     "className": "Crimson Mage",
@@ -6193,7 +6183,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "healthFraction": 0,
     "healthPayer": "None",
     "tickInterval": 0,
-    "starterFor": [],
+    "starterFor": [
+      "Crimson Mage"
+    ],
     "trigger": "When useful and ready; respects player orders.",
     "limits": "Same named status refreshes instead of stacking; beneficial amounts cap at missing resources; control respects immunity.",
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
@@ -8210,5 +8202,97 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "trigger": "When useful and ready; respects player orders.",
     "limits": "Costs 3% current HP from each living ally; nonlethal and bypasses mitigation; skip if any payer is critically injured.",
     "secondaryArea": "None"
+  },
+  {
+    "id": "ability_v2_everbright_cleric_restore_spirit",
+    "name": "Restore Spirit",
+    "className": "Everbright Cleric",
+    "category": "Restore",
+    "targetLabel": "Single fallen ally",
+    "primary": {
+      "text": "Revives one fallen ally with [x] Health.",
+      "potency": 0.3,
+      "unit": "% of power basis",
+      "basis": "Recipient maximum Health",
+      "cap": 1
+    },
+    "secondary": {
+      "text": "Restores [y] Mana to the revived ally.",
+      "potency": 0.2,
+      "unit": "% of power basis",
+      "basis": "Recipient maximum Mana",
+      "cap": 1
+    },
+    "duration": 0,
+    "secondaryDuration": 0,
+    "durationCap": 0,
+    "secondaryDurationCap": 0,
+    "cooldown": 60000,
+    "cooldownFloor": 30000,
+    "castRange": 600,
+    "shape": "None",
+    "anchor": "None",
+    "radius": 0,
+    "width": 0,
+    "maxTargets": 1,
+    "handler": "revive",
+    "damageType": "None",
+    "element": "None",
+    "windup": 300,
+    "manaFraction": 0.15,
+    "healthFraction": 0,
+    "healthPayer": "None",
+    "tickInterval": 0,
+    "starterFor": [],
+    "trigger": "When useful and ready; respects player orders.",
+    "limits": "Once per encounter; cannot revive an ally barred from revival.",
+    "secondaryArea": "Same resolved targets unless effect names the caster or an ally.",
+    "minimumLevel": 10
+  },
+  {
+    "id": "ability_v2_verdant_cleric_cocoon_of_life",
+    "name": "Cocoon of Life",
+    "className": "Verdant Cleric",
+    "category": "Restore",
+    "targetLabel": "Single fallen ally",
+    "primary": {
+      "text": "Revives one fallen ally with [x] Health.",
+      "potency": 0.3,
+      "unit": "% of power basis",
+      "basis": "Recipient maximum Health",
+      "cap": 1
+    },
+    "secondary": {
+      "text": "Restores [y] Mana to the revived ally.",
+      "potency": 0.2,
+      "unit": "% of power basis",
+      "basis": "Recipient maximum Mana",
+      "cap": 1
+    },
+    "duration": 0,
+    "secondaryDuration": 0,
+    "durationCap": 0,
+    "secondaryDurationCap": 0,
+    "cooldown": 60000,
+    "cooldownFloor": 30000,
+    "castRange": 600,
+    "shape": "None",
+    "anchor": "None",
+    "radius": 0,
+    "width": 0,
+    "maxTargets": 1,
+    "handler": "revive",
+    "damageType": "None",
+    "element": "None",
+    "windup": 300,
+    "manaFraction": 0.15,
+    "healthFraction": 0,
+    "healthPayer": "None",
+    "tickInterval": 0,
+    "starterFor": [],
+    "trigger": "When useful and ready; respects player orders.",
+    "limits": "Once per encounter; cannot revive an ally barred from revival.",
+    "secondaryArea": "Same resolved targets unless effect names the caster or an ally.",
+    "minimumLevel": 10
   }
 ];

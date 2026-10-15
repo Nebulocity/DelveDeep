@@ -11,7 +11,7 @@ import { addStoneButton, addStonePanel, addStoneOrnaments, preloadCarvedStone } 
 import { bindButtonPress } from '../ui/ButtonPress.js';
 
 import {
-  EVERDEEP_WRIT_COST, claimEverdeepChest, everdeepChestPreview, everdeepRuns, everdeepTimers,
+  everdeepWritCost, everdeepUnavailableIds, claimEverdeepChest, everdeepChestPreview, everdeepRuns, everdeepTimers,
   everdeepUnlocked, finishEverdeepRun, recallEverdeep, settleEverdeep, startEverdeepRun
 } from '../game/Everdeep.js';
 
@@ -188,6 +188,7 @@ export default class EverdeepScene extends Phaser.Scene {
     }
     this.button(leftX, 955, leftW - 64, '+ New Expedition', () => {
       this.selectedRunId = null;
+      this.selectedIds.clear();
       this.render();
     }, { disabled: !everdeepUnlocked() });
 
@@ -201,15 +202,20 @@ export default class EverdeepScene extends Phaser.Scene {
       if (run) this.renderRun(run); else this.renderPartySelection();
     }
 
-    this.text(width / 2, height - 34, 'Party strength is frozen at departure. Adventurers remain available for all your adventures.', UI_FONT_SIZES.support29, '#d4c5dc', width - 100);
+    this.text(width / 2, height - 34, 'Adventurers in The Everdeep are unavailable for Delves. Cancel an expedition to bring them home.', UI_FONT_SIZES.support29, '#d4c5dc', width - 100);
     this.updateTimers();
   }
 
   // Display eligible roster choices and the current expedition lineup.
   renderPartySelection() {
     const x = this.detailX, w = this.detailW;
+    const unavailable = everdeepUnavailableIds(this.lastNow);
+    const writCost = everdeepWritCost();
+
+    // Remove stale selections after departure or a restored expedition.
+    for (const id of this.selectedIds) if (unavailable.has(id)) this.selectedIds.delete(id);
     this.text(x, 201, 'PREPARE A NEW DESCENT', UI_FONT_SIZES.heading42, '#edd9ff');
-    this.text(x, 267, '120 Gold per writ  /  2 hours  /  One wave every 2 minutes', UI_FONT_SIZES.body32, '#dfc692');
+    this.text(x, 267, `${writCost} Gold per writ (275 × Renown)  /  2 hours  /  Waves every 2 minutes`, UI_FONT_SIZES.body32, '#dfc692');
     this.text(x, 328, `${this.selectedIds.size}/5 selected  /  Max 1 Tank, 2 Healers, 4 DPS`, UI_FONT_SIZES.body32, '#d8c9e5');
     const roster = GameState.roster;
 
@@ -230,12 +236,12 @@ export default class EverdeepScene extends Phaser.Scene {
 
       // ?? uses the fallback only for null or undefined. A real zero or false stays
       // intact.
-      this.button(cx, y, w * 0.435, `${this.selectedIds.has(hero.id) ? '✓  ' : ''}${hero.name}\n${hero.shortName ?? hero.className}  /  Lv ${hero.level}  /  ${groupRole(hero.role)}`, () => {
+      this.button(cx, y, w * 0.435, `${this.selectedIds.has(hero.id) ? '✓  ' : ''}${hero.name}\n${unavailable.has(hero.id) ? 'IN THE EVERDEEP' : `${hero.shortName ?? hero.className}  /  Lv ${hero.level}  /  ${groupRole(hero.role)}`}`, () => {
         if (this.selectedIds.has(hero.id)) this.selectedIds.delete(hero.id);
         else if (this.selectedIds.size < 5 && this.roleAllowed(hero)) this.selectedIds.add(hero.id);
         else this.toast('Choose up to five adventurers within the role limits.');
         this.render();
-      }, { height: 122, size: UI_FONT_SIZES.body32, selected: this.selectedIds.has(hero.id) });
+      }, { height: 122, size: UI_FONT_SIZES.body32, selected: this.selectedIds.has(hero.id), disabled: unavailable.has(hero.id) });
     });
 
     if (pages > 1) {
@@ -249,7 +255,7 @@ export default class EverdeepScene extends Phaser.Scene {
         this.render();
       }, { size: UI_FONT_SIZES.support28, height: 72, disabled: this.rosterPage + 1 >= pages });
     }
-    this.button(x, 944, w - 130, `Purchase Writ & Begin  /  ${EVERDEEP_WRIT_COST} Gold`, () => {
+    this.button(x, 944, w - 130, `Purchase Writ & Begin  /  ${writCost} Gold`, () => {
 
       // ... expands these entries into the new list or call. It does not deep-copy the
       // objects inside.
@@ -257,11 +263,12 @@ export default class EverdeepScene extends Phaser.Scene {
       if (!result.ok) return this.toast(result.message);
       HapticsService.confirm();
       this.selectedRunId = result.run.id;
+      this.selectedIds.clear();
 
       // Math.floor rounds toward the smaller whole number, so 3.8 becomes 3.
       this.runPage = Math.floor((everdeepRuns().length - 1) / 4);
       this.render();
-    }, { color: 0x513267, disabled: this.selectedIds.size !== 5 || GameState.gold < EVERDEEP_WRIT_COST });
+    }, { color: 0x513267, disabled: this.selectedIds.size !== 5 || GameState.gold < writCost });
   }
 
   // Check whether adding this character would respect the selected party's role limits.
@@ -335,7 +342,7 @@ export default class EverdeepScene extends Phaser.Scene {
       this.text(x, 758, message, UI_FONT_SIZES.body35, '#cbbdd5', w - 170);
     }
 
-    this.button(x, 944, 800, stopped ? 'Dismiss Expedition' : 'Recall Expedition', () => {
+    this.button(x, 944, 800, stopped ? 'Dismiss Expedition' : 'Cancel Expedition', () => {
       if (stopped) {
         const result = finishEverdeepRun(GameState, run.id);
         if (result.ok) this.render(); else this.toast(result.message);
@@ -362,12 +369,12 @@ export default class EverdeepScene extends Phaser.Scene {
       .setInteractive();
     this.content.add(veil);
     this.panel(this.detailX, 650, this.detailW - 70, 420);
-    this.text(this.detailX, 551, 'Recall this expedition?', UI_FONT_SIZES.heading44, '#ead9ff');
+    this.text(this.detailX, 551, 'Cancel and recall this expedition?', UI_FONT_SIZES.heading44, '#ead9ff');
     this.text(this.detailX, 638, 'Earned chests are safe. The writ and remaining time are spent.', UI_FONT_SIZES.body36, '#e2c4c4', this.detailW - 200);
     this.button(this.detailX - 290, 768, 480, 'Keep Descending', () => this.render());
 
     this.button(this.detailX + 290, 768, 480, 'Confirm Recall', () => {
-      recallEverdeep(this.lastNow, GameState, run.id);
+      recallEverdeep(Date.now(), GameState, run.id);
       this.render();
     }, { color: 0x552d39 });
   }

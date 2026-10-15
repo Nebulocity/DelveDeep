@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import adventurers from '../data/adventurers.js';
 import { CHARACTER_SPRITES, preloadCharacterSprites } from '../data/characterSprites.js';
 
-const names = ['elyra', 'zahra', 'orwen', 'aldren', 'sylva', 'garrick', 'valtheris', 'zareth', 'nadira', 'yasmin', 'durgrim', 'chaska', 'malrec', 'selenne'];
+const names = ['elyra', 'zahra', 'orwen', 'aldren', 'sylva', 'garrick', 'valtheris', 'zareth', 'nadira', 'yasmin', 'durgrim', 'chaska', 'malrec', 'selenne', 'alhanna'];
 const states = ['idle', 'walk', 'attack', 'block', 'hit', 'death'];
 const loaded = [];
 for (const { id } of adventurers) assert.ok(CHARACTER_SPRITES[id], `missing combat sprite for roster ID ${id}`);

@@ -1,6 +1,7 @@
 // Equipment perks read live combat conditions at resolution. Percentages are fractions,
 // so 0.05 adds five percentage points of chance or multiplies an amount by 1.05.
 const descriptions = {
+  runic_refrain: amount => `Using an ability empowers your next landed basic attack. A spectral blade echoes ${amount}% of its actual damage. The echo cannot trigger itself.`,
   bring_home_supper: (amount, threshold) => `+${amount}% critical hit chance against enemies below ${threshold}% Health.`,
   live_to_tell: (amount, threshold) => `+${amount}% Block chance while below ${threshold}% Health.`,
   fair_rates: amount => `Basic attacks deal ${amount}% more damage to enemies targeting the wielder.`,

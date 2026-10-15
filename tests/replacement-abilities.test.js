@@ -7,7 +7,7 @@ import vm from 'node:vm';
 import { CLASS_DEFINITIONS } from '../data/classes.js';
 import { REPLACEMENT_ABILITY_ROWS } from '../data/replacementAbilityCatalog.js';
 import { CLASS_CATALOG_NAMES, CLASS_ABILITY_RULES, abilityAllowed } from '../data/replacementAbilities.js';
-import { battleAbilities, rankedAbility, restoreAdventurerAbilities } from '../game/AdventurerAbilities.js';
+import { abilityLevelRequired, purchaseAdventurerAbility, battleAbilities, rankedAbility, restoreAdventurerAbilities } from '../game/AdventurerAbilities.js';
 import { hitAccuracy, abilityPower, characterStats } from '../game/CharacterStats.js';
 import adventurers from '../data/adventurers.js';
 import { armorReduction, cappedChance } from '../config/characterProgression.js';
@@ -19,6 +19,7 @@ import { replacementMultiplier, replacementChance } from '../combat/ReplacementE
 import { equipmentPerkBonus } from '../game/EquipmentPerks.js';
 import { replacementDescription } from '../game/ReplacementAbilityDescriptions.js';
 import { progressionResources } from '../config/characterProgression.js';
+import { BARMAID_ABILITY_EFFECTS, barmaidStatusActive } from '../data/barmaidAbilityEffects.js';
 
 function headlessClass(path, name, globals) {
   const context = vm.createContext(globals);
@@ -39,7 +40,7 @@ function fixture(className = 'Mage of the Umbral Veil') {
     attackPower: 500, spellDamage: 500, spellHealing: 500, armor: 0, dodge: 0, block: 0, hitChance: .1,
     critChance: 0, critMultiplier: 1.3, statProgressionVersion: 2, damageTakenMultiplier: 1, speed: 100,
     arenaX: x, arenaY: 250, container: { x, y: 250, active: true }, status: {}, lastAbilityAt: {}, delvesUsed: {}, role: enemy ? '' : CLASS_DEFINITIONS[className].role,
-    abilities: Object.fromEntries(Object.entries(CLASS_DEFINITIONS[className].abilities).map(([key, a]) => [key, { ...rankedAbility(a, 1), manaCost: Math.round(1000 * a.manaFraction) }])),
+    abilities: Object.fromEntries(Object.entries(CLASS_DEFINITIONS[className].abilities).map(([key, a]) => [key, { ...rankedAbility(a, 1), manaCost: a.manaCost ?? Math.round(1000 * a.manaFraction) }])),
     moveSpeed: 100, attackRange: 100, attackCooldown: 1000, attackWindup: 300, healCooldown: 1000, healWindup: 300,
     basicAttackDamageType: 'physical', lastAttackAt: -Infinity, lastHealAt: -Infinity, pendingAction: null,
     updateHealthBar() {}, flash() {}, playCriticalHit() {}, setTargetName() {},
@@ -81,24 +82,24 @@ function fixture(className = 'Mage of the Umbral Veil') {
   return { caster, ally, enemy, other, scene, system, runtime: system.replacement, ability };
 }
 
-assert.equal(REPLACEMENT_ABILITY_ROWS.length, 180);
-assert.equal(new Set(REPLACEMENT_ABILITY_ROWS.map(row => row.id)).size, 180);
+assert.equal(REPLACEMENT_ABILITY_ROWS.length, 193);
+assert.equal(new Set(REPLACEMENT_ABILITY_ROWS.map(row => row.id)).size, 193);
 for (const [name, definition] of Object.entries(CLASS_DEFINITIONS)) {
   const rules = CLASS_ABILITY_RULES[CLASS_CATALOG_NAMES[name] ?? name];
   const starters = Object.values(definition.abilities).filter(a => a.starter);
   assert.equal(starters.length, 3);
-  assert.equal(starters.filter(a => a.origin === 'Generic').length, 1);
-  assert.equal(starters.filter(a => a.origin === 'Class' && a.category === rules[1]).length, 1);
+  assert.equal(starters.filter(a => a.origin === 'Generic').length, name.startsWith('Mage of') || name === 'Runedance' ? 0 : 1);
+  assert.equal(starters.filter(a => a.origin === 'Class' && a.category === rules[1]).length, name === 'Mage of the Umbral Veil' ? 2 : 1);
   assert.equal(starters.filter(a => a.origin === 'Class' && a.category === rules[2]).length, 1);
   assert.ok(Object.values(definition.abilities).every(a => a.replacement && abilityAllowed(name, a)));
 
   // All caster loadouts, including shared generics, must show a positive Mana cost.
   // Training improves the effects without raising the fraction spent per cast.
   if (rules[0] === 'Magical') for (const ability of Object.values(definition.abilities)) {
-    assert.ok(Number.isFinite(ability.manaFraction) && ability.manaFraction > 0, `${name}: ${ability.name}`);
+    assert.ok(ability.manaCost > 0 || Number.isFinite(ability.manaFraction) && ability.manaFraction > 0, `${name}: ${ability.name}`);
     assert.equal(rankedAbility(ability, 10).manaFraction, ability.manaFraction);
     const description = replacementDescription({ maxMana: 1000, attackPower: 500, spellDamage: 500, spellHealing: 500 }, ability);
-    assert.ok(description.includes(`Cost: ${Math.round(1000 * ability.manaFraction)} Mana`), ability.name);
+    assert.ok(description.includes(`Cost: ${ability.manaCost ?? Math.round(1000 * ability.manaFraction)} Mana`), ability.name);
   }
 }
 assert.equal(Object.values(CLASS_DEFINITIONS.Gladiator.abilities).some(a => a.category === 'Restore'), false);
@@ -276,6 +277,68 @@ f.runtime.resolve(f.caster, f.caster, f.ability('Battle Instinct'), 0);
 assert.deepEqual(f.runtime.basicPreparation(f.caster), { multiplier: 1.15, criticalBonus: .08 });
 assert.deepEqual(f.runtime.basicPreparation(f.caster), { multiplier: 1, criticalBonus: 0 });
 
+
+// Pan Drop measures three paces in every direction from the caster at impact.
+// It interrupts without damage, excludes allies and immune enemies, and uses combat time.
+f = fixture('Barmaid');
+const panDrop = f.ability('Pan Drop!');
+assert.equal(panDrop.category, 'Assault');
+assert.equal(panDrop.starter, false);
+assert.equal(panDrop.duration, 3000);
+assert.equal(panDrop.cooldown, 20000);
+assert.equal(panDrop.radius, 300);
+assert.ok(replacementDescription(f.caster, panDrop).includes('Radius: 3 paces'));
+assert.ok(replacementDescription(f.caster, panDrop).includes('Cooldown: 20s'));
+f.enemy.setArenaPosition(551, 250);
+f.other.setArenaPosition(250, 551);
+assert.equal(f.runtime.target(f.caster, panDrop), null);
+f.enemy.setArenaPosition(550, 250);
+assert.equal(f.runtime.target(f.caster, panDrop), f.caster);
+assert.equal(f.runtime.cast(f.caster, f.caster, panDrop.id, 0), true);
+assert.equal(f.scene.events[0].delay, 300);
+assert.equal(f.caster.lastAbilityAt[panDrop.id], 0);
+f.caster.finishAction();
+assert.equal(f.caster.abilityReady(panDrop.id, 19999), false);
+assert.equal(f.caster.abilityReady(panDrop.id, 20000), true);
+
+// Moving during windup moves the area with her. Both diagonal and axial edges
+// are included, but a point just outside the radius is unaffected.
+f.caster.setArenaPosition(300, 250);
+f.enemy.setArenaPosition(480, 490);
+f.other.setArenaPosition(300, -50);
+f.enemy.startAction('Attack', 0, 1000);
+f.other.startAction('Attack', 0, 1000);
+f.scene.time.now = 300;
+const panArtwork = [];
+f.scene.createAbilityEffect = (caster, target, ability) => panArtwork.push({ target, ability });
+f.runtime.resolve(f.caster, f.caster, panDrop, 300);
+for (const enemy of [f.enemy, f.other]) {
+  assert.equal(enemy.status.stunnedUntil, 3300);
+  assert.equal(enemy.status.hardStunUntil, 3300);
+  assert.equal(enemy.pendingAction, null);
+  assert.equal(enemy.hp, 3000);
+  assert.equal(enemy.canStartAction(3299), false);
+  assert.equal(enemy.canStartAction(3300), true);
+}
+assert.equal(f.ally.status.stunnedUntil, undefined);
+assert.equal(panArtwork.length, 4);
+const panCue = BARMAID_ABILITY_EFFECTS.find(effect => effect.abilityId === panDrop.id && effect.vfxPhase === 'stun');
+assert.equal(barmaidStatusActive(f.enemy, panCue, 3299), true);
+assert.equal(barmaidStatusActive(f.enemy, panCue, 3300), false);
+assert.equal(panCue.fadeMs, 400);
+assert.equal(f.runtime.target(f.caster, panDrop), null);
+f.enemy.status = {};
+f.other.status = {};
+f.enemy.controlImmunities = ['stun'];
+f.other.setArenaPosition(300, -50.01);
+assert.equal(f.runtime.target(f.caster, panDrop), null);
+f.runtime.resolve(f.caster, f.caster, panDrop, 300);
+assert.equal(f.enemy.status.stunnedUntil, undefined);
+assert.equal(f.other.status.stunnedUntil, undefined);
+assert.equal(panArtwork.length, 4);
+assert.equal(rankedAbility(panDrop, 10).duration, 6000);
+assert.equal(rankedAbility(panDrop, 10).cooldown, 11000);
+
 // Restocking works after the permanent pack is exhausted, without creating inventory.
 f = fixture('Barmaid');
 const pack = grantPotionPack('mending-potion');
@@ -331,13 +394,17 @@ assert.ok(f.other.status.stunnedUntil > 0);
 // refund the original cost or make a second spell free after the preparation is consumed.
 f = fixture('Mage of the Luminous Archive');
 f.runtime.resolve(f.caster, f.caster, f.ability('Lunar Alignment'), 0);
-const restore = f.ability('Life Anchor');
+const restore = f.ability('Radiant Spear');
 const discounted = Math.round(restore.manaCost * .85);
+assert.equal(f.runtime.manaCost(f.caster, f.ability('Celestial Flow'), 0), f.ability('Celestial Flow').manaCost);
+f.scene.actionEvent = (kind, unit, target, data) => data;
 f.caster.mana = discounted;
 assert.equal(f.caster.abilityReady(restore.id, 0), true);
-assert.equal(f.runtime.cast(f.caster, f.ally, restore.id, 0), true);
+assert.equal(f.runtime.cast(f.caster, f.enemy, restore.id, 0), true);
 assert.equal(f.caster.mana, 0);
 assert.equal(f.caster.status.replacementPreparations.length, 0);
+assert.equal(f.runtime.manaCost(f.caster, restore, 0), restore.manaCost);
+assert.equal(f.scene.events[0].data.ability.primary.potency, restore.primary.potency * 1.2);
 
 // Area damage keeps its recipient, while a single-target hit consumes interception.
 f = fixture('Gladiator');
@@ -370,6 +437,85 @@ f = fixture('Dawnwarden');
 f.runtime.resolve(f.caster, f.enemy, f.ability("Dawn's Shelter"), 0);
 assert.equal(replacementMultiplier(f.caster, 'reduction', 0), .85);
 
+// Restricted generics are absent from every affected class, while tanks keep theirs.
+for (const className of ['Barbarian', 'Scoundrel', 'Ranger', 'Barmaid']) {
+  const names = Object.values(CLASS_DEFINITIONS[className].abilities).map(a => a.name);
+  for (const name of ['Hold the Line', 'Interpose']) assert.ok(!names.includes(name));
+  if (['Scoundrel', 'Ranger'].includes(className)) for (const name of ['Cleave', 'Charge']) assert.ok(!names.includes(name));
+}
+for (const className of ['Mage of the Umbral Veil', 'Mage of the Luminous Archive', 'Mage of the Crimson Spire']) {
+  const names = Object.values(CLASS_DEFINITIONS[className].abilities).map(a => a.name);
+  for (const name of ['Life Anchor', 'Rejuvenation Aura', 'Cost of Life', 'Dark Rejuvenation', 'Soul Reclamation']) assert.ok(!names.includes(name));
+}
+
+// All three clerics learn revival at level 10. Casting respects revival bans and
+// encounter limits, and restores the same ranked Health and Mana fractions.
+for (const className of ['Cleric of the Sanguine Song', 'Cleric of the Everbright', 'Cleric of the Verdant Covenant']) {
+  f = fixture(className);
+  const revival = Object.values(f.caster.abilities).find(a => a.handler === 'revive');
+  const hero = { ...f.caster, level: 9, skillPoints: 20, abilityRanks: {}, abilityLoadout: [] };
+  const state = { roster: [hero], gold: 10000 };
+  assert.equal(abilityLevelRequired(hero, revival.id), 10);
+  assert.equal(purchaseAdventurerAbility(hero.id, revival.id, state).ok, false);
+  hero.level = 10;
+  assert.equal(purchaseAdventurerAbility(hero.id, revival.id, state).ok, true);
+  f.ally.alive = false;
+  f.ally.noReviveThisBattle = true;
+  assert.equal(f.runtime.target(f.caster, revival), undefined);
+  f.runtime.resolve(f.caster, f.ally, revival, 0);
+  assert.equal(f.ally.alive, false);
+  f.ally.noReviveThisBattle = false;
+  f.runtime.resolve(f.caster, f.ally, revival, 0);
+  assert.equal(f.ally.hp, f.ally.maxHp * revival.primary.potency);
+  assert.equal(f.ally.mana, f.ally.maxMana * revival.secondary.potency);
+  f.caster.delvesUsed[revival.id] = 0;
+  assert.equal(f.runtime.usable(f.caster, revival, 0), false);
+}
+
+// The new mage starter takes the retired slot. Paid ranks refund once while an
+// unrelated learned spell and its slot survive saving and loading again.
+const oldAnchor = 'ability_v2_generic_magical_life_anchor';
+const mage = { className: 'Mage of the Luminous Archive', level: 10 };
+const oldSave = { abilityCatalogVersion: 2, skillPoints: 4, abilityRanks: { [oldAnchor]: 3, ability_v2_luminous_mage_radiant_spear: 2 },
+  abilityLoadout: [oldAnchor, 'ability_v2_luminous_mage_radiant_spear'] };
+restoreAdventurerAbilities(mage, oldSave);
+assert.equal(mage.skillPoints, 9);
+assert.equal(mage.abilityLoadout[0], 'ability_v2_luminous_mage_celestial_flow');
+assert.equal(mage.abilityRanks.ability_v2_luminous_mage_radiant_spear, 2);
+assert.ok(mage.abilityMigrationGoldCredit > 0);
+restoreAdventurerAbilities(mage, structuredClone(mage));
+assert.equal(mage.skillPoints, 9);
+assert.equal(mage.abilityMigrationGoldCredit, 0);
+
+// A shield absorbs a fully blocked hit, bursts once, and reaches only two paces.
+// Natural expiry never bursts. The burst always scales to twice the shield.
+f = fixture('Mage of the Luminous Archive');
+const prism = f.ability('Prism Shields');
+assert.equal(prism.manaCost, 20);
+f.caster.mana = 20;
+assert.equal(f.runtime.cast(f.caster, f.caster, prism.id, 0), true);
+assert.equal(f.caster.mana, 0);
+f.caster.finishAction();
+for (const rank of [1, 5, 10]) {
+  const ranked = rankedAbility(prism, rank);
+  assert.equal(ranked.secondary.potency, ranked.primary.potency * 2);
+  assert.equal(rankedAbility(f.ability('Lunar Alignment'), rank).secondary.potency, .15);
+}
+f.other.arenaX = 451;
+f.runtime.resolve(f.caster, f.caster, prism, 0);
+const shieldHp = f.caster.status.temporaryHp;
+f.caster.takeDamage(shieldHp, { time: 0, attacker: f.enemy });
+assert.equal(f.caster.hp, 3000);
+assert.ok(f.enemy.hp < 3000);
+assert.equal(f.other.hp, 3000);
+const burstHp = f.enemy.hp;
+f.runtime.shieldDamaged(f.caster);
+assert.equal(f.enemy.hp, burstHp);
+f.runtime.resolve(f.caster, f.caster, prism, 0);
+f.scene.time.now = prism.duration;
+f.caster.takeDamage(shieldHp, { time: prism.duration, attacker: f.enemy });
+assert.equal(f.enemy.hp, burstHp);
+
 // Every active catalog row can resolve without a missing mechanic or runtime error.
 // Use injured allies, an entry potion, and a correctly faced enemy to satisfy prerequisites.
 let exercised = 0;
@@ -399,7 +545,7 @@ for (const row of REPLACEMENT_ABILITY_ROWS) {
   assert.ok(f.runtime.units().every(unit => Number.isFinite(unit.hp) && Number.isFinite(unit.mana)), row.name);
   exercised++;
 }
-assert.equal(exercised, 178);
+assert.equal(exercised, 191);
 
 // Early-return protection handlers must still call presentation on the recipient.
 // Gameplay records are already applied when the visual callback runs.
@@ -429,4 +575,4 @@ hold.enemy.setArenaPosition(700, 250);
 hold.other.setArenaPosition(760, 250);
 hold.runtime.update(hold.caster, 1100);
 assert.equal(hold.caster.status.replacementCostRootUntil, 1100, 'Distant monsters release movement without ending armor');
-console.log('Replacement catalog: eligibility, starters, respec, rank scaling, saved ticks, potion limits, reactions, and all 178 active rows passed.');
+console.log('Replacement catalog: eligibility, starters, respec, rank scaling, saved ticks, potion limits, reactions, and all 191 active rows passed.');

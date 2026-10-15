@@ -8,11 +8,13 @@ export const EQUIPMENT_LOOT_RARITIES = ['legendary', 'epic', 'rare', 'uncommon',
 const regionId = 'pineshire-reach';
 
 // Explicit regional/source membership prevents next-region gear leaking into idle loot.
+// A location of '*' allows any Delve in that item's region, after the region/source checks.
 export function equipmentLootPool(region, source, location, rarity, items = EQUIPMENT_ITEMS) {
   return items.filter(item => ['weapon', 'armor', 'accessory'].includes(item.slot)
     && item.rarity === rarity && item.lootRegions?.includes(region)
     && item.lootSources?.includes(source)
-    && (source === 'everdeep' || item.lootLocations?.includes(location)));
+    && (source === 'everdeep' || item.lootLocations?.includes(location)
+      || item.lootLocations?.includes('*')));
 }
 
 // chest is one-based, matching the workbook's six milestones rather than array indices.

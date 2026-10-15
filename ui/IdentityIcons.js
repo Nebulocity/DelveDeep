@@ -21,6 +21,26 @@ export function classIcon(scene, name, x, y, size = 52, depth = 0) {
   return scene.add.image(x, y, `class-icon-${slug(name)}`).setDisplaySize(size, size).setDepth(depth);
 }
 
+// Reserve space beside the measured item name for its allowed classes. Keeping icons
+// inside the caller's row means its existing scrolling, clipping and cleanup still apply.
+export function itemNameClasses(scene, title, names, right, size = 44) {
+  if (!names?.length) return [];
+  const allowed = [...new Set(names)];
+  const gap = 12, step = size + 6;
+  const left = title.getBounds().left;
+  if (allowed.includes('All')) {
+    title.setWordWrapWidth(Math.max(180, right - left - 155));
+    const bounds = title.getBounds();
+    return [scene.add.text(bounds.right + gap, bounds.top + 5, 'All classes',
+      { fontFamily: 'Arial', fontSize: '26px', color: '#ddd5c7' }).setDepth(title.depth).setName('item-all-classes')];
+  }
+  title.setWordWrapWidth(Math.max(180, right - left - allowed.length * step - gap));
+  const bounds = title.getBounds();
+  return allowed.map((name, index) => classIcon(scene, name,
+    bounds.right + gap + size / 2 + index * step, bounds.top + size / 2, size, title.depth)
+    .setName(`item-class-${slug(name)}`));
+}
+
 // Learned and Generic dividers use existing role artwork rather than inventing a category.
 export function categoryIcon(scene, category, x, y, size = 52, depth = 0) {
   const key = `category-icon-${category?.toLowerCase()}`;

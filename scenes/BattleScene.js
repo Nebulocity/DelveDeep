@@ -895,6 +895,8 @@ export default class BattleScene extends Phaser.Scene {
 
     if (this.commandMode === 'REVIVE' && !unit.alive) {
 
+      if (this.battleOver || this.waveTransitioning || unit.delvesUsed?.honorSacrifice) return;
+
       // Targeted tactics store the chosen ID while paused; revival happens on Resume.
       if (this.combatPaused) {
         this.queuePausedTactic('revive', unit.id);
@@ -905,12 +907,11 @@ export default class BattleScene extends Phaser.Scene {
       // find returns the first matching entry, or undefined when none matches. Check for
       // that missing result before using its fields.
       const ability = leaderAbilities.find(entry => entry.id === 'revive');
+      if (!this.commitTargetedTactic('revive')) return;
       unit.revive(ability.healthFraction, ability.manaFraction);
-      this.leaderAbilityCooldowns.set('revive', this.time.now);
       this.commandMode = null;
       this.updateHud();
       this.showBattleMessage(`REVIVE! - ${unit.name} restored`, '#fde68a');
-      this.combatLog?.add('tactic', `${ability.name} used`, { wave: this.currentWaveIndex + 1, ability: ability.name });
 
       this.refreshTacticsMenus();
       this.updateLeaderLoadoutBar();
@@ -1344,6 +1345,7 @@ export default class BattleScene extends Phaser.Scene {
     // Choose each tactic's target now, so several paused tactics can retain different targets.
     const tacticId = { FOCUS: 'focusFire', COORDINATED_ATTACK: 'coordinatedAttack',
       LUNAR_ASSAULT: 'lunarAssault' }[this.commandMode];
+    if (tacticId && (this.battleOver || this.waveTransitioning)) return;
     if (this.combatPaused && tacticId) {
       this.queuePausedTactic(tacticId, enemy.id);
       this.commandMode = null;
@@ -1351,6 +1353,10 @@ export default class BattleScene extends Phaser.Scene {
       this.refreshTacticsMenus();
       return;
     }
+
+    // Opening targeting reserves nothing. Recheck the party at the actual target tap,
+    // since a required damage dealer may have fallen while the player was choosing.
+    if (tacticId && !this.commitTargetedTactic(tacticId)) return;
 
     if (['MOVE', 'SPREAD', 'STACK'].includes(this.commandMode)) {
       this.handleArenaTap({ x: enemy.arenaX, y: enemy.arenaY });
@@ -1446,6 +1452,7 @@ export default class BattleScene extends Phaser.Scene {
     this.commandMode = null;
     this.setTargetingInputState(false);
     this.refreshTacticsMenus();
+    if (tacticId) this.updateLeaderLoadoutBar();
   }
 
   // A brief ring marks the exact movement destination.
@@ -1558,24 +1565,25 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    // Commit usage only after the tactic has a valid effect or target mode.
+    if (['focusFire', 'coordinatedAttack', 'lunarAssault'].includes(id)) {
+
+      // A target prompt does not start the cooldown or spend a once-per-encounter use.
+      // The enemy tap commits the tactic after a valid target has been selected.
+      this.commandMode = { focusFire: 'FOCUS', coordinatedAttack: 'COORDINATED_ATTACK',
+        lunarAssault: 'LUNAR_ASSAULT' }[id];
+      this.setTargetingInputState(true);
+      this.showBattleMessage(`${ability.name} - tap an enemy`, '#bef264', true);
+      HapticsService.tap();
+      return;
+    }
+
+    // Immediate tactics start their cooldown and usage when their effect is applied.
     const now = this.time.now;
     this.leaderAbilityCooldowns.set(id, now);
     if (ability.oncePerEncounter) this.usedLeaderAbilities.add(id);
     HapticsService.confirm();
 
-    if (id === 'focusFire') {
-      this.commandMode = 'FOCUS';
-      this.setTargetingInputState(true);
-      this.showBattleMessage('FOCUS! - tap an enemy', '#bef264', true);
-    } else if (id === 'coordinatedAttack' || id === 'lunarAssault') {
-
-      // The condition before ? chooses the first value when true and the value after :
-      // when false.
-      this.commandMode = id === 'coordinatedAttack' ? 'COORDINATED_ATTACK' : 'LUNAR_ASSAULT';
-      this.setTargetingInputState(true);
-      this.showBattleMessage(`${ability.name} - tap an enemy`, '#bef264', true);
-    } else if (id === 'fightOn') {
+    if (id === 'fightOn') {
       this.assaultUntil = now + ability.duration;
       this.assaultBonus = ability.damageBonus;
       this.showBattleMessage('FIGHT ON! - +10% damage for 6 seconds', '#bef264', false, 1.5);
@@ -1645,6 +1653,23 @@ export default class BattleScene extends Phaser.Scene {
     this.combatLog?.add('tactic', ability.name + ' used', { wave: this.currentWaveIndex + 1, ability: ability.name });
     this.refreshTacticsMenus();
     this.updateLeaderLoadoutBar();
+  }
+
+  // Spend a targeted tactic only when its selected recipient can receive the effect.
+  commitTargetedTactic(id) {
+    if (this.battleOver || this.waveTransitioning || !this.isLeaderAbilityReady(id)) return false;
+    const living = this.partyUnits.filter(unit => unit.alive);
+    if (id === 'focusFire' && living.length === 0) return false;
+    if (id === 'coordinatedAttack' && !living.some(unit => unit.role === 'Melee DPS')) return false;
+    if (id === 'lunarAssault' && !living.some(unit => unit.className?.startsWith('Mage of the'))) return false;
+
+    // time.now uses the paused combat clock, so the full countdown begins at selection.
+    const ability = leaderAbilities.find(entry => entry.id === id);
+    this.leaderAbilityCooldowns.set(id, this.time.now);
+    if (ability.oncePerEncounter) this.usedLeaderAbilities.add(id);
+    this.combatLog?.add('tactic', ability.name + ' used', { wave: this.currentWaveIndex + 1, ability: ability.name });
+    HapticsService.confirm();
+    return true;
   }
 
   // This helper records a legal tactic press while paused. Commands already update player
@@ -3061,6 +3086,10 @@ export default class BattleScene extends Phaser.Scene {
 
     if (attacker.isEnemy && !target.isEnemy && now < this.braceUntil) amount = Math.max(1, Math.round(amount * (1 - this.braceReduction)));
 
+    // This echo is a fraction of damage already dealt by the basic hit. Do not apply
+    // the wielder's outgoing bonuses again; the recipient still has its own defenses.
+    if (contact?.runicEcho) amount = baseAmount;
+
     // Let the target apply its defenses, then measure actual health loss for the combat
     // log.
     const ranged = attackType === 'spell' || attackType === 'ranged' || attacker.attackRange > 180;
@@ -3710,6 +3739,15 @@ export default class BattleScene extends Phaser.Scene {
     // Stop active combat updates during the wave transition and clear remaining ground
     // warnings.
     this.waveTransitioning = true;
+
+    // An unfinished tactic belongs to the wave where it was selected. Cancel its
+    // prompt without spending a use, so the player can choose it again next wave.
+    if (['FOCUS', 'COORDINATED_ATTACK', 'LUNAR_ASSAULT', 'REVIVE'].includes(this.commandMode)) {
+      this.commandMode = null;
+      this.setTargetingInputState(false);
+      this.refreshTacticsMenus();
+    }
+
     let waveReward = null;
     if (GameState.run.entry === 'farm') recordFarmClear(this);
     if (isOrdinaryDelve() && this.currentWaveIndex < this.bossWaveIndex) {

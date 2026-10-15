@@ -7,7 +7,10 @@
 // Each texture row links a character to one animation sheet. key is Phaser's lookup name;
 // url is the asset location. new URL resolves relative to this module, and .href gives
 // the resulting string. Vite rewrites these URLs to bundled asset paths when building.
+import { ALHANNA_SPRITES } from './alhannaSprites.js';
+
 const textures=[
+...ALHANNA_SPRITES.textures,
 {character:"elyra",key:"elyra-reference-v2-idle",url:new URL("../assets/characters/elyra/sheets/idle.png",import.meta.url).href},
 {character:"elyra",key:"elyra-reference-v2-walk",url:new URL("../assets/characters/elyra/sheets/walk.png",import.meta.url).href},
 {character:"elyra",key:"elyra-reference-v2-attack",url:new URL("../assets/characters/elyra/sheets/attack.png",import.meta.url).href},
@@ -115,7 +118,7 @@ const textures=[
 {character:"selenne",key:"selenne-reference-v2-death",url:new URL("../assets/characters/selenne/sheets/death.png",import.meta.url).href}
 ];
 
-export const CHARACTER_SPRITES={"elyra":{
+export const CHARACTER_SPRITES={alhanna: ALHANNA_SPRITES, "elyra":{
   textures:textures.filter(t=>t.character==="elyra"),
   clips:{
   "idle":{

@@ -17,6 +17,7 @@ import { getEquippedAdventurer } from '../game/Equipment.js';
 import HapticsService from '../services/HapticsService.js';
 import { happinessLabel } from '../game/AdventurerProgression.js';
 import { saveProfile } from '../game/GameStorage.js';
+import { everdeepUnavailableIds } from '../game/Everdeep.js';
 
 const MAX_PARTY_SIZE = 5;
 const ROLE_LIMITS = {
@@ -52,8 +53,23 @@ export default class PartySelectScene extends Phaser.Scene {
 
   // This helper restores the party selection whenever this screen opens.
   init() {
-
+    this.unavailableIds = everdeepUnavailableIds();
     this.selectedIds = this.buildInitialSelection();
+  }
+
+  // A wall-clock expedition can return while this screen is open. Refresh the cards
+  // once per second; combat itself is not running on this selection screen.
+  update() {
+    const now = Date.now();
+    if (now < (this.nextAvailabilityCheck ?? 0)) return;
+    this.nextAvailabilityCheck = now + 1000;
+    const unavailable = everdeepUnavailableIds(now);
+    const changed = [...unavailable].join('|') !== [...this.unavailableIds].join('|');
+    this.unavailableIds = unavailable;
+    if (changed) {
+      for (const id of this.selectedIds) if (unavailable.has(id)) this.selectedIds.delete(id);
+      this.refreshSelectionUi();
+    }
   }
 
   // Load the shared battle surfaces and existing character portraits.
@@ -339,7 +355,7 @@ export default class PartySelectScene extends Phaser.Scene {
 
   // This helper enforces both party size and role limits before adding an adventurer.
   canAddToSelection(adventurer, selectedIds = this.selectedIds) {
-
+    if (this.unavailableIds?.has(adventurer.id)) return false;
     const counts = this.getSelectionCounts(selectedIds);
     const roleGroup = this.getRoleGroup(adventurer.role);
     if (counts.total >= MAX_PARTY_SIZE) return false;
@@ -350,16 +366,18 @@ export default class PartySelectScene extends Phaser.Scene {
   // Choose a complete party with the same role limits used by manual selection.
   autoSelectParty() {
 
+    const available = GameState.roster.filter(hero => !this.unavailableIds.has(hero.id));
+
     // A shuffled copy leaves the roster's saved order untouched while making every
     // adventurer in a role equally likely to appear in the chosen slots.
     const chooseRandom = (members, count) => Phaser.Utils.Array.Shuffle([...members]).slice(0, count);
-    const tanks = chooseRandom(GameState.roster.filter(hero => hero.role === 'Tank'), 1);
-    const healers = chooseRandom(GameState.roster.filter(hero => hero.role === 'Healer'), 1);
-    const damageDealers = chooseRandom(GameState.roster.filter(hero => hero.role === 'Melee DPS' || hero.role === 'Ranged DPS'), 3);
+    const tanks = chooseRandom(available.filter(hero => hero.role === 'Tank'), 1);
+    const healers = chooseRandom(available.filter(hero => hero.role === 'Healer'), 1);
+    const damageDealers = chooseRandom(available.filter(hero => hero.role === 'Melee DPS' || hero.role === 'Ranged DPS'), 3);
 
     // Keep the current lineup if the roster cannot fill every requested role.
     if (tanks.length < 1 || healers.length < 1 || damageDealers.length < 3) {
-      this.showToast('The roster needs one tank, one healer, and three DPS for auto-select.');
+      this.showToast('Auto-select needs an available tank, healer and three DPS. Cancel an Everdeep expedition to bring adventurers home.');
       return;
     }
 
@@ -370,6 +388,8 @@ export default class PartySelectScene extends Phaser.Scene {
 
   // This helper explains which party limit prevents this selection.
   getSelectionBlockReason(adventurer) {
+
+    if (this.unavailableIds.has(adventurer.id)) return 'In The Everdeep. Cancel that expedition to bring this adventurer home.';
 
     const counts = this.getSelectionCounts();
     const roleGroup = this.getRoleGroup(adventurer.role);
@@ -481,6 +501,9 @@ export default class PartySelectScene extends Phaser.Scene {
     );
 
     this.cards.forEach((objects, id) => {
+      const away = this.unavailableIds.has(id);
+      objects.level.setText(away ? 'IN THE EVERDEEP' : `Lv ${objects.adventurer.level} · ${objects.adventurer.happiness ?? 70}%`);
+      objects.level.setColor(away ? '#d9b6ff' : STONE.muted);
       const selected = this.selectedIds.has(id);
       const disabled = !selected && !this.canAddToSelection(objects.adventurer);
 
@@ -531,8 +554,7 @@ export default class PartySelectScene extends Phaser.Scene {
         // ?? uses the fallback only for null or undefined. A real zero or false stays
         // intact.
         const cls = stoneText(this, x + 25, 859, hero.shortName ?? hero.className, UI_FONT_SIZES.partyClass, 0, { fontFamily: UI_FONT_FAMILIES.sans, color: STONE.muted });
-        const emblem = classIcon(this, adventurer.className, textX + 16, cardY + 2, 32);
-      [name, cls].forEach(label => { if (label.width > slotWidth - 135) label.setScale((slotWidth - 135) / label.width); });
+        [name, cls].forEach(label => { if (label.width > slotWidth - 135) label.setScale((slotWidth - 135) / label.width); });
         const hit = this.add.rectangle(x, 839, slotWidth - 16, 150, 0, 0);
         bindSelectionDetails(this, hit, null, () => this.toggleAdventurer(hero.id), () => this.showAdventurerDetails(hero));
         this.lineup.add([icon, name, cls, hit]);
@@ -545,6 +567,11 @@ export default class PartySelectScene extends Phaser.Scene {
 
   // This helper saves a complete party and advances to the battle overview.
   begin() {
+
+    // Check again at departure in case a return or expedition changed while browsing.
+    this.unavailableIds = everdeepUnavailableIds();
+    for (const id of this.selectedIds) if (this.unavailableIds.has(id)) this.selectedIds.delete(id);
+    this.refreshSelectionUi();
 
     if (this.selectedIds.size !== MAX_PARTY_SIZE) {
       this.showToast('Choose five adventurers before continuing.');

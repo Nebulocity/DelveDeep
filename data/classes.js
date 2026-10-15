@@ -59,6 +59,11 @@ const cleric = (shortName, color, abilities) => ({
 });
 
 export const CLASS_DEFINITIONS = {
+
+  // Melee AI approaches with her physical blade while runes spend regenerating Mana.
+  Runedance: { role: 'Melee DPS', color: 0x50c9b4, maxMana: 350, manaRegen: 5,
+    moveSpeed: 195, attackRange: 84, attackCooldown: 950, attackWindup: 230,
+    threatMultiplier: 0.9, classAbilities: true, abilities: {} },
   Gladiator: {
     role: 'Tank', color: 0xd99b35, maxHp: 185, moveSpeed: 150, attackPower: 15, attackRange: 74, attackCooldown: 1100, attackWindup: 280, armor: 0.22, threatMultiplier: 3.4, classAbilities: true,
     abilities: {
@@ -178,6 +183,7 @@ addAbilityProgression(CLASS_DEFINITIONS);
 // Compatibility fixtures and saved encounters may still describe the former skills.
 // Only the replacement map is offered to the roster, training screens, and new battles.
 export const LEGACY_CLASS_DEFINITIONS = Object.fromEntries(Object.entries(CLASS_DEFINITIONS)
+  .filter(([name]) => name !== 'Runedance')
   .map(([name, definition]) => [name, { ...definition, abilities: definition.abilities }]));
 for (const [name, definition] of Object.entries(CLASS_DEFINITIONS)) {
 

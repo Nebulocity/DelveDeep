@@ -12,7 +12,7 @@ assert.equal(new Set(CATALOG_ITEMS.map(item => item.id)).size, CATALOG_ITEMS.len
 assert.equal(new Set(CRAFTING_RECIPES.map(item => item.id)).size, CRAFTING_RECIPES.length);
 const options = { region: 'pineshire-reach', source: 'boss', location: 'murmuring-abyss' };
 const rare = equipmentLootPool(options.region, options.source, options.location, 'rare');
-assert.equal(rare.length, 12);
+assert.equal(rare.length, 13);
 assert.equal(equipmentLootPool(options.region, 'wave', options.location, 'rare').length, 0);
 assert.equal(equipmentLootPool(options.region, 'boss', 'slime-cave', 'rare').length, 0);
 for (const source of ['wave', 'boss', 'everdeep']) {

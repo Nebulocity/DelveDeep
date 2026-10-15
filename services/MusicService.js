@@ -7,11 +7,17 @@ import GameState from '../game/GameState.js';
 import slimeCaveUrl from '../sounds/the_slime_cave/delve_bg1.m4a?url';
 import pineshireUrl from '../sounds/pineshire_region/region_bg1.m4a?url';
 import bossUrl from '../sounds/the_slime_cave/delve_boss_bg1.m4a?url';
+import townUrl from '../sounds/town/bgm_town.mp3?url';
+import shopsUrl from '../sounds/town/bgm_shops.m4a?url';
+import hallUrl from '../sounds/town/bgm_hall.m4a?url';
 
 const MUSIC_TRACKS = {
   'music-slime-cave': slimeCaveUrl,
   'music-pineshire': pineshireUrl,
-  'music-boss': bossUrl
+  'music-boss': bossUrl,
+  'music-town': townUrl,
+  'music-shops': shopsUrl,
+  'music-hall': hallUrl
 };
 
 // Queue the bundled tracks used by assigned map, Delve and boss contexts. scene is the
@@ -21,7 +27,7 @@ export function preloadMusic(scene) {
   // Object.entries turns own fields into [key, value] pairs so we can visit or transform
   // them.
   for (const [key, url] of Object.entries(MUSIC_TRACKS)) {
-    if (!scene.cache.audio.exists(key)) scene.load.audio(key, { url, type: 'm4a' });
+    if (!scene.cache.audio.exists(key)) scene.load.audio(key, { url, type: key === 'music-town' ? 'mp3' : 'm4a' });
   }
 }
 
@@ -70,10 +76,16 @@ export default class MusicService {
     // find returns the first matching entry, or undefined when none matches. Check for
     // that missing result before using its fields.
     const scene = this.game.scene.getScenes(true).find(active =>
-      ['TitleScene', 'BattleScene'].includes(active.scene.key));
+      ['TitleScene', 'BattleScene', 'TownScene', 'FacilityScene', 'BlacksmithScene',
+        'AdventurersHallScene', 'RosterScene', 'PartyLeaderScene', 'ItemsScene'].includes(active.scene.key));
     if (!scene) return null;
 
     if (scene.scene.key === 'TitleScene') return 'music-pineshire';
+
+    // Hall subpages keep the same loop; the three shops share one assigned track.
+    if (scene.scene.key === 'TownScene') return 'music-town';
+    if (['FacilityScene', 'BlacksmithScene'].includes(scene.scene.key)) return 'music-shops';
+    if (scene.scene.key !== 'BattleScene') return 'music-hall';
     if (scene.battleOver) return null;
 
     // ?. only follows this link when the value exists; a missing optional value gives

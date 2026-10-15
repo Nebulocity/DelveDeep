@@ -8,6 +8,7 @@ import { withAbilityRankCurve } from './abilityRankCurves.js';
 
 export const ABILITY_CATALOG_VERSION = 2;
 export const CLASS_ABILITY_RULES = {
+  Runedance: ['Magical', 'Assault', 'Protect', 'Prepare'],
   Gladiator: ['Physical', 'Protect', 'Assault', 'Prepare'],
   Oathwarden: ['Physical', 'Protect', 'Assault', 'Prepare'],
   Dawnwarden: ['Magical', 'Protect', 'Assault', 'Restore'],
@@ -35,7 +36,7 @@ export const CLASS_CATALOG_NAMES = {
 export function abilityAllowed(className, row) {
   const name = CLASS_CATALOG_NAMES[className] ?? className;
   const rules = CLASS_ABILITY_RULES[name];
-  if (!rules || !rules.slice(1).includes(row.category)) return false;
+  if (!rules || row.excludedClasses?.includes(name) || !rules.slice(1).includes(row.category)) return false;
   return row.className === name || row.className === `Generic (${rules[0]})`;
 }
 

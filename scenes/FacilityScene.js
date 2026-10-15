@@ -9,11 +9,12 @@ import { saveProfile } from '../game/GameStorage.js';
 import { buyPotionPack, equipmentOwner, equipmentStatsText } from '../game/Equipment.js';
 import { equipmentDetails } from '../game/EquipmentDescriptions.js';
 import { fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
-import { POTION_ITEMS, CRAFTING_RECIPES } from '../data/items.js';
+import { POTION_ITEMS, CRAFTING_RECIPES, getEquipmentDefinition } from '../data/items.js';
 
 import { ACTIVE_ENCHANTMENTS, ENCHANTMENT_BY_ID } from '../data/enchantments.js';
 import { bindSelectionDetails } from '../ui/SelectionDetails.js';
 import { addCategoryIcon } from '../ui/FacilityChoiceArt.js';
+import { itemNameClasses } from '../ui/IdentityIcons.js';
 import { addFacilityDetailsHint } from '../ui/FacilityChrome.js';
 import { addShopButton, addShopButtonFace, bindShopButtonFeedback } from '../ui/ShopButton.js';
 import { hallScroll } from '../ui/HallUI.js';
@@ -94,17 +95,20 @@ export default class FacilityScene extends Phaser.Scene {
   // Build the item rows for this facility's selected action and category.
   rowsFor(choice) {
     const state = GameState;
-    if (choice.id === 'sell') return saleRows().map(row => ({
-      ...row, action: `SELL: ${row.value}g`, run: () => sellOwnedItem(row.id),
-      allAction: `SELL ALL: ${row.allValue}g`, runAll: () => sellAllOwnedItem(row.id)
+    if (choice.id === 'sell') return saleRows(state, this.facility.name).map(row => ({
+      ...row, action: `SELL: ${row.value}g`, run: () => sellOwnedItem(row.id, state, this.facility.name),
+      allAction: `SELL ALL: ${row.allValue}g`, runAll: () => sellAllOwnedItem(row.id, state, this.facility.name)
     }));
     if (choice.id === 'craft' || choice.id === 'brew') return CRAFTING_RECIPES.filter(recipe => choice.id === 'brew'
       ? recipe.category === 'alchemy' : ['equipment', 'material'].includes(recipe.category)).map(recipe => ({
       id: recipe.id,
       category: recipe.output.type === 'potion' ? 'potion' : recipe.output.type === 'material' ? 'material'
-        : recipe.output.type === 'scroll' ? 'scroll' : GEAR_STOCK.find(item => item.id === recipe.output.itemId)?.slot,
+        : recipe.output.type === 'scroll' ? 'scroll' : getEquipmentDefinition(recipe.output.itemId)?.slot,
       name: recipe.name,
-      description: `Crafted with: ${recipeIngredientText(recipe).replaceAll('  •  ', ' + ')}\n${recipe.fee ?? 0} Gold fee`,
+      description: recipe.learnedFrom === 'Sold to Blacksmith' && !state.inventory.knownRecipes?.includes(recipe.id)
+        ? 'Sell this weapon to the Blacksmith to learn its recipe.'
+        : `Crafted with: ${recipeIngredientText(recipe).replaceAll('  •  ', ' + ')}\n${recipe.fee ?? 0} Gold fee`,
+      detailsDescription: `Crafted with: ${recipeIngredientText(recipe).replaceAll('  •  ', ' + ')}\n${recipe.fee ?? 0} Gold fee${recipe.learnedFrom === 'Sold to Blacksmith' ? '\nLearned by selling this weapon to the Blacksmith.' : ''}`,
       enabled: canCraft(recipe.id).ok, action: choice.id === 'brew' ? 'BREW' : 'CRAFT', run: () => craftItem(recipe.id)
     }));
 
@@ -259,10 +263,15 @@ export default class FacilityScene extends Phaser.Scene {
       // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the center
       // and 1 is the right/bottom edge. x/y place that anchor, not necessarily the
       // object's corner.
-      this.add.text(x - 363, y - (stride - 18) / 2 + 17, row.name, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body34'), fontStyle: UI_FONT_WEIGHTS.bold, color: theme.text,
+      const title = this.add.text(x - 363, y - (stride - 18) / 2 + 17, row.name, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body34'), fontStyle: UI_FONT_WEIGHTS.bold, color: theme.text,
         wordWrap: { width: 770 }, maxLines: 2 }).setOrigin(0, 0);
       this.add.text(x - 409, y - (stride - 18) / 2 + 94, row.description, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('shopDescription'), color: '#ddd5c7', wordWrap: { width: 804 }, maxLines: 4 });
       const inspectedItem = row.item ?? GEAR_STOCK.find(item => item.id === row.id) ?? POTION_ITEMS.find(item => item.id === row.id);
+      const recipe = CRAFTING_RECIPES.find(entry => entry.id === row.id);
+      const equipment = inspectedItem ?? getEquipmentDefinition(recipe?.output.itemId);
+      if (equipment && ['weapon', 'armor', 'accessory', 'potion'].includes(equipment.slot)) {
+        itemNameClasses(this, title, equipmentDetails(equipment).usableBy, x + 409);
+      }
       const details = { ...(inspectedItem && inspectedItem.slot !== 'scroll'
         ? equipmentDetails(inspectedItem) : { title: row.name, description: row.detailsDescription ?? row.description }), shopTheme: theme };
       bindSelectionDetails(this, card, details);

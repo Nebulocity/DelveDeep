@@ -7,7 +7,7 @@ import GameState from '../game/GameState.js';
 import adventurers from '../data/adventurers.js';
 import { loadProfile, saveProfile } from '../game/GameStorage.js';
 import { restoreEverdeep } from '../game/EverdeepState.js';
-import { startEverdeepRun, settleEverdeep, everdeepTimers, recallEverdeep, claimEverdeepChest, finishEverdeepRun } from '../game/Everdeep.js';
+import { startEverdeepRun, settleEverdeep, everdeepTimers, recallEverdeep, claimEverdeepChest, finishEverdeepRun, everdeepUnavailableIds, everdeepWritCost } from '../game/Everdeep.js';
 let writes = 0;
 
 // A Map pairs a key with a value. Unlike an array index, the key can be an ID or an
@@ -28,10 +28,16 @@ GameState.gold = 1000;
 const party = [GameState.roster.find(hero => hero.role === 'Tank'), GameState.roster.find(hero => hero.role === 'Healer'), ...GameState.roster.filter(hero => !['Tank', 'Healer'].includes(hero.role)).slice(0, 3)].map(hero => hero.id);
 const now = 1800000000000;
 const first = startEverdeepRun(party, now).run;
-const second = startEverdeepRun(party, now + 1000).run;
+assert.equal(startEverdeepRun(party, now + 1000).ok, false, 'A descending party cannot depart twice');
+assert.deepEqual([...everdeepUnavailableIds(now)], party);
+const available = GameState.roster.filter(hero => !party.includes(hero.id));
+const party2 = [available.find(hero => hero.role === 'Tank'), available.find(hero => hero.role === 'Healer'),
+  ...available.filter(hero => !['Tank', 'Healer'].includes(hero.role)).slice(0, 3)].map(hero => hero.id);
+const second = startEverdeepRun(party2, now + 1000).run;
 assert.ok(first && second);
 assert.notEqual(first.id, second.id);
-assert.equal(GameState.gold, 760);
+assert.equal(GameState.gold, 450);
+assert.equal(everdeepWritCost({ leader: { level: 4 } }), 1100);
 
 assert.equal(GameState.everdeep.runs.length, 2);
 assert.equal(startEverdeepRun([party[0], ...party.slice(0, 4)], now).ok, false);
@@ -52,6 +58,7 @@ assert.deepEqual(first.party, snapshot);
 assert.equal(recallEverdeep(now + 2000, GameState, second.id).ok, true);
 assert.equal(first.stoppedAtMs, null);
 assert.equal(second.stopReason, 'recalled');
+assert.ok(party2.every(id => !everdeepUnavailableIds(now + 2000).has(id)), 'Recall immediately releases its party');
 assert.equal(finishEverdeepRun(GameState, second.id).ok, true);
 
 assert.deepEqual(GameState.everdeep.runs.map(run => run.id), [first.id]);

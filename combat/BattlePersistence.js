@@ -70,6 +70,14 @@ function restoreUnit(unit, saved) {
   // earlier fields; nested values are not deep-copied.
   Object.assign(unit, model);
 
+  // Older revival code saved cleared lists and cooldown records as the number zero.
+  // Repair only that known inactive value, preserving every real saved effect and timer.
+  for (const key of ['replacementEffects', 'replacementPreparations', 'replacementPeriodic',
+    'replacementReactions', 'replacementZones']) {
+    if (unit.status[key] === 0) unit.status[key] = [];
+  }
+  if (unit.status.replacementCooldownFactors === 0) unit.status.replacementCooldownFactors = {};
+
   // Constructors use today's catalog. Remove its new power when restoring an older
   // snapshot, so recorded damage and healing stay exact, including during offline replay.
   if (model.spellPower == null) delete unit.spellPower;

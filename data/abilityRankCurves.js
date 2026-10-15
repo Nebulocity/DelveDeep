@@ -34,6 +34,9 @@ export function withAbilityRankCurve(base) {
       step = start < 1 ? 0.1 : 0;
       ceiling = 1;
     }
+
+    // Lunar Alignment always discounts 15% Mana; training improves its other values.
+    if (effect.fixedPotency) step = 0;
     return rank => ({ ...effect, potency: start === 0 ? 0 : roundTo(Math.min(ceiling, start + step * rank), 0.005),
       cap: Number.isFinite(ceiling) ? ceiling : null });
   };
@@ -54,8 +57,9 @@ export function withAbilityRankCurve(base) {
     }
     return Math.min(limit, value + rank * (control ? 500 : 1000));
   };
+  // Prism's damage coefficient stays twice its shield coefficient at every rank.
   return { ...base, rankCurveVersion: 1, rankValues: Array.from({ length: 10 }, (_, rank) => ({
-    primary: primary(rank), secondary: secondary(rank),
+    primary: primary(rank), secondary: base.handler === 'shieldBurst' ? { ...secondary(rank), potency: primary(rank).potency * 2 } : secondary(rank),
     restockDamageBonus: ['restoreCharges', 'partyRestoreCharges'].includes(base.handler) ? (rank + 1) * 0.05 : 0,
     duration: duration(base.duration, base.durationCap, rank, base.primary),
     secondaryDuration: duration(base.secondaryDuration, base.secondaryDurationCap, rank, base.secondary),

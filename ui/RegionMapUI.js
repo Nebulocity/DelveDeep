@@ -149,7 +149,8 @@ export function updateRegionLocationRail(scene, isCleared) {
     // The condition before ? chooses the first value when true and the value after : when
     // false.
     setRegionPanelState(scene, row, traveling || here ? 'selected' : 'normal', open ? 1 : 0.4);
-    status.setText(!open ? 'Locked' : traveling ? 'Traveling...' : here ? 'Party is here'
+    const waystone = poi.id === 'pineshire' && !scene.activeEdge && scene.partyNode === 'verge-delves';
+    status.setText(waystone ? 'Waystone · Instant return' : !open ? 'Locked' : traveling ? 'Traveling...' : here ? 'Party is here'
       : isCleared(poi.id) && ['delve', 'void'].includes(poi.type) ? 'Cleared · Travel' : 'Travel')
       .setAlpha(open ? 1 : 0.45);
   }

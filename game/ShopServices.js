@@ -56,7 +56,7 @@ function matchingSaleItems(item, state) {
 
 // Build eligible sell-list entries from actual owned inventory. state is the game data to
 // read or change; a default can point at shared GameState.
-export function saleRows(state = GameState) {
+export function saleRows(state = GameState, facilityName = null) {
 
   // ... expands these entries into the new list or call. It does not deep-copy the objects
   // inside. map builds one output entry for each input entry, in the same order. The
@@ -67,7 +67,8 @@ export function saleRows(state = GameState) {
       id: item.id,
       category: item.slot,
       name: item.name,
-      description: item.slot === 'potion' ? `${item.charges}/3 uses remaining` : 'One owned item',
+      description: item.slot === 'potion' ? `${item.charges}/3 uses remaining`
+        : saleRecipe(item, state, facilityName) ? 'Blacksmith learns this recipe when sold.' : 'One owned item',
       value: saleValue(item),
 
       // reduce adds each matching copy's price to a running total that starts at zero.
@@ -89,7 +90,7 @@ export function saleRows(state = GameState) {
 
 // Validate the selected owned copy, remove it and credit its sale price. state is the game
 // data to read or change; a default can point at shared GameState.
-export function sellOwnedItem(id, state = GameState) {
+export function sellOwnedItem(id, state = GameState, facilityName = null) {
 
   // find returns the first matching entry, or undefined when none matches. Check for that
   // missing result before using its fields.
@@ -104,12 +105,27 @@ export function sellOwnedItem(id, state = GameState) {
   // original list in place.
   state.inventory.equipment = state.inventory.equipment.filter(entry => entry.id !== id);
   state.gold += value;
-  return { ok: true, message: `Sold ${item.name} for ${value} Gold.` };
+  const recipe = saleRecipe(item, state, facilityName);
+  if (recipe) {
+    state.inventory.knownRecipes ??= [];
+    state.inventory.knownRecipes.push(recipe.id);
+  }
+  return { ok: true, message: `Sold ${item.name} for ${value} Gold.${recipe ? ` Blacksmith learned ${item.name}.` : ''}` };
+}
+
+// Only a successful sale to the named crafter teaches these drop recipes. Buying,
+// equipping or selling to another shop must not unlock them. Existing knowledge stays.
+function saleRecipe(item, state, facilityName) {
+  if (facilityName !== 'Blacksmith') return null;
+  return CRAFTING_RECIPES.find(recipe => recipe.output.type === 'equipment'
+    && recipe.output.itemId === item.itemId && recipe.crafter === facilityName
+    && recipe.learnedFrom === 'Sold to Blacksmith'
+    && !(state.inventory.knownRecipes ?? []).includes(recipe.id));
 }
 
 // Recheck inventory when pressed, then sell the full material stack or matching copies.
 // We use the existing single-sale rules so potion charges and ownership guards still apply.
-export function sellAllOwnedItem(id, state = GameState) {
+export function sellAllOwnedItem(id, state = GameState, facilityName = null) {
   const item = state.inventory.equipment.find(entry => entry.id === id);
   if (!item) return sellMaterial(id, state.inventory.materials?.[id] ?? 0, state);
   if (equipmentOwner(id, state)) return { ok: false, message: 'Unequip this item before selling it.' };
@@ -119,16 +135,17 @@ export function sellAllOwnedItem(id, state = GameState) {
   const copies = matchingSaleItems(item, state);
   let value = 0;
   let sold = 0;
+  const recipe = saleRecipe(item, state, facilityName);
   for (const copy of copies) {
     const copyValue = saleValue(copy);
-    const result = sellOwnedItem(copy.id, state);
+    const result = sellOwnedItem(copy.id, state, facilityName);
     if (result.ok) {
       value += copyValue;
       sold += 1;
     }
   }
 
-  return { ok: sold > 0, message: `Sold ${sold}x ${item.name} for ${value} Gold.` };
+  return { ok: sold > 0, message: `Sold ${sold}x ${item.name} for ${value} Gold.${sold && recipe ? ` Blacksmith learned ${item.name}.` : ''}` };
 }
 
 // Check the current Gold balance before creating an owned copy of the catalog gear. state

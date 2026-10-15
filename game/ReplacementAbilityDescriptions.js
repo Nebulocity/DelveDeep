@@ -69,6 +69,7 @@ export function replacementDescription(unit, ability, compact = false, structure
   if (ability.shape === 'Cone') facts.push(`Cone reach: ${distance(ability.radius / 100)}`);
   facts.push(`Cooldown: ${seconds(ability.cooldown)}`);
   const costs = [];
+  if (ability.manaCost && !ability.manaFraction) costs.push(`${ability.manaCost} Mana`);
   if (ability.manaFraction) costs.push(`${Math.round(unit.maxMana * ability.manaFraction)} Mana`);
   if (ability.healthFraction) costs.push(`${rounded(ability.healthFraction * 100)}% current Health${ability.healthPayer === 'Every living ally' ? ' from each ally' : ''}`);
   if (costs.length) facts.push(`Cost: ${costs.join(' + ')}`);

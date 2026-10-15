@@ -198,7 +198,7 @@ test('renderer termination restores farming and earns elapsed-time rewards', asy
       unit.maxHp = 1000000;
       unit.hp = unit.maxHp;
       unit.attackPower = 100000;
-      unit.spellDamage = 100000;
+      unit.spellPower = 100000;
     });
 
     qa.state.delveCheckpoints[qa.state.currentDelve.id] = { nextWave: scene.bossWaveIndex, campUnlocked: true };

@@ -82,7 +82,7 @@ export function characterDetails(unit) {
         `Strength: ${number(unit.strength)} | Agility: ${number(unit.agility)} | Constitution: ${number(unit.constitution)}`,
         `Intellect: ${number(unit.intellect)} | Wisdom: ${number(unit.wisdom)}`,
         `Hit Chance: +${percent(unit.hitChance)} | Crit Chance: ${percent(unit.critChance)} | Crit Multiplier: ${number(unit.critMultiplier)}x`,
-        `Attack Power: ${number(unit.attackPower)} | Spell Damage: ${number(unit.spellDamage)} | Spell Healing: ${number(unit.spellHealing)}`,
+        `Attack Power: ${number(unit.attackPower)} | Spell Power: ${number(unit.spellPower ?? Math.max(unit.spellDamage ?? 0, unit.spellHealing ?? 0))}`,
         `Happiness: ${number(unit.happiness)}% | Delves Cleared: ${unit.delvesCompleted ?? 0}`,
         unit.description,
         Object.values(unit.abilities ?? {}).map(ability => ability.name).filter(Boolean).join(', ')

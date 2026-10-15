@@ -1,20 +1,19 @@
-// Healing coefficients were authored against Spell Healing totals larger than hero HP.
-// Keep the adjustment here so future playtests can tune recovery without changing stats.
+// Each magical class owns its healingMultiplier in characterProgression.js.
+// Apply that class tuning once before building ranks, so previews and combat agree.
 export const HEALING_BALANCE = {
-  spellHealingScale: 0.25,
   healerManaPerSecond: 2
 };
 
 // Apply tuning when building new ability definitions, before rank bonuses and tooltips.
 // Saved encounters already contain their definitions and do not pass through this helper.
-export function balancedHealingAbility(row) {
+export function balancedHealingAbility(row, healingMultiplier) {
   const tune = effect => {
-    if (effect.basis !== 'Caster Spell Healing') return { ...effect };
+    if (!effect.healing) return { ...effect };
 
-    // Both potency and its ceiling use fractions of Spell Healing. Scaling both keeps
+    // Both potency and its ceiling use fractions of Spell Power. Scaling both keeps
     // the original rank curve, including skills with an authored maximum coefficient.
-    return { ...effect, potency: effect.potency * HEALING_BALANCE.spellHealingScale,
-      cap: effect.cap == null ? effect.cap : effect.cap * HEALING_BALANCE.spellHealingScale };
+    return { ...effect, potency: effect.potency * healingMultiplier,
+      cap: effect.cap == null ? effect.cap : effect.cap * healingMultiplier };
   };
   return { ...row, primary: tune(row.primary), secondary: tune(row.secondary) };
 }

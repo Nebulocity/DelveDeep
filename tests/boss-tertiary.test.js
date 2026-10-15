@@ -116,7 +116,7 @@ battle.getLivingEnemies = () => [enemy, injured];
 battle.updateEnemies(1000, 0);
 assert.equal(events[0].data.targetId, injured.id);
 events.shift().callback();
-assert.equal(hits.pop().healing, 45);
+assert.equal(hits.pop().healing, 60);
 injured.hp = injured.maxHp;
 assert.equal(battle.tryEnemyAbility(enemy, target, 'tertiary', 10000), false);
 assert.equal(enemy.lastAbilityAt.tertiary, 1000);

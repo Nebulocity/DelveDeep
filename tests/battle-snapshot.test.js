@@ -60,6 +60,22 @@ const activeSnapshot = structuredClone(snapshot);
 activeSnapshot.party[0].activeCombatBalance = { active: true, maxHp: 500, healthScale: 1.15,
   powerScale: 1.75, attackPower: 20, spellDamage: 10, spellHealing: 0 };
 assert.equal(validBattleSnapshot(activeSnapshot, GameState.roster), true);
+
+// The optional unified power accepts new snapshots without rejecting older profiles.
+const unifiedSnapshot = structuredClone(activeSnapshot);
+delete unifiedSnapshot.party[0].activeCombatBalance.spellDamage;
+delete unifiedSnapshot.party[0].activeCombatBalance.spellHealing;
+unifiedSnapshot.party[0].activeCombatBalance.spellPower = 10;
+unifiedSnapshot.party[0].spellPower = 17.5;
+assert.equal(validBattleSnapshot(unifiedSnapshot, GameState.roster), true);
+for (const value of [-1, Infinity, '10']) {
+  const invalid = structuredClone(unifiedSnapshot);
+  invalid.party[0].activeCombatBalance.spellPower = value;
+  assert.equal(validBattleSnapshot(invalid, GameState.roster), false);
+  invalid.party[0].activeCombatBalance.spellPower = 10;
+  invalid.party[0].spellPower = value;
+  assert.equal(validBattleSnapshot(invalid, GameState.roster), false);
+}
 for (const [key, value] of [['powerScale', Infinity], ['powerScale', 1e308], ['maxHp', 0],
   ['healthScale', Number.MIN_VALUE], ['spellDamage', -1], ['active', 'true']]) {
   const invalid = structuredClone(activeSnapshot);

@@ -84,8 +84,8 @@ export async function simulateRegionalDelve(page, options) {
           const stats = getEquippedAdventurer(probe, { inventory: { equipment: [{ ...item, id: 'probe' }] } });
 
           // Two percent of Mana is a small healer tie-break score, not bonus healing.
-          const offense = hero.role === 'Healer' ? stats.spellHealing + stats.maxMana * 0.02
-            : hero.className.startsWith('Mage') ? stats.spellDamage : stats.attackPower;
+          const offense = hero.role === 'Healer' ? stats.spellPower + stats.maxMana * 0.02
+            : hero.className.startsWith('Mage') ? stats.spellPower : stats.attackPower;
 
           // Expected critical output is base power times one plus the chance of its extra
           // multiplier. Armor blocks armor / (armor + 400), so effective physical Health
@@ -269,7 +269,7 @@ export async function simulateRegionalDelve(page, options) {
                     const caster = scene.getLivingEnemies().filter(enemy => enemy.pendingAction
                       && enemy.pendingAction.name !== 'Attack' && enemy.pendingAction.duration > 1500
                       && time - enemy.pendingAction.startAt >= 1500)
-                      .sort((a, b) => Math.max(b.attackPower, b.spellDamage) - Math.max(a.attackPower, a.spellDamage))[0];
+                      .sort((a, b) => Math.max(b.attackPower, b.spellPower) - Math.max(a.attackPower, a.spellPower))[0];
                     if (caster) {
                       scene.selectedUnitIds.clear();
                       scene.commandMode = 'INTERRUPT';
@@ -407,7 +407,7 @@ export async function simulateRegionalDelve(page, options) {
                     const balance = enemy.activeCombatBalance;
                     if (!balance?.active || enemy.maxHp !== Math.round(balance.maxHp * balance.healthScale)
                       || enemy.attackPower !== balance.attackPower * balance.powerScale
-                      || enemy.spellDamage !== balance.spellDamage * balance.powerScale) {
+                      || enemy.spellPower !== balance.spellPower * balance.powerScale) {
                       throw new Error(`Active stats missing for ${enemy.name}`);
                     }
                   }

@@ -202,7 +202,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Deals [x] unaspected magical damage to one enemy.",
       "potency": 0.8,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "secondary": {
@@ -251,7 +251,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Deals [x] unaspected magical damage to the affected enemies.",
       "potency": 0.55,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "secondary": {
@@ -296,7 +296,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Deals [x] unaspected magical damage to one enemy.",
       "potency": 0.6,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "secondary": {
@@ -341,7 +341,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Deals [x] unaspected magical damage to one enemy.",
       "potency": 0.55,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "secondary": {
@@ -842,7 +842,8 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Restores [x] health when the protected ally survives a hit that leaves them below 25% maximum Health.",
       "potency": 1.1,
       "unit": "% of power basis",
-      "basis": "Caster Spell Healing",
+      "basis": "Caster Spell Power",
+      "healing": true,
       "cap": null
     },
     "secondary": {
@@ -1216,7 +1217,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Deals [y] radiant magical damage to the affected enemies.",
       "potency": 0.35,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "duration": 4000,
@@ -1261,7 +1262,8 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Restores [y] health to the affected allies.",
       "potency": 0.35,
       "unit": "% of power basis",
-      "basis": "Caster Spell Healing",
+      "basis": "Caster Spell Power",
+      "healing": true,
       "cap": null
     },
     "duration": 6000,
@@ -1299,7 +1301,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Deals [x] radiant magical damage to one enemy.",
       "potency": 1.2,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "secondary": {
@@ -1346,7 +1348,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Deals [x] radiant magical damage to the affected enemies.",
       "potency": 0.85,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "secondary": {
@@ -1391,7 +1393,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Deals [x] radiant magical damage to one enemy.",
       "potency": 1,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "secondary": {
@@ -1436,14 +1438,15 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Deals [x] radiant magical damage to the affected enemies.",
       "potency": 0.75,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "secondary": {
       "text": "Restores [y] health to the lowest-health living ally.",
       "potency": 0.5,
       "unit": "% of power basis",
-      "basis": "Caster Spell Healing",
+      "basis": "Caster Spell Power",
+      "healing": true,
       "cap": null
     },
     "duration": 0,
@@ -1481,7 +1484,8 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Restores [x] health to the Dawnwarden.",
       "potency": 1.1,
       "unit": "% of power basis",
-      "basis": "Caster Spell Healing",
+      "basis": "Caster Spell Power",
+      "healing": true,
       "cap": null
     },
     "secondary": {
@@ -1571,7 +1575,8 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Restores [x] health to the Dawnwarden.",
       "potency": 0.8,
       "unit": "% of power basis",
-      "basis": "Caster Spell Healing",
+      "basis": "Caster Spell Power",
+      "healing": true,
       "cap": null
     },
     "secondary": {
@@ -1616,14 +1621,15 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Restores [x] health to one ally.",
       "potency": 1,
       "unit": "% of power basis",
-      "basis": "Caster Spell Healing",
+      "basis": "Caster Spell Power",
+      "healing": true,
       "cap": null
     },
     "secondary": {
       "text": "Deals [y] radiant magical damage to enemies near the healed ally.",
       "potency": 0.45,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "duration": 0,
@@ -5107,7 +5113,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Deals [x] necrotic magical damage to one enemy.",
       "potency": 1,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "secondary": {
@@ -5154,7 +5160,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Deals [x] necrotic magical damage to the affected enemies.",
       "potency": 0.75,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "secondary": {
@@ -5199,7 +5205,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Deals [x] necrotic magical damage to one enemy.",
       "potency": 0.8,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "secondary": {
@@ -5244,7 +5250,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Deals [x] necrotic magical damage to the affected enemies.",
       "potency": 0.45,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "secondary": {
@@ -5334,7 +5340,8 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Restores [x] health to the Umbral Mage.",
       "potency": 0.85,
       "unit": "% of power basis",
-      "basis": "Caster Spell Healing",
+      "basis": "Caster Spell Power",
+      "healing": true,
       "cap": null
     },
     "secondary": {
@@ -5379,7 +5386,8 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Restores [x] health to one ally.",
       "potency": 1.3,
       "unit": "% of power basis",
-      "basis": "Caster Spell Healing",
+      "basis": "Caster Spell Power",
+      "healing": true,
       "cap": null
     },
     "secondary": {
@@ -5469,7 +5477,8 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Restores [x] health to the Luminous Mage.",
       "potency": 0.7,
       "unit": "% of power basis",
-      "basis": "Caster Spell Healing",
+      "basis": "Caster Spell Power",
+      "healing": true,
       "cap": null
     },
     "secondary": {
@@ -5559,14 +5568,15 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Restores [x] health to the affected allies.",
       "potency": 0.65,
       "unit": "% of power basis",
-      "basis": "Caster Spell Healing",
+      "basis": "Caster Spell Power",
+      "healing": true,
       "cap": null
     },
     "secondary": {
       "text": "Deals [y] radiant magical damage to nearby enemies.",
       "potency": 0.45,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "duration": 0,
@@ -5651,7 +5661,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Deals [x] radiant magical damage to one enemy.",
       "potency": 1,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "secondary": {
@@ -5698,7 +5708,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Deals [x] radiant magical damage to the affected enemies.",
       "potency": 0.75,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "secondary": {
@@ -5743,14 +5753,15 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Deals [x] radiant magical damage to one enemy.",
       "potency": 0.8,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "secondary": {
       "text": "Restores [y] health to the nearest injured living ally.",
       "potency": 0.5,
       "unit": "% of power basis",
-      "basis": "Caster Spell Healing",
+      "basis": "Caster Spell Power",
+      "healing": true,
       "cap": null
     },
     "duration": 0,
@@ -5788,7 +5799,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Deals [x] radiant magical damage to the affected enemies.",
       "potency": 0.85,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "secondary": {
@@ -5885,7 +5896,8 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Restores [y] health to that ally after moving them to a valid position beside the Luminous Mage.",
       "potency": 0.4,
       "unit": "% of power basis",
-      "basis": "Caster Spell Healing",
+      "basis": "Caster Spell Power",
+      "healing": true,
       "cap": null
     },
     "duration": 4000,
@@ -6013,7 +6025,8 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Restores [x] health to the Crimson Mage.",
       "potency": 0.85,
       "unit": "% of power basis",
-      "basis": "Caster Spell Healing",
+      "basis": "Caster Spell Power",
+      "healing": true,
       "cap": null
     },
     "secondary": {
@@ -6103,7 +6116,8 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Restores [x] health to one ally.",
       "potency": 1.4,
       "unit": "% of power basis",
-      "basis": "Caster Spell Healing",
+      "basis": "Caster Spell Power",
+      "healing": true,
       "cap": null
     },
     "secondary": {
@@ -6148,7 +6162,8 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Restores [x] health to the affected allies.",
       "potency": 0.65,
       "unit": "% of power basis",
-      "basis": "Caster Spell Healing",
+      "basis": "Caster Spell Power",
+      "healing": true,
       "cap": null
     },
     "secondary": {
@@ -6193,7 +6208,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Deals [x] unaspected magical damage to one enemy.",
       "potency": 0.9,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "secondary": {
@@ -6240,7 +6255,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Deals [x] unaspected magical damage to the affected enemies.",
       "potency": 0.8,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "secondary": {
@@ -6285,7 +6300,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Deals [x] unaspected magical damage to the affected enemies.",
       "potency": 0.65,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "secondary": {
@@ -6330,7 +6345,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Deals [x] unaspected magical damage to the affected enemies.",
       "potency": 0.6,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "secondary": {
@@ -6467,7 +6482,8 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "When one ally would take lethal damage, prevents death and restores [x] health.",
       "potency": 1.5,
       "unit": "% of power basis",
-      "basis": "Caster Spell Healing",
+      "basis": "Caster Spell Power",
+      "healing": true,
       "cap": null
     },
     "secondary": {
@@ -6654,7 +6670,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Deals [y] total nature magical damage over the duration to enemies remaining in the area.",
       "potency": 0.35,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "duration": 6000,
@@ -6739,7 +6755,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Deals [x] nature magical damage to one enemy.",
       "potency": 0.8,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "secondary": {
@@ -6784,7 +6800,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Deals [x] nature magical damage to the affected enemies.",
       "potency": 0.55,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "secondary": {
@@ -6816,7 +6832,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "tickInterval": 0,
     "starterFor": [],
     "trigger": "When useful and ready; respects player orders.",
-    "limits": "Healing per recipient capped at 50% of ranked Spell Healing potency; no second critical roll.",
+    "limits": "Healing per recipient capped at 50% of ranked Spell Power potency; no second critical roll.",
     "secondaryArea": "Allies within 200 of damage anchor"
   },
   {
@@ -6874,7 +6890,8 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Restores [x] health to one ally.",
       "potency": 1.8,
       "unit": "% of power basis",
-      "basis": "Caster Spell Healing",
+      "basis": "Caster Spell Power",
+      "healing": true,
       "cap": null
     },
     "secondary": {
@@ -6919,7 +6936,8 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Restores [x] health to one ally.",
       "potency": 1.1,
       "unit": "% of power basis",
-      "basis": "Caster Spell Healing",
+      "basis": "Caster Spell Power",
+      "healing": true,
       "cap": null
     },
     "secondary": {
@@ -6966,14 +6984,16 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Restores [x] health to one ally.",
       "potency": 0.65,
       "unit": "% of power basis",
-      "basis": "Caster Spell Healing",
+      "basis": "Caster Spell Power",
+      "healing": true,
       "cap": null
     },
     "secondary": {
       "text": "Restores [y] additional total health to that ally over the secondary duration.",
       "potency": 0.55,
       "unit": "% of power basis",
-      "basis": "Caster Spell Healing",
+      "basis": "Caster Spell Power",
+      "healing": true,
       "cap": null
     },
     "duration": 0,
@@ -7011,14 +7031,16 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Restores [x] health to the affected allies.",
       "potency": 0.5,
       "unit": "% of power basis",
-      "basis": "Caster Spell Healing",
+      "basis": "Caster Spell Power",
+      "healing": true,
       "cap": null
     },
     "secondary": {
       "text": "Restores [y] additional total health to each affected ally over the secondary duration.",
       "potency": 0.3,
       "unit": "% of power basis",
-      "basis": "Caster Spell Healing",
+      "basis": "Caster Spell Power",
+      "healing": true,
       "cap": null
     },
     "duration": 0,
@@ -7155,7 +7177,8 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Restores [y] health to the affected allies.",
       "potency": 0.45,
       "unit": "% of power basis",
-      "basis": "Caster Spell Healing",
+      "basis": "Caster Spell Power",
+      "healing": true,
       "cap": null
     },
     "duration": 3000,
@@ -7283,7 +7306,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Deals [x] radiant magical damage to one enemy.",
       "potency": 0.8,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "secondary": {
@@ -7328,7 +7351,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Deals [x] radiant magical damage to one enemy.",
       "potency": 1.35,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "secondary": {
@@ -7373,7 +7396,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Deals [x] radiant magical damage to the affected enemies.",
       "potency": 0.55,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "secondary": {
@@ -7418,7 +7441,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Deals [x] radiant magical damage to the affected enemies.",
       "potency": 0.5,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "secondary": {
@@ -7450,7 +7473,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "tickInterval": 0,
     "starterFor": [],
     "trigger": "When useful and ready; respects player orders.",
-    "limits": "Healing per recipient capped at 50% of ranked Spell Healing potency; excludes overkill; no second critical roll.",
+    "limits": "Healing per recipient capped at 50% of ranked Spell Power potency; excludes overkill; no second critical roll.",
     "secondaryArea": "Allies within 200 of damage anchor"
   },
   {
@@ -7463,7 +7486,8 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Restores [x] health to one ally.",
       "potency": 1.15,
       "unit": "% of power basis",
-      "basis": "Caster Spell Healing",
+      "basis": "Caster Spell Power",
+      "healing": true,
       "cap": null
     },
     "secondary": {
@@ -7510,7 +7534,8 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Restores [x] total health to one ally over the duration.",
       "potency": 1.2,
       "unit": "% of power basis",
-      "basis": "Caster Spell Healing",
+      "basis": "Caster Spell Power",
+      "healing": true,
       "cap": null
     },
     "secondary": {
@@ -7555,7 +7580,8 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Restores [x] health to one ally.",
       "potency": 0.9,
       "unit": "% of power basis",
-      "basis": "Caster Spell Healing",
+      "basis": "Caster Spell Power",
+      "healing": true,
       "cap": null
     },
     "secondary": {
@@ -7600,14 +7626,15 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Restores [x] health to the affected allies.",
       "potency": 0.65,
       "unit": "% of power basis",
-      "basis": "Caster Spell Healing",
+      "basis": "Caster Spell Power",
+      "healing": true,
       "cap": null
     },
     "secondary": {
       "text": "Deals [y] radiant magical damage to enemies adjacent to an ally who received effective healing.",
       "potency": 0.35,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "duration": 0,
@@ -7687,10 +7714,10 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "category": "Protect",
     "targetLabel": "Enemies",
     "primary": {
-      "text": "Reduces all enemies' Attack Power and Spell Damage by [x]% for the duration.",
+      "text": "Reduces all enemies' Attack Power and Spell Power by [x]% for the duration.",
       "potency": 0.12,
       "unit": "% change",
-      "basis": "Target Attack Power and Spell Damage",
+      "basis": "Target Attack Power and Spell Power",
       "cap": 0.2
     },
     "secondary": {
@@ -7742,7 +7769,8 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Restores [y] health to the affected allies.",
       "potency": 0.45,
       "unit": "% of power basis",
-      "basis": "Caster Spell Healing",
+      "basis": "Caster Spell Power",
+      "healing": true,
       "cap": null
     },
     "duration": 6000,
@@ -7827,7 +7855,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Deals [x] unaspected magical damage to one enemy.",
       "potency": 0.75,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "secondary": {
@@ -7872,7 +7900,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Deals [x] unaspected magical damage to the affected enemies.",
       "potency": 0.5,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "secondary": {
@@ -7917,7 +7945,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Deals [x] unaspected magical damage to one enemy.",
       "potency": 0.85,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "secondary": {
@@ -7962,7 +7990,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Deals [x] unaspected magical damage to the affected enemies.",
       "potency": 0.4,
       "unit": "% of power basis",
-      "basis": "Caster Spell Damage",
+      "basis": "Caster Spell Power",
       "cap": null
     },
     "secondary": {
@@ -7994,7 +8022,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "tickInterval": 0,
     "starterFor": [],
     "trigger": "When useful and ready; respects player orders.",
-    "limits": "Per-ally healing capped at 60% of ranked Spell Healing potency; excludes overkill; no second critical roll.",
+    "limits": "Per-ally healing capped at 60% of ranked Spell Power potency; excludes overkill; no second critical roll.",
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {
@@ -8007,7 +8035,8 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Restores [x] health to one ally.",
       "potency": 1.2,
       "unit": "% of power basis",
-      "basis": "Caster Spell Healing",
+      "basis": "Caster Spell Power",
+      "healing": true,
       "cap": null
     },
     "secondary": {
@@ -8054,7 +8083,8 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Restores [x] total health to one ally over the duration.",
       "potency": 1.15,
       "unit": "% of power basis",
-      "basis": "Caster Spell Healing",
+      "basis": "Caster Spell Power",
+      "healing": true,
       "cap": null
     },
     "secondary": {
@@ -8099,14 +8129,15 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Restores [x] health to one ally.",
       "potency": 1.4,
       "unit": "% of power basis",
-      "basis": "Caster Spell Healing",
+      "basis": "Caster Spell Power",
+      "healing": true,
       "cap": null
     },
     "secondary": {
-      "text": "Increases that ally's Attack Power and Spell Damage by [y]% for the secondary duration.",
+      "text": "Increases that ally's Attack Power and Spell Power by [y]% for the secondary duration.",
       "potency": 0.08,
       "unit": "% change",
-      "basis": "Recipient Attack Power and Spell Damage",
+      "basis": "Recipient Attack Power and Spell Power",
       "cap": 0.15
     },
     "duration": 0,
@@ -8144,7 +8175,8 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "text": "Restores [x] health to the affected allies.",
       "potency": 0.8,
       "unit": "% of power basis",
-      "basis": "Caster Spell Healing",
+      "basis": "Caster Spell Power",
+      "healing": true,
       "cap": null
     },
     "secondary": {

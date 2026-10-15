@@ -230,7 +230,7 @@ enemies.abyssalSovereign.abilities = {
 
   // The larger blast stays at the boss's cast-start position. Its 500-unit warning leaves
   // escape space on the authored floor; autoAvoid requires a manual response. Percentage
-  // power means 22 times this boss's scaled Spell Damage, before shields and reductions.
+  // power means 22 times this boss's scaled Spell Power, before shields and reductions.
   tertiary: { name: "Sovereign's Ruin", animation: 'area', cooldown: 18000,
     windup: 6000, telegraph: 6000, radius: 500, castRange: 300, areaCenter: 'caster',
     autoAvoid: false, power: 2200, powerUnit: 'percent', damageType: 'spell', manaCost: 0,
@@ -289,11 +289,11 @@ for (const [type, profile] of Object.entries(SLIME_BALANCE)) {
 // step before normalization makes percentage damage agree with the new stat totals.
 for (const [type, [maxHp, armor, attackPower, reach, level, spellStats = {}]] of Object.entries(MONSTER_CATALOG)) {
 
-  // Most monsters use Attack Power for Spell Damage. Spread any authored spell stats
-  // afterward so Hedge Mage keeps its separate damage and healing totals. Older rows
+  // Most monsters use Attack Power for Spell Power. Spread any authored spell stats
+  // afterward so Hedge Mage keeps its stronger magical power. Older rows
   // omit this object, so the = {} fallback preserves their existing behavior.
   enemies[type] = { ...enemies[type], maxHp, armor, attackPower, level,
-    spellDamage: attackPower, ...spellStats,
+    spellPower: attackPower, ...spellStats,
     attackRange: reach === 'Ranged' ? 210 : Math.min(100, enemies[type].attackRange),
     abilities: MONSTER_SKILLS[type] ?? enemies[type].abilities };
 }

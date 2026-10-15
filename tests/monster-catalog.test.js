@@ -34,16 +34,16 @@ assert.equal(enemies.denColossus.boss, false);
 assert.equal(enemies.lasher.attackRange, 210);
 
 // Check the exported totals after catalog overrides and shared normalization. Hedge
-// Mage's spell stats must survive without changing its physical attack or skill potency.
-for (const [type, health, armor, attack, spellDamage, spellHealing] of [
-  ['ruffian', 3360, 96, 35, 35, 0],
-  ['lasher', 9800, 144, 39, 39, 0],
-  ['hedgeMage', 9800, 144, 64, 128, 64],
-  ['rongarTheCrusher', 30000, 200, 275, 275, 0]
+// Mage's Spell Power must survive without changing its physical attack or skill potency.
+for (const [type, health, armor, attack, spellPower] of [
+  ['ruffian', 3360, 96, 35, 35],
+  ['lasher', 9800, 144, 39, 39],
+  ['hedgeMage', 9800, 144, 64, 128],
+  ['rongarTheCrusher', 30000, 200, 275, 275]
 ]) {
   const enemy = enemies[type];
   assert.deepEqual([enemy.level, enemy.maxHp, enemy.armor, enemy.attackPower,
-    enemy.spellDamage, enemy.spellHealing], [3, health, armor, attack, spellDamage, spellHealing]);
+    enemy.spellPower], [3, health, armor, attack, spellPower]);
 }
 assert.equal(abilityPower(enemies.lasher, enemies.lasher.abilities.primary), 78);
 assert.equal(abilityPower(enemies.hedgeMage, enemies.hedgeMage.abilities.primary), 230.4);

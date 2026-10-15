@@ -69,6 +69,10 @@ function restoreUnit(unit, saved) {
   // Object.assign writes these fields into its first argument. Later sources replace
   // earlier fields; nested values are not deep-copied.
   Object.assign(unit, model);
+
+  // Constructors use today's catalog. Remove its new power when restoring an older
+  // snapshot, so recorded damage and healing stay exact, including during offline replay.
+  if (model.spellPower == null) delete unit.spellPower;
   unit.syncPresentation();
   unit.setStealthed(unit.stealthed);
   unit.updateHealthBar();

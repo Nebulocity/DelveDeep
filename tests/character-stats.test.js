@@ -110,13 +110,13 @@ console.log('Saved focus uses the replacement catalog definition, and repeat res
 const modern = rebuildCharacterStats({ className, level: 1, statProgressionVersion: 2 });
 assert.equal(abilityPower(modern, base.abilities.nightbolt, 20), 100);
 assert.equal(abilityPower(modern, { damageType: 'physical' }, 20), 10);
-assert.equal(abilityPower(modern, {}, 20, true), 70);
+assert.equal(abilityPower(modern, {}, 20, true), 100);
 assert.equal(hitAccuracy(modern), 0.9);
 assert.equal(hitAccuracy({ ...modern, hitChance: 0.2 }), 1.1);
 const later = rebuildCharacterStats({ ...modern, level: 20 });
 
-assert.equal(later.spellDamage, 804);
-assert.equal(later.spellHealing, 502);
+assert.equal(later.spellPower, 956);
+assert.equal(later.spellHealing, undefined);
 console.log('Percentage ability potency and accuracy ratings above 100% passed.');
 
 const armorContext = vm.createContext({ Phaser: {}, armorReduction, replacementMultiplier });

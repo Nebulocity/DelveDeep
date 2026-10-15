@@ -188,7 +188,7 @@ export async function reviewHall(page, output, width) {
     // return value becomes that output entry. filter keeps entries whose callback returns
     // true. It builds a new list and leaves the original list in place.
     const labels = scene.children.list.filter(object => object.name?.startsWith('hall-stat-')).map(object => object.name.slice(10));
-    const expected = ['Level', 'Health', 'Mana', 'Armor', 'Dodge', 'Block', 'Speed', 'Strength', 'Agility', 'Constitution', 'Intellect', 'Wisdom', 'Hit Chance', 'Crit Chance', 'Crit Multiplier', 'Attack Power', 'Spell Damage', 'Spell Healing', 'Happiness', 'Delves Cleared'];
+    const expected = ['Level', 'Health', 'Mana', 'Armor', 'Dodge', 'Block', 'Speed', 'Strength', 'Agility', 'Constitution', 'Intellect', 'Wisdom', 'Hit Chance', 'Crit Chance', 'Crit Multiplier', 'Attack Power', 'Spell Power', 'Happiness', 'Delves Cleared'];
 
     // sort rearranges this array in place. A negative comparator result puts a before b;
     // positive puts it after; zero keeps them tied. every requires all entries to pass the

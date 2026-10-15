@@ -1,12 +1,13 @@
 // Equipment inspection reads the catalog for flavor and restrictions, and the owned
 // copy for bonuses so enchantments appear without changing the saved item format.
+import { unifiedSpellBonuses } from './SpellPower.js';
 import { getCatalogItemDefinition, getPotionDefinition, itemMinimumLevel, ITEM_RARITIES } from '../data/items.js';
 import { CLASS_PROGRESSION, CHANCE_STATS, progressionResources } from '../config/characterProgression.js';
 
 const labels = { strength: 'Strength', agility: 'Agility', constitution: 'Constitution',
   intellect: 'Intellect', wisdom: 'Wisdom', block: 'Block', dodge: 'Dodge',
   hitChance: 'Hit Chance', critChance: 'Crit Chance', attackPower: 'Attack Power',
-  spellDamage: 'Spell Damage', spellHealing: 'Spell Healing', maxHp: 'Health',
+  spellPower: 'Spell Power', maxHp: 'Health',
   maxMana: 'Mana', armor: 'Armor', speed: 'Speed', critMultiplier: 'Crit Multiplier' };
 const number = value => Number(value.toFixed(2));
 
@@ -28,7 +29,7 @@ export function equipmentDetails(item, hero) {
 
   // Show the owned item's direct bonuses only. Character stat screens still apply attribute conversions.
   const stats = item.stats ?? definition?.stats ?? {};
-  for (const [stat, amount] of Object.entries(stats)) {
+  for (const [stat, amount] of Object.entries(unifiedSpellBonuses(stats))) {
     if (!Number.isFinite(amount) || amount === 0) continue;
     const chance = CHANCE_STATS.includes(stat);
     lines.push(`${amount > 0 ? '+' : ''}${number(amount * (chance ? 100 : 1))}${chance ? '%' : ''} ${labels[stat] ?? stat}`);

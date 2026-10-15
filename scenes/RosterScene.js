@@ -430,7 +430,7 @@ export default class RosterScene extends Phaser.Scene {
       ['Wisdom', Number.isFinite(stats.wisdom) ? format(Math.round(stats.wisdom)) : 'Not set'],
 
       ['Hit Chance', percent(stats.hitChance)], ['Crit Chance', percent(stats.critChance)], ['Crit Multiplier', `${format(stats.critMultiplier)}x`],
-      ['Attack Power', format(stats.attackPower)], ['Spell Damage', format(stats.spellDamage)], ['Spell Healing', format(stats.spellHealing)],
+      ['Attack Power', format(stats.attackPower)], ['Spell Power', format(stats.spellPower ?? Math.max(stats.spellDamage ?? 0, stats.spellHealing ?? 0))],
       ['Happiness', `${hero.happiness ?? 70}%`], ['Delves Cleared', `${hero.delvesCompleted ?? 0}`]];
 
     const modal = this.modal(`${hero.name} · Character stats`, hero.className);
@@ -438,7 +438,7 @@ export default class RosterScene extends Phaser.Scene {
       ['Progress', ['Level', 'Happiness', 'Delves Cleared']],
       ['Attributes', ['Strength', 'Agility', 'Constitution', 'Intellect', 'Wisdom']],
       ['Defense', ['Health', 'Mana', 'Armor', 'Dodge', 'Block']],
-      ['Offense', ['Attack Power', 'Spell Damage', 'Spell Healing', 'Speed', 'Hit Chance', 'Crit Chance', 'Crit Multiplier']]
+      ['Offense', ['Attack Power', 'Spell Power', 'Speed', 'Hit Chance', 'Crit Chance', 'Crit Multiplier']]
     ];
 
     groups.forEach(([title, labels], groupIndex) => {

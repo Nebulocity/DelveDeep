@@ -14,7 +14,7 @@ const tank = progressionResources('Gladiator');
 assert.equal(tank.maxHp, 500); assert.equal(tank.armor, 100); assert.equal(tank.dodge, 0.1); assert.equal(tank.block, 0);
 assert.equal(progressionResources('Oathwarden').block, 0.05);
 const dawn = progressionResources('Dawnwarden');
-assert.equal(dawn.maxMana, 250); assert.equal(dawn.wisdom, 40); assert.equal(dawn.spellDamage, 150); assert.equal(dawn.spellHealing, 150);
+assert.equal(dawn.maxMana, 250); assert.equal(dawn.wisdom, 40); assert.equal(dawn.spellPower, 150);
 assert.equal(progressionResources('Gladiator', 2).maxHp, 540);
 assert.equal(progressionResources('Dawnwarden', 2).maxHp, 533);
 
@@ -22,8 +22,8 @@ assert.equal(progressionResources('Barbarian', 2).maxHp, 372);
 assert.equal(progressionResources('Ranger', 2).maxHp, 367.5);
 assert.equal(progressionResources('Mage of the Crimson Spire', 2).maxHp, 161);
 assert.equal(progressionResources('Cleric of the Everbright', 2).maxHp, 268);
-assert.equal(progressionResources('Mage of the Crimson Spire', 20).spellDamage, 804);
-assert.equal(progressionResources('Cleric of the Everbright', 20).spellHealing, 804);
+assert.equal(progressionResources('Mage of the Crimson Spire', 20).spellPower, 956);
+assert.equal(progressionResources('Cleric of the Everbright', 20).spellPower, 956);
 assert.equal(progressionResources('Ranger', 2).attackPower, 520);
 
 assert.equal(progressionResources('Barbarian', 2).attackPower, 516);
@@ -51,8 +51,8 @@ const mage = GameState.roster.find(hero => hero.id === 'valtheris');
 const trainedKey = 'ability_v2_crimson_mage_magic_missile';
 mage.xp = 17; mage.happiness = 65; mage.delvesCompleted = 3; mage.abilityRanks[trainedKey] = 2;
 grantAdventurerLevels(mage, 19);
-assert.equal(mage.maxHp, 359); assert.equal(mage.spellDamage, 804); assert.equal(mage.xp, 17);
-const before = { level: mage.level, strength: mage.strength, intellect: mage.intellect, maxHp: mage.maxHp, mana: mage.maxMana, spellDamage: mage.spellDamage, spellHealing: mage.spellHealing };
+assert.equal(mage.maxHp, 359); assert.equal(mage.spellPower, 956); assert.equal(mage.xp, 17);
+const before = { level: mage.level, strength: mage.strength, intellect: mage.intellect, maxHp: mage.maxHp, mana: mage.maxMana, spellPower: mage.spellPower };
 saveProfile(); loadProfile(adventurers);
 const restored = GameState.roster.find(hero => hero.id === 'valtheris');
 
@@ -62,19 +62,17 @@ assert.deepEqual({
   intellect: restored.intellect,
   maxHp: restored.maxHp,
   mana: restored.maxMana,
-  spellDamage: restored.spellDamage,
-  spellHealing: restored.spellHealing
+  spellPower: restored.spellPower
 }, before);
 assert.equal(restored.happiness, 65); assert.equal(restored.delvesCompleted, 3); assert.equal(restored.abilityRanks[trainedKey], 2); assert.equal(restored.xp, 17);
 restored.equipment = { weapon: 'attribute-gear' };
 GameState.inventory.equipment = [{ id: 'attribute-gear', slot: 'weapon', usableBy: [restored.className], stats: { intellect: 3, wisdom: 2, constitution: 1, spellDamage: 4 } }];
 const equipped = getEquippedAdventurer(restored);
-assert.equal(equipped.spellDamage, restored.spellDamage + 28);
-assert.equal(equipped.spellHealing, restored.spellHealing + 16);
+assert.equal(equipped.spellPower, restored.spellPower + 44);
 
 assert.equal(equipped.maxMana, restored.maxMana + 25);
 assert.equal(equipped.maxHp, restored.maxHp + 10);
-assert.equal(restored.spellDamage, before.spellDamage);
+assert.equal(restored.spellPower, before.spellPower);
 console.log('Live levels, save restoration, morale, ranks and attribute equipment preserve progression without double application.');
 
 const grown = progressionResources('Oathwarden', 2);

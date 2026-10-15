@@ -137,7 +137,7 @@ test('idle deaths stop a lost run, persist the summary and do not repay on reloa
     scene.isLeaderAbilityReady = () => false;
     scene.partyUnits.forEach(unit => {
       unit.hp = 1;
-      unit.attackPower = unit.spellDamage = unit.spellHealing = unit.basicHealPower = 0;
+      unit.attackPower = unit.spellPower = unit.basicHealPower = 0;
       unit.abilities = {};
     });
 
@@ -170,7 +170,7 @@ test('idle party loss keeps enemies for the Arise decision and grants no clear',
     scene.isLeaderAbilityReady = () => true;
     scene.partyUnits.forEach(unit => {
       unit.hp = 1;
-      unit.attackPower = unit.spellDamage = unit.spellHealing = unit.basicHealPower = 0;
+      unit.attackPower = unit.spellPower = unit.basicHealPower = 0;
       unit.abilities = {};
     });
 

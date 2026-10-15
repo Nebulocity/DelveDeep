@@ -63,7 +63,7 @@ for (const width of [915, 1920]) {
     // some stops with true as soon as one entry passes the check; an empty list gives
     // false.
     expect(content.buttons.some(label => label?.includes('<'))).toBe(false);
-    expect(content.labels).toEqual(['Level', 'Health', 'Mana', 'Armor', 'Dodge', 'Block', 'Speed', 'Strength', 'Agility', 'Constitution', 'Intellect', 'Wisdom', 'Hit Chance', 'Crit Chance', 'Crit Multiplier', 'Attack Power', 'Spell Damage', 'Spell Healing', 'Happiness', 'Delves Cleared']);
+    expect(content.labels).toEqual(['Level', 'Health', 'Mana', 'Armor', 'Dodge', 'Block', 'Speed', 'Strength', 'Agility', 'Constitution', 'Intellect', 'Wisdom', 'Hit Chance', 'Crit Chance', 'Crit Multiplier', 'Attack Power', 'Spell Power', 'Happiness', 'Delves Cleared']);
     await page.screenshot({ path: `output/qa/character-review/stats-${width}.png` });
     const blockPoint = await page.evaluate(() => {
       const qa = window.__DELVE_DEEP_VISUAL_QA__, scene = qa.game.scene.getScene('RosterScene');

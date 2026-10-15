@@ -575,7 +575,7 @@ export default class PartySelectScene extends Phaser.Scene {
     const stats = [
       `Level ${adventurer.level} · ${adventurer.role}`,
       `HP ${adventurer.maxHp} · Attack ${adventurer.attackPower}`,
-      adventurer.healPower > 0 ? `Healing ${adventurer.healPower}` : '',
+      (adventurer.spellPower ?? adventurer.healPower) > 0 ? `Spell Power ${adventurer.spellPower ?? adventurer.healPower}` : '',
       adventurer.maxMana > 0 ? `Mana ${adventurer.maxMana}` : '',
       `Move Speed ${adventurer.moveSpeed} · Crit ${Math.round((adventurer.critChance ?? 0) * 100)}%`,
       `Happiness ${adventurer.happiness ?? 70}% (${happinessLabel(adventurer.happiness ?? 70)})`

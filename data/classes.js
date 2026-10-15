@@ -180,7 +180,11 @@ addAbilityProgression(CLASS_DEFINITIONS);
 export const LEGACY_CLASS_DEFINITIONS = Object.fromEntries(Object.entries(CLASS_DEFINITIONS)
   .map(([name, definition]) => [name, { ...definition, abilities: definition.abilities }]));
 for (const [name, definition] of Object.entries(CLASS_DEFINITIONS)) {
-  definition.abilities = replacementAbilities(name);
+
+  // Tune healing per class before ranks are built. The resulting coefficients are saved
+  // with a battle, so changing a class later does not rewrite an encounter in progress.
+  definition.healingMultiplier = progressionResources(name).healingMultiplier ?? 1;
+  definition.abilities = replacementAbilities(name, definition.healingMultiplier);
 
   // Mend is the healer's small fallback spell. New encounters spend 2% of maximum
   // Mana per cast; legacy definitions above keep the costs recorded in older battles.
@@ -209,7 +213,7 @@ export function createAdventurer(id, name, className, overrides = {}) {
     abilities: { ...definition.abilities },
     ...overrides,
     ...progressionResources(className),
-    healPower: progressionResources(className).spellHealing,
+    healPower: progressionResources(className).spellPower,
     statProgressionVersion: 2
   };
 }

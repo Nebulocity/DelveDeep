@@ -83,8 +83,13 @@ export default class BattleUnit {
     // Math.max(1, speed) prevents a zero divisor.
     const actionRate = Math.max(1, this.speed) / 100;
     const stats = characterStats(config);
-    this.spellDamage = stats.spellDamage;
-    this.spellHealing = stats.spellHealing;
+    // Fresh encounters have one Spell Power. Old encounter records still carry their
+    // separate values, which the compatibility calculations can read without changing them.
+    if (stats.spellPower != null) this.spellPower = stats.spellPower;
+    else {
+      this.spellDamage = stats.spellDamage;
+      this.spellHealing = stats.spellHealing;
+    }
 
     this.hitChance = stats.hitChance;
     this.dodge = stats.dodge;

@@ -31,7 +31,7 @@ const caster = monsterStats({ attackPower: 10, spellDamage: 80, spellHealing: 60
 caster.abilities = monsterAbilities(caster);
 assert.equal(abilityPower(caster, caster.abilities.secondary), 20);
 
-assert.equal(abilityPower(caster, { power: 50 }, 50, true), 30);
+assert.equal(abilityPower(caster, { power: 50 }, 50, true), 40);
 const capped = monsterStats({ dodge: 1, block: 1, critChance: 1, hitChance: 1 });
 assert.equal(capped.dodge, 0.3);
 assert.equal(capped.block, 0.35);
@@ -127,6 +127,6 @@ spendMana: Unit.prototype.spendMana, lastAbilityAt: {}, finishAction() {} };
 battle.resolveHeal = (actor, target, amount) => { battle.healing = amount; };
 battle.beginEnemyAbility(healer, victim, 'secondary', 0);
 delayed.pop()();
-assert.equal(battle.healing, 30);
+assert.equal(battle.healing, 40);
 assert.equal(healer.mana, 90);
 console.log('Monster stat parity, starting potency, shared armor/dodge/block, spells and healing/mana passed.');

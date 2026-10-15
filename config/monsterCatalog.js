@@ -2,14 +2,14 @@
 // existing movement, critical-hit and shared stat defaults; monsters do not gain hero growth.
 // Each row is [Health, Armor, Attack Power, basic reach category, destination level].
 
-// An optional sixth entry supplies separate spell stats when a monster needs them.
+// An optional sixth entry supplies Spell Power when a monster needs them.
 export const MONSTER_CATALOG = {
   caveSlime: [2400, 80, 25, 'Adjacent', 1],
   elderSlime: [7000, 120, 28, 'Adjacent', 1],
   slimeSovereign: [24000, 160, 230, 'Adjacent', 1],
   ruffian: [3360, 96, 35, 'Adjacent', 3],
   lasher: [9800, 144, 39, 'Ranged', 3],
-  hedgeMage: [9800, 144, 64, 'Ranged', 3, { spellDamage: 128, spellHealing: 64 }],
+  hedgeMage: [9800, 144, 64, 'Ranged', 3, { spellPower: 128 }],
   rongarTheCrusher: [30000, 200, 275, 'Adjacent', 3],
   denWarden: [3000, 285, 38, 'Adjacent', 6],
   denProtector: [4600, 310, 52, 'Adjacent', 6],
@@ -30,7 +30,7 @@ export const MONSTER_CATALOG = {
   abyssalSovereign: [84000, 0, 19, 'Adjacent', 20]
 };
 
-// Potency is a percentage of Attack Power or Spell Damage. Seconds become milliseconds
+// Potency is a percentage of Attack Power or Spell Power. Seconds become milliseconds
 // here because battle timers use milliseconds. Extra fields describe targeting or effects.
 function strike(name, potency, cooldown, windup, damageType = 'physical', extra = {}) {
   return { name, power: potency, powerUnit: 'percent', damageType, manaCost: 0,
@@ -60,7 +60,7 @@ export const MONSTER_SKILLS = {
 
     // Belch is the player-response cast: its 4.5-second warning allows an interrupt or
     // manual movement beyond 400 arena units. The 900% potency uses Rongar's locally scaled
-    // Spell Damage, not eight times an adventurer's Health. Fresh Thornbriar spawns deal
+    // Spell Power, not eight times an adventurer's Health. Fresh Thornbriar spawns deal
     // about 569 damage before shields and reductions; saved fights retain their recorded skill.
     tertiary: circle('Belch', 900, 10, 4.5, 400, 'spell',
       { areaCenter: 'caster', stunDuration: 3000, autoAvoid: false })

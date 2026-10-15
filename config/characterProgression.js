@@ -31,16 +31,16 @@ const common = { speed: 100, hitChance: 0, critChance: 0, critMultiplier: 1.3, h
 // ones. This is a shallow copy, so nested objects are still shared.
 const tank = { ...common, maxHp: 500, maxMana: 0, armor: 100, dodge: 0.05, block: 0.05,
   strength: 20, agility: 20, constitution: 20, intellect: 10, wisdom: 10,
-  attackPower: 250, spellDamage: 0, spellHealing: 0 };
+  attackPower: 250, spellPower: 0 };
 const melee = { ...common, maxHp: 350, maxMana: 0, armor: 50, dodge: 0.02, block: 0.02,
   strength: 30, agility: 30, constitution: 15, intellect: 10, wisdom: 10,
-  attackPower: 500, spellDamage: 0, spellHealing: 0 };
+  attackPower: 500, spellPower: 0 };
 const mage = { ...melee, maxHp: 150, maxMana: 500, strength: 15, agility: 15, intellect: 40, wisdom: 30,
-  attackPower: 50, spellDamage: 500, spellHealing: 350 };
+  attackPower: 50, spellPower: 500 };
 
 const healer = { ...common, maxHp: 250, maxMana: 500, armor: 30, dodge: 0.02, block: 0,
   strength: 15, agility: 15, constitution: 20, intellect: 30, wisdom: 40,
-  attackPower: 100, spellDamage: 350, spellHealing: 500 };
+  attackPower: 100, spellPower: 500 };
 
 export const PROGRESSION_PROFILES = {
   Tank: { base: tank, growth: { maxHp: 20, maxMana: 0, strength: 1.5, agility: 0.5, constitution: 2, intellect: 0.25, wisdom: 0.5 } },
@@ -50,7 +50,7 @@ export const PROGRESSION_PROFILES = {
 
   Healer: { base: healer, growth: { maxHp: 8, maxMana: 15, strength: 0.25, agility: 0.5, constitution: 1, intellect: 1, wisdom: 2 } },
 
-  Dawnwarden: { base: { ...tank, maxMana: 250, wisdom: 40, spellDamage: 150, spellHealing: 150 },
+  Dawnwarden: { base: { ...tank, maxMana: 250, wisdom: 40, spellPower: 150 },
     growth: { maxHp: 18, maxMana: 10, strength: 1, agility: 0.5, constitution: 1.5, intellect: 0.5, wisdom: 1.5 } }
 };
 
@@ -61,6 +61,19 @@ export const CLASS_PROGRESSION = {
   'Cleric of the Everbright': 'Healer', 'Cleric of the Verdant Covenant': 'Healer', 'Cleric of the Sanguine Song': 'Healer'
 };
 
+// Each class can tune its Spell Power healing without changing damage or shared spells.
+// A multiplier of 0.25 means one quarter of the catalog's reference healing coefficient.
+// These starting values preserve the previous tuning, including magical generic heals.
+export const CLASS_HEALING_MULTIPLIERS = {
+  Dawnwarden: 0.25,
+  'Mage of the Umbral Veil': 0.25,
+  'Mage of the Crimson Spire': 0.25,
+  'Mage of the Luminous Archive': 0.25,
+  'Cleric of the Everbright': 0.25,
+  'Cleric of the Verdant Covenant': 0.25,
+  'Cleric of the Sanguine Song': 0.25
+};
+
 // Choose the class growth profile and apply any class-specific starting stat override.
 export function progressionProfile(className) {
   const profile = PROGRESSION_PROFILES[CLASS_PROGRESSION[className]];
@@ -69,7 +82,8 @@ export function progressionProfile(className) {
   // ... copies the source's own fields into this object; fields listed later replace
   // earlier ones. This is a shallow copy, so nested objects are still shared. The
   // condition before ? chooses the first value when true and the value after : when false.
-  return { ...profile, base: className === 'Gladiator' ? { ...profile.base, dodge: 0.1, block: 0 } : profile.base };
+  const base = className === 'Gladiator' ? { ...profile.base, dodge: 0.1, block: 0 } : profile.base;
+  return { ...profile, base: { ...base, healingMultiplier: CLASS_HEALING_MULTIPLIERS[className] ?? 1 } };
 }
 
 // Add each attribute's per-level growth for levels above one.
@@ -129,11 +143,11 @@ export function progressionResources(className, level = 1, attributeBonuses = {}
     armor: profile.base.armor + delta.constitution * 10,
 
     // Each gained Strength adds 8 Attack Power. Scoundrels and Rangers also gain
-    // 6 Attack Power per Agility. Intellect adds Spell Damage, and Wisdom adds
-    // Spell Healing, each at 8 power per gained point.
+    // 6 Attack Power per Agility. Each gained Intellect or Wisdom adds 8 Spell Power.
+    // Both attributes strengthen damage and healing equally; base attributes are already
+    // included in starting power. Healing coefficients are tuned separately per class.
     attackPower: profile.base.attackPower + delta.strength * 8 + (agilityAttacker ? delta.agility * 6 : 0),
-    spellDamage: profile.base.spellDamage + delta.intellect * 8,
-    spellHealing: profile.base.spellHealing + delta.wisdom * 8,
+    spellPower: profile.base.spellPower + (delta.intellect + delta.wisdom) * 8,
 
     // Chance values are fractions: 0.0008 is 0.08 percentage points, not 8%.
     // Add the base chance, attribute gains and direct gear bonus, then apply the

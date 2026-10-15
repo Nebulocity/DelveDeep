@@ -42,7 +42,7 @@ for (const width of [915, 1920]) {
 
     expect(result.missing).toEqual([]);
     for (const label of ['Level', 'Health', 'Mana', 'Armor', 'Dodge', 'Block', 'Speed', 'Strength', 'Agility', 'Constitution',
-      'Intellect', 'Wisdom', 'Hit Chance', 'Crit Chance', 'Crit Multiplier', 'Attack Power', 'Spell Damage', 'Spell Healing', 'Happiness', 'Delves Cleared']) {
+      'Intellect', 'Wisdom', 'Hit Chance', 'Crit Chance', 'Crit Multiplier', 'Attack Power', 'Spell Power', 'Happiness', 'Delves Cleared']) {
       expect(result.description).toContain(`${label}:`);
     }
     expect(result.bounds.x).toBeGreaterThanOrEqual(0);

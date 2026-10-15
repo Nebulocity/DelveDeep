@@ -2,6 +2,7 @@
 // existing roster and gear IDs while matching the names used in the approved catalog.
 
 import { REPLACEMENT_ABILITY_ROWS } from './replacementAbilityCatalog.js';
+import { progressionProfile } from '../config/characterProgression.js';
 import { balancedHealingAbility } from '../config/healingBalance.js';
 import { withAbilityRankCurve } from './abilityRankCurves.js';
 
@@ -40,9 +41,14 @@ export function abilityAllowed(className, row) {
 
 // Distances in the workbook are logical arena units. The existing skill API measures
 // them in paces, so divide by 100 once here. Shapes retain their arena-unit sizes too.
-export function replacementAbilities(className) {
+export function replacementAbilities(className, healingMultiplier) {
   const name = CLASS_CATALOG_NAMES[className] ?? className;
-  const rows = REPLACEMENT_ABILITY_ROWS.filter(row => abilityAllowed(className, row)).map(balancedHealingAbility).map(withAbilityRankCurve);
+
+  // Callers may use the workbook's short class name. Resolve that alias back to its
+  // progression profile so the same class keeps the same healing tuning either way.
+  const profileName = Object.keys(CLASS_CATALOG_NAMES).find(key => CLASS_CATALOG_NAMES[key] === className) ?? className;
+  const multiplier = healingMultiplier ?? progressionProfile(profileName)?.base.healingMultiplier ?? 1;
+  const rows = REPLACEMENT_ABILITY_ROWS.filter(row => abilityAllowed(className, row)).map(row => balancedHealingAbility(row, multiplier)).map(withAbilityRankCurve);
   const order = row => row.starterFor.includes(name)
     ? row.className.startsWith('Generic') ? 2 : CLASS_ABILITY_RULES[name].slice(1).indexOf(row.category) : 3;
   rows.sort((a, b) => order(a) - order(b));

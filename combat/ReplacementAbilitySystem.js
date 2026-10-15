@@ -210,7 +210,7 @@ export default class ReplacementAbilitySystem {
     if (ZONES.has(handler) && unit.status.replacementZones?.some(zone => zone.ability.id === ability.id && zone.until > this.now() && zone.wave === this.scene.currentWaveIndex)) return null;
     if (REACTIONS.has(handler) && this.units().some(other => other.status.replacementReactions?.some(reaction => reaction.ability.id === ability.id && reaction.ownerId === unit.id && reaction.until > this.now()))) return null;
     if (ability.targetLabel === 'Self') {
-      if (ability.category === 'Restore' && ability.primary.basis === 'Caster Spell Healing' && unit.hp / unit.maxHp > .8) return null;
+      if (ability.category === 'Restore' && (ability.primary.healing || ability.primary.basis === 'Caster Spell Healing') && unit.hp / unit.maxHp > .8) return null;
       return unit;
     }
     if (ability.targetLabel === 'Ground position') {
@@ -643,7 +643,7 @@ export default class ReplacementAbilitySystem {
       } else if (PERIODIC_PRIMARY.has(h)) {
         const kind = h === 'partyManaOverTime' ? 'mana' : h === 'damageOverTime' ? 'damage' : 'heal';
         this.periodic(caster, recipient, ability, replacementAmount(caster, recipient, ability.primary), kind, ability.duration);
-      } else if (ability.primary.unit === '% of power basis' && ability.primary.basis === 'Caster Spell Healing') {
+      } else if (ability.primary.unit === '% of power basis' && (ability.primary.healing || ability.primary.basis === 'Caster Spell Healing')) {
         healed += this.heal(caster, recipient, replacementAmount(caster, recipient, ability.primary), ability, triggered);
       } else if (ability.primary.unit === '% of power basis' && ability.primary.basis.includes('Mana')) {
         this.mana(recipient, replacementAmount(caster, recipient, ability.primary));
@@ -724,8 +724,16 @@ export default class ReplacementAbilitySystem {
     }
     if (['damageLifesteal', 'areaDamageLifesteal', 'areaDamageLinkedHeal', 'allDamagePartyLinkedHeal'].includes(h) && dealt > 0) {
       const allies = h.includes('Lifesteal') || h === 'damageLifesteal' ? [caster] : h === 'areaDamageLinkedHeal' ? friendly.filter(a => arenaDistance(a, target) <= 200) : friendly;
+
+      // Linked healing starts from actual damage, with a separate cap per recipient.
+      // New kits use shared Spell Power and its temporary modifiers. Old saved kits
+      // retain their healing stat. Each rank above one adds 8% to the existing cap.
+      const power = caster.spellPower != null
+        ? caster.spellPower * replacementMultiplier(caster, 'spell', this.now()) : caster.spellHealing;
+      const rankScale = 1 + ((ability.rank ?? 1) - 1) * .08;
+      const healingCap = power * rankScale * (h === 'allDamagePartyLinkedHeal' ? .6 : .5);
       for (const ally of allies) {
-        const recovered = this.heal(caster, ally, Math.min(dealt * y, caster.spellHealing * (1 + ((ability.rank ?? 1) - 1) * .08) * (h === 'allDamagePartyLinkedHeal' ? .6 : .5)), ability, true);
+        const recovered = this.heal(caster, ally, Math.min(dealt * y, healingCap), ability, true);
 
         // Guided Retribution forms healing light only on allies who recovered HP.
         // This cosmetic phase shares the original ID and changes no saved record.

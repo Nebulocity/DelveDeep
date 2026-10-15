@@ -42,8 +42,11 @@ export function prepareActiveMonster(enemy, scene, delve) {
     powerScale: bossEscort ? ACTIVE_MONSTER_BALANCE.power : ACTIVE_MONSTER_POWER[id] ?? ACTIVE_MONSTER_BALANCE.power,
     maxHp: enemy.maxHp,
     attackPower: enemy.attackPower,
-    spellDamage: enemy.spellDamage,
-    spellHealing: enemy.spellHealing
+
+    // New units save one power. Legacy units keep their two recorded baselines so
+    // switching between visible and idle combat cannot change historical output.
+    ...(enemy.spellPower != null ? { spellPower: enemy.spellPower }
+      : { spellDamage: enemy.spellDamage, spellHealing: enemy.spellHealing })
   };
   syncActiveMonster(enemy, isActiveCombat(scene));
 }
@@ -58,7 +61,8 @@ export function syncActiveMonster(enemy, active) {
   const powerScale = active ? balance.powerScale : 1;
   enemy.maxHp = Math.round(balance.maxHp * healthScale);
   enemy.hp = healthFraction * enemy.maxHp;
-  for (const stat of ['attackPower', 'spellDamage', 'spellHealing']) {
+  const powerStats = balance.spellPower != null ? ['attackPower', 'spellPower'] : ['attackPower', 'spellDamage', 'spellHealing'];
+  for (const stat of powerStats) {
     enemy[stat] = balance[stat] * powerScale;
   }
   balance.active = active;

@@ -87,7 +87,7 @@ function partyPower(hero, state) {
   // intact. Math.max chooses the largest value; pairing it with Math.min can keep a result
   // inside both a lower and an upper bound.
   return effective.maxHp * (1 + (effective.statProgressionVersion === 2 ? armorReduction(effective.armor) : effective.armor ?? 0)) * 0.22
-    + Math.max(effective.attackPower, effective.spellDamage ?? 0) * 2.2 + (effective.spellHealing ?? effective.healPower ?? 0) * 1.3
+    + Math.max(effective.attackPower, effective.spellPower ?? effective.spellDamage ?? 0) * 2.2 + (effective.spellPower ?? effective.spellHealing ?? effective.healPower ?? 0) * 1.3
     + (effective.maxMana ?? 0) * 0.08 + (effective.level ?? 1) * 8;
 }
 

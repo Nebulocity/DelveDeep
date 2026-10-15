@@ -254,7 +254,7 @@ export function leaderAbilityDescription(ability, party = []) {
   if (ability.id === 'lunarAssault') {
     const attackers = party.filter(hero => hero.alive !== false && hero.className?.startsWith('Mage of the'));
     if (!attackers.length) return `${ability.description} Range: Anywhere in the arena. Requires a living mage; affected enemies must be engaged.`;
-    const damage = attackers.reduce((total, hero) => total + hero.spellDamage, 0) * 3;
+    const damage = attackers.reduce((total, hero) => total + (hero.spellPower ?? hero.spellDamage), 0) * 3;
 
     return `Mages deal ${amountRange(damage)} spell damage to enemies within ${distance(4)} of a target anywhere in the arena and root them for 8 seconds. Requires a living mage; affected enemies must be engaged. Once per encounter.`;
   }

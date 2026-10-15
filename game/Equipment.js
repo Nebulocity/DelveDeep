@@ -3,6 +3,7 @@
 // Equipped slots refer to owned copies. Stat copies and save migrations keep character
 // bonuses from changing the original item catalog or being added twice.
 
+import { unifiedSpellBonuses } from './SpellPower.js';
 import { ATTRIBUTE_STATS, CHANCE_STATS } from '../config/characterProgression.js';
 import GameState from './GameState.js';
 import { characterStats, rebuildCharacterStats } from './CharacterStats.js';
@@ -243,6 +244,7 @@ export function consumePotionCharge(heroId, state = GameState) {
 // data to read or change; a default can point at shared GameState.
 export function getEquippedAdventurer(hero, state = GameState) {
   const bonuses = {};
+  const derived = hero.statProgressionVersion === 2;
   for (const slot of EQUIPMENT_SLOTS) {
     if (slot === 'potion') continue;
     const item = equippedItem(hero, slot, state);
@@ -251,12 +253,11 @@ export function getEquippedAdventurer(hero, state = GameState) {
     // them. ?? uses the fallback only for null or undefined. A real zero or false stays
     // intact. ?. only follows this link when the value exists; a missing optional value
     // gives undefined.
-    for (const [stat, bonus] of Object.entries(item?.stats ?? {})) {
+    const itemBonuses = derived ? unifiedSpellBonuses(item?.stats) : item?.stats ?? {};
+    for (const [stat, bonus] of Object.entries(itemBonuses)) {
       if (Number.isFinite(bonus)) bonuses[stat] = (bonuses[stat] ?? 0) + bonus;
     }
   }
-
-  const derived = hero.statProgressionVersion === 2;
 
   // The condition before ? chooses the first value when true and the value after : when
   // false.
@@ -268,8 +269,7 @@ export function getEquippedAdventurer(hero, state = GameState) {
     if (derived && [...ATTRIBUTE_STATS, ...CHANCE_STATS].includes(stat)) continue;
     result[stat] = (result[stat] ?? 0) + bonus;
     if (stat === 'healPower') result.spellHealing += bonus;
-
-    if (stat === 'spellHealing' && derived) result.healPower += bonus;
+    if (stat === 'spellPower' && derived) result.healPower += bonus;
   }
 
   return result;
@@ -280,9 +280,7 @@ export function equipmentStatsText(stats = {}) {
   const labels = {
     maxHp: 'HP',
     attackPower: 'Attack Power',
-    spellDamage: 'Spell Damage',
-    spellHealing: 'Spell Healing',
-    healPower: 'Spell Healing',
+    spellPower: 'Spell Power',
     armor: 'Armor',
     maxMana: 'Mana',
     speed: 'Speed',
@@ -300,7 +298,7 @@ export function equipmentStatsText(stats = {}) {
   // return value becomes that output entry. filter keeps entries whose callback returns
   // true. It builds a new list and leaves the original list in place. Object.entries turns
   // own fields into [key, value] pairs so we can visit or transform them.
-  return Object.entries(stats).filter(([, value]) => Number.isFinite(value)).map(([key, value]) => {
+  return Object.entries(unifiedSpellBonuses(stats)).filter(([, value]) => Number.isFinite(value)).map(([key, value]) => {
     const chance = ['dodge', 'block', 'hitChance', 'critChance'].includes(key);
 
     // The condition before ? chooses the first value when true and the value after : when

@@ -167,7 +167,7 @@ export default class DungeonScene extends Phaser.Scene {
     // false.
     return {
       title: hero.name, className: hero.className, classHeader: `${hero.shortName ?? hero.className} · Level ${hero.level}`, align: 'left',
-      description: `${hero.className} | ${hero.role} | Level ${hero.level}\n\nHealth: ${Math.round(stats.maxHp)} | Mana: ${Math.round(stats.maxMana ?? 0)} | Armor: ${Math.round(stats.armor ?? 0)}\nAttack Power: ${Math.round(stats.attackPower)} | Spell Damage: ${Math.round(stats.spellDamage ?? 0)} | Spell Healing: ${Math.round(stats.spellHealing ?? 0)}\nSpeed: ${Math.round(stats.speed ?? 100)} | Dodge: ${Math.round((stats.dodge ?? 0) * 100)}% | Crit: ${Math.round((stats.critChance ?? 0) * 100)}%\n\nEquipped Skills\n${skills.length ? skills.join('\n\n') : 'No skills equipped.'}`,
+      description: `${hero.className} | ${hero.role} | Level ${hero.level}\n\nHealth: ${Math.round(stats.maxHp)} | Mana: ${Math.round(stats.maxMana ?? 0)} | Armor: ${Math.round(stats.armor ?? 0)}\nAttack Power: ${Math.round(stats.attackPower)} | Spell Power: ${Math.round(stats.spellPower ?? Math.max(stats.spellDamage ?? 0, stats.spellHealing ?? 0))}\nSpeed: ${Math.round(stats.speed ?? 100)} | Dodge: ${Math.round((stats.dodge ?? 0) * 100)}% | Crit: ${Math.round((stats.critChance ?? 0) * 100)}%\n\nEquipped Skills\n${skills.length ? skills.join('\n\n') : 'No skills equipped.'}`,
       gear: ['weapon', 'armor', 'accessory', 'potion'].map(slot => {
         const item = equippedItem(hero, slot);
 

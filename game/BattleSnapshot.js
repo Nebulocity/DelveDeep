@@ -151,7 +151,7 @@ function validActiveMonsterBalance(unit) {
   return typeof balance.active === 'boolean'
     && ['maxHp', 'healthScale', 'powerScale'].every(key => Number.isFinite(balance[key]) && balance[key] > 0)
     && Number.isFinite(balance.maxHp * balance.healthScale) && Math.round(balance.maxHp * balance.healthScale) > 0
-    && ['attackPower', 'spellDamage', 'spellHealing'].every(key => Number.isFinite(balance[key]) && balance[key] >= 0
+    && (balance.spellPower != null ? ['attackPower', 'spellPower'] : ['attackPower', 'spellDamage', 'spellHealing']).every(key => Number.isFinite(balance[key]) && balance[key] >= 0
       && Number.isFinite(balance[key] * balance.powerScale));
 }
 
@@ -215,6 +215,7 @@ export function validBattleSnapshot(snapshot, roster) {
     return new Set(units.map(unit => unit.id)).size === units.length
       && snapshot.party.every(unit => snapshot.partyIds.includes(unit.id))
       && units.every(unit => validActiveMonsterBalance(unit) && typeof unit.id === 'string' && Number.isFinite(unit.hp)
+        && (unit.spellPower == null || Number.isFinite(unit.spellPower) && unit.spellPower >= 0)
         && Number.isFinite(unit.maxHp) && unit.maxHp > 0 && unit.hp >= 0 && unit.hp <= unit.maxHp
         && Number.isFinite(unit.arenaX) && Number.isFinite(unit.arenaY) && unit.status && typeof unit.status === 'object')
       && snapshot.events.every(event => Number.isFinite(event.remainingMs) && event.remainingMs >= 0 && EVENT_KINDS.has(event.data?.kind));

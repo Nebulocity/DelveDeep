@@ -1417,7 +1417,7 @@ export default class BattleScene extends Phaser.Scene {
           unit.finishAction();
           this.attackTargets.set(unit.id, enemy.id);
         });
-        const damage = mages.reduce((sum, unit) => sum + unit.spellDamage, 0) * 3;
+        const damage = mages.reduce((sum, unit) => sum + (unit.spellPower ?? unit.spellDamage), 0) * 3;
 
         targets.forEach(target => {
           this.resolveDamage(mages[0], target, damage, 'spell', 1, 'Lunar Assault!', false);
@@ -2630,7 +2630,7 @@ export default class BattleScene extends Phaser.Scene {
       // when false.
       const forced = attacker.status.replacementForcedAttack;
       const power = forced?.until > this.time.now ? attacker.attackPower * forced.fraction
-        : attacker.isEnemy && attacker.basicAttackDamageType === 'spell' ? attacker.spellDamage : attacker.attackPower;
+        : attacker.isEnemy && attacker.basicAttackDamageType === 'spell' ? (attacker.spellPower ?? attacker.spellDamage) : attacker.attackPower;
       this.resolveDamage(attacker, target, power * (action.replacementBasic?.multiplier ?? 1), attackType, attacker.threatMultiplier, 'Attack', true,
         { hasArtwork: this.hasRangedTravel(attacker, 'Attack') });
       if (forced) attacker.status.replacementForcedAttack = null;
@@ -3313,7 +3313,7 @@ export default class BattleScene extends Phaser.Scene {
     const reduction = this.time.now < (unit.status.threatReductionUntil ?? 0)
       ? 1 - (unit.status.threatReduction ?? 0) : 1;
     const intent = Math.max(1, (ability.manaCost ?? 0) * 0.5
-      + Math.max(unit.attackPower ?? 0, unit.spellDamage ?? 0, unit.spellHealing ?? 0) * 0.1);
+      + Math.max(unit.attackPower ?? 0, unit.spellPower ?? unit.spellDamage ?? 0, unit.spellPower ?? unit.spellHealing ?? 0) * 0.1);
     this.getLivingEnemies().forEach(enemy => this.addThreat(enemy, unit, intent * reduction));
   }
 

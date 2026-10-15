@@ -52,8 +52,8 @@ test('party support, threat changes and overlapping hazard escape use live comba
     secondHealer.role = 'Healer';
     const heal = { name: 'Test Heal', effect: 'heal', target: 'ally', range: 10,
       power: 200, windup: 300, cooldown: 10000, powerUnit: 'percent' };
-    healer.spellHealing = safe.maxHp;
-    secondHealer.spellHealing = safe.maxHp;
+    healer.spellPower = safe.maxHp;
+    secondHealer.spellPower = safe.maxHp;
     healer.abilities = { testHeal: heal };
     secondHealer.abilities = { testHeal: heal };
     healer.setArenaPosition(center.x, center.y + 90);

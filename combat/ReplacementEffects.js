@@ -31,15 +31,21 @@ export function replacementAmount(caster, recipient, effect, measured = 0) {
   const basis = effect.basis;
   const values = {
     'Caster Attack Power': caster.attackPower,
-    'Caster Spell Damage': caster.spellDamage,
-    'Caster Spell Healing': caster.spellHealing,
+    'Caster Spell Power': caster.spellPower ?? Math.max(caster.spellDamage ?? 0, caster.spellHealing ?? caster.healPower ?? 0),
+    'Caster Spell Damage': caster.spellPower ?? caster.spellDamage,
+    'Caster Spell Healing': caster.spellPower ?? caster.spellHealing,
     'Caster maximum Health': caster.maxHp,
     'Caster maximum Mana': caster.maxMana,
     'Recipient maximum Health': recipient?.maxHp,
     'Recipient maximum Mana': recipient?.maxMana,
     'Target maximum Mana': recipient?.maxMana
   };
-  return Math.max(0, (values[basis] ?? measured) * effect.potency);
+
+  // Damage applies temporary spell modifiers at hit resolution. Healing has no damage
+  // step, so apply its Spell Power modifier here once. Historical bases keep old rules.
+  const modifier = basis === 'Caster Spell Power' && effect.healing
+    ? replacementMultiplier(caster, 'spell', caster.scene?.time.now ?? 0) : 1;
+  return Math.max(0, (values[basis] ?? measured) * effect.potency * modifier);
 }
 
 // Speed has already adjusted the constructor's timings. These temporary effects add

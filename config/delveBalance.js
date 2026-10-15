@@ -25,6 +25,5 @@ export function delveEnemyDefinition(definition, delve, bossWave) {
   return { ...definition, level: level ?? definition.level,
     maxHp: Math.round(definition.maxHp * health),
     attackPower: definition.attackPower * power,
-    spellDamage: definition.spellDamage * power,
-    spellHealing: definition.spellHealing * power };
+    spellPower: definition.spellPower * power };
 }

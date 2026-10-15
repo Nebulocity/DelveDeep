@@ -1,6 +1,8 @@
 // This is the shared item, material and recipe catalog. Definitions describe kinds of
 // items; inventory stores owned counts and individual gear copies. Recipe material keys
 // must match material IDs, and aliases preserve compatibility with old saves.
+import { AUTHORED_EQUIPMENT, AUTHORED_EQUIPMENT_RECIPES } from './equipmentCatalog.js';
+export { LEGACY_EVERDEEP_ITEM_IDS } from './equipmentCatalog.js';
 
 export const ITEM_RARITIES = {
   common: { label: 'Common', color: '#d6d3d1', minimumLevel: 1 },
@@ -23,7 +25,7 @@ export function itemMinimumLevel(item) {
 // slot chooses weapon, armor, accessory or potion, and usableBy lists compatible classes.
 // stats are bonuses applied by equipment helpers; attribute bonuses can also affect
 // derived combat values. price and sellPrice are Gold amounts, not percentages.
-export const CATALOG_ITEMS = [
+const legacyCatalogItems = [
   {
     "id": "BLS01",
     "name": "Bronze Longsword",
@@ -1277,6 +1279,12 @@ export const CATALOG_ITEMS = [
   }
 ];
 
+// Keep removed gear readable for existing owners, but never sell or drop retired pieces.
+// The authored catalog replaces definitions by stable item ID, not by display name.
+const authoredIds = new Set(AUTHORED_EQUIPMENT.map(item => item.id));
+export const CATALOG_ITEMS = [...AUTHORED_EQUIPMENT, ...legacyCatalogItems
+  .filter(item => !authoredIds.has(item.id))
+  .map(item => item.slot === 'scroll' ? item : { ...item, price: null, retired: true })];
 export const EQUIPMENT_ITEMS = CATALOG_ITEMS.filter(item => item.slot !== 'scroll');
 export const EQUIPMENT_BY_ID = Object.fromEntries(EQUIPMENT_ITEMS.map(item => [item.id, item]));
 export const ENCHANTMENT_ITEMS = CATALOG_ITEMS.filter(item => item.slot === 'scroll');
@@ -2433,7 +2441,8 @@ const workbookCraftingRecipes = [
   }
 ];
 
-export const CRAFTING_RECIPES = [...workbookCraftingRecipes,
+export const CRAFTING_RECIPES = [...AUTHORED_EQUIPMENT_RECIPES,
+  ...workbookCraftingRecipes.filter(recipe => recipe.category === 'scroll'),
   {
     id: 'health-potion',
     name: 'Health Potion Pack',

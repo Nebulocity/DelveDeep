@@ -206,13 +206,14 @@ export function showGuildDetails(scene, details) {
     // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the center
     // and 1 is the right/bottom edge. x/y place that anchor, not necessarily the object's
     // corner.
-    body.setPosition(x - (width - 180) / 2, top + 220).setOrigin(0, 0).setDepth(depth + 5);
+    body.setPosition(x - (width - 180) / 2, top + 220).setOrigin(0, 0).setDepth(depth + 5).setName('guild-details-body');
     const footer = usableByIcons(scene, details.usableBy, body.x, top + height - 225, width - 180, depth + 5, GUILD.ink);
     bodyScroll = hallScroll(scene, { x: body.x, y: body.y, width: width - 180, height: height - 402 - footer.height },
       [body], body.height, 0, () => {},
       (owner, sx, sy, sw, sh, style) => guildSurface(owner, sx, sy, sw, sh, style).setDepth(depth + 5),
       () => false);
     bodyScroll.container.setDepth(depth + 5);
+    bodyScroll.container.setName('guild-details-scroll');
   }
 
   button(scene, x, top + height - 87, 380, 'CLOSE', modal.close, depth + 6);

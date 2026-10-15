@@ -7,6 +7,7 @@ import { delveMaterialIds } from './DelveDrops.js';
 import { FARM_MATERIAL_CHANCES } from '../config/farmMaterialDrops.js';
 import GameState from './GameState.js';
 import { grantMaterial } from './Equipment.js';
+import { awardEquipmentLoot } from './EquipmentLoot.js';
 import { grantAdventurerXp, adjustHappiness } from './AdventurerProgression.js';
 import { saveProfile } from './GameStorage.js';
 import { MAX_CHARACTER_LEVEL } from '../config/renown.js';
@@ -194,6 +195,8 @@ export function awardOrdinaryWave(delve, waveIndex, bossIndex, farming = false, 
     campUnlocked: checkpoint.campUnlocked || delveCampWaves(delve, bossIndex).includes(waveIndex + 1)
   };
 
+  const items = awardEquipmentLoot(delve, 'wave', random);
+
   // Bank the shared resources and updated checkpoint before returning the reward
   // description. The battle save provider combines this with the completed action's phase
   // so a reload cannot repeat the same payout.
@@ -203,6 +206,6 @@ export function awardOrdinaryWave(delve, waveIndex, bossIndex, farming = false, 
   const actualXp = Math.max(0, ...Object.values(xpByHero));
   const leaderResult = { levelsGained: (GameState.leader?.level ?? previousRenown) - previousRenown,
     renownPointsEarned: (GameState.leader?.renownPoints ?? previousPoints) - previousPoints };
-  return { leaderResult, gold, xp: actualXp, xpByHero, levelsGainedByHero, happiness: eligibility.eligibleIds.size ? values.happiness ?? 0 : 0, materials,
+  return { leaderResult, gold, xp: actualXp, xpByHero, levelsGainedByHero, happiness: eligibility.eligibleIds.size ? values.happiness ?? 0 : 0, materials, items,
     materialId, materialCount: materials[materialId] ?? 0, farming };
 }

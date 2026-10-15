@@ -17,6 +17,18 @@ export function grantStartingEquipment(savedRoster, state = GameState) {
       || savedRoster.get(hero.id)?.startingEquipmentGranted === true;
     const loadout = STARTING_EQUIPMENT[hero.className];
 
+    // Older healers started with Pine Staff and Barbarians with Bronze Longsword.
+    // Keep that owned copy, but supply the newly authored compatible starter once if
+    // restoration removed its slot. The next saved slot points at the replacement.
+    const savedWeaponId = savedRoster.get(hero.id)?.equipment?.weapon;
+    const formerWeapon = state.inventory.equipment.find(item => item.id === savedWeaponId);
+    const changedStarter = hero.className === 'Barbarian' && formerWeapon?.itemId === 'BLS01'
+      || hero.className?.startsWith('Cleric of ') && formerWeapon?.itemId === 'PST01';
+    if (hero.startingEquipmentGranted && !hero.equipment?.weapon && changedStarter && loadout) {
+      const replacement = grantEquipment(loadout.weapon, state);
+      if (replacement) equipItem(hero.id, replacement.id, state);
+    }
+
     if (hero.startingEquipmentGranted || !loadout) continue;
 
     // Fill missing gear once without replacing owned equipment or refilling sold items.

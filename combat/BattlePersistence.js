@@ -73,6 +73,9 @@ function restoreUnit(unit, saved) {
   // Constructors use today's catalog. Remove its new power when restoring an older
   // snapshot, so recorded damage and healing stay exact, including during offline replay.
   if (model.spellPower == null) delete unit.spellPower;
+
+  // A pre-perk encounter keeps its original rules even when its current gear gains a perk.
+  unit.equipmentPerks = model.equipmentPerks ?? [];
   unit.syncPresentation();
   unit.setStealthed(unit.stealthed);
   unit.updateHealthBar();

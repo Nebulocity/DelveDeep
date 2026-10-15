@@ -125,7 +125,7 @@ s = state();
 const gear = grantEquipment('BLS01', s);
 s.roster = [rebuildCharacterStats({ id: 'hero', name: 'Hero', className: 'Gladiator', level: 1, equipment: { weapon: gear.id } })];
 assert.equal(sellOwnedItem(gear.id, s).ok, false);
-assert.equal(saleRows(s).find(row => row.id === gear.id).enabled, false);
+assert.equal(saleRows(s).some(row => row.id === gear.id), false);
 const beforePower = getEquippedAdventurer(s.roster[0], s).attackPower;
 const scroll = inscribeEnchantment('SCE001', s, true).instance;
 assert.equal(s.gold, 5000 - ENCHANTMENT_BY_ID.SCE001.price);

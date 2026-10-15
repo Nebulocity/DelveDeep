@@ -58,6 +58,13 @@ export default class RewardScene extends Phaser.Scene {
     const tacticsReward = summary?.leaderResult?.renownPointsEarned > 0 ? `+${summary.leaderResult.renownPointsEarned} Renown Points` : `Renown Level ${GameState.leader?.level ?? 1}`;
     this.add.text(leftX, panelY + 115, tacticsReward, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body32'), color: '#c4b5fd' }).setOrigin(0.5);
 
+    // Ownership was saved with victory. This line only presents the equipment reward.
+    const gearReward = GameState.rewards.find(reward => reward.type === 'equipment');
+    if (gearReward) this.add.text(leftX, panelY + 170, `Found: ${gearReward.name}`, {
+      fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body30'), color: gearReward.rarity === 'rare' ? '#60a5fa' : '#f5f5dc',
+      align: 'center', wordWrap: { width: panelWidth - 56 }
+    }).setOrigin(0.5).setName('victory-equipment-reward');
+
     // Build the right panel from the adventurer advancement entries in the run summary.
     this.add.rectangle(rightX, panelY, panelWidth, 430, 0x1f2937).setStrokeStyle(4, 0x374151);
     this.add.text(rightX, panelY - 165, 'PARTY PROGRESS', { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body36'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#f5f5f4' }).setOrigin(0.5);

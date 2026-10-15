@@ -16,6 +16,7 @@ import GameState from '../game/GameState.js';
 import { grantPotionPack, consumePotionCharge } from '../game/Equipment.js';
 import System from '../combat/ClassAbilitySystem.js';
 import { replacementMultiplier, replacementChance } from '../combat/ReplacementEffects.js';
+import { equipmentPerkBonus } from '../game/EquipmentPerks.js';
 import { replacementDescription } from '../game/ReplacementAbilityDescriptions.js';
 import { progressionResources } from '../config/characterProgression.js';
 
@@ -28,7 +29,7 @@ function headlessClass(path, name, globals) {
 const Unit = headlessClass('../combat/BattleUnit.js', 'BattleUnit', { replacementMultiplier, armorReduction, characterStats });
 const Battle = headlessClass('../scenes/BattleScene.js', 'BattleScene', {
   Phaser: { Scene: class {}, Math: { Clamp: (value, lower, upper) => Math.max(lower, Math.min(upper, value)) } },
-  hitAccuracy, abilityPower, cappedChance, replacementMultiplier, replacementChance
+  hitAccuracy, abilityPower, cappedChance, replacementMultiplier, replacementChance, equipmentPerkBonus, GameState
 });
 let serial = 0;
 
@@ -111,7 +112,7 @@ for (const className of ['Cleric of the Verdant Covenant', 'Cleric of the Everbr
   const heal = Object.values(recovery.caster.abilities).find(a => a.starter && a.category === 'Restore');
   recovery.runtime.resolve(recovery.caster, recovery.caster, heal, 0);
   assert.ok(recovery.caster.hp > 25 && recovery.caster.hp < stats.maxHp, heal.name);
-  assert.ok(Math.abs(rankedAbility(heal, 2).primary.potency - heal.primary.potency * 1.08) < 1e-9);
+  assert.ok(Math.abs(rankedAbility(heal, 2).primary.potency - (heal.primary.potency + 0.05)) < 1e-9);
   assert.equal(CLASS_DEFINITIONS[className].manaRegen, 2);
 }
 
@@ -250,9 +251,9 @@ for (const hero of adventurers.filter(hero => hero.role === 'Healer')) {
 f = fixture('Gladiator');
 const blow = f.ability('Punishing Blow');
 const rank10 = rankedAbility(blow, 10);
-assert.ok(Math.abs(rank10.primary.potency - blow.primary.potency * 1.72) < 1e-9);
-assert.ok(Math.abs(rank10.secondary.potency - blow.secondary.potency * 1.72) < 1e-9);
-assert.ok(Math.abs(rank10.cooldown - blow.cooldown * .82) < 1e-9);
+assert.equal(rank10.primary.potency, 2.2);
+assert.equal(rank10.secondary.potency, 0.55);
+assert.equal(rank10.cooldown, 10500);
 f.runtime.resolve(f.caster, f.enemy, blow, 0);
 assert.equal(f.enemy.hp, 2575);
 assert.equal(replacementMultiplier(f.enemy, 'attack', 0), .9);

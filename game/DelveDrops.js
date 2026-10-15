@@ -5,6 +5,7 @@
 
 import { CRAFTING_MATERIALS, MATERIAL_ID_ALIASES } from '../data/items.js';
 import { FARM_MATERIAL_CHANCES } from '../config/farmMaterialDrops.js';
+import { equipmentLootPool, equipmentLootTable, EQUIPMENT_LOOT_RARITIES } from './EquipmentLoot.js';
 
 // Resolve this encounter's environment pool. Without an override, use first-clear
 // difficulty rules; farming supplies allowedRarities to check one chart rarity at a time.
@@ -53,5 +54,13 @@ export function delveDropNames(delve) {
   // ... expands these entries into the new list or call. It does not deep-copy the objects
   // inside. map builds one output entry for each input entry, in the same order. The
   // callback's return value becomes that output entry.
-  return ['Gold / Adventurer XP', ...ids.map(id => CRAFTING_MATERIALS[id].name)];
+  const equipment = [];
+  for (const rarity of [...EQUIPMENT_LOOT_RARITIES].reverse()) {
+    const sources = ['wave', 'boss'].filter(source => {
+      const table = equipmentLootTable({ source, location: delve.id, region: delve.regionId ?? 'pineshire-reach' });
+      return table?.rolls[rarity] > 0 && equipmentLootPool(table.region, source, delve.id, rarity).length > 0;
+    });
+    if (sources.length) equipment.push(`${rarity[0].toUpperCase() + rarity.slice(1)} equipment (${sources.length === 2 ? 'waves and final boss' : 'final boss'})`);
+  }
+  return ['Gold / Adventurer XP', ...ids.map(id => CRAFTING_MATERIALS[id].name), ...equipment];
 }

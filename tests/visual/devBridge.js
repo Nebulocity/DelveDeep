@@ -12,7 +12,7 @@ const SCENES = new Set([
   'TitleScene', 'TownScene', 'AdventurersHallScene', 'BlacksmithScene',
   'FacilityScene', 'ItemsScene', 'RosterScene', 'PartyLeaderScene',
   'DelveSelectScene', 'PartySelectScene', 'DungeonScene',
-  'BattleScene', 'EncounterSummaryScene'
+  'BattleScene', 'RewardScene', 'EncounterSummaryScene'
 ]);
 
 // Expose controlled scene activation and inspection only in a requested development QA
@@ -36,7 +36,7 @@ export function installVisualQaBridge(game) {
 
       // ?? uses the fallback only for null or undefined. A real zero or false stays
       // intact.
-      const delve = getDelveById(options.delve ?? 'slime-cave');
+      const delve = getDelveById(options.delve ?? (sceneName === 'RewardScene' ? 'murmuring-abyss' : 'slime-cave'));
       GameState.currentDelve = delve;
       if (sceneName === 'BattleScene' || sceneName === 'DungeonScene') {
 
@@ -54,6 +54,17 @@ export function installVisualQaBridge(game) {
             ? 'The party was driven back. Cleared wave rewards and the camp checkpoint remain saved.'
             : 'Cleared wave rewards remain banked.'
         };
+      }
+
+      // Capture the new equipment line with a representative final-boss reward.
+      // These are display fixtures only; opening the screen does not grant inventory.
+      if (sceneName === 'RewardScene') {
+        GameState.rewards = [{ type: 'gold', amount: 25 },
+          { type: 'equipment', itemId: 'R1AP01', name: 'The Last Muster', count: 1, rarity: 'rare' }];
+        GameState.run.summary = { result: 'victory', elapsedMs: 135000, isNewBest: true,
+          leaderResult: { renownPointsEarned: 1 }, adventurers: GameState.roster.slice(0, 5).map(hero => ({
+            name: hero.name, xpGained: 35, level: hero.level, levelsGained: 0, happiness: hero.happiness
+          })) };
       }
 
       GameState.run.entry = 'progress';

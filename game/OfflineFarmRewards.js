@@ -6,6 +6,7 @@ import { grantAdventurerXp, adjustHappiness, xpRequired } from './AdventurerProg
 import { FARM_MATERIAL_CHANCES } from '../config/farmMaterialDrops.js';
 import { delveMaterialIds } from './DelveDrops.js';
 import { grantMaterial } from './Equipment.js';
+import { awardEquipmentLoot, mergeEquipmentLoot } from './EquipmentLoot.js';
 
 // Validate the camp before granting anything. The caller saves these mutations together
 // with its consumed time and battle state after the entire synchronous batch finishes.
@@ -20,7 +21,7 @@ export function awardOfflineFarmWaves(delve, waveIndex, bossIndex, waves, partyU
   const livingIds = new Set(partyUnits.filter(unit => unit.alive).map(unit => unit.id));
   const partyIds = new Set(GameState.activeParty.map(hero => hero.id));
   const party = GameState.roster.filter(hero => partyIds.has(hero.id));
-  const result = { waves, gold: 0, xp: 0, xpByHero: {}, levelsGainedByHero: {}, materials: {} };
+  const result = { waves, gold: 0, xp: 0, xpByHero: {}, levelsGainedByHero: {}, materials: {}, items: [] };
   if (waves === 0) return result;
   const capWaves = [];
   const previousRenown = GameState.leader?.level ?? 1;
@@ -79,6 +80,7 @@ export function awardOfflineFarmWaves(delve, waveIndex, bossIndex, waves, partyU
       const id = pool.ids[Math.floor(random() * pool.ids.length)];
       result.materials[id] = (result.materials[id] ?? 0) + 1;
     }
+    result.items = mergeEquipmentLoot(result.items, awardEquipmentLoot(delve, 'wave', random));
   }
   GameState.gold += result.gold;
   for (const [id, count] of Object.entries(result.materials)) grantMaterial(id, count);

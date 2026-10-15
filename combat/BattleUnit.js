@@ -33,6 +33,9 @@ export default class BattleUnit {
     this.className = config.className ?? '';
     this.shortName = config.shortName;
     this.classAbilities = config.classAbilities === true;
+
+    // Perks are encounter data. Their live conditions use this unit's current resources.
+    this.equipmentPerks = (config.equipmentPerks ?? []).map(perk => ({ ...perk }));
     this.role = config.role ?? '';
     this.color = config.color;
     this.isBoss = config.boss === true;

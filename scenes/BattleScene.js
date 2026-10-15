@@ -64,6 +64,8 @@ import HapticsService from '../services/HapticsService.js';
 import { completeExpedition, failExpedition, fleeExpedition, formatDuration } from '../game/ExpeditionProgression.js';
 import { saveProfile } from '../game/GameStorage.js';
 import { awardOrdinaryWave, getDelveCheckpoint, isOrdinaryDelve, delveCampWaves, delveFarmWaveIndex, delveRewardEligibility, cappedDelveGold } from '../game/DelveCheckpoints.js';
+import { equipmentPerkBonus } from '../game/EquipmentPerks.js';
+import { awardEquipmentLoot, mergeEquipmentLoot } from '../game/EquipmentLoot.js';
 import { getBattleLayout } from '../ui/Layout.js';
 import { preloadEnvironment, createEnvironment, getDelveArena } from '../combat/LayeredEnvironment.js';
 import { trackLoading, hideLoadingScreenAfterRender } from '../ui/LoadingScreen.js';
@@ -2935,7 +2937,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   // This helper rolls the attacker critical chance when the action allows it.
-  rollCritical(attacker, allowCrit = true) {
+  rollCritical(attacker, allowCrit = true, target = null) {
 
     // The condition before ? chooses the first value when true and the value after : when
     // false. ?? uses the fallback only for null or undefined. A real zero or false stays
@@ -2945,7 +2947,7 @@ export default class BattleScene extends Phaser.Scene {
     // Math.min chooses the smallest value; pairing it with Math.max can keep a result
     // inside both a lower and an upper bound.
     return allowCrit && this.combatRandom() < Math.min(attacker.statProgressionVersion === 2 ? 0.4 : 0.95,
-      (attacker.critChance ?? 0) + bonus + replacementChance(attacker, 'crit', this.time.now)
+      (attacker.critChance ?? 0) + bonus + equipmentPerkBonus(attacker, 'crit', target) + replacementChance(attacker, 'crit', this.time.now)
         + (attacker.pendingAction?.replacementBasic?.criticalBonus ?? 0));
   }
 
@@ -3006,7 +3008,7 @@ export default class BattleScene extends Phaser.Scene {
 
     // Roll the critical result and apply outgoing damage bonuses or penalties.
     const guaranteedAbilityCritical = allowCrit && attacker.status.nextAbilityCrit === true && abilityName !== 'Attack';
-    const critical = guaranteedAbilityCritical || this.rollCritical(attacker, allowCrit);
+    const critical = guaranteedAbilityCritical || this.rollCritical(attacker, allowCrit, target);
     if (guaranteedAbilityCritical) attacker.status.nextAbilityCrit = false;
 
     if (attacker.status.abilityCritOnce) {
@@ -3018,6 +3020,14 @@ export default class BattleScene extends Phaser.Scene {
     // false.
     let amount = Math.round(baseAmount * (critical ? attacker.critMultiplier : 1));
     const physicalPower = ['melee', 'ranged', 'enemy', 'reflection'].includes(attackType);
+
+    // Basic attacks and spell hits remain separate scopes. Reflections are already
+    // derived from another hit and must not collect the outgoing bonus twice.
+    amount *= 1 + equipmentPerkBonus(attacker, 'damage', target, this.partyUnits, {
+      basic: abilityName === 'Attack' && !contact?.periodic,
+      spell: !physicalPower, reflection: attackType === 'reflection'
+    });
+    amount *= Math.max(0, 1 - equipmentPerkBonus(target, 'reduction'));
 
     // A reflected or damage-linked amount is already measured from a resolved hit.
     // Scaling it by the power stat again would change its stated percentage of that hit.
@@ -3063,7 +3073,7 @@ export default class BattleScene extends Phaser.Scene {
       ? target.status.abilityDodgeChance ?? 0 : 0;
 
     if (attackType !== 'reflection' && attacker !== target && target.statProgressionVersion === 2
-      && !contact?.periodic && this.combatRandom() < Math.min(0.3, (target.dodge ?? 0) + temporaryDodge + replacementChance(target, 'dodge', now))) {
+      && !contact?.periodic && this.combatRandom() < Math.min(0.3, (target.dodge ?? 0) + temporaryDodge + equipmentPerkBonus(target, 'dodge') + replacementChance(target, 'dodge', now))) {
       this.createFloatingText(target.x, target.y - 82, 'DODGE', '#cbd5e1', false, 'miss');
       return 0;
     }
@@ -3076,7 +3086,7 @@ export default class BattleScene extends Phaser.Scene {
     const physical = ['melee', 'ranged', 'enemy', 'reflection'].includes(attackType);
     const leaderBlock = now < (target.status.leaderBlockUntil ?? 0) ? target.status.leaderBlockBonus ?? 0 : 0;
     const armorBlocked = physical && attackType !== 'reflection' && attacker !== target
-      && target.statProgressionVersion === 2 && this.combatRandom() < cappedChance('block', (target.block ?? 0) + leaderBlock + replacementChance(target, 'block', now));
+      && target.statProgressionVersion === 2 && this.combatRandom() < cappedChance('block', (target.block ?? 0) + leaderBlock + equipmentPerkBonus(target, 'block') + replacementChance(target, 'block', now));
     const hpBefore = target.hp;
 
     // Accuracy, dodge and parry checks have passed. The projectile touched its target
@@ -3220,7 +3230,9 @@ export default class BattleScene extends Phaser.Scene {
     const targetReduction = this.time.now < (target.status.healingReductionUntil ?? 0) ? 1 - target.status.healingReduction : 1;
     const preparedBoost = healer.status.nextHealBoost ?? 0;
     healer.status.nextHealBoost = 0;
-    const amount = Math.round(baseAmount * healingBoost * honorBoost * targetReduction * (1 + preparedBoost) * (critical ? healer.critMultiplier : 1));
+    const gearBoost = (1 + equipmentPerkBonus(healer, 'healing', target))
+      * (1 + equipmentPerkBonus(target, 'receivedHealing'));
+    const amount = Math.round(baseAmount * healingBoost * honorBoost * targetReduction * gearBoost * (1 + preparedBoost) * (critical ? healer.critMultiplier : 1));
     const before = target.hp;
 
     target.heal(amount);
@@ -3718,6 +3730,7 @@ export default class BattleScene extends Phaser.Scene {
       summary.waves += 1;
       if (waveReward) {
         summary.gold += waveReward.gold;
+        summary.items = mergeEquipmentLoot(summary.items, waveReward.items);
         summary.xp += waveReward.xp;
         summary.renownPoints = (summary.renownPoints ?? 0) + (waveReward.leaderResult?.renownPointsEarned ?? 0);
         summary.renownLevels = (summary.renownLevels ?? 0) + (waveReward.leaderResult?.levelsGained ?? 0);
@@ -4531,6 +4544,12 @@ export default class BattleScene extends Phaser.Scene {
 
     // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
     GameState.rewards = [{ type: 'gold', amount: gold, source: GameState.currentDelve?.name ?? 'Delve' }];
+
+    // Final bosses use one boss cascade instead of an additional ordinary wave roll.
+    // The existing battleOver guard and saved victory phase prevent duplicate payouts.
+    const equipmentRewards = awardEquipmentLoot(GameState.currentDelve, 'boss', () => this.combatRandom());
+    GameState.rewards.push(...equipmentRewards.map(item => ({ ...item, type: 'equipment' })));
+    if (this.idleSimulating) this.idleSummary.items = mergeEquipmentLoot(this.idleSummary.items, equipmentRewards);
     if (this.idleSimulating) {
       this.idleSummary.gold += gold;
     }

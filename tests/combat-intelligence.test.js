@@ -7,6 +7,7 @@ import CombatMovement from '../combat/CombatMovement.js';
 import { incomingPressure, missingHealth, reserveHealing } from '../combat/CombatDecisions.js';
 import { packBattleValue, unpackBattleValue } from '../game/BattleSnapshot.js';
 import { abilityPower } from '../game/CharacterStats.js';
+import { equipmentPerkBonus } from '../game/EquipmentPerks.js';
 
 const unit = (id, x, y, extra = {}) => ({ id, name: id, arenaX: x, arenaY: y,
   hp: 100, maxHp: 100, alive: true, isEnemy: false, status: {}, bodyRadius: 20,
@@ -85,7 +86,7 @@ const anchor = system.bestZone(caster, { effect: 'heal', range: 5, zone: 1, powe
 assert.equal(anchor.arenaX, farInjury.arenaX);
 
 // Evaluate the real threat methods. Buffs, damage and healing work before tank contact.
-const context = vm.createContext({ Phaser: { Scene: class {} }, abilityPower });
+const context = vm.createContext({ Phaser: { Scene: class {} }, abilityPower, equipmentPerkBonus });
 vm.runInContext(fs.readFileSync(new URL('../scenes/BattleScene.js', import.meta.url), 'utf8')
   .replace(/^import .*;\r?\n/gm, '').replace('export default class BattleScene', 'globalThis.Battle = class BattleScene'), context);
 const battle = Object.assign(Object.create(context.Battle.prototype), scene, {

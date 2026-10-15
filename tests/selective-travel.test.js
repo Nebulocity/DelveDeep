@@ -13,12 +13,12 @@ assert.equal(rangedTravelProfile(caster, { name: 'Lacerate', target: 'self' }), 
 // Numeric range alone must not give these stationary skills a moving payload.
 for (const name of ['Hex', 'Nullify', 'Spellbind', 'Spellward', "Hunter's Mark", 'Brand',
   'Damper', 'Smite', 'Vengeance', 'Mend', 'Sunlit Ward', 'Entangling Roots', 'Gloomburst',
-  'Prism Burst', 'Wrath', 'Bramble Shroud', 'Sinkhole', 'Cleansing Fire']) {
+  'Prism Burst', 'Bramble Shroud', 'Sinkhole', 'Cleansing Fire']) {
   assert.equal(rangedTravelProfile(caster, { name, castRange: 600, damageType: 'spell' }), null, name);
 }
 for (const name of ['Piercing Shot', 'Crippling Shot', 'Pinning Arrow', 'Magic Missile',
   'Radiant Bolt', 'Radiant Spear', 'Blood Lance', 'Stone Spit', 'Venom Spit',
-  'Seaspray Orb', 'Refraction Beam', 'Judgement Ray', 'Siphon', 'Volley', 'Tray Toss']) {
+  'Seaspray Orb', 'Refraction Beam', 'Judgement Ray', 'Siphon', 'Volley', 'Tray Toss', 'Wrath']) {
   assert(rangedTravelProfile(caster, { name }), name);
 }
 

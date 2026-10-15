@@ -280,7 +280,7 @@ foe.arenaX=trapCell.arenaX;foe.arenaY=trapCell.arenaY;system.tickWorld(2);assert
 // Previously equipped Garrick/Sylva gear is removed.
 globalThis.localStorage={getItem:()=>JSON.stringify({roster:[{id:'garrick',equipment:{weapon:'c'}},{id:'sylva',equipment:{weapon:'g'}}],inventory:{equipment:[{id:'c',itemId:'paladin-weapon'},{id:'g',itemId:'priest-weapon'}]}})};
 loadProfile(roster);
-assert.equal(GameState.inventory.equipment.find(item=>item.id===GameState.roster.find(u=>u.id==='sylva').equipment.weapon)?.itemId,'PST01');
+assert.equal(GameState.inventory.equipment.find(item=>item.id===GameState.roster.find(u=>u.id==='sylva').equipment.weapon)?.itemId,'BRM01');
 assert.equal(GameState.inventory.equipment.find(item=>item.id===GameState.roster.find(u=>u.id==='garrick').equipment.weapon)?.itemId,'BLS01');
 assert.equal(GameState.inventory.equipment.length,roster.length*2);
 console.log('Martial kits, poison cadence, trap entry, control durations and reassigned equipment passed.');
@@ -371,7 +371,7 @@ loadProfile(roster);
 const malrec=GameState.roster.find(u=>u.id==='malrec');
 assert.ok(malrec);assert.equal(malrec.level,5);assert.equal(malrec.xp,17);
 assert.equal(malrec.happiness,63);
-assert.equal(GameState.inventory.equipment.find(item=>item.id===malrec.equipment.weapon)?.itemId,'PST01');
+assert.equal(GameState.inventory.equipment.find(item=>item.id===malrec.equipment.weapon)?.itemId,'BRM01');
 assert.deepEqual(GameState.lastPartyIds,['malrec']);
 
 // The current ability system honors an assigned healer priority ahead of a more injured

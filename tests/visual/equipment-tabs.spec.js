@@ -56,7 +56,7 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
       const flatten = list => list.flatMap(object => [object, ...(object.list ? flatten(object.list) : [])]);
       return flatten(scene.children.list).map(object => object.text ?? '').join('\n');
     });
-    expect(text).toContain('Classes:');
+    expect(text).toContain('Usable By:');
     expect(text).toContain('Minimum level: 1 (Common)');
     expect(text).toContain('Strength');
     await page.screenshot({ path: `output/qa/screenshots/equipment-details-${viewport.width}.png` });

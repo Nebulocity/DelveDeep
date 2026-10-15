@@ -151,13 +151,13 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
         scene.itemOffset = 0;
         scene.render();
         const row = scene.rowsFor({ id: 'sell' }).find(row => row.id === copies[0].id);
-        const disabled = scene.itemList.container.getByName(`shop-sell-all-${equipped.id}`);
+        const equippedControl = scene.itemList.container.getByName(`shop-sell-all-${equipped.id}`);
         return { id: copies[0].id, equippedId: equipped.id, price: getEquipmentDefinition('BLS01').sellPrice,
           materialPrice: getMaterialDefinition('MAT002').sellPrice, label: row.allAction,
-          disabled: !disabled.input?.enabled, warnings: qa.inspect('FacilityScene').warnings };
+          equippedExcluded: equippedControl == null, warnings: qa.inspect('FacilityScene').warnings };
       });
       expect(seed.label).toBe(`SELL ALL: ${2 * seed.price}g`);
-      expect(seed.disabled).toBe(true);
+      expect(seed.equippedExcluded).toBe(true);
       expect(seed.warnings).toEqual([]);
       await page.screenshot({ path: `output/qa/shops/${facility.toLowerCase()}-bulk-${viewport.width}.png` });
       await clickAction(`shop-sell-all-${seed.id}`);

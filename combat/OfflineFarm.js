@@ -3,6 +3,7 @@
 import GameState from '../game/GameState.js';
 import { OFFLINE_FARM } from '../config/offlineFarm.js';
 import { awardOfflineFarmWaves } from '../game/OfflineFarmRewards.js';
+import { mergeEquipmentLoot } from '../game/EquipmentLoot.js';
 import { delveFarmWaveIndex, getDelveCheckpoint, isOrdinaryDelve } from '../game/DelveCheckpoints.js';
 import { farmCycleMs } from './FarmTiming.js';
 import { beginIdleBattle } from './IdleBattle.js';
@@ -64,6 +65,7 @@ export function advanceOfflineFarm(scene, durationMs) {
   summary.waves += waves;
   summary.estimatedWaves = (summary.estimatedWaves ?? 0) + waves;
   summary.gold += reward.gold;
+  summary.items = mergeEquipmentLoot(summary.items, reward.items);
   summary.xp += reward.xp;
   summary.renownPoints = (summary.renownPoints ?? 0) + (reward.renownPoints ?? 0);
   summary.renownLevels = (summary.renownLevels ?? 0) + (reward.renownLevels ?? 0);

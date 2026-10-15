@@ -6,7 +6,8 @@
 import { armorReduction } from '../config/characterProgression.js';
 import GameState from './GameState.js';
 import { restoreEverdeep } from './EverdeepState.js';
-import { CRAFTING_MATERIALS, EQUIPMENT_ITEMS } from '../data/items.js';
+import { CRAFTING_MATERIALS, getEquipmentDefinition, LEGACY_EVERDEEP_ITEM_IDS } from '../data/items.js';
+import { rollEquipmentLoot } from './EquipmentLoot.js';
 import { grantEquipment, grantMaterial } from './Equipment.js';
 import { getEquippedAdventurer } from './Equipment.js';
 import { saveProfile } from './GameStorage.js';
@@ -24,9 +25,9 @@ export const everdeepRegion = {
   ordinaryDelves: ['slime-cave', 'thornbriar-hollow', 'dolmark-den', 'march-west-delves', 'verge-delves'],
   encounterLevels: [1, 3],
   rewardLevelCap: 3,
-  rewardRarities: ['common', 'uncommon'],
+  rewardRarities: ['common', 'uncommon', 'rare'],
   materials: Object.keys(CRAFTING_MATERIALS),
-  rewardTableVersion: 1
+  rewardTableVersion: 2
 };
 
 export const EVERDEEP_REGIONS = { [EVERDEEP_REGION_ID]: everdeepRegion };
@@ -282,8 +283,15 @@ export function everdeepChestPreview(index, state = GameState, runId) {
 
   // filter keeps entries whose callback returns true. It builds a new list and leaves the
   // original list in place.
-  const gearPool = EQUIPMENT_ITEMS.filter((item) => item.slot === 'weapon' || item.slot === 'armor');
-  const gear = gearPool[Math.floor(randomFor(seed, 'gear') * gearPool.length)];
+  const legacyPool = LEGACY_EVERDEEP_ITEM_IDS.map(id => getEquipmentDefinition(id)).filter(Boolean);
+  let equipmentRoll = 0;
+
+  // Existing expeditions keep their old seeded item selection. New runs use a distinct
+  // seeded draw for every cascade step and the final item, so previews never reroll.
+  const gear = run.rewardTableVersion >= 2
+    ? rollEquipmentLoot({ region: run.regionId, source: 'everdeep', chest: index + 1 },
+      () => randomFor(seed, 'equipment', equipmentRoll++))
+    : legacyPool[Math.floor(randomFor(seed, 'gear') * legacyPool.length)];
 
   // sort rearranges this array in place. A negative comparator result puts a before b;
   // positive puts it after; zero keeps them tied. map builds one output entry for each
@@ -295,7 +303,8 @@ export function everdeepChestPreview(index, state = GameState, runId) {
   // Math.min chooses the smallest value; pairing it with Math.max can keep a result inside
   // both a lower and an upper bound.
   return { gold: 35 + Math.floor(randomFor(seed, 'gold') * 26), materialId, materialCount: 2,
-    equipmentId: gear.id, itemLevel: Math.min(medianLevel, everdeepRegion.rewardLevelCap), rarity: gear.rarity };
+    equipmentId: gear.id, itemLevel: run.rewardTableVersion >= 2 ? gear.minimumLevel
+      : Math.min(medianLevel, everdeepRegion.rewardLevelCap), rarity: gear.rarity };
 }
 
 // Validate the unclaimed milestone, grant its rewards and record the claim to prevent a

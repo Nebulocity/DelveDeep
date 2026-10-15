@@ -10,6 +10,7 @@ import { MONSTER_STAT_DEFAULTS, monsterStats, monsterAbilities } from '../game/M
 import { abilityPower, hitAccuracy } from '../game/CharacterStats.js';
 import { armorReduction, cappedChance } from '../config/characterProgression.js';
 import { replacementMultiplier, replacementChance } from '../combat/ReplacementEffects.js';
+import { equipmentPerkBonus } from '../game/EquipmentPerks.js';
 
 for (const enemy of Object.values(enemies)) {
   for (const stat of Object.keys(MONSTER_STAT_DEFAULTS)) assert.ok(Number.isFinite(enemy[stat]), `${enemy.name}: ${stat}`);
@@ -67,7 +68,7 @@ assert.equal(defender.hp, 400);
 const random = Object.create(Math);
 random.random = () => 0.99;
 const Battle = loadClass('../scenes/BattleScene.js', 'BattleScene', {
-  Phaser: { Scene: class {} }, hitAccuracy, abilityPower, cappedChance, Math: random, replacementMultiplier, replacementChance,
+  Phaser: { Scene: class {} }, hitAccuracy, abilityPower, cappedChance, Math: random, replacementMultiplier, replacementChance, equipmentPerkBonus,
 
   // These stat checks have no renderer. Effect lifecycle has its own real checks.
   playSlimeAbilityEffect: () => false, landSlimeGlobFlight() {}, startThornbriarAbilityEffect() {}

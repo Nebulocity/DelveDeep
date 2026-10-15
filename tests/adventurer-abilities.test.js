@@ -38,8 +38,8 @@ GameState.gold = 500;
 assert.equal(purchaseAdventurerAbility(garrick.id, 'ability_v2_gladiator_offensive_drill').ok, true);
 assert.equal(garrick.abilityLoadout.includes('ability_v2_gladiator_offensive_drill'), true);
 assert.equal(purchaseAdventurerAbility(garrick.id, 'ability_v2_gladiator_brutal_thrust').ok, true);
-assert.ok(Math.abs(battleAbilities(garrick).ability_v2_gladiator_offensive_drill.power - 102.6) < 1e-9);
-assert.equal(battleAbilities(garrick).ability_v2_gladiator_offensive_drill.cooldown, 9800);
+assert.ok(Math.abs(battleAbilities(garrick).ability_v2_gladiator_offensive_drill.power - 110) < 1e-9);
+assert.equal(battleAbilities(garrick).ability_v2_gladiator_offensive_drill.cooldown, 9500);
 assert.equal(garrick.skillPoints, 2);
 
 assert.equal(toggleAdventurerAbility(garrick.id, 'ability_v2_gladiator_brutal_thrust').ok, true);

@@ -1,6 +1,7 @@
 // Equipment inspection reads the catalog for flavor and restrictions, and the owned
 // copy for bonuses so enchantments appear without changing the saved item format.
 import { unifiedSpellBonuses } from './SpellPower.js';
+import { equipmentPerkDescription } from './EquipmentPerks.js';
 import { getCatalogItemDefinition, getPotionDefinition, itemMinimumLevel, ITEM_RARITIES } from '../data/items.js';
 import { CLASS_PROGRESSION, CHANCE_STATS, progressionResources } from '../config/characterProgression.js';
 
@@ -25,6 +26,8 @@ export function equipmentDetails(item, hero) {
   const rarity = ITEM_RARITIES[definition?.rarity ?? item.rarity]?.label;
   const lines = [definition?.description ?? item.description ?? 'An adventurer\'s equipment.',
     `Minimum level: ${Number.isFinite(level) ? level : 'Not yet available'}${rarity ? ` (${rarity})` : ''}`];
+  const perkText = equipmentPerkDescription(definition?.perk);
+  if (perkText) lines.push('', perkText, '');
   if (potion) lines.push(`${item.charges ?? potion.uses}/${potion.uses} uses. ${potion.description}`);
 
   // Show the owned item's direct bonuses only. Character stat screens still apply attribute conversions.

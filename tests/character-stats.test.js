@@ -13,6 +13,7 @@ import { rankedAbility, battleAbilities } from '../game/AdventurerAbilities.js';
 import { CLASS_DEFINITIONS } from '../data/classes.js';
 import { LEGACY_CLASS_DEFINITIONS } from '../data/classes.js';
 import { replacementMultiplier, replacementChance } from '../combat/ReplacementEffects.js';
+import { equipmentPerkBonus } from '../game/EquipmentPerks.js';
 import ClassAbilitySystem from '../combat/ClassAbilitySystem.js';
 import { getEquipmentDefinition } from '../data/items.js';
 
@@ -69,7 +70,7 @@ system.resolve(unit, target, base.abilities.nightbolt, 0);
 assert.equal(scene.damage, base.abilities.nightbolt.power + 11);
 console.log('Character defaults, separate attack/spell/healing bonuses, rank previews and spell resolution passed.');
 
-const context = vm.createContext({ Phaser: { Scene: class {} }, hitAccuracy, replacementMultiplier, replacementChance });
+const context = vm.createContext({ Phaser: { Scene: class {} }, hitAccuracy, replacementMultiplier, replacementChance, equipmentPerkBonus });
 vm.runInContext(fs.readFileSync(new URL('../scenes/BattleScene.js', import.meta.url), 'utf8')
   .replace(/^import .*;\r?\n/gm, '').replace('export default class BattleScene', 'globalThis.Battle = class BattleScene'), context);
 

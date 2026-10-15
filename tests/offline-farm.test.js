@@ -1,6 +1,7 @@
 // Compare the batch payout against actual per-wave rewards, including level caps that
 // change Gold partway through an absence. A seeded random stream also verifies loot.
 import assert from 'node:assert/strict';
+import { mergeEquipmentLoot } from '../game/EquipmentLoot.js';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import GameState from '../game/GameState.js';
@@ -27,6 +28,8 @@ function run(batch, waveCount) {
   GameState.activeParty = structuredClone(initial);
   GameState.gold = 0;
   GameState.inventory.materials = {};
+  GameState.inventory.equipment = [];
+  GameState.inventory.nextEquipmentId = 1;
   GameState.world.clearedDelves = [];
   GameState.delveCheckpoints = { [delve.id]: { nextWave: 9, campUnlocked: true } };
   const units = initial.map(hero => ({ id: hero.id, alive: hero.id !== 'fallen' }));
@@ -36,7 +39,7 @@ function run(batch, waveCount) {
   if (batch) rewards = awardOfflineFarmWaves(delve, 8, 9, waveCount, units, random);
   else for (let wave = 0; wave < waveCount; wave++) awardOrdinaryWave(delve, 8, 9, true, units, random);
   return { gold: GameState.gold, roster: structuredClone(GameState.roster),
-    materials: { ...GameState.inventory.materials }, seed, rewards };
+    materials: { ...GameState.inventory.materials }, equipment: structuredClone(GameState.inventory.equipment), seed, rewards };
 }
 
 for (const count of [0, 1, 3, 4, 11, 12, 500, 10000]) {
@@ -75,7 +78,7 @@ console.log('Offline farm batch payouts match per-wave caps, Happiness, random l
 
 // Run the settlement function with a minimal scene. Phaser drawing is deliberately absent:
 // background arithmetic must never require a rendered frame or a simulated attack.
-const context = { GameState, OFFLINE_FARM, awardOfflineFarmWaves, delveFarmWaveIndex,
+const context = { GameState, OFFLINE_FARM, awardOfflineFarmWaves, delveFarmWaveIndex, mergeEquipmentLoot,
   getDelveCheckpoint, isOrdinaryDelve, farmCycleMs,
   beginIdleBattle(scene) {
     scene.idleSummary ??= { waves: 0, gold: 0, xp: 0, materials: {}, deaths: [], casualties: [] };

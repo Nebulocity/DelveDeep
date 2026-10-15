@@ -244,10 +244,16 @@ export function consumePotionCharge(heroId, state = GameState) {
 // data to read or change; a default can point at shared GameState.
 export function getEquippedAdventurer(hero, state = GameState) {
   const bonuses = {};
+  const equipmentPerks = [];
   const derived = hero.statProgressionVersion === 2;
   for (const slot of EQUIPMENT_SLOTS) {
     if (slot === 'potion') continue;
     const item = equippedItem(hero, slot, state);
+
+    // Freeze each equipped perk into the departing combatant, rather than looking up
+    // today's catalog during a saved fight. Ordinary stat totals stay unconditional.
+    const perk = getEquipmentDefinition(item?.itemId)?.perk;
+    if (perk) equipmentPerks.push({ ...perk });
 
     // Object.entries turns own fields into [key, value] pairs so we can visit or transform
     // them. ?? uses the fallback only for null or undefined. A real zero or false stays
@@ -272,7 +278,7 @@ export function getEquippedAdventurer(hero, state = GameState) {
     if (stat === 'spellPower' && derived) result.healPower += bonus;
   }
 
-  return result;
+  return { ...result, equipmentPerks };
 }
 
 // Format the item's stat bonuses into readable lines for inspection.

@@ -4,7 +4,7 @@
 // obtained from shops and rewards.
 
 import GameState from './GameState.js';
-import { CRAFTING_RECIPE_BY_ID, getEquipmentDefinition, getMaterialDefinition, getPotionDefinition } from '../data/items.js';
+import { CRAFTING_RECIPES, CRAFTING_RECIPE_BY_ID, getEquipmentDefinition, getMaterialDefinition, getPotionDefinition } from '../data/items.js';
 import { grantEquipment, grantEnchantmentScroll, grantMaterial, grantPotionPack } from './Equipment.js';
 
 // Format required materials from the same recipe data used by crafting.

@@ -73,10 +73,10 @@ fresh.skillPoints = 2;
 assert.equal(purchaseAdventurerAbility(fresh.id, 'ability_v2_gladiator_brutal_thrust', state).ok, true);
 
 assert.equal(fresh.skillPoints, 0);
-assert.equal(battleAbilities(fresh).ability_v2_gladiator_brutal_thrust.power, 140.4);
-assert.equal(battleAbilities(fresh).ability_v2_gladiator_brutal_thrust.cooldown, 17640);
+assert.equal(battleAbilities(fresh).ability_v2_gladiator_brutal_thrust.power, 150);
+assert.equal(battleAbilities(fresh).ability_v2_gladiator_brutal_thrust.cooldown, 17000);
 fresh.abilityRanks.ability_v2_gladiator_brutal_thrust = 10;
-assert.ok(Math.abs(battleAbilities(fresh).ability_v2_gladiator_brutal_thrust.power - 223.6) < 1e-9);
+assert.ok(Math.abs(battleAbilities(fresh).ability_v2_gladiator_brutal_thrust.power - 310) < 1e-9);
 
 const leveling = { ...fresh, level: 1, xp: 0, skillPoints: 1 };
 grantAdventurerXp(leveling, xpRequired(1) + xpRequired(2));

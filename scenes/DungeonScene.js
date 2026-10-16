@@ -92,13 +92,17 @@ export default class DungeonScene extends Phaser.Scene {
 
       // ?. only follows this link when the value exists; a missing optional value gives
       // undefined.
-      const frame = CHARACTER_SPRITES[adventurer.id]?.clips.idle.south.frames[0];
+      const sprite = CHARACTER_SPRITES[adventurer.id];
+      const frame = sprite?.clips.idle.south.frames[0];
       const x = width * 0.28 - 390;
+
+      // Match the character's combat size adjustment while preserving the card layout.
+      const portraitSize = 100 * (sprite?.portraitScale ?? 1);
       if (frame && this.textures.exists(frame.key)) {
 
         // Depth is drawing order, not distance or size. Higher-depth objects draw on top
         // of lower-depth objects.
-        this.add.image(x, y, frame.key, frame.frame).setDisplaySize(100, 100).setFlipX(frame.flipX === true).setDepth(4);
+        this.add.image(x, y, frame.key, frame.frame).setDisplaySize(portraitSize, portraitSize).setFlipX(frame.flipX === true).setDepth(4);
       } else stoneText(this, x, y, adventurer.name.slice(0, 1), UI_FONT_SIZES.heading48, 4);
 
       // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the center

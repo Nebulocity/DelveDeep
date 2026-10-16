@@ -2,7 +2,7 @@
 // triggers and snapshot round trips without depending on cosmetic Phaser objects.
 import assert from 'node:assert/strict';
 import { CLASS_DEFINITIONS } from '../data/classes.js';
-import { RUNEDANCE_ABILITIES } from '../data/runedanceAbilities.js';
+import { RUNEDANCER_ABILITIES } from '../data/runedancerAbilities.js';
 import { AUTHORED_EQUIPMENT } from '../data/equipmentCatalog.js';
 import { progressionResources } from '../config/characterProgression.js';
 import { resolveRune, tickRune, runeTarget, runesAfterDamage } from '../combat/RunedanceSystem.js';
@@ -22,12 +22,12 @@ const system = {
   mana: (target, amount) => { target.mana = Math.min(target.maxMana, target.mana + amount); },
   modifier: (...args) => modifiers.push(args), control: () => {}, parent: {}
 };
-const skill = handler => Object.values(CLASS_DEFINITIONS.Runedance.abilities).find(a => a.handler === handler);
-assert.equal(RUNEDANCE_ABILITIES.length, 12);
-assert.equal(Object.values(CLASS_DEFINITIONS.Runedance.abilities).filter(a => a.starter).length, 3);
-assert.deepEqual(Object.values(CLASS_DEFINITIONS.Runedance.abilities).filter(a => a.starter).map(a => a.category), ['Assault', 'Protect', 'Prepare']);
-assert.equal(progressionResources('Runedance').attackPower, progressionResources('Runedance').spellPower);
-assert.ok(progressionResources('Runedance', 10).spellPower > progressionResources('Runedance').spellPower);
+const skill = handler => Object.values(CLASS_DEFINITIONS.Runedancer.abilities).find(a => a.handler === handler);
+assert.equal(RUNEDANCER_ABILITIES.length, 12);
+assert.equal(Object.values(CLASS_DEFINITIONS.Runedancer.abilities).filter(a => a.starter).length, 3);
+assert.deepEqual(Object.values(CLASS_DEFINITIONS.Runedancer.abilities).filter(a => a.starter).map(a => a.category), ['Assault', 'Protect', 'Prepare']);
+assert.equal(progressionResources('Runedancer').attackPower, progressionResources('Runedancer').spellPower);
+assert.ok(progressionResources('Runedancer', 10).spellPower > progressionResources('Runedancer').spellPower);
 assert.equal(AUTHORED_EQUIPMENT.filter(item => item.weaponType === 'Runeblade').length, 5);
 assert.equal(AUTHORED_EQUIPMENT.find(item => item.id === 'R1RB01').perk.amount, 0.3);
 
@@ -81,4 +81,4 @@ assert.equal(dancer.status.runicRefrainReady, false);
 const afterEcho = hits.length;
 runesAfterDamage(system, dancer, enemy, 100, false, { abilityName: 'Attack' });
 assert.equal(hits.length, afterEcho, 'A basic hit cannot re-arm its own echo');
-console.log('Runedance rune positioning, thresholds, ranks, expiry, saved records and nonrecursive echoes passed.');
+console.log('Runedancer rune positioning, thresholds, ranks, expiry, saved records and nonrecursive echoes passed.');

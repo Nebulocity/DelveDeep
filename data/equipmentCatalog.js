@@ -3153,7 +3153,7 @@ AUTHORED_EQUIPMENT.push(...runebladeEquipment(AUTHORED_EQUIPMENT));
 for (const item of AUTHORED_EQUIPMENT) {
 
   // Only leather armor gains the new class, keeping mail, plate and robes restricted.
-  if (['PV01', 'SAR01', 'R1AL01', 'STAL01'].includes(item.id)) item.usableBy.push('Runedance');
+  if (['PV01', 'SAR01', 'R1AL01', 'STAL01'].includes(item.id)) item.usableBy.push('Runedancer');
 }
 
 export const AUTHORED_EQUIPMENT_RECIPES = [

@@ -2,7 +2,7 @@
 // owned instances once for each character; these entries are not already owned gear.
 
 export const STARTING_EQUIPMENT = {
-  Runedance: { weapon: 'ARB01', armor: 'PV01' },
+  Runedancer: { weapon: 'ARB01', armor: 'PV01' },
   Gladiator: { weapon: 'BLS01', armor: 'PV01' },
   Oathwarden: { weapon: 'BLS01', armor: 'PV01' },
   Dawnwarden: { weapon: 'BLS01', armor: 'PV01' },

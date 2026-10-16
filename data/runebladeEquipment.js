@@ -1,5 +1,5 @@
 // Match each existing metal tier's prices, gates, drops and recipe. Splitting the
-// longsword's power and Strength gives Runedance both physical and magical bonuses.
+// longsword's power and Strength gives Runedancer both physical and magical bonuses.
 export const RUNEBLADE_TIERS = [
   ['ARB01', 'Amber Runeblade', 'BLS01', 'amber'],
   ['FRB01', 'Fluorite Runeblade', 'ILS01', 'fluorite'],
@@ -10,7 +10,7 @@ export const RUNEBLADE_TIERS = [
 export function runebladeEquipment(catalog) {
   const blades = RUNEBLADE_TIERS.map(([id, name, sourceId, gemstone]) => {
     const source = catalog.find(item => item.id === sourceId);
-    return { ...source, id, name, gemstone, weaponType: 'Runeblade', usableBy: ['Runedance'],
+    return { ...source, id, name, gemstone, weaponType: 'Runeblade', usableBy: ['Runedancer'],
       stats: { ...source.stats, attackPower: source.stats.attackPower / 2,
         spellPower: source.stats.attackPower / 2, strength: source.stats.strength / 2,
         intellect: source.stats.strength / 2 },
@@ -18,7 +18,7 @@ export function runebladeEquipment(catalog) {
   });
   const rare = catalog.find(item => item.id === 'R1L01');
   blades.push({ ...rare, id: 'R1RB01', name: 'Cinder Refrain', gemstone: 'cinder', weaponType: 'Runeblade',
-    usableBy: ['Runedance'], stats: { ...rare.stats, attackPower: 16, spellPower: 16, strength: 24, intellect: 24 },
+    usableBy: ['Runedancer'], stats: { ...rare.stats, attackPower: 16, spellPower: 16, strength: 24, intellect: 24 },
     perk: { id: 'runic_refrain', name: 'Runic Refrain', amount: 0.3 },
     description: 'The dancers of the Twilight Court practiced their sword forms until even their shadows learned the steps. Though the court lies silent, a second blade still follows every flourish.' });
   return blades;

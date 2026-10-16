@@ -123,12 +123,6 @@ export default class BootScene extends Phaser.Scene {
     loadProfile(adventurers);
     GameState.development.toolsVisible = true;
 
-    // Public builds use ordinary progression even after a local development session.
-    if (!import.meta.env.DEV) {
-      GameState.development.unlockAll = false;
-      GameState.development.replayCleared = false;
-    }
-
     // Restore player progression from its separate save record.
     GameState.leader = loadLeaderProgression();
 

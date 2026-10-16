@@ -3,7 +3,7 @@ import { mkdir } from 'node:fs/promises';
 
 // Use the real game at phone and desktop sizes, including real decoded audio and PNGs.
 for (const width of [915, 2048]) {
-  test(`Runedance, expeditions and settings at ${width}`, async ({ page }) => {
+  test(`Runedancer, expeditions and settings at ${width}`, async ({ page }) => {
     test.setTimeout(180000);
     await page.setViewportSize({ width, height: Math.round(width * 1080 / 2400) });
     const errors = [];
@@ -11,7 +11,7 @@ for (const width of [915, 2048]) {
     await page.goto('/?visualQa=1');
     await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__?.game.scene.getScene('TitleScene').sys.isActive());
     await page.locator('#loading-screen').waitFor({ state: 'hidden' });
-    await mkdir('output/qa/runedance', { recursive: true });
+    await mkdir('output/qa/runedancer', { recursive: true });
     const settings = await page.evaluate(() => {
       const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('TitleScene');
       const labels = scene.children.list.filter(o => o.type === 'Text').map(o => o.text);
@@ -21,7 +21,7 @@ for (const width of [915, 2048]) {
         cheats: all.some(text => ['DEV TOOLS', 'Dev mode', '+1,000', '+5,000', 'Renown Level', 'Character Level'].includes(text)) };
     });
     expect(settings).toEqual({ settings: true, transfers: true, cheats: false });
-    await page.screenshot({ path: `output/qa/runedance/settings-${width}.png` });
+    await page.screenshot({ path: `output/qa/runedancer/settings-${width}.png` });
     const waystone = await page.evaluate(async () => {
       const qa = window.__DELVE_DEEP_VISUAL_QA__;
       const scene = qa.game.scene.getScene('TitleScene');
@@ -71,7 +71,7 @@ for (const width of [915, 2048]) {
         disabled: scene.content.list.filter(o => o.type === 'Text' && o.text.includes('IN THE EVERDEEP')).length };
     });
     expect(selection.selected).toBe(0); expect(selection.disabled).toBeGreaterThan(0);
-    await page.screenshot({ path: `output/qa/runedance/expedition-${width}.png` });
+    await page.screenshot({ path: `output/qa/runedancer/expedition-${width}.png` });
     await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.activate('PartySelectScene'));
     await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('PartySelectScene').cards?.size === 15);
     const away = await page.evaluate(() => {
@@ -80,7 +80,7 @@ for (const width of [915, 2048]) {
       return { selected: [...scene.selectedIds], disabled: scene.cards.get('alhanna').level.text };
     });
     expect(away.selected).toEqual([]); expect(away.disabled).toBe('IN THE EVERDEEP');
-    await page.screenshot({ path: `output/qa/runedance/party-away-${width}.png` });
+    await page.screenshot({ path: `output/qa/runedancer/party-away-${width}.png` });
     const returned = await page.evaluate(async () => {
       const { recallEverdeep } = await import('/game/Everdeep.js');
       recallEverdeep(Date.now(), undefined, window.__RUNE_TEST_RUN__);
@@ -93,7 +93,7 @@ for (const width of [915, 2048]) {
   });
 }
 
-test('all Runedance rune sheets animate, restore at fixed points and fade on combat time', async ({ page }) => {
+test('all Runedancer rune sheets animate, restore at fixed points and fade on combat time', async ({ page }) => {
   test.setTimeout(180000);
   await page.setViewportSize({ width: 915, height: 412 });
   const errors = []; page.on('pageerror', error => errors.push(error.message));
@@ -109,13 +109,13 @@ test('all Runedance rune sheets animate, restore at fixed points and fade on com
     const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
     return scene.sys.isActive() && scene.enemies?.some(enemy => !enemy.landing) && !scene.waveTransitioning;
   });
-  await mkdir('output/qa/runedance', { recursive: true });
+  await mkdir('output/qa/runedancer', { recursive: true });
   for (let group = 0; group < 3; group++) {
     const result = await page.evaluate(async group => {
       const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
       const effects = await import('/combat/AbilityEffect.js');
       const { replacementAbilities } = await import('/data/replacementAbilities.js');
-      const kit = Object.values(replacementAbilities('Runedance')).filter(a => a.origin === 'Class').slice(group * 4, group * 4 + 4);
+      const kit = Object.values(replacementAbilities('Runedancer')).filter(a => a.origin === 'Class').slice(group * 4, group * 4 + 4);
       scene.combatPaused = true; scene.time.paused = true; effects.clearAbilityEffects(scene);
       for (const unit of scene.partyUnits) { unit.status.replacementZones = []; unit.status.replacementEffects = []; }
       kit.forEach((ability, i) => {
@@ -126,7 +126,7 @@ test('all Runedance rune sheets animate, restore at fixed points and fade on com
         scene.createAbilityEffect(owner, owner, { ...ability, vfxPhase: ability.duration ? undefined : 'impact' });
       });
       scene.combatPaused = false; effects.updateAbilityEffects(scene, 600); scene.combatPaused = true;
-      const entries = scene.abilityEffects.filter(e => e.definition.id.startsWith('runedance-'));
+      const entries = scene.abilityEffects.filter(e => e.definition.id.startsWith('runedancer-'));
       const frames = entries.map(e => e.pieces[0].image.frame.name);
       effects.updateAbilityEffects(scene, 1000);
       window.__RUNE_VIEWS__ = entries;
@@ -134,7 +134,7 @@ test('all Runedance rune sheets animate, restore at fixed points and fade on com
         paused: entries.every((e,i) => e.pieces[0].image.frame.name === frames[i]), dancer: Boolean(scene.partyUnits[0].spriteVisual) };
     }, group);
     expect(result).toEqual({ count: 4, ready: true, paused: true, dancer: true });
-    await page.screenshot({ path: `output/qa/runedance/runes-${group}.png` });
+    await page.screenshot({ path: `output/qa/runedancer/runes-${group}.png` });
   }
   const fade = await page.evaluate(async () => {
     const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('BattleScene');
@@ -142,7 +142,7 @@ test('all Runedance rune sheets animate, restore at fixed points and fade on com
     // Rebuild the artwork solely from saved rune records, as after a paused reload.
     effects.clearAbilityEffects(scene);
     scene.combatPaused = false; effects.updateAbilityEffects(scene, 0); scene.combatPaused = true;
-    const views = scene.abilityEffects.filter(e => e.definition.id.startsWith('runedance-'));
+    const views = scene.abilityEffects.filter(e => e.definition.id.startsWith('runedancer-'));
     const restored = views.length === 4 && views.every(view => view.anchor.arenaX === view.target.status.replacementZones[0].point.arenaX);
     for (const unit of scene.partyUnits) unit.status.replacementZones = [];
     scene.combatPaused = false; effects.updateAbilityEffects(scene, 0); effects.updateAbilityEffects(scene, 200);

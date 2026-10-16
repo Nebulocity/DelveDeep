@@ -35,7 +35,7 @@ test('the reported party uses identical live and hidden combat rules', async ({ 
     const { default: BattleUnit } = await import('/combat/BattleUnit.js');
     const { getEquippedAdventurer } = await import('/game/Equipment.js');
     const { battleAbilities } = await import('/game/AdventurerAbilities.js');
-    const names = ['Zareth', 'Elyra', 'Yasmin', 'Valtheris', 'Malrec'];
+    const names = ['Zareth', 'Vaeloria', 'Yasmin', 'Valtheris', 'Malrec'];
 
     // map builds one output entry for each input entry, in the same order. The callback's
     // return value becomes that output entry.

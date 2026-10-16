@@ -9,6 +9,8 @@ import * as typography from '../config/uiTypography.js';
 import GameState from '../game/GameState.js';
 import { grantAdventurerLevels } from '../game/AdventurerProgression.js';
 import adventurers from '../data/adventurers.js';
+import { everdeepRuns } from '../game/Everdeep.js';
+import { applyDevelopmentBoost, setDevelopmentExpeditionWave } from '../game/DevelopmentProgression.js';
 import { loadProfile, saveProfile } from '../game/GameStorage.js';
 
 // A Map pairs a key with a value. Unlike an array index, the key can be an ID or an
@@ -79,7 +81,7 @@ const source = fs.readFileSync(new URL('../scenes/TitleScene.js', import.meta.ur
 const context = vm.createContext({ ...typography,
   Phaser: { Scene }, GameState,
   HapticsService: { tap() {}, confirm() {} },
-  saveProfile, grantAdventurerLevels, grantLeaderLevels(leader, amount) {
+  saveProfile, everdeepRuns, applyDevelopmentBoost, setDevelopmentExpeditionWave, grantAdventurerLevels(leader, amount) {
     leader.level += amount;
 
     return { renownPointsEarned: amount };
@@ -100,9 +102,9 @@ function getButton(label, y) {
 
   // find returns the first matching entry, or undefined when none matches. Check for that
   // missing result before using its fields.
-  const caption = scene.objects.find((object) => object.type === 'text' && object.value === label && object.y === y);
+  const caption = scene.objects.find((object) => !object.destroyed && object.type === 'text' && object.value === label && object.y === y);
   assert.ok(caption, `Missing ${label} at ${y}`);
-  const button = scene.objects.find((object) => object.type === 'rectangle'
+  const button = scene.objects.find((object) => !object.destroyed && object.type === 'rectangle'
     && object.x === caption.x && object.y === caption.y && object.handlers.pointerdown);
   assert.ok(button);
 
@@ -119,15 +121,36 @@ const panelTop = (1080 - 850) / 2;
 const row = index => panelTop + 180 + index * 120;
 assert.ok(scene.objects.some(object => object.value === 'SETTINGS'));
 assert.ok(!scene.objects.some(object => ['DEV TOOLS','Dev mode','Gold','Renown Level','Character Level','+1','+5','+1,000','+5,000'].includes(object.value)));
-tap('ON', row(0));
+assert.ok(!scene.objects.some(object => !object.destroyed && object.value === 'Arena Border'));
+scene.showDevelopmentTools(true);
+const devRow = index => 80 + 160 + index * 88;
+tap('ON', devRow(1));
 assert.equal(GameState.development.showArenaBorder, false);
 assert.equal(JSON.parse(storage.get('delveDeep.profile.v2')).development.showArenaBorder, false);
+tap('OFF', devRow(0));
+assert.equal(GameState.development.mapTestingEnabled, true);
+assert.ok(!scene.restarted);
+assert.ok(scene.objects.some(object => !object.destroyed && object.value === 'DEV SETTINGS'));
+tap('ON', devRow(0));
+assert.equal(GameState.development.mapTestingEnabled, false);
 storage.set('delveDeep.profile.v2', JSON.stringify({ development: { unlockAll: true, replayCleared: true, musicEnabled: true, showGridLines: true } }));
 loadProfile(adventurers);
 assert.equal(GameState.development.unlockAll, false);
 assert.equal(GameState.development.replayCleared, false);
 assert.equal(GameState.development.musicEnabled, true);
 assert.equal(GameState.development.showArenaBorder, true);
+
+// New playtest map access is an explicit saved choice, separate from legacy flags.
+GameState.development.mapTestingEnabled = true;
+saveProfile();
+loadProfile(adventurers);
+assert.equal(GameState.development.unlockAll, true);
+assert.equal(GameState.development.replayCleared, true);
+GameState.development.mapTestingEnabled = false;
+saveProfile();
+loadProfile(adventurers);
+assert.equal(GameState.development.unlockAll, false);
+assert.equal(GameState.development.replayCleared, false);
 
 const toastScene = new context.TitleScene();
 const tweens = [];
@@ -200,4 +223,4 @@ assert.equal(drawings[1].strokes, 1);
 
 assert.equal(drawings[1].paths, 0);
 assert.equal(battlefield.boundary.length, 4);
-console.log('Player settings retain preferences and remove development grants in every runtime.');
+console.log('Normal Settings hides grants; map testing requires an explicit saved choice.');

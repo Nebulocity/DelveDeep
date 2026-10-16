@@ -1,10 +1,17 @@
 // Four authored PixelLab facings are packed in rows. Cardinal headings alias the
 // nearest real facing without mirroring her sword. Each cell is 256 pixels square.
-const states = { idle: [4,150], walk: [6,100], attack: [9,70], block: [9,70], hit: [6,110], death: [7,110] };
+
+// Idle takes 2.16 seconds to breathe instead of bouncing every 0.6 seconds.
+// The longer walk cycle keeps her upper body steady while her feet take even steps.
+// Durations are milliseconds per painted frame and advance only with combat time.
+const states = { idle: [24,90], walk: [16,45], attack: [9,70], block: [9,70], hit: [6,110], death: [7,110] };
 const facing = { south: 0, 'south-east': 0, east: 0, 'south-west': 1, west: 1,
   north: 2, 'north-east': 2, 'north-west': 3 };
+
+// The backtick path lets Vite find and bundle every sheet for Android and web builds.
+// A path joined with + works in development but leaves missing files in the package.
 const textures = Object.keys(states).map(state => ({ character: 'alhanna', key: 'alhanna-' + state,
-  url: new URL('../assets/characters/alhanna/sheets/' + state + '.png', import.meta.url).href }));
+  url: new URL(`../assets/characters/alhanna/sheets/${state}.png`, import.meta.url).href }));
 const clips = Object.fromEntries(Object.entries(states).map(([state, [count, frameMs]]) =>
   [state, Object.fromEntries(Object.entries(facing).map(([direction, row]) => [direction,
     { frameMs, frames: Array.from({ length: count }, (_, frame) => ({ key: 'alhanna-' + state,

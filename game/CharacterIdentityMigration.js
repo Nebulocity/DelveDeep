@@ -1,9 +1,7 @@
 // Old character IDs appear in saves as roster entries, targets, Map keys, timer owners
 // and texture names. Keep their spellings only here so the live game uses the new IDs.
 const characterAliases = [
-  { id: 'garrick', name: 'Garrick', ids: ['caramon-gladiator', 'caramon'], names: ['Caramon'] },
   { id: 'aldren', name: 'Aldren', ids: ['sturm'], names: ['Sturm'] },
-  { id: 'elyra', name: 'Elyra', ids: ['laurana'], names: ['Laurana'] },
   { id: 'malrec', name: 'Malrec', ids: ['fistandantilus', 'aoth'], names: ['Fistandantilus', 'Aoth'] },
   { id: 'selenne', name: 'Selenne', ids: ['mishakal', 'solenne'], names: ['Mishakal', 'Solenne'] },
   { id: 'sylva', name: 'Sylva', ids: ['goldmoon'], names: ['Goldmoon'] },
@@ -13,7 +11,6 @@ const characterAliases = [
   { id: 'yasmin', name: 'Yasmin', ids: ['tasslehoff', 'pip'], names: ['Tasslehoff', 'Pip'] },
   { id: 'zareth', name: 'Zareth', ids: ['dalamar', 'corven'], names: ['Dalamar', 'Corven'] },
   { id: 'nadira', name: 'Nadira', ids: ['palin', 'oren'], names: ['Palin', 'Oren'] },
-  { id: 'valtheris', name: 'Valtheris', ids: ['raistlin', 'veyrin'], names: ['Raistlin', 'Veyrin'] },
   { id: 'orwen', name: 'Orwen', ids: ['tanis', 'rowan'], names: ['Tanis', 'Rowan'] }
 ];
 

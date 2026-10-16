@@ -136,7 +136,7 @@ export default class EverdeepScene extends Phaser.Scene {
     if (this.selectedRunId && !runs.some(run => run.id === this.selectedRunId)) this.selectedRunId = runs[0]?.id ?? null;
     this.panel(width / 2, 56, width, 112);
     this.text(width / 2, 49, 'THE EVERDEEP', UI_FONT_SIZES.display54, '#ead9ff');
-    this.text(width / 2, 96, 'PINESHIRE REACH  /  EXPEDITION SANCTUM', UI_FONT_SIZES.compact26, '#ccb9dc');
+    this.text(width / 2, 96, 'PINESHIRE REACH  /  EXPEDITION CAMP', UI_FONT_SIZES.compact26, '#ccb9dc');
     this.button(290, 56, 460, 'Return to World Map', () => this.scene.start('TitleScene'));
     this.text(width - 245, 55, `${GameState.gold} GOLD`, UI_FONT_SIZES.heading38, '#f2cb80');
     const leftX = width * 0.18, leftW = width * 0.30;
@@ -363,17 +363,22 @@ export default class EverdeepScene extends Phaser.Scene {
   // Display the selected expedition's recall decision and resulting progress.
   renderRecall(run) {
 
+    // This decision covers the whole screen, so center it on the usable game area
+    // instead of the selected expedition's right-hand detail column.
+    const centerX = this.scale.width / 2;
+    const centerY = this.scale.height / 2;
+
     // This gives the display object an input hit area. Visible artwork alone does not make
     // an object respond to a tap.
     const veil = this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x090710, 0.9)
       .setInteractive();
     this.content.add(veil);
-    this.panel(this.detailX, 650, this.detailW - 70, 420);
-    this.text(this.detailX, 551, 'Cancel and recall this expedition?', UI_FONT_SIZES.heading44, '#ead9ff');
-    this.text(this.detailX, 638, 'Earned chests are safe. The writ and remaining time are spent.', UI_FONT_SIZES.body36, '#e2c4c4', this.detailW - 200);
-    this.button(this.detailX - 290, 768, 480, 'Keep Descending', () => this.render());
+    this.panel(centerX, centerY, this.detailW - 70, 420);
+    this.text(centerX, centerY - 99, 'Cancel and recall this expedition?', UI_FONT_SIZES.heading44, '#ead9ff');
+    this.text(centerX, centerY - 12, 'Earned chests are safe. The writ and remaining time are spent.', UI_FONT_SIZES.body36, '#e2c4c4', this.detailW - 200);
+    this.button(centerX - 290, centerY + 118, 480, 'Keep Descending', () => this.render());
 
-    this.button(this.detailX + 290, 768, 480, 'Confirm Recall', () => {
+    this.button(centerX + 290, centerY + 118, 480, 'Confirm Recall', () => {
       recallEverdeep(Date.now(), GameState, run.id);
       this.render();
     }, { color: 0x552d39 });

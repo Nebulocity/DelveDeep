@@ -26,8 +26,8 @@ const adventurers = [
     happiness: 70
   }),
 
-  createAdventurer('elyra', 'Elyra', 'Dawnwarden', {
-    color: 0xfacc15,
+  createAdventurer('elyra', 'Vaeloria', 'Dawnwarden', {
+    color: 0x24796d,
     maxHp: 176,
     attackPower: 10,
     moveSpeed: 142,
@@ -109,7 +109,7 @@ const adventurers = [
     critChance: 0.12,
     happiness: 68
   }),
-  createAdventurer('alhanna', 'Alhanna', 'Runedance')
+  createAdventurer('alhanna', 'Alhanna', 'Runedancer')
 ];
 
 export default adventurers;

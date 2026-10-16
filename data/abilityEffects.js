@@ -18,7 +18,7 @@ import { BARBARIAN_ABILITY_EFFECTS } from './barbarianAbilityEffects.js';
 import { BARMAID_ABILITY_EFFECTS } from './barmaidAbilityEffects.js';
 import { EVERBRIGHT_CLERIC_EFFECTS } from './everbrightClericEffects.js';
 import { UMBRAL_MAGE_EFFECTS } from './umbralMageEffects.js';
-import { RUNEDANCE_EFFECTS } from './runedanceEffects.js';
+import { RUNEDANCER_EFFECTS } from './runedancerEffects.js';
 import { preloadPhysicalAbilityEffects } from '../combat/PhysicalAbilityEffects.js';
 import { preloadPrepareAbilityEffects } from '../combat/PrepareAbilityEffects.js';
 import { preloadRangedDelivery } from './rangedDelivery.js';
@@ -108,7 +108,7 @@ const presentation = {
 // Parts preserve the supplied behind/front layering; combined sheets are only used
 // for packs with no parts. Loading both would draw the same artwork twice.
 export const ABILITY_EFFECTS = [
-  ...RUNEDANCE_EFFECTS,
+  ...RUNEDANCER_EFFECTS,
   ...BARMAID_ABILITY_EFFECTS,
   ...UMBRAL_MAGE_EFFECTS,
   ...BARBARIAN_ABILITY_EFFECTS,
@@ -143,7 +143,7 @@ export const ABILITY_EFFECTS = [
 // Select a flight separately from its impact. Most skills only have an impact pack.
 export function findAbilityEffect(caster, ability, projectile = false) {
 
-  const rune = RUNEDANCE_EFFECTS.find(effect => effect.abilityId === ability.id && effect.vfxPhase === ability.vfxPhase);
+  const rune = RUNEDANCER_EFFECTS.find(effect => effect.abilityId === ability.id && effect.vfxPhase === ability.vfxPhase);
   if (rune) return projectile ? undefined : rune;
 
   // Exact current IDs preserve retired Barmaid artwork in saved encounters.

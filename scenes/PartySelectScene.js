@@ -241,13 +241,17 @@ export default class PartySelectScene extends Phaser.Scene {
 
       // ?. only follows this link when the value exists; a missing optional value gives
       // undefined.
-      const frame = CHARACTER_SPRITES[adventurer.id]?.clips.idle.south.frames[0];
+      const sprite = CHARACTER_SPRITES[adventurer.id];
+      const frame = sprite?.clips.idle.south.frames[0];
       const portraitX = contentCenterX - cardWidth / 2 + 62;
+
+      // Compensate for extra transparent padding using the character's portrait multiplier.
+      const portraitSize = 116 * (sprite?.portraitScale ?? 1);
 
       // The condition before ? chooses the first value when true and the value after :
       // when false.
       const portrait = frame && this.textures.exists(frame.key)
-        ? this.add.image(portraitX, cardY, frame.key, frame.frame).setDisplaySize(116, 116).setFlipX(frame.flipX === true)
+        ? this.add.image(portraitX, cardY, frame.key, frame.frame).setDisplaySize(portraitSize, portraitSize).setFlipX(frame.flipX === true)
         : stoneIcon(this, portraitX, cardY, definition.title, 56, 0, adventurer.color);
       const textX = contentCenterX - cardWidth / 2 + 120;
       const textWidth = cardWidth - 135;

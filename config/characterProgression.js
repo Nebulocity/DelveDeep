@@ -45,7 +45,7 @@ const healer = { ...common, maxHp: 250, maxMana: 500, armor: 30, dodge: 0.02, bl
 export const PROGRESSION_PROFILES = {
 
   // A leather-clad spellblade splits its starting damage budget between both powers.
-  Runedance: { base: { ...melee, maxHp: 300, maxMana: 350, attackPower: 275, spellPower: 275,
+  Runedancer: { base: { ...melee, maxHp: 300, maxMana: 350, attackPower: 275, spellPower: 275,
     strength: 25, agility: 25, intellect: 25, wisdom: 20 },
     growth: { maxHp: 10, maxMana: 10, strength: 1.5, agility: 1, constitution: 0.75, intellect: 1, wisdom: 0.5 } },
   Tank: { base: tank, growth: { maxHp: 20, maxMana: 0, strength: 1.5, agility: 0.5, constitution: 2, intellect: 0.25, wisdom: 0.5 } },
@@ -60,7 +60,7 @@ export const PROGRESSION_PROFILES = {
 };
 
 export const CLASS_PROGRESSION = {
-  Runedance: 'Runedance',
+  Runedancer: 'Runedancer',
   Gladiator: 'Tank', Oathwarden: 'Tank', Dawnwarden: 'Dawnwarden',
   Barmaid: 'Melee', Scoundrel: 'Melee', Barbarian: 'Melee', Ranger: 'Ranged',
   'Mage of the Umbral Veil': 'Mage', 'Mage of the Crimson Spire': 'Mage', 'Mage of the Luminous Archive': 'Mage',
@@ -71,7 +71,7 @@ export const CLASS_PROGRESSION = {
 // A multiplier of 0.25 means one quarter of the catalog's reference healing coefficient.
 // These starting values preserve the previous tuning, including magical generic heals.
 export const CLASS_HEALING_MULTIPLIERS = {
-  Runedance: 0.25,
+  Runedancer: 0.25,
   Dawnwarden: 0.25,
   'Mage of the Umbral Veil': 0.25,
   'Mage of the Crimson Spire': 0.25,

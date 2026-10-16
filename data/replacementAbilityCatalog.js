@@ -5,10 +5,10 @@
 // Every magical ability spends a fraction of maximum Mana, including recovery skills.
 // Small recovery costs leave room for a net Mana gain; costs do not increase with rank.
 
-import { RUNEDANCE_ABILITIES } from './runedanceAbilities.js';
+import { RUNEDANCER_ABILITIES } from './runedancerAbilities.js';
 
 export const REPLACEMENT_ABILITY_ROWS = [
-  ...RUNEDANCE_ABILITIES,
+  ...RUNEDANCER_ABILITIES,
   {
     "id": "ability_v2_generic_physical_lacerate",
     "name": "Lacerate",

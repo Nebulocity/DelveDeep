@@ -8,7 +8,7 @@ The playable region is Pineshire Reach, with traced road travel, five sequential
 
 Drag the map to explore, tap a destination to travel, and hold it for details. Visit towns to manage your roster, train abilities and tactics, craft gear, and buy or brew potion packs. Choose five adventurers before entering a Delve. Cleared waves bank rewards; camp lets you farm, return to town, or challenge the boss. HOW TO PLAY explains the loop and FIND PARTY recenters the map. The Sunken Watch offers an instant waystone return through Pineshire's destination entry.
 
-Alhanna joins the fifteen-adventurer roster as Runedance, a magical melee class with leather armor, gemstone Runeblades and twelve rune abilities. Everdeep expeditions reserve their adventurers until return or recall; writs cost 275 Gold times current Renown Level. Away adventurers are clearly marked and unavailable for other expeditions and Delves.
+Alhanna joins the fifteen-adventurer roster as Runedancer, a magical melee class with leather armor, gemstone Runeblades and twelve rune abilities. Everdeep expeditions reserve their adventurers until return or recall; writs cost 275 Gold times current Renown Level. Away adventurers are clearly marked and unavailable for other expeditions and Delves.
 
 Progress is stored locally on the current device and origin and persists across sessions, rebuilt versions, and installed updates. Region-map Settings offers music, Arena Border and confirmed progress reset. Development grants are disabled in every build. Encrypted save import/export is temporarily available in all builds for testing across devices.
 

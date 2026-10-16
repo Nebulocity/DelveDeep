@@ -596,7 +596,9 @@ export default class ClassAbilitySystem {
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
-    unit.spriteVisual?.play(a.effect === 'damage' ? 'attack' : 'block', target);
+    const animation = unit.id === 'valtheris' && a.damageType !== 'physical'
+      ? 'cast' : a.effect === 'damage' ? 'attack' : 'block';
+    unit.spriteVisual?.play(animation, target);
     unit.markAbilityUsed(key,time);
     if (base.effect === 'damage') unit.status.nextRangeBonus = 0;
     scene.announceAbility(unit,a.name,'#fde68a');

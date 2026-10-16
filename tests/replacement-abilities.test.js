@@ -88,7 +88,7 @@ for (const [name, definition] of Object.entries(CLASS_DEFINITIONS)) {
   const rules = CLASS_ABILITY_RULES[CLASS_CATALOG_NAMES[name] ?? name];
   const starters = Object.values(definition.abilities).filter(a => a.starter);
   assert.equal(starters.length, 3);
-  assert.equal(starters.filter(a => a.origin === 'Generic').length, name.startsWith('Mage of') || name === 'Runedance' ? 0 : 1);
+  assert.equal(starters.filter(a => a.origin === 'Generic').length, name.startsWith('Mage of') || name === 'Runedancer' ? 0 : 1);
   assert.equal(starters.filter(a => a.origin === 'Class' && a.category === rules[1]).length, name === 'Mage of the Umbral Veil' ? 2 : 1);
   assert.equal(starters.filter(a => a.origin === 'Class' && a.category === rules[2]).length, 1);
   assert.ok(Object.values(definition.abilities).every(a => a.replacement && abilityAllowed(name, a)));

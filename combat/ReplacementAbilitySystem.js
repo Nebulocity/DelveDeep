@@ -335,7 +335,9 @@ export default class ReplacementAbilitySystem {
     const payers = ability.healthPayer === 'Every living ally' ? this.allies() : [unit];
     for (const payer of payers) if (ability.healthFraction) { payer.hp = Math.max(1, payer.hp - Math.round(payer.hp * ability.healthFraction)); payer.updateHealthBar?.(); }
     if (ability.oncePerEncounter || ability.oncePerWave) (unit.delvesUsed ??= {})[ability.id] = scene.currentWaveIndex;
-    unit.spriteVisual?.play(ability.category === 'Assault' ? 'attack' : 'block', target);
+    const animation = unit.id === 'valtheris' && ability.damageType !== 'physical'
+      ? 'cast' : ability.category === 'Assault' ? 'attack' : 'block';
+    unit.spriteVisual?.play(animation, target);
     scene.announceAbility(unit, ability.name, '#fde68a');
     scene.logActionStart?.(unit, target, ability.name);
     const action = unit.pendingAction;

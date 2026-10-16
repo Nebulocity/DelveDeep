@@ -2,7 +2,7 @@
 // with the actual class data and skill handlers.
 
 export const CLASS_DESCRIPTIONS = {
-  Runedance: 'A mobile magical melee damage dealer in leather armor, wielding a gemstone Runeblade. Strength and magical attributes grow together. Amber and fluorite strikes leave floating runes; amethyst steps reward positioning. Protect runes empower nearby allies, while prepared glyphs trigger on movement, low Health or enemy critical hits. Uses Assault, Protect and Prepare.',
+  Runedancer: 'A mobile magical melee damage dealer in leather armor, wielding a gemstone Runeblade. Strength and magical attributes grow together. Amber and fluorite strikes leave floating runes; amethyst steps reward positioning. Protect runes empower nearby allies, while prepared glyphs trigger on movement, low Health or enemy critical hits. Uses Assault, Protect and Prepare.',
   Gladiator: 'A front-line physical tank who draws attention with Defiant Roar and protects allies through Armor, interception and formation. Offensive Drill and Punishing Blow pressure nearby enemies. Tactical preparations help the party act, but the Gladiator cannot learn Restore abilities.',
   Oathwarden: 'A physical tank who protects allies with vows, damage reduction and reactive defense. Judgement weakens an enemy threatening another ally, while Righteous Blow and retaliation punish attackers. Best at buying recovery time through Protect, Assault and Prepare abilities.',
   Dawnwarden: 'A magical tank who draws nearby threats with Dawn’s Shelter and strikes with radiant power. Radiant Aegis reduces magical damage, while Renewing Light and Devotion restore personal resources. Uses Protect, Assault and Restore abilities.',

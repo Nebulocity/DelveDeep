@@ -55,7 +55,7 @@ assert.equal(leader.level, 2);
 assert.equal(leader.renownPoints, 1);
 assert.deepEqual(leader.claimedCharacterMilestones, [5]);
 leader = GameState.leader = loadLeaderProgression();
-grantAdventurerLevels(hero('Elyra', 4), 1);
+grantAdventurerLevels(hero('Vaeloria', 4), 1);
 assert.equal(leader.renownPoints, 1);
 assert.deepEqual(leader.battleLoadout, ['focusFire']);
 

@@ -112,10 +112,12 @@ export function loadProfile(baseRoster) {
     ? saved.lastPartyIds : [];
   GameState.development = {
 
-    // Cheat access is retired in local development and every packaged runtime.
+    // Map bypasses require an explicit choice in hidden Dev Settings. Older saves
+    // may contain legacy cheat flags, which must not silently enable this opt-in.
     // Display and music preferences below still survive updates.
-    unlockAll: false,
-    replayCleared: false,
+    mapTestingEnabled: saved?.development?.mapTestingEnabled === true,
+    unlockAll: saved?.development?.mapTestingEnabled === true,
+    replayCleared: saved?.development?.mapTestingEnabled === true,
     showArenaBorder: (saved?.development?.showArenaBorder ?? saved?.development?.showGridLines) === true,
     musicEnabled: saved?.development?.musicEnabled === true
   };

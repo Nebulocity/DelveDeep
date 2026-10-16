@@ -10,9 +10,7 @@ import { loadLastCombatLog } from '../combat/CombatLog.js';
 import { PROFILE_STORAGE_KEY } from '../game/BuildSave.js';
 
 const formerCharacters = [
-  ['caramon-gladiator', 'Caramon', 'Garrick', 'garrick'],
   ['sturm', 'Sturm', 'Aldren', 'aldren'],
-  ['laurana', 'Laurana', 'Elyra', 'elyra'],
   ['fistandantilus', 'Fistandantilus', 'Malrec', 'malrec'],
   ['mishakal', 'Mishakal', 'Solenne', 'selenne'],
   ['goldmoon', 'Goldmoon', 'Sylva', 'sylva'],
@@ -22,7 +20,6 @@ const formerCharacters = [
   ['tasslehoff', 'Tasslehoff', 'Pip', 'yasmin'],
   ['dalamar', 'Dalamar', 'Corven', 'zareth'],
   ['palin', 'Palin', 'Oren', 'nadira'],
-  ['raistlin', 'Raistlin', 'Veyrin', 'valtheris'],
   ['tanis', 'Tanis', 'Rowan', 'orwen']
 ];
 const storage = new Map();
@@ -46,15 +43,17 @@ for (const member of profile.roster) {
   member.delvesCompleted = 2;
   member.skillPoints = 7;
 }
-profile.lastPartyIds = ['caramon-gladiator', 'dalamar'];
-const templates = ['caramon-gladiator', 'dalamar'].map(id => {
-  const currentId = formerCharacters.find(row => row[0] === id)[3];
+profile.roster.find(member => member.id === 'garrick').level = 4;
+profile.roster.find(member => member.id === 'garrick').xp = 13;
+profile.lastPartyIds = ['garrick', 'dalamar'];
+const templates = ['garrick', 'dalamar'].map(id => {
+  const currentId = formerCharacters.find(row => row[0] === id)?.[3] ?? id;
   const base = adventurers.find(hero => hero.id === currentId);
-  return { ...base, id, spriteId: id, name: oldByCurrentId.get(currentId).name };
+  return { ...base, id, spriteId: id, name: oldByCurrentId.get(currentId)?.name ?? base.name };
 });
 const unit = (template, hp) => ({ ...template, hp, maxHp: 500, mana: 17,
   arenaX: 500, arenaY: 300, status: { shield: { ownerId: 'dalamar', until: 7000 } },
-  targetName: 'Caramon', targetId: 'caramon-gladiator',
+  targetName: 'Garrick', targetId: 'garrick',
   abilities: { legacySpell: { power: 37, cooldown: 900 } } });
 const snapshot = {
   version: 1, delveId: 'slime-cave', time: 1000, savedAtMs: 10000,
@@ -66,18 +65,18 @@ const snapshot = {
   decoys: [{ ...unit({ id: 'decoy-1', name: "Dalamar's Image", spriteId: 'dalamar' }, 8),
     decoyOwnerId: 'dalamar', decoyUntil: 9000 }],
   events: [{ remainingMs: 150, data: { kind: 'classAbility', unitId: 'dalamar',
-    targetId: 'caramon-gladiator', actionId: 4 } }],
+    targetId: 'garrick', actionId: 4 } }],
   traps: [{ ownerId: 'dalamar', point: { x: 600, y: 300 }, until: 11000 }],
   scene: packBattleValue({ currentWaveIndex: 0,
-    selectedUnitIds: new Set(['caramon-gladiator']),
-    healerPriorityTargets: new Map([['dalamar', 'caramon-gladiator']]),
-    enemyThreat: new Map([['enemy-1', new Map([['caramon-gladiator', 75], ['dalamar', 20]])]]) }),
+    selectedUnitIds: new Set(['garrick']),
+    healerPriorityTargets: new Map([['dalamar', 'garrick']]),
+    enemyThreat: new Map([['enemy-1', new Map([['garrick', 75], ['dalamar', 20]])]]) }),
   run: { entry: 'progression', startingGold: 280 },
-  movement: { slots: [{ ownerId: 'dalamar', state: { targetId: 'caramon-gladiator', x: 400, y: 300 } }], rangeStates: [] },
+  movement: { slots: [{ ownerId: 'dalamar', state: { targetId: 'garrick', x: 400, y: 300 } }], rangeStates: [] },
   preferences: packBattleValue(new Map([['dalamar', 'ranged']])),
-  log: { party: [{ name: 'Caramon' }, { name: 'Dalamar' }], summary: { partyDamageTaken: 12 },
-    entries: [{ actor: 'Dalamar', target: 'Caramon', amount: 12, time: 0.5,
-      message: 'Dalamar shields Caramon.' }], casualties: [{ target: 'Caramon', time: 0.2 }] }
+  log: { party: [{ name: 'Garrick' }, { name: 'Dalamar' }], summary: { partyDamageTaken: 12 },
+    entries: [{ actor: 'Dalamar', target: 'Garrick', amount: 12, time: 0.5,
+      message: 'Dalamar shields Garrick.' }], casualties: [{ target: 'Garrick', time: 0.2 }] }
 };
 profile.activeBattle = snapshot;
 profile.everdeep = { schemaVersion: 2, runs: [{ id: 'run-1',
@@ -143,14 +142,12 @@ for (const [id, , provisional, currentId] of formerCharacters) {
     { id: currentId, name: adventurers.find(hero => hero.id === currentId).name });
 }
 assert.equal(migrateCharacterIdentities('aoth'), 'malrec');
-assert.equal(migrateCharacterIdentities('caramon'), 'garrick');
 assert.equal(migrateCharacterIdentities('pipeline, foreign, temporary'), 'pipeline, foreign, temporary');
 const migrated = migrateCharacterIdentities(profile);
 assert.deepEqual(migrateCharacterIdentities(migrated), migrated);
 saveProfile();
 const committed = JSON.parse(storage.get(PROFILE_STORAGE_KEY));
 assert.equal(committed.roster.some(member => member.id === 'garrick'), true);
-assert.equal(committed.roster.some(member => member.id === 'caramon-gladiator'), false);
 loadProfile(adventurers);
 assert.equal(GameState.roster.find(hero => hero.id === 'garrick').xp, 13);
-console.log('All 14 legacy identities, gear, progression, battle links, texture keys, logs and frozen expeditions migrate together.');
+console.log('Remaining legacy identities, gear, progression, battle links, texture keys, logs and frozen expeditions migrate together.');

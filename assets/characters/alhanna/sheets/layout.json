@@ -9,14 +9,14 @@
   ],
   "states": {
     "idle": {
-      "columns": 4,
-      "frameCount": 4,
-      "frameMs": 150
+      "columns": 24,
+      "frameCount": 24,
+      "frameMs": 90
     },
     "walk": {
-      "columns": 6,
-      "frameCount": 6,
-      "frameMs": 100
+      "columns": 16,
+      "frameCount": 16,
+      "frameMs": 45
     },
     "attack": {
       "columns": 9,

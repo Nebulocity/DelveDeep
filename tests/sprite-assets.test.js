@@ -14,8 +14,8 @@ for (const { id } of adventurers) assert.ok(CHARACTER_SPRITES[id], `missing comb
 for (const name of names) {
   const sprite = CHARACTER_SPRITES[name];
   assert.ok(sprite, `missing sprite for ${name}`);
-  const temporaryWalk = sprite.textures.find(texture => texture.key === 'aldren-temporary-walk');
-  assert.equal(sprite.textures.length, states.length + (temporaryWalk ? 1 : 0));
+  const characterStates = name === 'valtheris' ? [...states, 'cast'] : states;
+  assert.equal(sprite.textures.length, characterStates.length);
   const layout = JSON.parse(fs.readFileSync(new URL(`../assets/characters/${name}/sheets/layout.json`, import.meta.url), 'utf8'));
   assert.equal(layout.frameWidth, 256);
   assert.equal(layout.frameHeight, 256);
@@ -33,11 +33,9 @@ for (const name of names) {
     // function toString() { [native code] }
     assert.equal(png.subarray(1, 4).toString(), 'PNG');
 
-    // Aldren's optional walking test has 36 sequential cells in a six-by-six atlas.
-    // Original sheets still follow their four authored direction rows and layout file.
-    const isTemporaryWalk = texture === temporaryWalk;
-    const columns = isTemporaryWalk ? 6 : layout.states[states[index]].columns;
-    const rows = isTemporaryWalk ? 6 : layout.directions.length;
+    // Each animation uses all four authored facing rows from its layout file.
+    const columns = layout.states[characterStates[index]].columns;
+    const rows = layout.directions.length;
     assert.equal(png.readUInt32BE(20), rows * 256);
     assert.equal(png.readUInt32BE(16), columns * 256);
     assert.equal(png[25], 6, 'sprite sheet keeps RGBA transparency');
@@ -68,11 +66,37 @@ for (const name of names) {
     }
   }
 
+  if (name === 'elyra' || name === 'garrick') {
+    for (const state of states) {
+      const sheet = layout.states[state];
+      for (const [direction, count] of Object.entries(sheet.counts)) {
+        const clip = sprite.clips[state][direction];
+        assert.equal(clip.frames.length, count, `${name} ${state}/${direction} uses every authored frame`);
+        assert.equal(clip.frameMs, sheet.frameMsByDirection?.[direction] ?? sheet.frameMs);
+        assert.equal(clip.frames[0].originY, layout.anchors[direction].originY);
+      }
+    }
+  }
+
   for (const direction of Object.keys(sprite.clips.death)) {
     assert.deepEqual(sprite.clips.dead[direction].frames[0], sprite.clips.death[direction].frames.at(-1));
   }
   assert.notEqual(sprite.clips.block['south-east'].frames[0].frame, sprite.clips.block['south-west'].frames[0].frame);
   assert.notEqual(sprite.clips.block['north-east'].frames[0].frame, sprite.clips.block['north-west'].frames[0].frame);
+}
+
+// Every Aldren pose must use the replacement artwork, including portraits and walking.
+// Retained texture keys keep historical battle frames readable without shipping old art.
+for (const [index, texture] of CHARACTER_SPRITES.aldren.textures.entries()) {
+  assert.ok(texture.url.endsWith(`/FRED-${states[index]}.png`));
+  assert.equal(texture.key, `aldren-reference-v2-${states[index]}`);
+}
+assert.equal(fs.existsSync(new URL('../assets/characters/aldren/temporary/walk-test.png', import.meta.url)), false);
+
+// Garrick supplies every Gladiator pose. The former PNGs are archived outside runtime.
+for (const [index, texture] of CHARACTER_SPRITES.garrick.textures.entries()) {
+  assert.ok(texture.url.endsWith(`/Garrick-${states[index]}.png`));
+  assert.equal(fs.existsSync(new URL(`../assets/characters/garrick/sheets/${states[index]}.png`, import.meta.url)), false);
 }
 
 for (const direction of ['south', 'south-east', 'east']) {

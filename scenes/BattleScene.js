@@ -2621,7 +2621,7 @@ export default class BattleScene extends Phaser.Scene {
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
-    attacker.spriteVisual?.play('attack', target);
+    attacker.spriteVisual?.play(attacker.id === 'valtheris' && attackType === 'spell' ? 'cast' : 'attack', target);
     if (attacker.isEnemy) this.setEnemyTarget(attacker, target, 'highest threat');
     this.logActionStart(attacker, target, 'Attack');
     const action = attacker.pendingAction;

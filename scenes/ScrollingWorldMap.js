@@ -11,6 +11,7 @@ import delves from '../data/delves.js';
 import { saveProfile } from '../game/GameStorage.js';
 
 import HapticsService from '../services/HapticsService.js';
+import { createWorldMapAmbience } from '../ui/WorldMapAmbience.js';
 import { privateTransfersEnabled, showSaveTransferDialog } from '../ui/SaveTransferDialog.js';
 import { bindSelectionDetails, addDetailsHint, delveDetails } from '../ui/SelectionDetails.js';
 import { TILE, WORLD_COLUMNS, WORLD_ROWS, regions, nodes, roads, pois, nodePoint, roadPoint, mapPoint, branchLock, regionExit, routeBetween, routeFromEdge, nearestTown } from '../data/worldMap.js';
@@ -258,6 +259,21 @@ export function selectPoi(scene, poi) {
     return;
   }
 
+  // Map testing skips road time but uses the normal arrival flow and saves the
+  // destination. Turning it off immediately restores the road-routing branch below.
+  if (GameState.development.mapTestingEnabled === true) {
+    const point = nodePoint(poi.node);
+    scene.activeEdge = null;
+    scene.edgeTarget = null;
+    scene.travelRoute = [];
+    scene.partyNode = poi.node;
+    scene.party.setPosition(point.x, point.y);
+    scene.partyLabel.setPosition(point.x, point.y + 92);
+    scene.destination = poi;
+    arrive(scene);
+    return;
+  }
+
   // The condition before ? chooses the first value when true and the value after : when
   // false.
   const path = scene.activeEdge
@@ -356,6 +372,7 @@ export function createScrollingWorldMap(scene) {
   const { width, height } = scene.scale;
   scene.cameras.main.setBackgroundColor('#233b2b');
   drawWorld(scene);
+  createWorldMapAmbience(scene);
   createParty(scene);
   renderPois(scene);
   const camera = scene.cameras.main;

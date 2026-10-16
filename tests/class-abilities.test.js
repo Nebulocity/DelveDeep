@@ -86,7 +86,7 @@ assert.equal(Object.keys(classes).length,13);
 assert.equal(Object.values(classes).filter(c=>c.classAbilities).reduce((n,c)=>n+Object.keys(c.abilities).length,0),133);
 
 // every requires all entries to pass the check; an empty list gives true.
-assert.ok(roster.every(unit=>classes[unit.className] || unit.className === 'Runedance'));
+assert.ok(roster.every(unit=>classes[unit.className] || unit.className === 'Runedancer'));
 
 // find returns the first matching entry, or undefined when none matches. Check for that
 // missing result before using its fields.
@@ -287,15 +287,15 @@ console.log('Martial kits, poison cadence, trap entry, control durations and rea
 
 // The active catalog contains only the requested roster and its classes.
 assert.deepEqual(Object.fromEntries(roster.map(u=>[u.name,u.className])), {
-  Alhanna:'Runedance',
-  Garrick:'Gladiator',Aldren:'Oathwarden',Elyra:'Dawnwarden',Sylva:'Cleric of the Verdant Covenant',
+  Alhanna:'Runedancer',
+  Garrick:'Gladiator',Aldren:'Oathwarden',Vaeloria:'Dawnwarden',Sylva:'Cleric of the Verdant Covenant',
   Selenne:'Cleric of the Everbright',Malrec:'Cleric of the Sanguine Song',Chaska:'Barbarian',Durgrim:'Barbarian',
   Yasmin:'Scoundrel',Zahra:'Barmaid',Zareth:'Mage of the Umbral Veil',Nadira:'Mage of the Luminous Archive',Valtheris:'Mage of the Crimson Spire',Orwen:'Ranger'
 });
 
 // A Set keeps each value once. has checks membership without searching a list for
 // duplicate entries.
-assert.deepEqual(new Set(roster.map(u=>u.className)),new Set([...Object.keys(classes), 'Runedance']));
+assert.deepEqual(new Set(roster.map(u=>u.className)),new Set([...Object.keys(classes), 'Runedancer']));
 const barmaid=make('Barmaid'), lineEnemies=[enemy(1),enemy(3),enemy(5),enemy(3,1)];
 lineEnemies.forEach(e=>{e.hp=500;});s=scene([barmaid],lineEnemies);system=new System(s);
 system.resolve(barmaid,lineEnemies[0],barmaid.abilities.pan,0);assert.equal(s.hits[0].p,26);assert.equal(lineEnemies[0].status.hardStunUntil,2000);

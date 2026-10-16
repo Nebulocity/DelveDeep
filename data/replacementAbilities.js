@@ -8,7 +8,7 @@ import { withAbilityRankCurve } from './abilityRankCurves.js';
 
 export const ABILITY_CATALOG_VERSION = 2;
 export const CLASS_ABILITY_RULES = {
-  Runedance: ['Magical', 'Assault', 'Protect', 'Prepare'],
+  Runedancer: ['Magical', 'Assault', 'Protect', 'Prepare'],
   Gladiator: ['Physical', 'Protect', 'Assault', 'Prepare'],
   Oathwarden: ['Physical', 'Protect', 'Assault', 'Prepare'],
   Dawnwarden: ['Magical', 'Protect', 'Assault', 'Restore'],

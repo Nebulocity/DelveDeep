@@ -90,8 +90,13 @@ tactics workspace, reached from its Tactics navigation button.
 Finished character art is under `assets/characters/<id>/sheets/`. Enemy sheets use
 the same structure below their encounter folder. Each set includes animation PNGs and
 `layout.json`; runtime catalogs select frames, facings, timings, and foot origins.
-Baaz Draconian, creature samples, palette variants, and Regions 2–9 remain pending
-content. A missing runtime reference does not automatically make that art obsolete.
+Regions 2–9 and other planned content remain separate from integrated runtime art.
+The unimplemented draconian/sample artwork was intentionally retired.
+
+Running, building, and modifying the game requires no AI service or private authoring
+workspace. Finished assets and runtime catalogs are included in the repository.
+Current definitions are authoritative during pre-release development; obsolete
+development saves are not supported across content changes.
 
 ## Sharing a source copy
 

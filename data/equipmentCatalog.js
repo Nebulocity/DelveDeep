@@ -61,7 +61,7 @@ export const AUTHORED_EQUIPMENT = [
       "strength": 1,
       "critMultiplier": 0.01
     },
-    "price": 33.25,
+    "price": 33,
     "sellPrice": 7,
     "description": "A slightly bent bronze longsword.",
     "enchantmentSlots": 1,
@@ -134,7 +134,7 @@ export const AUTHORED_EQUIPMENT = [
       "strength": 1,
       "critMultiplier": 0.01
     },
-    "price": 33.25,
+    "price": 33,
     "sellPrice": 7,
     "description": "A slightly bent bronze handaxe.",
     "enchantmentSlots": 1,
@@ -170,7 +170,7 @@ export const AUTHORED_EQUIPMENT = [
       "strength": 2,
       "critMultiplier": 0.02
     },
-    "price": 44.2225,
+    "price": 44,
     "sellPrice": 14,
     "description": "A slightly bent bronze greataxe.",
     "enchantmentSlots": 1,
@@ -354,7 +354,7 @@ export const AUTHORED_EQUIPMENT = [
       "strength": 6
     },
     "price": 133,
-    "sellPrice": 37.24,
+    "sellPrice": 37,
     "description": "A sturdy bronze longsword.",
     "enchantmentSlots": 1,
     "lootRegions": [
@@ -422,7 +422,7 @@ export const AUTHORED_EQUIPMENT = [
       "agility": 2
     },
     "price": 133,
-    "sellPrice": 37.24,
+    "sellPrice": 37,
     "description": "A sturdy bronze handaxe.",
     "enchantmentSlots": 1,
     "lootRegions": [
@@ -491,7 +491,7 @@ export const AUTHORED_EQUIPMENT = [
       "wisdom": 6
     },
     "price": 133,
-    "sellPrice": 37.24,
+    "sellPrice": 37,
     "description": "A sturdy bronze mace.",
     "enchantmentSlots": 1,
     "lootRegions": [
@@ -526,7 +526,7 @@ export const AUTHORED_EQUIPMENT = [
       "intellect": 6
     },
     "price": 133,
-    "sellPrice": 37.24,
+    "sellPrice": 37,
     "description": "A freshly-cut Maple Staff",
     "enchantmentSlots": 1,
     "lootRegions": [
@@ -560,7 +560,7 @@ export const AUTHORED_EQUIPMENT = [
       "critMultiplier": 0.025
     },
     "price": 133,
-    "sellPrice": 37.24,
+    "sellPrice": 37,
     "description": "A freshly-cut Maple Bow",
     "enchantmentSlots": 1,
     "lootRegions": [
@@ -628,8 +628,8 @@ export const AUTHORED_EQUIPMENT = [
       "strength": 12,
       "critChance": 0.01
     },
-    "price": 498.75,
-    "sellPrice": 139.65,
+    "price": 498,
+    "sellPrice": 139,
     "description": "A shiny mithril longsword.",
     "enchantmentSlots": 1,
     "lootRegions": [
@@ -694,8 +694,8 @@ export const AUTHORED_EQUIPMENT = [
       "agility": 4,
       "critChance": 0.01
     },
-    "price": 498.75,
-    "sellPrice": 139.65,
+    "price": 498,
+    "sellPrice": 139,
     "description": "A shiny mithril handaxe.",
     "enchantmentSlots": 1,
     "lootRegions": [
@@ -761,8 +761,8 @@ export const AUTHORED_EQUIPMENT = [
       "wisdom": 12,
       "critChance": 0.01
     },
-    "price": 498.75,
-    "sellPrice": 139.65,
+    "price": 498,
+    "sellPrice": 139,
     "description": "A shiny mithril mace.",
     "enchantmentSlots": 1,
     "lootRegions": [
@@ -894,7 +894,7 @@ export const AUTHORED_EQUIPMENT = [
       "critChance": 0.0115
     },
     "price": 1463,
-    "sellPrice": 409.64,
+    "sellPrice": 409,
     "description": "A polished steel longsword.",
     "enchantmentSlots": 1,
     "lootRegions": [
@@ -958,7 +958,7 @@ export const AUTHORED_EQUIPMENT = [
       "critChance": 0.0115
     },
     "price": 1463,
-    "sellPrice": 409.64,
+    "sellPrice": 409,
     "description": "A polished steel handaxe.",
     "enchantmentSlots": 1,
     "lootRegions": [
@@ -1023,7 +1023,7 @@ export const AUTHORED_EQUIPMENT = [
       "critChance": 0.0115
     },
     "price": 1463,
-    "sellPrice": 409.64,
+    "sellPrice": 409,
     "description": "A polished steel mace.",
     "enchantmentSlots": 1,
     "lootRegions": [
@@ -1056,7 +1056,7 @@ export const AUTHORED_EQUIPMENT = [
       "critChance": 0.0115
     },
     "price": 1463,
-    "sellPrice": 409.64,
+    "sellPrice": 409,
     "description": "A unbreakable and hefty Ironwood Staff",
     "enchantmentSlots": 1,
     "lootRegions": [
@@ -1087,7 +1087,7 @@ export const AUTHORED_EQUIPMENT = [
       "critMultiplier": 0.025
     },
     "price": 1463,
-    "sellPrice": 409.64,
+    "sellPrice": 409,
     "description": "A unbreakable and hefty Ironwood Bow",
     "enchantmentSlots": 1,
     "lootRegions": [

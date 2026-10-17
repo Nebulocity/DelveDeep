@@ -43,7 +43,7 @@ export function saleValue(item) {
   // ?? uses the fallback only for null or undefined. A real zero or false stays intact. ?.
   // only follows this link when the value exists; a missing optional value gives
   // undefined.
-  return definition?.sellPrice ?? Math.floor((definition?.price ?? 0) * 0.3);
+  return Math.floor(definition?.sellPrice ?? (definition?.price ?? 0) * 0.3);
 }
 
 // Find saleable copies of the same catalog item and enchantment. Equipped copies stay

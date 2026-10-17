@@ -14,6 +14,11 @@ void combatRecordingReady;
 const game = new Phaser.Game(gameConfig);
 game.music = new MusicService(game);
 
+// Expose the game to local UI inspection tools.
+if (import.meta.env.DEV) {
+  window.__DELVE_DEEP_GAME__ = game;
+}
+
 game.backgroundProgress = new BackgroundProgress(game, {
 
   // We handle on background here, keeping this operation in one place for its callers.

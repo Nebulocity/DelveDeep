@@ -15,12 +15,44 @@ const SCENES = new Set([
   'BattleScene', 'RewardScene', 'EncounterSummaryScene'
 ]);
 
+// Objects inside containers need a recursive walk. A Set prevents duplicate entries.
+function collectDisplayObjects(scene) {
+  const seen = new Set();
+  const objects = [];
+
+  function visit(object, parentVisible = true, parentAlpha = 1, parentPath = '') {
+    if (!object || seen.has(object)) return;
+    seen.add(object);
+
+    const visible = parentVisible && object.active !== false && object.visible !== false;
+    const alpha = parentAlpha * (Number.isFinite(object.alpha) ? object.alpha : 1);
+    const path = `${parentPath}/${objects.length}`;
+    objects.push({ object, visible, alpha, path });
+
+    if (Array.isArray(object.list)) {
+      for (const child of object.list) visit(child, visible, alpha, path);
+    }
+  }
+
+  for (const object of scene.children?.list ?? []) visit(object);
+  return objects;
+}
+
+function finiteBounds(object) {
+  if (typeof object.getBounds !== 'function') return null;
+  try {
+    const rect = object.getBounds();
+    const values = [rect.x, rect.y, rect.width, rect.height];
+    if (!values.every(Number.isFinite)) return null;
+    return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+  } catch {
+    return null;
+  }
+}
+
 // Expose controlled scene activation and inspection only in a requested development QA
 // session.
 export function installVisualQaBridge(game) {
-
-  // ... expands these entries into the new list or call. It does not deep-copy the objects
-  // inside.
   window.__DELVE_DEEP_VISUAL_QA__ = {
     game,
 
@@ -81,7 +113,108 @@ export function installVisualQaBridge(game) {
       // undefined.
       current.selectionDetailsClose?.();
       if (sceneName === 'TitleScene') current.selectionDetailsClose ??= null;
-      current.scene.start(sceneName, data);
+
+      const targetScene = sceneName === 'AdventurersHallScene'
+        ? 'RosterScene'
+        : sceneName;
+
+      current.scene.start(targetScene, data);
+    },
+
+    // Discover rendered interactive objects without clicking or changing game state.
+    // The output is JSON-safe so Playwright can save it directly into a report.
+    discover(sceneName) {
+      const scene = game.scene.getScene(sceneName);
+      const active = scene.sys.isActive();
+      const camera = scene.cameras.main;
+      const canvas = game.canvas;
+      const canvasRect = canvas.getBoundingClientRect();
+      const logicalWidth = game.scale.gameSize.width;
+      const logicalHeight = game.scale.gameSize.height;
+      const scaleX = canvasRect.width / logicalWidth;
+      const scaleY = canvasRect.height / logicalHeight;
+
+      if (!active) return { scene: sceneName, active, objects: [], count: 0 };
+
+      const all = collectDisplayObjects(scene);
+      const labels = all.filter(({ object, visible, alpha }) =>
+        visible && alpha > 0 && object.type === 'Text' && typeof object.text === 'string');
+
+      const objects = all.filter(({ object, visible, alpha }) =>
+        visible && alpha > 0 && object.input?.enabled).map(({ object, path }) => {
+        const world = finiteBounds(object);
+        const fixed = object.scrollFactorX === 0 && object.scrollFactorY === 0;
+        const zoom = Number.isFinite(camera.zoom) ? camera.zoom : 1;
+        const scrollFactorX = Number.isFinite(object.scrollFactorX) ? object.scrollFactorX : 1;
+        const scrollFactorY = Number.isFinite(object.scrollFactorY) ? object.scrollFactorY : 1;
+
+        // For unrotated cameras this converts Phaser world bounds into screen pixels.
+        // Rotated cameras, custom transforms, and unusual hit areas need review.
+        const logical = world ? {
+          x: (world.x - camera.scrollX * scrollFactorX) * zoom + camera.x,
+          y: (world.y - camera.scrollY * scrollFactorY) * zoom + camera.y,
+          width: world.width * zoom,
+          height: world.height * zoom
+        } : null;
+        const viewport = logical ? {
+          x: canvasRect.x + logical.x * scaleX,
+          y: canvasRect.y + logical.y * scaleY,
+          width: logical.width * scaleX,
+          height: logical.height * scaleY
+        } : null;
+
+        let label = typeof object.name === 'string' && object.name.trim() ? object.name.trim() : '';
+        if (!label && object.type === 'Text' && typeof object.text === 'string') label = object.text.trim();
+        if (!label && world) {
+          const centerX = world.x + world.width / 2;
+          const centerY = world.y + world.height / 2;
+          const nearby = labels.find(({ object: text }) => {
+            const bounds = finiteBounds(text);
+            return bounds && centerX >= bounds.x - 4 && centerX <= bounds.x + bounds.width + 4
+              && centerY >= bounds.y - 4 && centerY <= bounds.y + bounds.height + 4;
+          });
+          if (nearby) label = nearby.object.text.trim();
+        }
+        if (!label) label = object.texture?.key || object.type || 'Unnamed control';
+
+        const center = viewport ? {
+          x: viewport.x + viewport.width / 2,
+          y: viewport.y + viewport.height / 2
+        } : null;
+        const inViewport = center !== null && center.x >= canvasRect.left
+          && center.x <= canvasRect.right && center.y >= canvasRect.top
+          && center.y <= canvasRect.bottom;
+
+        return {
+          id: `${sceneName}:${path}`,
+          label: String(label).slice(0, 160),
+          type: object.type ?? 'unknown',
+          name: object.name ?? '',
+          depth: Number.isFinite(object.depth) ? object.depth : 0,
+          alpha: Number.isFinite(object.alpha) ? object.alpha : 1,
+          worldBounds: world,
+          logicalBounds: logical,
+          browserBounds: viewport,
+          browserCenter: center,
+          inViewport,
+          fixedToCamera: fixed,
+          hitAreaType: object.input?.hitArea?.type ?? null
+        };
+      });
+
+      return {
+        scene: sceneName,
+        active,
+        count: objects.length,
+        canvasBounds: { x: canvasRect.x, y: canvasRect.y, width: canvasRect.width, height: canvasRect.height },
+        notes: [
+          'Read-only discovery: controls have not been clicked.',
+          'Labels inferred from names, text, or texture; verify ambiguous labels.',
+          'Bounds are approximate for rotated cameras, scaled containers, and custom hit areas.',
+          'Only enabled interactive display-list objects are included; DOM overlays and custom input handlers may need separate discovery.'
+        ],
+        objects
+      };
     },
 
     // We handle inspect here, keeping this operation in one place for its callers.
@@ -95,8 +228,7 @@ export function installVisualQaBridge(game) {
 
       if (!active) return { active, warnings: ['Scene is not active'] };
 
-      // filter keeps entries whose callback returns true. It builds a new list and leaves
-      // the original list in place.
+      // filter keeps entries whose callback returns true; an empty list gives true.
       const entries = scene.children.list.filter((object) =>
         object.active && object.visible && object.alpha > 0 && object.getBounds &&
         (object.type === 'Text' || object.input?.enabled));
@@ -115,7 +247,6 @@ export function installVisualQaBridge(game) {
       };
 
       const nearDuplicate = (a, b) => {
-
         // Math.max chooses the largest value; pairing it with Math.min can keep a result
         // inside both a lower and an upper bound.
         const sharedWidth = Math.max(0, Math.min(a.right, b.right) - Math.max(a.x, b.x));
@@ -133,9 +264,7 @@ export function installVisualQaBridge(game) {
         if (!Object.values(rect).every(Number.isFinite)) continue;
         const isWorldMap = sceneName === 'TitleScene' && object.scrollFactorX !== 0;
         if (!isWorldMap && (rect.x < -2 || rect.y < -2 || rect.right > width + 2 || rect.bottom > height + 2)) {
-
-          // ?? uses the fallback only for null or undefined. A real zero or false stays
-          // intact.
+          // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
           warnings.push(`${object.type} ${object.text ?? ''} extends outside the logical viewport`);
         }
 
@@ -144,9 +273,7 @@ export function installVisualQaBridge(game) {
         const centerY = (rect.y + rect.bottom) / 2;
 
         // sort rearranges this array in place. A negative comparator result puts a before
-        // b; positive puts it after; zero keeps them tied. map builds one output entry for
-        // each input entry, in the same order. The callback's return value becomes that
-        // output entry.
+        // b; positive puts a after b; zero keeps them tied.
         const backgrounds = entries.filter((candidate) => candidate !== object && candidate.input?.enabled
           && candidate.type === 'Rectangle')
           .map(bounds)

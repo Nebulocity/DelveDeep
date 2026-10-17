@@ -1,114 +1,28 @@
-# Delve Deep
+Delve Deep UI Explorer v3
+========================
 
-You are the party leader. Pick five adventurers, send them into dangerous delves, and keep the party together when the monsters stop playing nice.
+Replace only tests/visual/ui-explorer.spec.js with the file supplied.
+Keep your existing devBridge.js, gallery generator, and all existing reports.
 
-Delve Deep is a tactical, party-based RPG built around real-time battles. Tanks hold attention, healers keep the run alive, and melee and ranged fighters look for openings. You call the shots with movement, positioning, attack orders and leadership tactics while your adventurers use their own class abilities.
+From E:\Programming\DelveDeep in PowerShell:
 
-The playable region is Pineshire Reach, with traced road travel, five sequential Delves, and a boss-locked branch to the Everdeep and Void Portal. Start with The Slime Cave; boss victories open the next roads. Later illustrated regions await integration. Branch encounters reuse existing battle themes. Town shops support buying, selling, crafting, and gear enchantments.
+$env:UI_EXPLORE_SCENES = 'AdventurersHallScene'
+$env:UI_EXPLORE_ACTIONS = '1'
+$env:UI_EXPLORE_MAX_ACTIONS = '4'
+$env:UI_EXPLORE_START_AT = '0'
+npm run test:visual -- ui-explorer.spec.js --workers=1
 
-Drag the map to explore, tap a destination to travel, and hold it for details. Visit towns to manage your roster, train abilities and tactics, craft gear, and buy or brew potion packs. Choose five adventurers before entering a Delve. Cleared waves bank rewards; camp lets you farm, return to town, or challenge the boss. HOW TO PLAY explains the loop and FIND PARTY recenters the map. The Sunken Watch offers an instant waystone return through Pineshire's destination entry.
+The new queue prioritizes tabs and informational actions over selecting every adventurer.
+Run batches with UI_EXPLORE_START_AT of 4, 8, 12, etc. (these indices refer to the NEW v3 queue).
 
-Alhanna joins the fifteen-adventurer roster as Runedancer, a magical melee class with leather armor, gemstone Runeblades and twelve rune abilities. Everdeep expeditions reserve their adventurers until return or recall; writs cost 275 Gold times current Renown Level. Away adventurers are clearly marked and unavailable for other expeditions and Delves.
+Afterward:
+node scripts/build-ui-gallery.mjs
+Start-Process output\qa\ui-explorer\index.html
 
-Progress is stored locally on the current device and origin and persists across sessions, rebuilt versions, and installed updates. Region-map Settings offers music, Arena Border and confirmed progress reset. Development grants are disabled in every build. Encrypted save import/export is temporarily available in all builds for testing across devices.
+The report at output/qa/ui-explorer/AdventurersHallScene/report.json now includes
+v3Queue, attempts, and branches with controls discovered after each interaction.
+Existing screenshots are retained. Exploration uses a fresh page per attempt.
 
-## Development
-
-Requires Node.js and npm.
-
-```bash
-npm ci
-npm run dev
-npm test
-npm run build
-```
-
-`npm ci` installs the locked dependencies. Vite serves development on port 5173;
-`npm run build` creates the production game in `dist/`. `npm run preview` serves that
-build locally. Build IDs are diagnostic metadata and do not reset saved progress.
-
-`npm test` runs every maintained Node check in its own process. Run one check directly
-with `node tests/world-map.test.js`. Browser checks run separately:
-
-```bash
-npx playwright install chromium
-npm run test:visual
-```
-
-Browser setup and scene capture instructions are in [tests/visual/README.md](tests/visual/README.md).
-
-## Android builds
-
-Install Android Studio, its Android SDK, and JDK 21. Select that JDK with `JAVA_HOME`
-before running Gradle. From the project root in PowerShell:
-
-```powershell
-npm run build
-npx cap sync android
-.\android\gradlew.bat -p android assembleDebug
-```
-
-`npm run build:android` performs those three steps. The resulting debug APK is under
-`android/app/build/outputs/apk/debug/`. `npm run deploy` builds, syncs Android, and opens
-Android Studio; it does not publish a store release. Rebuild normally before Android
-sync if a previous web build used a GitHub Pages base path.
-
-## Reading the code for the first time
-
-Start with [main.js](main.js), then [gameConfig.js](config/gameConfig.js). Those create Phaser, choose the logical canvas size, and register the screens. There is no `src/` folder: the folders at the repository root are the source.
-
-Read one small feature from its data to its screen before tackling the full battle. The camp is a useful example: [DelveCheckpoints.js](game/DelveCheckpoints.js) defines rewards and guards payouts, `showDelveCamp` in [BattleScene.js](scenes/BattleScene.js) builds the three choices, and [CarvedStone.js](ui/CarvedStone.js) creates their panels and text. Comments inside those functions explain the layout calculations and why the reward description starts below the measured title.
-
-| Folder | What to look for |
-| --- | --- |
-| `data/` | Characters, classes, items, enemies, encounters, and authored artwork coordinates. |
-| `config/` | Shared settings for text sizes, stat growth, reach, and spacing. |
-| `game/` | Progression, inventory, rewards, and saving ordinary JavaScript data. |
-| `scenes/` | Screens that connect the data and game rules to the player's actions. |
-| `ui/` | Shared panels, text, button presses, scrolling, and held details. |
-| `combat/` | Live combatants, movement, skills, waves, and battlefield projection. |
-| `services/` | Music, haptics, host visibility, and background catch-up. |
-| `tests/visual/` | Browser checks that interact with real Phaser screens. |
-
-The game draws on a 2400 by 1080 **logical canvas**. Phaser scales it to the device. In that drawing space, x increases toward the right and y increases downward. An object's **origin** chooses which part sits at x/y: `(0.5, 0.5)` means its center, while `(0.5, 0)` means the middle of its top edge. **Depth** chooses draw order; it does not move an object farther away. Combat uses separate flat arena coordinates so perspective cannot change gameplay distances.
-
-Most Phaser timestamps and delays are milliseconds. Movement usually needs seconds, so frame `delta` is divided by 1000 before multiplying it by a speed. A field ending in `Until` usually stores an expiry timestamp, rather than a remaining duration. Wall-clock timestamps such as `Date.now()` account for time when the app was suspended; they are different from the combat clock.
-
-`GameState` holds current in-memory progress. Changing it is not the same as saving it. Catalog definitions describe a kind of item or character, while live battle units and owned gear copies have their own current state. Keep stable IDs intact when experimenting so a save can still reconnect the right records. Comments beside Maps, Sets, callbacks, spread copies, save conversion, and geometry explain those less familiar steps where they are used.
-
-Try changing a displayed label or one named text size first, run the game, and see what changed. Keep a small edit focused, run `npm run build`, and follow the nearby test before changing a rule. Generated `dist/`, dependencies, and Capacitor-generated plugin files are build products, not places to edit gameplay.
-
-## Scene flow and asset layout
-
-`BootScene` loads art and restores progress. `TitleScene` is the world map despite its
-historical name. Town facilities lead to roster, skills, tactics, inventory, and shops.
-A delve follows `DelveSelectScene` → `PartySelectScene` → `DungeonScene` → `BattleScene`.
-`DungeonScene` is the battle overview; `AdventurersHallScene` is a routing entry into
-the Hall workspace. [PartyLeaderScene.js](scenes/PartyLeaderScene.js) is the Hall's
-tactics workspace, reached from its Tactics navigation button.
-
-Finished character art is under `assets/characters/<id>/sheets/`. Enemy sheets use
-the same structure below their encounter folder. Each set includes animation PNGs and
-`layout.json`; runtime catalogs select frames, facings, timings, and foot origins.
-Regions 2–9 and other planned content remain separate from integrated runtime art.
-The unimplemented draconian/sample artwork was intentionally retired.
-
-Running, building, and modifying the game requires no AI service or private authoring
-workspace. Finished assets and runtime catalogs are included in the repository.
-Current definitions are authoritative during pre-release development; obsolete
-development saves are not supported across content changes.
-
-## Sharing a source copy
-
-For Git review, share this repository and keep generated files ignored. For a folder
-handoff, include the current tracked files and intended new source files shown by
-`git status`; copying the working files includes local changes that are not committed
-yet. Keep the locked dependencies, maintained tests, finished assets, and native host
-source in the handoff.
-
-Exclude `.git/`, `node_modules/`, `dist/`, native build/cache output, `.tmp/`, `work/`,
-`output/`, `outputs/`, `project-backup/`, local attachments, credentials, and private
-tooling folders. The receiver can install dependencies and rebuild. Local authoring
-scripts, project notes, sprite source frames, generation records, and Blender source
-are separately backed up; they are not required to run the game. Preserve them if
-further art editing is expected. Generated QA reports belong under `output/qa/`.
+CAUTION: These are screenshots of attempted interactions, not verified UI outcomes.
+The tool does not reliably identify scrolling, Phaser masking, covered controls,
+or all dynamic states. Keep using a disposable development save.

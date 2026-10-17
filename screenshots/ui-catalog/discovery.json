@@ -1,0 +1,26 @@
+{
+  "status": "GAME_NOT_EXPOSED",
+  "canvases": [
+    {
+      "width": 2400,
+      "height": 1080,
+      "bounds": {
+        "x": 0,
+        "y": 54,
+        "width": 960,
+        "height": 432,
+        "top": 54,
+        "right": 960,
+        "bottom": 486,
+        "left": 0
+      }
+    }
+  ],
+  "possibleGlobals": [
+    "ongamepadconnected",
+    "ongamepaddisconnected",
+    "__DELVE_DEEP_BUILD_ID__",
+    "Phaser"
+  ],
+  "message": "Phaser game instance not accessible through known globals."
+}

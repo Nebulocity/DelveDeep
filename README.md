@@ -26,3 +26,20 @@ Existing screenshots are retained. Exploration uses a fresh page per attempt.
 CAUTION: These are screenshots of attempted interactions, not verified UI outcomes.
 The tool does not reliably identify scrolling, Phaser masking, covered controls,
 or all dynamic states. Keep using a disposable development save.
+
+Production asset URLs
+====================
+
+GitHub Pages and Capacitor ship Vite's `dist/` output, not the source asset folders.
+Reference runtime artwork, audio and video through explicit imports or a literal
+`new URL(..., import.meta.url)` expression so Vite can include and rewrite them.
+For filenames selected from data, use a template literal with a fixed directory:
+
+```js
+new URL(`../assets/effects/ranger/${name}-flight.png`, import.meta.url).href
+```
+
+Keep this expression in the module that defines the relative asset path. Do not
+concatenate strings or pass a computed path variable to `new URL`; those forms
+can work on the development server while leaving missing assets in production.
+Use exact filename capitalization because GitHub Pages paths are case-sensitive.

@@ -42,6 +42,6 @@ export const DAWNWARDEN_RESTORE_EFFECTS = effects.map(effect => ({
     y: effect.y,
     depth: 'front',
     loop: false,
-    url: new URL('../assets/effects/dawnwarden-restore/' + effect.slug + '.png', import.meta.url).href
+    url: new URL(`../assets/effects/dawnwarden-restore/${effect.slug}.png`, import.meta.url).href
   }]
 }));

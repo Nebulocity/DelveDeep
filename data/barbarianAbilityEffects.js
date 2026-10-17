@@ -44,7 +44,7 @@ export const BARBARIAN_ABILITY_EFFECTS = entries.map(({ name, suffix, status, be
   clips: [{ name: placement.slug, key: 'barbarian-' + placement.slug,
     width: 96, height: 96, frames: 32, start: 0, x: -48, y: placement.clipY ?? -48,
     depth: behind ? 'behind' : 'front', loop: Boolean(status), holdLastFrame: !status,
-    url: new URL('../assets/effects/barbarian/' + placement.slug + '.png', import.meta.url).href }]
+    url: new URL(`../assets/effects/barbarian/${placement.slug}.png`, import.meta.url).href }]
 }));
 
 // Modifier keys distinguish primary buffs, harmful effects and secondary debuffs.

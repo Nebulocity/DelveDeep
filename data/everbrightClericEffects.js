@@ -45,7 +45,7 @@ function everbrightClips(effect, status) {
     width: 96, height: 96, frames: 32, start: 0, x: -48, y: effect.clipY ?? -48,
     depth: layer === '-rear' ? 'behind' : 'front', loop: Boolean(status), holdLastFrame: !status,
     opacity: layer === '-rear' ? 0.65 : 1,
-    url: new URL('../assets/effects/everbright-cleric/' + file + layer + '.png', import.meta.url).href
+    url: new URL(`../assets/effects/everbright-cleric/${file}${layer}.png`, import.meta.url).href
   });
   return effect.layers ? [clip('-rear'), clip('-front')] : [clip()];
 }
@@ -69,4 +69,4 @@ export const EVERBRIGHT_FLIGHT_SHEETS = [
   { name: 'everbright-bolt', file: 'radiant-bolt-flight', width: 64, height: 32 },
   { name: 'everbright-ray', file: 'judgement-ray-flight', width: 160, height: 48, rootX: 6, tipX: 156 }
 ].map(sheet => ({ ...sheet, key: 'delivery-' + sheet.name, frames: 32, fps: 20, nativeColors: true,
-  url: new URL('../assets/effects/everbright-cleric/' + sheet.file + '.png', import.meta.url).href }));
+  url: new URL(`../assets/effects/everbright-cleric/${sheet.file}.png`, import.meta.url).href }));

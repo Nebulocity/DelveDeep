@@ -57,7 +57,7 @@ function verdantClips(effect, status, bodyCenter) {
     name: slug, key: 'verdant-cleric-' + slug,
     width: 96, height: 96, frames: 32, start: 0, x: -48,
     y: effect.clipY ?? (bodyCenter ? -48 : -72), depth, loop: Boolean(status),
-    url: new URL('../assets/effects/verdant-cleric/' + slug + '.png', import.meta.url).href,
+    url: new URL(`../assets/effects/verdant-cleric/${slug}.png`, import.meta.url).href,
     ...extra
   });
   if (effect.layers) return [

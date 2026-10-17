@@ -27,5 +27,5 @@ export const DAWNWARDEN_ASSAULT_EFFECTS = sheets.map(sheet => ({
   clips: [{ name: 'whole', key: 'dawnwarden-assault-' + sheet.name,
     width: sheet.width, height: sheet.height, frames: 32, start: 0,
     x: sheet.x, y: sheet.y, depth: 'front', loop: false,
-    url: new URL('../assets/effects/dawnwarden-assault/' + sheet.name + '.png', import.meta.url).href }]
+    url: new URL(`../assets/effects/dawnwarden-assault/${sheet.name}.png`, import.meta.url).href }]
 }));

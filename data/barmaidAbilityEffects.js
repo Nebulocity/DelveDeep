@@ -67,7 +67,7 @@ export const BARMAID_ABILITY_EFFECTS = entries.map(({ name, suffix, status, behi
   clips: [{ name: placement.slug, key: 'barmaid-' + placement.slug, width: 96, height: 96,
     frames: 32, start: 0, x: -48, y: placement.clipY ?? -48, depth: behind ? 'behind' : 'front',
     loop: Boolean(status), holdLastFrame: !status,
-    url: new URL('../assets/effects/barmaid/' + (file ?? placement.slug) + '.png', import.meta.url).href }]
+    url: new URL(`../assets/effects/barmaid/${file ?? placement.slug}.png`, import.meta.url).href }]
 }));
 
 // Interception saves only owner and deadline, without the originating ability.

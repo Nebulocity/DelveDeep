@@ -51,6 +51,6 @@ export const GLADIATOR_PROTECT_EFFECTS = effects.map(effect => ({
     y: -Math.floor(effect.height / 2),
     depth: 'front',
     loop: true,
-    url: new URL('../assets/effects/gladiator-protect/' + effect.slug + '.png', import.meta.url).href
+    url: new URL(`../assets/effects/gladiator-protect/${effect.slug}.png`, import.meta.url).href
   }]
 }));

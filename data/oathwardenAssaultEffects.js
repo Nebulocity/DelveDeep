@@ -41,7 +41,7 @@ export const OATHWARDEN_ASSAULT_EFFECTS = effects.map(effect => ({
     y: effect.y,
     depth: 'front',
     loop: Boolean(effect.persistentStatus),
-    url: new URL('../assets/effects/oathwarden-assault/' + effect.name + '.png', import.meta.url).href
+    url: new URL(`../assets/effects/oathwarden-assault/${effect.name}.png`, import.meta.url).href
   }]
 }));
 

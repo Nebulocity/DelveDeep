@@ -41,7 +41,7 @@ export const GLADIATOR_ASSAULT_EFFECTS = effects.map(effect => ({
     y: -effect.originY,
     depth: effect.persistentStatus ? 'behind' : 'front',
     loop: Boolean(effect.persistentStatus),
-    url: new URL('../assets/effects/gladiator-assault/' + effect.name + '.png', import.meta.url).href
+    url: new URL(`../assets/effects/gladiator-assault/${effect.name}.png`, import.meta.url).href
   }]
 }));
 

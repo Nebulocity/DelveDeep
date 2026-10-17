@@ -43,7 +43,7 @@ export const RANGER_ABILITY_EFFECTS = entries.map(({ name, suffix, status, ...pl
     width: 96, height: 96, frames: 32, start: 0, x: -48, y: placement.clipY ?? -48,
     depth: placement.slug === 'camouflage' || placement.groundFootprint ? 'behind' : 'front',
     loop: Boolean(status), holdLastFrame: !status,
-    url: new URL('../assets/effects/ranger/' + placement.slug + '.png', import.meta.url).href }]
+    url: new URL(`../assets/effects/ranger/${placement.slug}.png`, import.meta.url).href }]
 }));
 
 // A shared root deadline cannot identify its caster after reload. Pinning Arrow
@@ -68,5 +68,5 @@ export function rangerStatusActive(target, definition, now, wave) {
 export const RANGER_FLIGHT_SHEETS = ['piercing', 'pinning', 'crippling', 'exploding'].map(name => ({
   name: 'ranger-' + name, key: 'delivery-ranger-' + name, width: 64, height: 32,
   frames: 32, fps: 20, nativeColors: true,
-  url: new URL('../assets/effects/ranger/' + name + '-flight.png', import.meta.url).href
+  url: new URL(`../assets/effects/ranger/${name}-flight.png`, import.meta.url).href
 }));

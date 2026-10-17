@@ -46,7 +46,7 @@ export const OATHWARDEN_PROTECT_EFFECTS = effects.map(effect => ({
     y: -effect.height / 2,
     depth: 'front',
     loop: true,
-    url: new URL('../assets/effects/oathwarden-protect/' + effect.name + '.png', import.meta.url).href
+    url: new URL(`../assets/effects/oathwarden-protect/${effect.name}.png`, import.meta.url).href
   }]
 }));
 

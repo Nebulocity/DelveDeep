@@ -62,6 +62,10 @@ clips.dead = Object.fromEntries(Object.entries(clips.death).map(([heading, clip]
 export const VALTHERIS_SPRITES = {
   textures,
   clips,
-  scale: 0.66,
+
+  // His 245-pixel painted height becomes about 157 game pixels. This trims the
+  // oversized hood slightly while the unchanged foot anchor keeps him grounded.
+  scale: 0.64,
+  portraitScale: 0.64 / 0.66,
   footY: 30
 };

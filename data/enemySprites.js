@@ -3,8 +3,6 @@
 // frame, not a battlefield position. Direction and clip counts keep animation from
 // stepping into unused cells at the end of a sheet. Explicit URLs let Vite include every
 // supplied sheet in the production build.
-import { BAAZ_SPRITES } from './baazSprites.js';
-
 const sheets = {
   lasher: [
     new URL('../assets/enemies/thornbriar-hollow/lasher/sheets/idle.png', import.meta.url).href,
@@ -131,10 +129,6 @@ function createSprite(id, urls) {
 export const ENEMY_SPRITES = Object.fromEntries(
   Object.entries(sheets).map(([id, urls]) => [id, createSprite(id, urls)])
 );
-
-// Register the finished Baaz set for ordinary combat loading. Its encounter placement
-// can be authored separately without changing texture keys or the enemy definition.
-Object.assign(ENEMY_SPRITES, BAAZ_SPRITES);
 
 // Queue the enemy sprite sheets needed by the current catalog. scene is the Phaser screen
 // that owns the objects, clock and input used here.

@@ -108,7 +108,7 @@ for (const viewport of [{ width: 915, height: 412 }, { width: 1920, height: 1080
 
       // The QA bridge uses the first five roster members. Put the reported lineup first
       // in this isolated browser session so the screenshot includes Durgrim's actual art.
-      const ids = ['durgrim', 'malrec', 'garrick', 'zahra', 'yasmin'];
+      const ids = ['durgrim', 'malrek', 'garrick', 'zahra', 'yasmin'];
       qa.state.roster = [...ids.map(id => qa.state.roster.find(unit => unit.id === id)),
         ...qa.state.roster.filter(unit => !ids.includes(unit.id))];
       qa.activate('BattleScene', { delve: 'slime-cave' });

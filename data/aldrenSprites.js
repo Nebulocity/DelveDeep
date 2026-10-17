@@ -1,4 +1,4 @@
-// Aldren keeps his saved character ID while FRED supplies his original knight artwork.
+// Aldren uses his original knight artwork for every combat state and portrait.
 // Each sheet has four authored diagonal rows, so his sword is never mirrored.
 const states = {
   idle: [4, 1000 / 6], walk: [8, 100], attack: [9, 100],
@@ -17,7 +17,7 @@ const footOrigins = [232 / 256, 232 / 256, 236 / 256, 236 / 256];
 // lets Vite discover and bundle the finished PNGs without any authoring services.
 const textures = Object.keys(states).map(state => ({
   character: 'aldren', key: `aldren-reference-v2-${state}`,
-  url: new URL(`../assets/characters/aldren/sheets/FRED-${state}.png`, import.meta.url).href
+  url: new URL(`../assets/characters/aldren/sheets/Aldren-${state}.png`, import.meta.url).href
 }));
 
 // A row starts at row times column count; each following frame advances one cell.

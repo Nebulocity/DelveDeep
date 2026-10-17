@@ -9,6 +9,8 @@ import { fontPx, UI_FONT_SIZES, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../con
 import { abilityPower, hitAccuracy } from '../game/CharacterStats.js';
 import { replacementMultiplier, replacementChance } from '../combat/ReplacementEffects.js';
 import { installBattleClock } from '../combat/BattleClock.js';
+import { preloadTeleportEffects } from '../data/teleportEffects.js';
+import { startTeleportEffect, updateTeleportEffects } from '../combat/TeleportEffects.js';
 import { createLevelUpEffect, updateLevelUpEffects, clearLevelUpEffects, LEVEL_UP_DURATION_MS } from '../combat/LevelUpEffect.js';
 import { leaderAbilityDescription } from '../game/AbilityDescriptions.js';
 import { showConfirmation } from '../ui/ConfirmationDialog.js';
@@ -95,6 +97,7 @@ export default class BattleScene extends Phaser.Scene {
     preloadCharacterSprites(this);
     preloadEnemySprites(this);
     preloadAbilityEffects(this);
+    preloadTeleportEffects(this);
 
     // These larger void atlases are only needed by portal encounters. Ordinary delves
     // avoid allocating their texture memory until the party enters a void battlefield.
@@ -600,7 +603,10 @@ export default class BattleScene extends Phaser.Scene {
       // undefined.
       const frame = unit.spriteVisual?.definition?.clips.idle?.south?.frames[0];
       if (frame) {
-        this.add.image(left + 78, hudTop + 83, frame.key, frame.frame).setDisplaySize(143, 143).setDepth(4503);
+
+        // Match the portrait size adjustment used by the Hall and preparation cards.
+        const portraitSize = 143 * (unit.spriteVisual.definition.portraitScale ?? 1);
+        this.add.image(left + 78, hudTop + 83, frame.key, frame.frame).setDisplaySize(portraitSize, portraitSize).setDepth(4503);
       } else {
         stoneText(this, left + 78, hudTop + 83, unit.name.slice(0, 1), UI_FONT_SIZES.display62, 4503);
       }
@@ -2231,6 +2237,7 @@ export default class BattleScene extends Phaser.Scene {
     updateSlimeAbilityEffects(this, delta);
     updateLevelUpEffects(this);
     updateBossLandingEffects(this);
+    updateTeleportEffects(this, replaying);
     this.classAbilitySystem?.replacement?.drawZones(time);
 
     this.classAbilitySystem?.syncChargeTweens?.(this.combatPaused);
@@ -3482,6 +3489,12 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   // Cosmetic class effects are separate from damage so idle replay stays identical.
+  playTeleportEffect(unit, destination, ability, caster = unit, options = {}) {
+    if (!this.add?.image) return false;
+    return startTeleportEffect(this, unit, destination, ability, caster, options);
+  }
+
+  // Windup artwork follows the action; teleport artwork above follows its resolved move.
   createAbilityTelegraph(caster, target, ability, action) {
     return createAbilityTelegraph(this, caster, target, ability, action);
   }

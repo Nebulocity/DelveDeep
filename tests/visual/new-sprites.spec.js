@@ -30,8 +30,8 @@ for (const width of [915, 1920]) {
         enemy.alive = false;
         enemy.container.destroy();
       }
-      const types = ['quarryWorm', 'quarryBehemoth', 'quarryReaver', 'depthsSovereign', 'baazDraconian'];
-      const points = [[300, 650], [550, 650], [800, 650], [1050, 825], [400, 825]];
+      const types = ['quarryWorm', 'quarryBehemoth', 'quarryReaver', 'depthsSovereign'];
+      const points = [[300, 650], [550, 650], [800, 650], [1050, 825]];
 
       // These are arena units. Terrain projection places the feet on the authored floor.
       scene.enemies = types.map((type, index) => scene.createEnemy(type,

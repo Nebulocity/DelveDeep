@@ -1,4 +1,4 @@
-// Floating gemstone sigils use 32 frames at 20 FPS. The saved rune owns its
+// Floating gemstone sigils use 64 frames at 30 FPS. The saved rune owns its
 // lifetime and fixed point; the shared renderer supplies paused 400 ms fades.
 import { RUNEDANCER_ABILITIES } from './runedancerAbilities.js';
 
@@ -8,6 +8,16 @@ const runeGemstones = {
   runeCadence: 'garnet', runeFlourish: 'garnet', runeTraverse: 'garnet', runeFinale: 'ruby',
   runeMovement: 'aquamarine', runeSpeed: 'aquamarine', runeDamage: 'aquamarine', runeReduction: 'sapphire',
   runeMercy: 'fluorite', runeMirror: 'fluorite', runeSnare: 'fluorite', runeMana: 'amethyst'
+};
+
+// Placed and impact runes share arena sizing, independent of the recipient's body.
+const runeArtworkScales = { ruby: 0.6, amethyst: 0.6, sapphire: 0.6 };
+
+// Temporary gameplay range overlay. Disable this flag after reviewing rune coverage.
+const SHOW_RUNE_RANGES = false;
+const runeRangeColors = {
+  garnet: 0xe34b65, ruby: 0xff3159, aquamarine: 0x58e5da,
+  sapphire: 0x578bff, fluorite: 0xa3e879, amethyst: 0xc47bff
 };
 
 function runeActive(target, definition, now, wave) {
@@ -26,12 +36,19 @@ export const RUNEDANCER_EFFECTS = RUNEDANCER_ABILITIES.flatMap(ability => {
     abilityName: ability.name, abilityId: ability.id, vfxPhase: impact ? 'impact' : undefined,
     persistentStatus: !impact && ability.duration > 0, statusActive: runeActive,
     groundZone: !impact && ability.duration > 0, replacesZoneView: true,
-    singleTargetArtwork: true, recipientAnchor: true, followTarget: impact,
-    fitTarget: impact, targetSize: 1.05, opacity: impact ? 0.85 : 0.72,
-    frames: 32, frameMs: 50, holdMs: impact ? 800 : 1600, fadeMs: 400,
-    groundWidth: 112, artworkScale: impact ? 0.75 : 1,
+    shatterOnEnd: true,
+    debugRangeColor: SHOW_RUNE_RANGES && !impact ? runeRangeColors[gemstone] : undefined,
+
+    // Capture the recipient's initial position without following later movement.
+    singleTargetArtwork: true, recipientAnchor: true, followTarget: false,
+
+    // Approved rupee facets surround bright script and a quieter matching halo.
+    // A 64-frame loop lasts about 2.13 seconds; combat time pauses every glow.
+    fitTarget: false, opacity: impact ? 0.95 : 0.92,
+    frames: 64, frameMs: 1000 / 30, holdMs: impact ? 800 : 1600, fadeMs: 400,
+    groundWidth: 112, artworkScale: runeArtworkScales[gemstone] ?? 0.5,
     clips: [{ name: gemstone, key: 'runedancer-' + gemstone + '-rune', width: 112, height: 112,
-      frames: 32, start: 0, x: -56, y: impact ? -70 : -135, depth: 'front',
+      frames: 64, start: 0, x: -56, y: impact ? -70 : -135, depth: 'front',
       loop: !impact, holdLastFrame: impact, url: sheet }]
   });
   return ability.duration > 0 ? [make(false), make(true)] : [make(true)];
@@ -42,4 +59,4 @@ export const RUNEDANCER_EFFECTS = RUNEDANCER_ABILITIES.flatMap(ability => {
 const echo = RUNEDANCER_EFFECTS.find(effect => effect.abilityId === 'ability_v2_runedance_amber_cadence'
   && effect.vfxPhase === 'impact');
 RUNEDANCER_EFFECTS.push({ ...echo, id: 'runic-refrain-echo', abilityId: 'runic_refrain',
-  abilityName: 'Runic Refrain', opacity: 0.6, holdMs: 450, artworkScale: 0.7 });
+  abilityName: 'Runic Refrain', opacity: 0.6, holdMs: 450 });

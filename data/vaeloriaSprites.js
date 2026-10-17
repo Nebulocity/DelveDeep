@@ -44,7 +44,7 @@ clips.dead = Object.fromEntries(Object.entries(clips.death).map(([heading, clip]
 }]));
 
 // Her artwork fills less of each frame, so enlarge it to match the party's visible height.
-const scale = 1.10;
+const scale = 1.16;
 
 // Portraits start at a fixed size, so apply the same increase over the original 0.66 scale.
 export const VAELORIA_SPRITES = { textures, clips, scale, portraitScale: scale / 0.66, footY: 30 };

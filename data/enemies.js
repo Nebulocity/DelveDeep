@@ -265,11 +265,6 @@ enemies.quarryWorm = {
   ...enemies.denWarden, id: 'quarry-worm', name: 'Quarry Worm', abilities: {}
 };
 
-// Baaz has a provisional melee profile and no invented petrification combat effect.
-// Its stone death is presentation only; an encounter assignment remains to be authored.
-enemies.baazDraconian = {
-  ...enemies.ruffian, id: 'baaz-draconian', name: 'Baaz Draconian', abilities: {}
-};
 enemies.quarryBehemoth = {
   ...enemies.denProtector, id: 'quarry-behemoth', name: 'Quarry Behemoth', abilities: {}
 };

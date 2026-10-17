@@ -289,7 +289,7 @@ console.log('Martial kits, poison cadence, trap entry, control durations and rea
 assert.deepEqual(Object.fromEntries(roster.map(u=>[u.name,u.className])), {
   Alhanna:'Runedancer',
   Garrick:'Gladiator',Aldren:'Oathwarden',Vaeloria:'Dawnwarden',Sylva:'Cleric of the Verdant Covenant',
-  Selenne:'Cleric of the Everbright',Malrec:'Cleric of the Sanguine Song',Chaska:'Barbarian',Durgrim:'Barbarian',
+  Selenne:'Cleric of the Everbright',Malrek:'Cleric of the Sanguine Song',Chaska:'Barbarian',Durgrim:'Barbarian',
   Yasmin:'Scoundrel',Zahra:'Barmaid',Zareth:'Mage of the Umbral Veil',Nadira:'Mage of the Luminous Archive',Valtheris:'Mage of the Crimson Spire',Orwen:'Ranger'
 });
 
@@ -366,14 +366,14 @@ assert.equal(GameState.inventory.equipment.find(item=>item.id===GameState.roster
 assert.equal(GameState.inventory.equipment.find(item=>item.id===GameState.roster.find(u=>u.id==='zahra').equipment.weapon)?.itemId,'BSS01');
 assert.equal(GameState.inventory.equipment.length,roster.length*2);
 
-// Malrec keeps progression and party selection from the old roster ID.
-globalThis.localStorage={getItem:()=>JSON.stringify({lastPartyIds:['malrec'],roster:[{id:'malrec',level:5,xp:17,happiness:63,equipment:{weapon:'bloodstaff'}}],inventory:{equipment:[{id:'bloodstaff',itemId:'bloodwarder-weapon'}]}})};
+// Malrek keeps saved progression, equipment and party selection under his current ID.
+globalThis.localStorage={getItem:()=>JSON.stringify({lastPartyIds:['malrek'],roster:[{id:'malrek',level:5,xp:17,happiness:63,equipment:{weapon:'bloodstaff'}}],inventory:{equipment:[{id:'bloodstaff',itemId:'bloodwarder-weapon'}]}})};
 loadProfile(roster);
-const malrec=GameState.roster.find(u=>u.id==='malrec');
-assert.ok(malrec);assert.equal(malrec.level,5);assert.equal(malrec.xp,17);
-assert.equal(malrec.happiness,63);
-assert.equal(GameState.inventory.equipment.find(item=>item.id===malrec.equipment.weapon)?.itemId,'BRM01');
-assert.deepEqual(GameState.lastPartyIds,['malrec']);
+const malrek=GameState.roster.find(u=>u.id==='malrek');
+assert.ok(malrek);assert.equal(malrek.level,5);assert.equal(malrek.xp,17);
+assert.equal(malrek.happiness,63);
+assert.equal(GameState.inventory.equipment.find(item=>item.id===malrek.equipment.weapon)?.itemId,'BRM01');
+assert.deepEqual(GameState.lastPartyIds,['malrek']);
 
 // The current ability system honors an assigned healer priority ahead of a more injured
 // ally.

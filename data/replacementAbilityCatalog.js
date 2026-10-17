@@ -6341,16 +6341,16 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "cap": null
     },
     "secondary": {
-      "text": "Teleports hit enemies to valid floor positions farther from living allies.",
+      "text": "Teleports hit enemies to a random rear-left or rear-right corner of the battlefield, then roots them for 5 seconds after landing.",
       "potency": 0,
       "unit": "Binary / fixed rule",
       "basis": "None",
       "cap": null
     },
     "duration": 0,
-    "secondaryDuration": 0,
+    "secondaryDuration": 5000,
     "durationCap": 0,
-    "secondaryDurationCap": 0,
+    "secondaryDurationCap": 5000,
     "cooldown": 32000,
     "cooldownFloor": 16000,
     "castRange": 600,
@@ -6369,7 +6369,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "tickInterval": 0,
     "starterFor": [],
     "trigger": "When useful and ready; respects player orders.",
-    "limits": "Bosses resist displacement; at most 200 arena units per enemy; deterministic saved randomness; skip when no safe landing.",
+    "limits": "Bosses resist displacement; respects position locks; existing roots do not prevent forced relocation; deterministic saved randomness; tries the opposite rear corner if crowded or too close; skip when neither corner has a safe landing.",
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {

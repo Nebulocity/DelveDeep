@@ -45,10 +45,11 @@ export function physicalEffectActive(scene, target, type) {
 
 // Keep one motif per recipient and status. Refreshing a skill reuses its drawing;
 // returning during its fade brings it back without stacking transparent remnants.
-function ensureEffect(scene, target, type, brief = false) {
+function ensureEffect(scene, target, type, brief = false, caster = null) {
   const effects = scene.physicalAbilityEffects ??= [];
   let effect = effects.find(entry => entry.target === target && entry.type === type && entry.brief === brief);
   if (effect) {
+    if (caster) effect.caster = caster;
     if (brief) effect.elapsed = 0;
     effect.fadeElapsed = null;
     return;
@@ -56,7 +57,7 @@ function ensureEffect(scene, target, type, brief = false) {
   const key = 'physical-' + (type === 'disarm' || type === 'hamstring' ? type : 'protection');
   if (!scene.textures.exists(key)) return;
   scene.textures.get(key).setFilter(1);
-  effect = { target, type, brief, elapsed: 0, fadeElapsed: null, image: scene.add.image(0, 0, key, 0) };
+  effect = { target, caster, type, brief, elapsed: 0, fadeElapsed: null, image: scene.add.image(0, 0, key, 0) };
   effects.push(effect);
 }
 
@@ -67,26 +68,34 @@ export function createPhysicalAbilityEffect(scene, caster, target, ability, reci
   const type = ability.id?.startsWith(PREFIX) ? ability.id.slice(PREFIX.length) : null;
   if (!TYPES.includes(type)) return false;
   const recipient = type === 'hold_the_line' ? caster : target;
-  if (physicalEffectActive(scene, recipient, type)) ensureEffect(scene, recipient, type);
+  if (physicalEffectActive(scene, recipient, type)) ensureEffect(scene, recipient, type, false, caster);
   if (type === 'interpose') ensureEffect(scene, caster, type, true);
   return true;
 }
 
 // Fit exported artwork to the visible body, excluding transparent sprite padding.
 // Each 32-frame loop plays at 24 FPS; elapsed combat milliseconds also drive fading.
-function drawEffect(scene, effect, bounds) {
+function drawEffect(scene, effect, bounds, getBounds) {
   const { target, type, image } = effect;
   const width = bounds.right - bounds.left;
   const height = bounds.bottom - bounds.top;
   const hamstring = type === 'hamstring';
   const protection = type === 'hold_the_line' || type === 'interpose';
 
+  // Harmful cues keep their target anchor but use their adventurer's dimensions.
+  // Older source-less disarms use a party member rather than a monster's size.
+  const ownerId = target.status?.replacementEffects?.find(record => record.key === `${PREFIX}${type}:harmful`)?.ownerId;
+  const caster = effect.caster ?? scene.partyUnits?.find(unit => unit.id === ownerId) ?? scene.partyUnits?.[0];
+  const sizeBounds = !protection && target.isEnemy && caster && !caster.isEnemy ? getBounds(scene, caster) : bounds;
+  const sizeWidth = sizeBounds.right - sizeBounds.left;
+  const sizeHeight = sizeBounds.bottom - sizeBounds.top;
+
   // Side sheets are 48 pixels tall, including clear padding. Their canvas uses
   // 55% of body height; ankle bands instead span 115% of body width. Small-unit
   // minimums keep the icons visible on phones and maximums limit boss-size art.
-  const size = hamstring ? Math.max(0.65, Math.min(3, width * 1.15 / 64))
+  const size = hamstring ? Math.max(0.65, Math.min(3, sizeWidth * 1.15 / 64))
     : protection ? Math.min(3.2, width / 48, height * 0.55 / 48)
-      : Math.max(1.2, Math.min(3.2, height * 0.55 / 48));
+      : Math.max(1.2, Math.min(3.2, sizeHeight * 0.55 / 48));
   // Protection badges sit within their owner's lower silhouette. Keeping the
   // whole badge inside these bounds prevents it from hovering over a nearby ally.
   const x = hamstring ? (bounds.left + bounds.right) / 2
@@ -123,7 +132,7 @@ export function updatePhysicalAbilityEffects(scene, delta, getBounds) {
       effect.image.destroy();
       return false;
     }
-    drawEffect(scene, effect, getBounds(scene, effect.target));
+    drawEffect(scene, effect, getBounds(scene, effect.target), getBounds);
     return true;
   });
 }

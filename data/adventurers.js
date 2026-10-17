@@ -1,8 +1,7 @@
 // These are starting roster definitions, not live combat units. Stable IDs link saves,
 // portraits and starter gear. The game rebuilds progression and equipment bonuses from
 // these definitions instead of permanently changing the catalog.
-// Each ID matches its character's asset folder. GameStorage migrates former IDs and
-// names throughout old saves before restoring progression and ongoing battles.
+// Each ID matches its character's asset folder and the current save records.
 
 import { createAdventurer } from './classes.js';
 
@@ -101,7 +100,7 @@ const adventurers = [
     happiness: 79
   }),
 
-  createAdventurer('malrec', 'Malrec', 'Cleric of the Sanguine Song', {
+  createAdventurer('malrek', 'Malrek', 'Cleric of the Sanguine Song', {
     maxHp: 126,
     attackPower: 10,
     healPower: 26,

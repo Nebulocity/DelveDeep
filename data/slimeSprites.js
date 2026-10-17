@@ -78,13 +78,13 @@ function createSlimeSprite(id, urls, scale, footFrameY, columns = defaultColumns
 // Foot anchors match the opaque base of each 192 pixel sheet frame.
 export const SLIME_SPRITES = {
   caveSlime: { ...createSlimeSprite('caveSlime', sheets.caveSlime, 2, 170, { ...defaultColumns, attack: 5 }), topFrameY: 115,
-    motion: { kind: 'bob', period: 620, lift: 3, squish: 0.08, sway: 5 } },
+    motion: { kind: 'hover', period: 620, lift: 3, squish: 0.08, sway: 5 } },
 
   elderSlime: { ...createSlimeSprite('elderSlime', sheets.elderSlime, 2.2, 168), topFrameY: 65,
-    motion: { kind: 'bob', period: 760, lift: 4, squish: 0.1, sway: 6 } },
+    motion: { kind: 'hover', period: 760, lift: 4, squish: 0.1, sway: 6 } },
 
   slimeSovereign: { ...createSlimeSprite('slimeSovereign', sheets.slimeSovereign, 3.3, 178), topFrameY: 54,
-    motion: { kind: 'bob', period: 940, lift: 4, squish: 0.1, sway: 8 } }
+    motion: { kind: 'hover', period: 940, lift: 4, squish: 0.1, sway: 8 } }
 };
 
 // Queue the accepted Cave Slime, Elder Slime and Slime Sovereign sheets. scene is the

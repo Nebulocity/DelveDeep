@@ -1,11 +1,9 @@
-// Old profiles must display the current names without resetting earned progression
-// or changing the frozen gameplay records inside an active battle or expedition.
+// Current roster saves retain progression and frozen battle and expedition records.
 import assert from 'node:assert/strict';
 import adventurers from '../data/adventurers.js';
 import GameState from '../game/GameState.js';
 import { loadProfile } from '../game/GameStorage.js';
 import { packBattleValue } from '../game/BattleSnapshot.js';
-import { refreshSavedCharacterNames } from '../game/SavedCharacterNames.js';
 
 const hero = adventurers.find(member => member.id === 'zareth');
 const snapshot = {
@@ -59,9 +57,6 @@ assert.equal(battle.log.casualties[0].target, 'Zareth');
 assert.equal(GameState.everdeep.runs[0].party[0].name, 'Zareth');
 assert.equal(GameState.everdeep.runs[0].party[0].power, 50);
 assert.equal(GameState.everdeep.runs[0].resolvedWave, 3);
-const refreshed = JSON.stringify({ battle, everdeep: GameState.everdeep });
-refreshSavedCharacterNames(GameState);
-assert.equal(JSON.stringify({ battle, everdeep: GameState.everdeep }), refreshed);
 assert.equal(profile.activeBattle.party[0].name, 'Zareth');
 assert.equal(new Set(adventurers.map(member => member.name)).size, 15);
 console.log('Current roster names restore across profiles, battles, decoys, logs and frozen expeditions without changing progress.');

@@ -35,7 +35,7 @@ test('the reported party uses identical live and hidden combat rules', async ({ 
     const { default: BattleUnit } = await import('/combat/BattleUnit.js');
     const { getEquippedAdventurer } = await import('/game/Equipment.js');
     const { battleAbilities } = await import('/game/AdventurerAbilities.js');
-    const names = ['Zareth', 'Vaeloria', 'Yasmin', 'Valtheris', 'Malrec'];
+    const names = ['Zareth', 'Vaeloria', 'Yasmin', 'Valtheris', 'Malrek'];
 
     // map builds one output entry for each input entry, in the same order. The callback's
     // return value becomes that output entry.
@@ -153,6 +153,6 @@ test('the reported party uses identical live and hidden combat rules', async ({ 
   expect(hidden).toEqual(visible);
 
   // some stops with true as soon as one entry passes the check; an empty list gives false.
-  expect(hidden.entries.some(entry => entry.type === 'damage' && entry.actor === 'Malrec')).toBe(true);
+  expect(hidden.entries.some(entry => entry.type === 'damage' && entry.actor === 'Malrek')).toBe(true);
   expect(hidden.entries.some(entry => entry.type === 'healing')).toBe(true);
 });

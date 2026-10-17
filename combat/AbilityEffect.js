@@ -23,6 +23,7 @@ import { updateUmbralDecoyEffects, clearUmbralDecoyEffects } from './UmbralDecoy
 import { createPhysicalAbilityEffect, updatePhysicalAbilityEffects, clearPhysicalAbilityEffects } from './PhysicalAbilityEffects.js';
 import { createPrepareAbilityEffect, updatePrepareAbilityEffects, clearPrepareAbilityEffects } from './PrepareAbilityEffects.js';
 import { startTravelingEffect, finishTravelingEffect, clearTravelingEffects, updateTravelingEffects } from './TravelingEffects.js';
+import { shatterRuneEffect, updateRuneShatterEffects, clearRuneShatterEffects } from './RuneShatterEffects.js';
 
 // Each pack may read its own saved status. Assault skills use secondary modifiers;
 // protection packs keep their existing lock and primary-modifier checks.
@@ -33,6 +34,7 @@ function effectStatusActive(target, definition, now, wave) {
 
 // Destroy each piece and release references when playback ends or the scene shuts down.
 export function clearAbilityEffects(scene) {
+  clearRuneShatterEffects(scene);
   clearUmbralDecoyEffects(scene);
   clearTravelingEffects(scene);
   clearPhysicalAbilityEffects(scene);
@@ -221,6 +223,7 @@ export function visibleUnitBounds(scene, unit) {
 // body. Fractional scale lets small creatures receive small effects even below 1x.
 function fitTarget(scene, effect) {
   const bounds = visibleUnitBounds(scene, effect.target);
+  const sizeBounds = effect.casterSizeBounds ?? bounds;
   const clips = effect.definition.clips;
 
   // Optional measured bounds exclude transparent sheet padding when fitting small
@@ -230,8 +233,8 @@ function fitTarget(scene, effect) {
   const top = effect.definition.artworkBounds?.top ?? Math.min(...clips.map(clip => clip.y));
   const bottom = effect.definition.artworkBounds?.bottom ?? Math.max(...clips.map(clip => clip.y + clip.height));
   const margin = effect.definition.targetSize ?? 1.25;
-  const scale = Math.min((bounds.right - bounds.left) * margin / (right - left),
-    (bounds.bottom - bounds.top) * margin / (bottom - top));
+  const scale = Math.min((sizeBounds.right - sizeBounds.left) * margin / (right - left),
+    (sizeBounds.bottom - sizeBounds.top) * margin / (bottom - top));
   effect.scale = effect.scaleX = effect.scaleY = scale;
 
   // Center hits on the body rather than at the feet. Healing columns keep their
@@ -270,6 +273,7 @@ function unitBounds(scene, unit) {
 // Keep an area fixed at its impact point. Its initial rectangle includes the resolved
 // recipients' sprites, while its draw depth stays above them for the full animation.
 function fitCoverage(scene, effect) {
+  if (effect.casterSizeBounds) return;
   const clips = effect.definition.clips;
   const left = Math.min(...clips.map(clip => clip.x));
   const right = Math.max(...clips.map(clip => clip.x + clip.width));
@@ -293,8 +297,8 @@ function fitWard(scene, effect) {
   effect.scaleX = effect.scaleY = shieldSphereScale(bounds);
 }
 
-// Ground art uses the actual radius with whole-number pixel scaling. Body effects
-// are fitted afterward to the recipient's visible artwork instead of this radius.
+// Offensive artwork uses its caster's body size. Placed gemstones and gameplay
+// floor fields retain their sizing; warning geometry remains independent of impacts.
 function startEffect(scene, caster, target, ability, definition, action = null, recipients = [target]) {
 
   // Brambles belongs to its owner's saved zone, but its art stays on the captured
@@ -337,7 +341,29 @@ function startEffect(scene, caster, target, ability, definition, action = null, 
     ? ability.radius / ADJACENT_DISTANCE : ability.zone ?? ability.radius ?? ability.splash;
   const diameter = (radius ? 2 * radius * ADJACENT_DISTANCE : 200)
     * origin.widthAtDepth / scene.battlefield.logicalWidth;
-  const scale = Math.max(1, Math.round(diameter * (definition.sizeMultiplier ?? 1) / definition.groundWidth));
+  const offensive = !caster.isEnemy && !definition.healing && !RUNEDANCER_EFFECTS.includes(definition)
+    && !['heal', 'mana', 'refill'].includes(definition.vfxPhase)
+    && !(definition.groundZone && definition.groundFootprint) && !definition.floorAura
+    && (target.isEnemy || recipients.some(unit => unit?.isEnemy) || /enem/i.test(ability.targetLabel ?? ''));
+
+  // Restored statuses may supply only a class name. Recover the saved owner first,
+  // then use a matching adventurer for old records that did not retain a source.
+  const records = [...(target.status?.replacementEffects ?? []), ...(target.status?.replacementPeriodic ?? []),
+    ...(target.status?.replacementReactions ?? [])];
+  const ownerId = records.find(record => record.ability?.id === definition.abilityId
+    || record.key?.startsWith(definition.abilityId + ':'))?.ownerId;
+  const sizingCaster = caster.spriteVisual || Number.isFinite(caster.arenaX) ? caster
+    : scene.partyUnits?.find(unit => unit.id === ownerId)
+      ?? scene.partyUnits?.find(unit => unit.className === caster.className) ?? scene.partyUnits?.[0];
+  const casterSizeBounds = offensive && sizingCaster ? visibleUnitBounds(scene, sizingCaster) : null;
+  const clipsWidth = Math.max(...definition.clips.map(clip => clip.x + clip.width))
+    - Math.min(...definition.clips.map(clip => clip.x));
+  const clipsHeight = Math.max(...definition.clips.map(clip => clip.y + clip.height))
+    - Math.min(...definition.clips.map(clip => clip.y));
+  const scale = casterSizeBounds
+    ? Math.min((casterSizeBounds.right - casterSizeBounds.left) / clipsWidth,
+      (casterSizeBounds.bottom - casterSizeBounds.top) / clipsHeight) * (definition.targetSize ?? 1.25)
+    : Math.max(1, Math.round(diameter * (definition.sizeMultiplier ?? 1) / definition.groundWidth));
   prepareEffects(scene);
 
   // Reapplying a mark replaces its artwork instead of stacking identical rings.
@@ -361,7 +387,7 @@ function startEffect(scene, caster, target, ability, definition, action = null, 
     if (clip.crop) image.setCrop(clip.crop.x, clip.crop.y, clip.crop.width, clip.crop.height);
     return { clip, image };
   });
-  const effect = { definition, caster, target, anchor, recipients, action, origin, scale,
+  const effect = { definition, caster, target, anchor, recipients, action, origin, scale, casterSizeBounds,
     groundRadius: groundRecord?.ability.radius ?? definition.groundFootprint?.arenaRadius,
     scaleX: scale * (definition.widthStretch ?? 1), scaleY: scale, pieces, elapsed: 0,
     duration: definition.untilDeath || definition.followShield || definition.persistentStatus ? Infinity
@@ -435,7 +461,7 @@ function updateEffectDepth(scene, effect) {
 
   // Match authored ground artwork to the real floor projection. Sheet radius is in
   // artwork pixels; arena radius is in combat units. This does not change targeting.
-  if (effect.definition.groundFootprint) {
+  if (effect.definition.groundFootprint && !effect.casterSizeBounds) {
     const footprint = effect.definition.groundFootprint;
     const radii = scene.battlefield.getGroundEllipseRadii(effect.groundRadius, effect.anchor.arenaY);
     effect.scaleX = radii.width / footprint.radius;
@@ -529,6 +555,7 @@ function drawFlight(scene, effect) {
 export function updateAbilityEffects(scene, delta, replaying = false) {
   updateTravelingEffects(scene, delta, replaying);
   if (replaying) {
+    clearRuneShatterEffects(scene);
     clearUmbralDecoyEffects(scene);
     if (scene.abilityEffects?.length || scene.abilityTelegraphs?.length || scene.physicalAbilityEffects?.length || scene.physicalAssaultEffects?.length || scene.prepareAbilityEffects?.length) clearAbilityEffects(scene);
     return;
@@ -541,6 +568,7 @@ export function updateAbilityEffects(scene, delta, replaying = false) {
     if (scene.partyUnits?.length || scene.enemies?.length || scene.physicalAbilityEffects?.length || scene.prepareAbilityEffects?.length) prepareEffects(scene);
     updatePhysicalAbilityEffects(scene, delta, visibleUnitBounds);
     updatePrepareAbilityEffects(scene, delta, visibleUnitBounds);
+    updateRuneShatterEffects(scene, delta);
   }
   if (!scene.abilityEffects?.length && !scene.abilityTelegraphs?.length) return;
 
@@ -608,6 +636,15 @@ export function updateAbilityEffects(scene, delta, replaying = false) {
       if (effect.fadeElapsed == null) effect.fadeElapsed = 0;
       else if (!scene.combatPaused) effect.fadeElapsed += Math.max(0, delta);
     } else if (effect.definition.followShield) effect.fadeElapsed = null;
+
+    // Every gemstone breaks from its current visible frame instead of fading whole.
+    // Remove its main effect now so it cannot spawn another set of fragments.
+    const runeEnded = effect.definition.persistentStatus ? effect.fadeElapsed != null
+      : effect.fadeElapsed != null || effect.elapsed >= effect.definition.holdMs;
+    if (effect.definition.shatterOnEnd && runeEnded && !scene.battleOver) {
+      shatterRuneEffect(scene, effect);
+      continue;
+    }
     const fadedStatus = effect.fadeElapsed >= effect.definition.fadeMs;
     if (effect.elapsed >= effect.duration && !effect.definition.projectile || fadedStatus || canceledFlight || endedMark
       || scene.battleOver && !effect.definition.abilityId && !effect.definition.projectile && !effect.definition.followShield) {

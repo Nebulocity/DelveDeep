@@ -42,7 +42,7 @@ export function slimePose(style, state, elapsed, duration) {
   if (!style) return { x: 0, y: 0, scaleX: 1, scaleY: 1 };
   const phase = elapsed / style.period * TAU;
   if (state === 'idle') {
-    if (style.kind === 'bob') {
+    if (style.kind === 'hover') {
 
       // Angles are radians. cos(angle) gives the horizontal part of a circle; sin(angle)
       // gives the vertical part. Multiplying by a radius turns those fractions into

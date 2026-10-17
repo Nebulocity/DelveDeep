@@ -732,8 +732,8 @@ export default class ReplacementAbilitySystem {
       if (h === 'damageActionPunishment') this.reaction(caster, enemy, ability);
     }
     if (h === 'damageCooldownReduction' && !triggered) this.reduceCooldowns(caster, y, 'Assault');
-    if (h === 'damageEscapeTeleport' && !triggered) this.escape(caster, 4);
-    if (h === 'damageEnemyTeleport' && !triggered) for (const enemy of landed) if (!enemy.isBoss) this.escape(enemy, 2, true);
+    if (h === 'damageEscapeTeleport' && !triggered) this.escape(caster, 4, false, ability, caster);
+    if (h === 'damageEnemyTeleport' && !triggered) for (const enemy of landed) if (!enemy.isBoss) this.teleportToRearCorner(enemy, ability, caster);
     if (['healOverTime', 'partyHealOverTime'].includes(h)) for (const ally of recipients) this.periodic(caster, ally, ability, replacementAmount(caster, ally, ability.secondary), 'heal', ability.secondaryDuration);
     if (['armorHeal', 'allyAreaBlindHeal'].includes(h)) for (const ally of h === 'allyAreaBlindHeal' ? [target] : recipients) this.heal(caster, ally, replacementAmount(caster, ally, ability.secondary), ability, triggered);
     if (['accuracyDebuffDamage', 'attackDebuffDamage', 'slowDamage'].includes(h)) for (const enemy of recipients) this.damage(caster, enemy, replacementAmount(caster, enemy, ability.secondary), ability, triggered);
@@ -853,13 +853,53 @@ export default class ReplacementAbilitySystem {
     for (const warning of [...(this.scene.activeTelegraphs ?? [])]) if (warning.attacker === unit) this.scene.removeTelegraph?.(warning);
   }
 
-  escape(unit, range, hostile = false) {
+  // Probe each corner along this battlefield's own rear outline. Nearby alternatives
+  // leave space for other enemies; a crowded corner falls back to the opposite one.
+  teleportToRearCorner(unit, ability, caster) {
+    if (!unit.alive || this.scene.isPositionLocked(unit)) return;
+    const battlefield = this.scene.battlefield;
+    const width = battlefield.logicalWidth, height = battlefield.logicalHeight;
+    const rightFirst = this.scene.combatRandom() < .5;
+    for (const right of [rightFirst, !rightFirst]) {
+      const points = [];
+      for (let column = 0; column < 6; column++) {
+        const inset = width * (.08 + column * .045);
+        const x = right ? width - inset : inset;
+        let rearY = height - 24;
+        while (rearY > height * .5 && !battlefield.containsArenaPoint(x, rearY, 16)) rearY -= 12;
+        for (let row = 0; row < 4; row++) {
+          const y = rearY - 36 - row * 60;
+          if (y >= height * .5 && battlefield.containsArenaPoint(x, y, 16)) points.push({ x, y });
+        }
+      }
+      const score = point => Math.hypot(right ? width - point.x : point.x, height - point.y);
+      points.sort((a, b) => score(a) - score(b));
+      // A root prevents walking, not this forced relocation. Require a substantial
+      // move so an enemy already near one corner tries the opposite corner instead.
+      const selected = points.find(point => arenaDistance(unit, point) >= 240 && this.parent.canTeleport(unit, point));
+      if (!selected) continue;
+      this.scene.playTeleportEffect?.(unit, selected, ability, caster);
+      unit.setArenaPosition(selected.x, selected.y);
+      // Restored pending casts may still carry the former zero-duration definition.
+      // Keep a longer existing root while guaranteeing five seconds after placement.
+      this.control(unit, ability, 'root', Math.max(5000, (unit.status.rootedUntil ?? 0) - this.now()));
+      return;
+    }
+  }
+
+  escape(unit, range, hostile = false, ability = null, caster = unit) {
     if (this.scene.isPositionLocked(unit) || unit.status.rootedUntil > this.now()) return;
     const points = this.parent.surroundingPoints(unit, range * 100).filter(point => this.parent.canTeleport(unit, point));
     const threats = hostile ? this.allies() : this.enemies();
     points.sort((a, b) => Math.min(...threats.map(t => arenaDistance(t, b))) - Math.min(...threats.map(t => arenaDistance(t, a))));
     const selected = hostile ? points[Math.floor(this.scene.combatRandom() * Math.max(1, Math.ceil(points.length / 2)))] : points[0];
-    if (selected) unit.setArenaPosition(selected.x, selected.y);
+    if (selected) {
+
+      // Artwork observes the resolved landing. Moving remains immediate and spends
+      // exactly the same combat random rolls as before this visual was added.
+      this.scene.playTeleportEffect?.(unit, selected, ability, caster);
+      unit.setArenaPosition(selected.x, selected.y);
+    }
   }
 
   // Physical escape skills sprint through ordinary steering. They do not teleport an
@@ -882,7 +922,11 @@ export default class ReplacementAbilitySystem {
     if (ability.id === 'ability_v2_umbral_mage_shadow_image') this.scene.createAbilityEffect?.(caster, decoy, ability);
     if (rescue) {
       const landing = this.parent.adjacentPoint(target, caster);
-      if (landing) { target.setArenaPosition(landing.x, landing.y); this.heal(caster, target, replacementAmount(caster, target, ability.secondary), ability); }
+      if (landing) {
+        this.scene.playTeleportEffect?.(target, landing, ability, caster, { decoy });
+        target.setArenaPosition(landing.x, landing.y);
+        this.heal(caster, target, replacementAmount(caster, target, ability.secondary), ability);
+      }
     } else for (const enemy of this.enemies()) if (enemy.currentTargetId === caster.id && !enemy.isBoss) enemy.status.replacementDecoyTarget = { id: decoy.id, until: this.now() + ability.duration };
   }
 
@@ -893,7 +937,10 @@ export default class ReplacementAbilitySystem {
         if (unit.isBoss || this.scene.isPositionLocked(unit)) continue;
         const desired = { x: width * side, y: height * (index + 1) / (units.length + 1) };
         const points = [desired, ...this.parent.surroundingPoints(desired, 100)].filter(point => this.parent.canTeleport(unit, point));
-        if (points[0]) unit.setArenaPosition(points[0].x, points[0].y);
+        if (points[0]) {
+          this.scene.playTeleportEffect?.(unit, points[0], ability, caster);
+          unit.setArenaPosition(points[0].x, points[0].y);
+        }
         unit.status.rootedUntil = this.now() + (unit.isEnemy ? ability.duration : ability.secondaryDuration);
         if (unit.isEnemy) { unit.finishAction?.(); unit.status.replacementTruceUntil = this.now() + ability.duration; }
       }
@@ -954,7 +1001,10 @@ export default class ReplacementAbilitySystem {
 
       // The Ranger's steel jaws already show the placed trap. Their own fade
       // leaves a spent trap remnant without an abruptly removed cosmetic circle.
-      if (artwork?.floorAura || artwork?.replacesZoneView) continue;
+
+      // Temporary rune overlays use the saved gameplay radius, independent of sprite scale.
+      const debugRangeColor = artwork?.debugRangeColor;
+      if ((artwork?.floorAura || artwork?.replacesZoneView) && debugRangeColor == null) continue;
       const key = `${owner.id}:${zone.ability.id}`;
       visible.add(key);
       const center = zone.ability.anchor === 'Caster' ? owner : zone.point;
@@ -962,7 +1012,7 @@ export default class ReplacementAbilitySystem {
       const radii = scene.battlefield.getGroundEllipseRadii(zone.ability.radius, center.arenaY);
       let view = this.zoneViews.get(key);
       if (!view) {
-        const color = zone.ability.handler === 'healingAura' ? 0x22c55e : owner.color ?? 0x9f8a59;
+        const color = debugRangeColor ?? (zone.ability.handler === 'healingAura' ? 0x22c55e : owner.color ?? 0x9f8a59);
         view = scene.add.ellipse(point.x, point.y, radii.width * 2, radii.height * 2, color, .16).setStrokeStyle(4, color, .8);
         this.zoneViews.set(key, view);
       }

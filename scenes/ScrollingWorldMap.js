@@ -7,6 +7,7 @@ import { showTutorialSlideshow } from '../ui/TutorialSlideshow.js';
 import { addRegionPanel } from '../ui/RegionMapTheme.js';
 import { REGION_RAIL_WIDTH, MAP_HEADER_HEIGHT, MAP_FOOTER_HEIGHT, createRegionLocationRail, updateRegionLocationRail, syncRegionMapCameras } from '../ui/RegionMapUI.js';
 import GameState from '../game/GameState.js';
+import garrickLayout from '../assets/characters/garrick/sheets/layout.json' with { type: 'json' };
 import delves from '../data/delves.js';
 import { saveProfile } from '../game/GameStorage.js';
 
@@ -108,7 +109,7 @@ function createParty(scene) {
   // 0.5 is the center and 1 is the right/bottom edge. x/y place that anchor, not
   // necessarily the object's corner.
   scene.party = scene.add.sprite(x, y, 'world-party-idle', 0)
-    .setDisplaySize(136, 136).setOrigin(0.5, 0.78).setDepth(500);
+    .setDisplaySize(181, 181).setOrigin(0.5, garrickLayout.anchors['south-east'].originY).setDepth(500);
   scene.partyNode = savedEdge ? null : (nodes[GameState.world.currentLocation] ? GameState.world.currentLocation : 'pineshire');
   scene.activeEdge = savedEdge ?? null;
   scene.edgeT = savedEdge ? t : 0;
@@ -126,13 +127,18 @@ function createParty(scene) {
   }
 
   if (!scene.anims.exists('world-party-idle-south-east')) {
-    for (const [index, facing] of ['south-east', 'south-west', 'north-east', 'north-west'].entries()) {
-      scene.anims.create({ key: `world-party-idle-${facing}`,
-        frames: scene.anims.generateFrameNumbers('world-party-idle', { start: index * 4, end: index * 4 + 3 }),
-        frameRate: 5, repeat: -1 });
-      scene.anims.create({ key: `world-party-walk-${facing}`,
-        frames: scene.anims.generateFrameNumbers('world-party-walk', { start: index * 8, end: index * 8 + 7 }),
-        frameRate: 9, repeat: -1 });
+
+    // Use the same packed rows and timings as combat so map travel plays every
+    // new frame in the correct direction instead of stepping into another row.
+    for (const [row, facing] of garrickLayout.directions.entries()) {
+      for (const state of ['idle', 'walk']) {
+        const sheet = garrickLayout.states[state];
+        const start = row * sheet.columns;
+        scene.anims.create({ key: `world-party-${state}-${facing}`,
+          frames: scene.anims.generateFrameNumbers(`world-party-${state}`,
+            { start, end: start + sheet.counts[facing] - 1 }),
+          frameRate: 1000 / sheet.frameMs, repeat: -1 });
+      }
     }
   }
 

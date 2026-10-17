@@ -1,4 +1,5 @@
 {
+  "name": "Nadira",
   "frameWidth": 256,
   "frameHeight": 256,
   "directions": [
@@ -7,24 +8,46 @@
     "north-east",
     "north-west"
   ],
+  "anchors": {
+    "south-east": {
+      "originX": 0.5,
+      "originY": 0.859375
+    },
+    "south-west": {
+      "originX": 0.5,
+      "originY": 0.875
+    },
+    "north-east": {
+      "originX": 0.5,
+      "originY": 0.84375
+    },
+    "north-west": {
+      "originX": 0.5,
+      "originY": 0.875
+    }
+  },
   "states": {
     "idle": {
-      "columns": 4,
+      "columns": 16,
       "counts": {
-        "south-east": 4,
-        "south-west": 4,
-        "north-east": 4,
-        "north-west": 4
-      }
+        "south-east": 16,
+        "south-west": 16,
+        "north-east": 16,
+        "north-west": 16
+      },
+      "frameMs": 100,
+      "loop": true
     },
     "walk": {
-      "columns": 8,
+      "columns": 16,
       "counts": {
-        "south-east": 8,
-        "south-west": 8,
-        "north-east": 8,
-        "north-west": 8
-      }
+        "south-east": 16,
+        "south-west": 16,
+        "north-east": 16,
+        "north-west": 16
+      },
+      "frameMs": 50,
+      "loop": true
     },
     "attack": {
       "columns": 9,
@@ -32,17 +55,21 @@
         "south-east": 9,
         "south-west": 9,
         "north-east": 9,
-        "north-west": 9
-      }
+        "north-west": 6
+      },
+      "frameMs": 70,
+      "loop": false
     },
     "block": {
-      "columns": 5,
+      "columns": 9,
       "counts": {
-        "south-east": 5,
-        "south-west": 5,
-        "north-east": 5,
-        "north-west": 5
-      }
+        "south-east": 9,
+        "south-west": 9,
+        "north-east": 9,
+        "north-west": 4
+      },
+      "frameMs": 80,
+      "loop": false
     },
     "hit": {
       "columns": 5,
@@ -51,16 +78,21 @@
         "south-west": 5,
         "north-east": 5,
         "north-west": 5
-      }
+      },
+      "frameMs": 70,
+      "loop": false
     },
     "death": {
-      "columns": 9,
+      "columns": 13,
       "counts": {
-        "south-east": 9,
-        "south-west": 9,
-        "north-east": 9,
-        "north-west": 9
-      }
+        "south-east": 13,
+        "south-west": 13,
+        "north-east": 13,
+        "north-west": 13
+      },
+      "frameMs": 90,
+      "loop": false
     }
-  }
+  },
+  "scale": 0.8889
 }

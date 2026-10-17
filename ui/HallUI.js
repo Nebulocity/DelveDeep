@@ -161,7 +161,10 @@ export function hallPortrait(scene, hero, x, y, size) {
   if (!frame || !scene.textures.exists(frame.key)) return scene.add.circle(x, y, size / 3, hero.color);
   scene.textures.get(frame.key).setFilter(1);
 
-  return scene.add.image(x, y, frame.key, frame.frame).setDisplaySize(size, size).setFlipX(frame.flipX === true);
+
+  // Apply the same character-size correction used in party selection and combat.
+  const portraitSize = size * (CHARACTER_SPRITES[hero.id].portraitScale ?? 1);
+  return scene.add.image(x, y, frame.key, frame.frame).setDisplaySize(portraitSize, portraitSize).setFlipX(frame.flipX === true);
 }
 
 // Masks constrain drawing and hit tests; off-screen controls cannot receive taps.

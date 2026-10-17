@@ -20,4 +20,8 @@ const clips = Object.fromEntries(Object.entries(states).map(([state, [count, fra
 // Hold the actual final death frame so a fallen dancer does not return to standing.
 clips.dead = Object.fromEntries(Object.entries(clips.death).map(([direction, clip]) =>
   [direction, { frameMs: 1000, frames: [clip.frames.at(-1)] }]));
-export const ALHANNA_SPRITES = { textures, clips, scale: 0.66, footY: 30 };
+
+// Her painted body is about 187 pixels tall. At 0.88 it stands about 165 game
+// pixels high, matching Garrick while the existing boot anchor stays on the floor.
+const scale = 0.88;
+export const ALHANNA_SPRITES = { textures, clips, scale, portraitScale: scale / 0.66, footY: 30 };

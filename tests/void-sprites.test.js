@@ -62,4 +62,4 @@ assert.equal(waves.at(-1).enemies[0].type, 'abyssalSovereign');
 const seen = new Set(waves.flatMap(wave => wave.enemies.map(spawn => spawn.type)));
 for (const id of identities) assert.ok(seen.has(id), `${id} appears in the Abyss`);
 for (const wave of waves) for (const spawn of wave.enemies) assert.ok(VOID_SPRITES[spawn.type]);
-console.log('Void roster, standalone RGBA sheets, action clips, save aliases and 34-wave integration passed.');
+console.log('Void roster, standalone RGBA sheets, action clips and 34-wave integration passed.');

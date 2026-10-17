@@ -27,7 +27,13 @@ export function resolveRune(system, caster, target, ability, time) {
     const points = system.parent.surroundingPoints(target, 75);
     const point = points.find(point => arenaDistance(caster, point) <= ability.range * 100
       && system.parent.canTeleport(caster, point));
-    if (point) caster.setArenaPosition(point.x, point.y);
+    if (point) {
+
+      // Keep the existing instant strike and fixed departure rune. The echo and
+      // gemstone layers only decorate the already selected legal destination.
+      system.scene.playTeleportEffect?.(caster, point, ability, caster);
+      caster.setArenaPosition(point.x, point.y);
+    }
   }
 
   // A held dancer can use Traverse only at weapon reach, so Hold never grants a ranged
@@ -93,9 +99,10 @@ export function tickRune(system, owner, zone, time) {
   if (kind === 'runeMana') {
     const ally = allies.find(ally => ally.maxMana > 0 && ally.mana / ally.maxMana < 0.7);
     if (ally) {
+
+      // The renderer shatters the consumed gemstone at its original position.
       zone.until = 0;
       system.mana(ally, replacementAmount(owner, ally, a.primary));
-      system.scene.createAbilityEffect?.(owner, ally, { ...a, vfxPhase: 'impact' }, [ally]);
     }
   }
   if ((kind === 'runeSnare' || kind === 'runeTraverse') && enemies.length) {

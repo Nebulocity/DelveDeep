@@ -1,5 +1,5 @@
 {
-  "name": "FRED",
+  "name": "Aldren",
   "frameWidth": 256,
   "frameHeight": 256,
   "directions": [
@@ -10,7 +10,7 @@
   ],
   "states": {
     "idle": {
-      "file": "FRED-idle.png",
+      "file": "Aldren-idle.png",
       "columns": 4,
       "counts": {
         "south-east": 4,
@@ -22,7 +22,7 @@
       "loop": true
     },
     "walk": {
-      "file": "FRED-walk.png",
+      "file": "Aldren-walk.png",
       "columns": 8,
       "counts": {
         "south-east": 8,
@@ -34,7 +34,7 @@
       "loop": true
     },
     "attack": {
-      "file": "FRED-attack.png",
+      "file": "Aldren-attack.png",
       "columns": 9,
       "counts": {
         "south-east": 9,
@@ -46,7 +46,7 @@
       "loop": false
     },
     "block": {
-      "file": "FRED-block.png",
+      "file": "Aldren-block.png",
       "columns": 5,
       "counts": {
         "south-east": 5,
@@ -58,7 +58,7 @@
       "loop": false
     },
     "hit": {
-      "file": "FRED-hit.png",
+      "file": "Aldren-hit.png",
       "columns": 5,
       "counts": {
         "south-east": 5,
@@ -70,7 +70,7 @@
       "loop": false
     },
     "death": {
-      "file": "FRED-death.png",
+      "file": "Aldren-death.png",
       "columns": 9,
       "counts": {
         "south-east": 9,
@@ -82,7 +82,7 @@
       "loop": false
     }
   },
-  "notes": "FRED artwork for Aldren. Native pixels enlarged exactly 2x with nearest-neighbor sampling.",
+  "notes": "Aldren artwork for Aldren. Native pixels enlarged exactly 2x with nearest-neighbor sampling.",
   "origins": {
     "south-east": {
       "x": 0.5,

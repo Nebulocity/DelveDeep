@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import adventurers from '../data/adventurers.js';
 import { CHARACTER_SPRITES, preloadCharacterSprites } from '../data/characterSprites.js';
 
-const names = ['elyra', 'zahra', 'orwen', 'aldren', 'sylva', 'garrick', 'valtheris', 'zareth', 'nadira', 'yasmin', 'durgrim', 'chaska', 'malrec', 'selenne', 'alhanna'];
+const names = ['elyra', 'zahra', 'orwen', 'aldren', 'sylva', 'garrick', 'valtheris', 'zareth', 'nadira', 'yasmin', 'durgrim', 'chaska', 'malrek', 'selenne', 'alhanna'];
 const states = ['idle', 'walk', 'attack', 'block', 'hit', 'death'];
 const loaded = [];
 for (const { id } of adventurers) assert.ok(CHARACTER_SPRITES[id], `missing combat sprite for roster ID ${id}`);
@@ -66,7 +66,7 @@ for (const name of names) {
     }
   }
 
-  if (name === 'elyra' || name === 'garrick') {
+  if (name === 'elyra' || name === 'garrick' || name === 'sylva' || name === 'chaska' || name === 'yasmin' || name === 'zahra') {
     for (const state of states) {
       const sheet = layout.states[state];
       for (const [direction, count] of Object.entries(sheet.counts)) {
@@ -88,7 +88,7 @@ for (const name of names) {
 // Every Aldren pose must use the replacement artwork, including portraits and walking.
 // Retained texture keys keep historical battle frames readable without shipping old art.
 for (const [index, texture] of CHARACTER_SPRITES.aldren.textures.entries()) {
-  assert.ok(texture.url.endsWith(`/FRED-${states[index]}.png`));
+  assert.ok(texture.url.endsWith(`/Aldren-${states[index]}.png`));
   assert.equal(texture.key, `aldren-reference-v2-${states[index]}`);
 }
 assert.equal(fs.existsSync(new URL('../assets/characters/aldren/temporary/walk-test.png', import.meta.url)), false);
@@ -99,15 +99,34 @@ for (const [index, texture] of CHARACTER_SPRITES.garrick.textures.entries()) {
   assert.equal(fs.existsSync(new URL(`../assets/characters/garrick/sheets/${states[index]}.png`, import.meta.url)), false);
 }
 
-for (const direction of ['south', 'south-east', 'east']) {
+// Sylva's portraits and all six reactions use her approved woodland-cleric artwork.
+// The old sheets stay in ignored cold storage and cannot be selected by the loader.
+for (const [index, texture] of CHARACTER_SPRITES.sylva.textures.entries()) {
+  assert.ok(texture.url.endsWith(`/Sylva-${states[index]}.png`));
+  assert.equal(texture.key, `sylva-${states[index]}`);
+  assert.equal(fs.existsSync(new URL(`../assets/characters/sylva/sheets/${states[index]}.png`, import.meta.url)), false);
+}
 
-  // map builds one output entry for each input entry, in the same order. The callback's
-  // return value becomes that output entry.
-  assert.deepEqual(
-    CHARACTER_SPRITES.zahra.clips.idle[direction].frames.map(({ frame }) => frame),
-    [0, 1, 1, 0],
-    'Zahra idle should avoid the frames with the bright pan trail',
-  );
+// Chaska's approved ridge hunter supplies every reaction and shared portrait. The
+// retired artwork stays outside the loader, so it cannot reappear in a combat state.
+for (const [index, texture] of CHARACTER_SPRITES.chaska.textures.entries()) {
+  assert.ok(texture.url.endsWith(`/Chaska-${states[index]}.png`));
+  assert.equal(texture.key, `chaska-${states[index]}`);
+  assert.equal(fs.existsSync(new URL(`../assets/characters/chaska/sheets/${states[index]}.png`, import.meta.url)), false);
+}
+
+// Every Zahra state uses her approved original artwork. Authored facings keep her
+// pan in her left hand; flipping even one frame would reverse that grip on screen.
+for (const [index, texture] of CHARACTER_SPRITES.zahra.textures.entries()) {
+  assert.ok(texture.url.endsWith(`/Zahra-${states[index]}.png`));
+  assert.equal(fs.existsSync(new URL(`../assets/characters/zahra/sheets/${states[index]}.png`, import.meta.url)), false);
+}
+for (const state of states) {
+  for (const direction of ['south-east', 'south-west', 'north-east', 'north-west']) {
+    const clip = CHARACTER_SPRITES.zahra.clips[state][direction];
+    assert.ok(clip.frames.every(frame => frame.flipX === false));
+    if (state === 'idle' || state === 'walk') assert.equal(clip.frames.length, 16);
+  }
 }
 
 preloadCharacterSprites({

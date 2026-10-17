@@ -10,6 +10,7 @@ import * as map from '../data/worldMap.js';
 import delves from '../data/delves.js';
 import { createEncounterWaves } from '../data/encounters.js';
 import GameState from '../game/GameState.js';
+import garrickLayout from '../assets/characters/garrick/sheets/layout.json' with { type: 'json' };
 
 import { loadProfile, saveProfile } from '../game/GameStorage.js';
 import { awardOrdinaryWave } from '../game/DelveCheckpoints.js';
@@ -23,7 +24,7 @@ loadProfile([]);
 
 // ... copies the source's own fields into this object; fields listed later replace earlier
 // ones. This is a shallow copy, so nested objects are still shared.
-const context = vm.createContext({ ...typography, ...map, GameState, delves, saveProfile,
+const context = vm.createContext({ ...typography, ...map, GameState, delves, saveProfile, garrickLayout,
   HapticsService: { tap() {} }, everdeepUnlocked, settleEverdeep() {} });
 vm.runInContext(fs.readFileSync(new URL('../ui/RegionMapUI.js', import.meta.url), 'utf8')
   .replace(/^import [\s\S]*?;\r?\n/gm, '').replaceAll('export function ', 'function ').replaceAll('export const ', 'const '), context);

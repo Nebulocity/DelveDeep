@@ -1,0 +1,98 @@
+{
+  "name": "Malrek",
+  "frameWidth": 256,
+  "frameHeight": 256,
+  "directions": [
+    "south-east",
+    "south-west",
+    "north-east",
+    "north-west"
+  ],
+  "anchors": {
+    "south-east": {
+      "originX": 0.5,
+      "originY": 0.87109375
+    },
+    "south-west": {
+      "originX": 0.5,
+      "originY": 0.87109375
+    },
+    "north-east": {
+      "originX": 0.5,
+      "originY": 0.87109375
+    },
+    "north-west": {
+      "originX": 0.5,
+      "originY": 0.8515625
+    }
+  },
+  "states": {
+    "idle": {
+      "columns": 16,
+      "counts": {
+        "south-east": 16,
+        "south-west": 16,
+        "north-east": 16,
+        "north-west": 16
+      },
+      "frameMs": 100,
+      "loop": true
+    },
+    "walk": {
+      "columns": 16,
+      "counts": {
+        "south-east": 16,
+        "south-west": 16,
+        "north-east": 16,
+        "north-west": 16
+      },
+      "frameMs": 50,
+      "loop": true
+    },
+    "attack": {
+      "columns": 9,
+      "counts": {
+        "south-east": 9,
+        "south-west": 9,
+        "north-east": 9,
+        "north-west": 9
+      },
+      "frameMs": 70,
+      "loop": false
+    },
+    "block": {
+      "columns": 9,
+      "counts": {
+        "south-east": 9,
+        "south-west": 9,
+        "north-east": 9,
+        "north-west": 9
+      },
+      "frameMs": 80,
+      "loop": false
+    },
+    "hit": {
+      "columns": 9,
+      "counts": {
+        "south-east": 9,
+        "south-west": 9,
+        "north-east": 9,
+        "north-west": 9
+      },
+      "frameMs": 70,
+      "loop": false
+    },
+    "death": {
+      "columns": 13,
+      "counts": {
+        "south-east": 13,
+        "south-west": 13,
+        "north-east": 13,
+        "north-west": 13
+      },
+      "frameMs": 90,
+      "loop": false
+    }
+  },
+  "scale": 0.8545
+}

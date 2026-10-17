@@ -76,10 +76,17 @@ function drawEffect(scene, effect, getBounds) {
   const bounds = getBounds(scene, target);
   const width = bounds.right - bounds.left;
   const height = bounds.bottom - bounds.top;
+  const ownerId = target.status?.replacementPeriodic?.find(tick => tick.ability?.id === PREFIX + 'lacerate')?.ownerId;
+  const sizingCaster = caster ?? scene.partyUnits?.find(unit => unit.id === ownerId) ?? scene.partyUnits?.[0];
+
+  // Impact size comes from the adventurer; placement still follows the victim.
+  const sizeBounds = target.isEnemy && sizingCaster && !sizingCaster.isEnemy ? getBounds(scene, sizingCaster) : bounds;
+  const sizeWidth = sizeBounds.right - sizeBounds.left;
+  const sizeHeight = sizeBounds.bottom - sizeBounds.top;
   const trail = type === 'charge-trail';
   const status = type === 'lacerate-status';
   const size = Math.max(status ? 0.65 : 0.9, Math.min(3,
-    (trail ? width * 1.6 : status ? height * 0.24 : height * 0.65) / sheet.width));
+    (trail ? sizeWidth * 1.6 : status ? sizeHeight * 0.24 : sizeHeight * 0.65) / sheet.width));
   let x = (bounds.left + bounds.right) / 2;
   let y = bounds.top + height * 0.62;
   if (trail) {

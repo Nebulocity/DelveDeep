@@ -1,4 +1,5 @@
 node_modules/
+/assets/characters/unused/
 
 # Keep private project notes, changelogs, and authoring instructions local.
 # The root README remains public.

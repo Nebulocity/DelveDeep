@@ -1,4 +1,5 @@
 {
+  "name": "Garrick",
   "frameWidth": 256,
   "frameHeight": 256,
   "directions": [
@@ -9,22 +10,26 @@
   ],
   "states": {
     "idle": {
-      "columns": 4,
+      "columns": 16,
       "counts": {
-        "south-east": 4,
-        "south-west": 4,
-        "north-east": 4,
-        "north-west": 4
-      }
+        "south-east": 16,
+        "south-west": 16,
+        "north-east": 16,
+        "north-west": 16
+      },
+      "frameMs": 100,
+      "loop": true
     },
     "walk": {
-      "columns": 8,
+      "columns": 16,
       "counts": {
-        "south-east": 8,
-        "south-west": 8,
-        "north-east": 8,
-        "north-west": 8
-      }
+        "south-east": 16,
+        "south-west": 16,
+        "north-east": 16,
+        "north-west": 16
+      },
+      "frameMs": 50,
+      "loop": true
     },
     "attack": {
       "columns": 9,
@@ -33,7 +38,9 @@
         "south-west": 9,
         "north-east": 9,
         "north-west": 9
-      }
+      },
+      "frameMs": 90,
+      "loop": false
     },
     "block": {
       "columns": 5,
@@ -42,7 +49,9 @@
         "south-west": 5,
         "north-east": 5,
         "north-west": 5
-      }
+      },
+      "frameMs": 100,
+      "loop": false
     },
     "hit": {
       "columns": 5,
@@ -51,16 +60,47 @@
         "south-west": 5,
         "north-east": 5,
         "north-west": 5
-      }
+      },
+      "frameMs": 90,
+      "loop": false
     },
     "death": {
-      "columns": 9,
+      "columns": 17,
       "counts": {
-        "south-east": 9,
-        "south-west": 9,
-        "north-east": 9,
-        "north-west": 9
-      }
+        "south-east": 17,
+        "south-west": 17,
+        "north-east": 17,
+        "north-west": 17
+      },
+      "frameMs": 85,
+      "loop": false
+    }
+  },
+  "anchors": {
+    "south-east": {
+      "originX": 0.5,
+      "originY": 0.8671875
+    },
+    "south-west": {
+      "originX": 0.5,
+      "originY": 0.8671875
+    },
+    "north-east": {
+      "originX": 0.5,
+      "originY": 0.8828125
+    },
+    "north-west": {
+      "originX": 0.5,
+      "originY": 0.8828125
+    }
+  },
+  "facing": {
+    "columns": 1,
+    "counts": {
+      "south-east": 1,
+      "south-west": 1,
+      "north-east": 1,
+      "north-west": 1
     }
   }
 }

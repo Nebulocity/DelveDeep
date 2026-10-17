@@ -151,7 +151,10 @@ export function showGuildDetails(scene, details) {
     // undefined.
     const frame = CHARACTER_SPRITES[hero.id]?.clips.idle.south.frames[0];
     guildSurface(scene, left + 235, top + 405, 290, 350, 'panel').setDepth(depth + 4);
-    if (frame && scene.textures.exists(frame.key)) scene.add.image(left + 235, top + 407, frame.key, frame.frame).setDisplaySize(256, 256).setDepth(depth + 5);
+
+    // Registry artwork shares the roster's portrait correction, including Vaeloria.
+    const portraitSize = 256 * (CHARACTER_SPRITES[hero.id]?.portraitScale ?? 1);
+    if (frame && scene.textures.exists(frame.key)) scene.add.image(left + 235, top + 407, frame.key, frame.frame).setDisplaySize(portraitSize, portraitSize).setDepth(depth + 5);
     const columnX = left + 970;
     const identity = text(scene, columnX, top + 237, `${hero.shortName ?? hero.className} · ${hero.role} · Level ${hero.level}`, UI_FONT_SIZES.body36, {
       wordWrap: { width: 970 }, align: 'center', fontStyle: UI_FONT_WEIGHTS.bold

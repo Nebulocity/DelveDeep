@@ -1,4 +1,4 @@
-import { Capacitor } from '@capacitor/core';
+import { deliverCombatLog } from '../services/CombatLogFiles.js';
 import { LEGACY_KEYS, initializeDiagnosticStorage, diagnosticRead, diagnosticTransaction,
   storageWarning, storageMessages } from './DiagnosticStorage.js';
 
@@ -321,22 +321,6 @@ export async function stopCombatLogging() {
   await flushCombatRecording();
 }
 
-function deliverText(text, filename) {
-  if (Capacitor.isNativePlatform()) {
-    const dialog = document.createElement('dialog');
-    dialog.style.cssText = 'width:85vw;height:75vh;background:#292524;color:#fff1d2;padding:20px;';
-    const title = document.createElement('p'); title.textContent = 'Combat recording (select and copy to share)';
-    const contents = document.createElement('textarea'); contents.readOnly = true; contents.value = text;
-    contents.setAttribute('aria-label', 'Combat recording'); contents.style.cssText = 'width:100%;height:70%;font-size:16px;';
-    const close = document.createElement('button'); close.textContent = 'Close'; close.style.cssText = 'min-height:44px;';
-    close.onclick = () => dialog.close(); dialog.onclose = () => dialog.remove();
-    dialog.append(title, contents, close); document.body.append(dialog); dialog.showModal(); return;
-  }
-  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
-  const link = document.createElement('a'); link.href = url; link.download = filename;
-  document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
 export async function exportCombatRecording(id = current?.id) {
   await combatRecordingReady;
   await flushCombatRecording();
@@ -365,8 +349,8 @@ export async function exportCombatRecording(id = current?.id) {
   const result = { ...session, incomplete: session.incomplete || archiveReadFailed,
     archiveReadFailed, warnings: storageMessages(), encounters: [...encounters.values()] };
   if (archiveReadFailed) storageWarning('export-partial', 'The stored archive could not be read. This export contains only data still in memory and is marked incomplete.');
-  deliverText(JSON.stringify(result, null, 2), `delve-combat-session-${session.startedAt.replace(/[:.]/g, '-')}.json`);
-  return !archiveReadFailed;
+  const delivered = await deliverCombatLog(JSON.stringify(result, null, 2), `delve-combat-session-${session.startedAt.replace(/[:.]/g, '-')}.json`);
+  return delivered && !archiveReadFailed;
 }
 
 export async function showCombatArchives() {
@@ -375,13 +359,13 @@ export async function showCombatArchives() {
   dialog.style.cssText = 'width:85vw;max-height:80vh;overflow:auto;background:#292524;color:#fff1d2;padding:20px;font:18px sans-serif;';
   const title = document.createElement('h2'); title.textContent = 'Combat recordings'; dialog.append(title);
   const note = document.createElement('p');
-  note.textContent = 'Export and verify downloaded files before removing archives. Cleanup only affects the selected combat log; player saves and settings are never removed.';
+  note.textContent = 'Save or share and verify the JSON file before removing archives. Cleanup only affects the selected combat log; player saves and settings are never removed.';
   dialog.append(note);
   const add = (label, action) => {
     const button = document.createElement('button'); button.textContent = label;
     button.style.cssText = 'min-height:44px;margin:6px;';
     button.onclick = async () => { button.disabled = true; try { await action(button); }
-      catch { storageWarning('archive-operation', 'Combat archive operation failed. Existing data was preserved where possible.'); }
+      catch (error) { storageWarning('archive-operation', `Combat archive operation failed. ${error?.message ?? 'Try exporting again.'} Your recording remains available in the app.`); }
       finally { if (button.isConnected) button.disabled = false; } };
     dialog.append(button); return button;
   };
@@ -418,7 +402,9 @@ export async function showCombatArchives() {
     const versions = [...new Set([archive?.raw, local].filter(Boolean))];
     for (const [index, raw] of versions.entries()) {
       const label = document.createElement('p'); label.textContent = `${key} (legacy copy ${index + 1})`; dialog.append(label);
-      add('Export original legacy data', () => { deliverText(raw, `${key}-legacy.json`); exportedLegacy.set(raw, true); });
+      add('Export original legacy data', async () => {
+        if (await deliverCombatLog(raw, `${key}-legacy.json`)) exportedLegacy.set(raw, true);
+      });
       add('Clean up this exported legacy copy…', async button => {
         if (!exportedLegacy.has(raw)) { storageWarning('legacy-export-first', 'Export and verify this exact legacy copy before cleanup.'); return; }
         if (!globalThis.confirm('Have you verified this exported legacy log? Remove this exact combat copy from browser storage? Player saves and settings are kept.')) return;

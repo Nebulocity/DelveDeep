@@ -311,6 +311,7 @@ export default class TitleScene extends Phaser.Scene {
       });
 
     addLabel(2, 'Combat logging');
+
     const loggingToggle = addButton(firstX, rowY(2), isCombatLogging() ? 'STOP LOGGING' : 'START LOGGING', 0, 0, async () => {
       HapticsService.confirm();
       loggingToggle.button.disableInteractive();
@@ -332,6 +333,7 @@ export default class TitleScene extends Phaser.Scene {
         }
       }
     }, '#ffffff', 360);
+    
     setRegionPanelState(this, loggingToggle.button, isCombatLogging() ? 'selected' : 'normal');
 
     addLabel(3, 'Recorded fights');

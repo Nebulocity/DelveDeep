@@ -26,7 +26,7 @@ function setTrainingLevel(hero, level) {
   let remaining = level;
   const ranks = {};
   for (const [key, ability] of abilityEntries(hero)) {
-    let rank = ability.starter ? 1 : 0;
+    let rank = ability.starter || ability.innate ? 1 : 0;
     const wanted = hero.abilityRanks?.[key] ?? rank;
     while (rank < wanted && hero.level >= abilityLevelRequired(hero, key, rank + 1)
       && remaining >= abilitySkillPointCost(rank + 1)) {

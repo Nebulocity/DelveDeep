@@ -50,7 +50,8 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "healthPayer": "None",
     "tickInterval": 2000,
     "starterFor": [
-      "Ranger"
+      "Ranger",
+      "Scoundrel"
     ],
     "trigger": "When useful and ready; respects player orders.",
     "limits": "Same named status refreshes instead of stacking; beneficial amounts cap at missing resources; control respects immunity.",
@@ -3774,18 +3775,20 @@ export const REPLACEMENT_ABILITY_ROWS = [
   {
     "id": "ability_v2_scoundrel_stealth",
     "name": "Stealth",
+    "innate": true,
+    "stealthDamageMultiplier": 1.5,
     "className": "Scoundrel",
     "category": "Prepare",
     "targetLabel": "Self",
     "primary": {
-      "text": "The Scoundrel cannot be directly targeted by enemies during the duration, until committing an attack.",
+      "text": "The Scoundrel cannot be directly targeted by enemies during the duration, until committing another ability.",
       "potency": 0,
       "unit": "Binary / fixed rule",
       "basis": "None",
       "cap": null
     },
     "secondary": {
-      "text": "Enables Sneak Attack; area damage can still hit the Scoundrel.",
+      "text": "The first ability used from Stealth deals 50% more damage and ends Stealth. Enables Sneak Attack; area damage can still hit the Scoundrel.",
       "potency": 0,
       "unit": "Binary / fixed rule",
       "basis": "None",
@@ -3811,9 +3814,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "healthFraction": 0,
     "healthPayer": "None",
     "tickInterval": 0,
-    "starterFor": [
-      "Scoundrel"
-    ],
+    "starterFor": [],
     "trigger": "When useful and ready; respects player orders.",
     "limits": "Preserves accumulated threat; direct targeting resumes when Stealth ends.",
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
@@ -5367,7 +5368,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "name": "Essence Drain",
     "className": "Umbral Mage",
     "category": "Restore",
-    "targetLabel": "Single ally or self",
+    "targetLabel": "Single enemy",
     "primary": {
       "text": "Drains [x] Mana from one mana-using enemy.",
       "potency": 0.1,

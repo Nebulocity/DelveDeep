@@ -39,10 +39,11 @@ export function healingUrgency(scene, target) {
 
 // Reserve only the expected restoration, never overhealing. Multiple healers then see
 // what remains to be treated rather than all choosing the same nearly healed ally.
+// A power callback lets mixed-resource casts calculate Health separately per recipient.
 export function reserveHealing(actor, targets, power) {
   if (!actor.pendingAction) return;
   actor.pendingAction.healingReservations = Object.fromEntries(targets.map(target =>
-    [target.id, Math.min(target.maxHp - target.hp, power)]));
+    [target.id, Math.max(0, Math.min(target.maxHp - target.hp, typeof power === 'function' ? power(target) : power))]));
 }
 
 // Avoid paying a long cooldown for a scratch. Critical allies bypass efficiency checks.

@@ -4,6 +4,10 @@
 // forget a unit after nothing else refers to it, which helps avoid stale paths.
 
 import combatSpacing from '../config/combatSpacing.js';
+import { arenaDistance } from '../config/combatRanges.js';
+import { beneficialZones, positionZoneValue, zoneAttackRate, zoneMoveSpeed } from './BeneficialZones.js';
+import { damageEstimate } from './AbilityUsefulness.js';
+import { createTacticalContext } from './TacticalUsefulness.js';
 
 // This class picks safe destinations and keeps units from crowding each other. BattleUnit
 // still controls movement speed and screen projection.
@@ -25,6 +29,7 @@ export default class CombatMovement {
     // WeakMap stores object references without keeping unused objects alive. That is
     // useful for temporary per-object bookkeeping.
     this.paths = new WeakMap();
+    this.zoneChoices = new WeakMap();
   }
 
   // Collect living, active combatants that have finished their landing.
@@ -371,23 +376,101 @@ export default class CombatMovement {
 
   // Choose a reachable position near this target while making room for other units. unit
   // is the live combatant, with current resources and arena position.
+  meleeSlotPoint(unit, target, index) {
+    const radius = Math.min(Math.max(unit.role === 'Tank' ? this.config.tankRange : this.config.meleeRange,
+      (unit.bodyRadius ?? 0) + (target.bodyRadius ?? 0) + this.config.personalSpaceGap),
+    unit.attackRange + this.config.meleeReachPadding - this.config.arrival);
+    const angle = index * Math.PI * 2 / this.config.meleeSlots;
+    return { x: target.arenaX + Math.cos(angle) * radius, y: target.arenaY + Math.sin(angle) * radius };
+  }
+
+  // A buff is only a preference among positions that preserve role, flank and safety.
+  // Straight-route sampling is conservative; normal moveToward still owns navigation.
+  usefulZoneRoute(unit, target, point) {
+    const distance = arenaDistance(unit, point), melee = this.isMeleeUnit(unit);
+    const flank = this.scene.tactics?.tactics?.meleePosition;
+    if (unit.role === 'Melee DPS' && (flank === 'left' && point.x > target.arenaX
+      || flank === 'right' && point.x < target.arenaX)) return false;
+    const reach = unit.attackRange + (melee ? this.config.meleeReachPadding : 0) - this.config.arrival;
+    if (arenaDistance(point, target) > reach) return false;
+    const blockers = [...this.getLivingCombatUnits(), ...this.getFallenPartyUnits()].filter(other => other !== unit);
+    const steps = Math.max(1, Math.ceil(distance / 12));
+    for (let i = 0; i <= steps; i++) {
+      const sample = { x: unit.arenaX + (point.x - unit.arenaX) * i / steps,
+        y: unit.arenaY + (point.y - unit.arenaY) * i / steps };
+      const safe = this.getSafeArenaPoint(sample.x, sample.y, unit);
+      if (arenaDistance(sample, safe) > 1 || this.scene.terrain?.isUnitBlocked(unit, sample.x, sample.y, 12)) return false;
+      if ((this.scene.activeTelegraphs ?? []).some(warning => arenaDistance(sample, warning) <= warning.radius + (unit.bodyRadius ?? 20))) return false;
+      if (blockers.some(other => arenaDistance(other, sample) < Math.min(arenaDistance(other, unit),
+        this.getRequiredUnitSpacing(unit, other)) - .001)) return false;
+      if (!melee && this.scene.getLivingEnemies().some(enemy => arenaDistance(sample, enemy)
+        < (unit.role === 'Healer' ? this.config.healerMin : this.config.rangedMin))) return false;
+    }
+    return true;
+  }
+
+  // Called after special-action selection but before a routine basic or ordinary
+  // positioning. Decisions use combat time and transient caches, never saved plans.
+  tryUsefulZoneMove(unit, time, delta, basic = null) {
+    if (unit.isEnemy || basic?.kind === 'mend' || unit.stealthed
+      || this.scene.isPositionLocked(unit) || this.scene.manualTargets?.has(unit.id)
+      || !unit.canStartAction(time) || unit.status.rootedUntil > time
+      || unit.status.replacementCostRootUntil > time || unit.status.replacementChannel?.until > time) return false;
+    const system = this.scene.classAbilitySystem?.replacement;
+    if (!system) return false;
+    if (unit.role === 'Healer' && system.allies().some(ally => ally.hp / ally.maxHp < .8)) return false;
+    const target = this.scene.getPrimaryTarget(unit, false);
+    if (!target) return false;
+    const cached = this.zoneChoices.get(unit);
+    if (cached?.next > time) {
+      if (cached.target !== target || !cached.point || cached.until <= time
+        || !cached.zones.some(zone => zone.owner.alive && zone.record.until > time + 500
+          && zone.owner.status.replacementZones?.includes(zone.record)
+          && zone.record.wave === this.scene.currentWaveIndex)
+        || arenaDistance(unit, cached.point) <= this.config.arrivalTolerance
+        || !this.usefulZoneRoute(unit, target, cached.point)) return false;
+      unit.moveToward(cached.point.x, cached.point.y, delta, this.config.arrival);
+      return true;
+    }
+    this.zoneChoices.set(unit, { next: time + this.config.slotRecheckMs });
+    const zones = beneficialZones(system, time).filter(zone => zone.until > time + 1500
+      && arenaDistance(unit, zone.point) <= zone.ability.radius + 80);
+    if (!zones.length) return false;
+    const context = createTacticalContext(system, time);
+    if (context.risk(unit).tier >= 2) return false;
+    const current = positionZoneValue(context, zones, unit, unit, damageEstimate);
+    const rate = Math.max(basic?.assessment.score ?? 0, zoneAttackRate(context, unit, unit, damageEstimate));
+    const melee = this.isMeleeUnit(unit);
+    const points = melee ? Array.from({ length: this.config.meleeSlots }, (_, index) =>
+      ({ ...this.meleeSlotPoint(unit, target, index), index })) : zones.slice(0, 4).map(zone => {
+      const distance = arenaDistance(unit, zone.point);
+      const fraction = Math.max(0, distance - zone.ability.radius + 24) / Math.max(1, distance);
+      return { x: unit.arenaX + (zone.point.arenaX - unit.arenaX) * fraction,
+        y: unit.arenaY + (zone.point.arenaY - unit.arenaY) * fraction };
+    });
+    let best = null, bestGain = .02;
+    for (const point of points) {
+      const distance = arenaDistance(unit, point);
+      const travel = distance / Math.max(1, zoneMoveSpeed(unit, time));
+      if (distance <= this.config.arrivalTolerance || distance > 80 || travel > .6) continue;
+      if (melee && [...this.slots.entries()].some(([owner, claim]) => owner !== unit && owner.alive
+        && claim.target === target && claim.index === point.index && time - claim.usedAt <= this.config.slotLeaseMs)) continue;
+      if (!this.usefulZoneRoute(unit, target, point)) continue;
+      const gain = positionZoneValue(context, zones, unit, point, damageEstimate, travel * 1000) - current - rate * travel;
+      if (gain > bestGain) { best = point; bestGain = gain; }
+    }
+    if (!best) return false;
+    const until = Math.min(time + 1200, ...zones.filter(zone => arenaDistance(best, zone.point) <= zone.ability.radius).map(zone => zone.until - 500));
+    this.zoneChoices.set(unit, { target, point: best, until, next: time + 1500,
+      zones: zones.filter(zone => positionZoneValue(context, [zone], unit, best, damageEstimate) > 0) });
+    if (melee) this.slots.set(unit, { target, index: best.index, usedAt: time, recheckAt: time + this.config.slotRecheckMs });
+    else this.rangeStates.set(unit, { target, direction: 0, settled: true });
+    unit.moveToward(best.x, best.y, delta, this.config.arrival);
+    return true;
+  }
+
   getMeleeApproachPosition(unit, target, time) {
     const spacingConfig = this.config;
-
-    // Keep both sprites apart while staying close enough for a center-based attack range.
-    // The shared reach allowance lets melee attack without walking into the target's
-    // sprite.
-    const desiredRadius = Math.max(
-      unit.role === 'Tank' ? spacingConfig.tankRange : spacingConfig.meleeRange,
-      (unit.bodyRadius ?? 0) + (target.bodyRadius ?? 0) + spacingConfig.personalSpaceGap
-    );
-
-    // Math.min chooses the smallest value; pairing it with Math.max can keep a result
-    // inside both a lower and an upper bound.
-    const approachRadius = Math.min(
-      desiredRadius,
-      unit.attackRange + spacingConfig.meleeReachPadding - spacingConfig.arrival
-    );
 
     for (const [slotOwner, slotClaim] of this.slots) {
 
@@ -399,17 +482,7 @@ export default class CombatMovement {
       }
     }
 
-    const getSlotPosition = slotIndex => {
-      const slotAngle = slotIndex * Math.PI * 2 / spacingConfig.meleeSlots;
-
-      // Angles are radians. cos(angle) gives the horizontal part of a circle; sin(angle)
-      // gives the vertical part. Multiplying by a radius turns those fractions into
-      // offsets.
-      return {
-        x: target.arenaX + Math.cos(slotAngle) * approachRadius,
-        y: target.arenaY + Math.sin(slotAngle) * approachRadius
-      };
-    };
+    const getSlotPosition = slotIndex => this.meleeSlotPoint(unit, target, slotIndex);
 
     let slotClaim = this.slots.get(unit);
     const isSafeSlotPosition = slotPosition => {
@@ -429,6 +502,9 @@ export default class CombatMovement {
       // It does not deep-copy the objects inside.
       const otherClaims = [...this.slots.entries()]
         .filter(([slotOwner, otherClaim]) => slotOwner !== unit && otherClaim.target === target);
+      const system = this.scene.classAbilitySystem?.replacement;
+      const zones = !unit.isEnemy && system ? beneficialZones(system, time) : [];
+      const context = zones.length ? createTacticalContext(system, time) : null;
       const possibleSlots = Array.from({ length: spacingConfig.meleeSlots }, (_, slotIndex) => {
         const slotPosition = getSlotPosition(slotIndex);
 
@@ -476,6 +552,8 @@ export default class CombatMovement {
         return {
           index: slotIndex,
           score: occupiedSlotPenalty + safetyPenalty + flankPenalty + distanceToSlot + nearbyCrowding * 2
+            - (context && !isWrongFlank && this.usefulZoneRoute(unit, target, slotPosition)
+              ? Math.min(35, positionZoneValue(context, zones, unit, slotPosition, damageEstimate) * 100) : 0)
         };
       });
 

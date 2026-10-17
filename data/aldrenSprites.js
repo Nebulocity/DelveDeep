@@ -37,4 +37,5 @@ clips.dead = Object.fromEntries(Object.entries(clips.death).map(([direction, cli
 
 // The new drawing is shorter within its cell. This scale keeps his battlefield height
 // close to the other adventurers; footY retains the shared 30-unit floor offset.
-export const ALDREN_SPRITES = { textures, clips, scale: 0.8, footY: 30 };
+// Enlarge fixed-size portraits to roughly match Vaeloria's visible height.
+export const ALDREN_SPRITES = { textures, clips, scale: 0.8, portraitScale: 1.12, footY: 30 };

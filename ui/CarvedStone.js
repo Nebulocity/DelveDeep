@@ -264,6 +264,10 @@ export function stoneIcon(scene, x, y, kind, size = 42, depth = 4602, color = 0x
     g.fillTriangle(-14, -10, -28, -24, -23, 3).fillTriangle(14, -10, 28, -24, 23, 3);
     g.fillStyle(0x21131e).fillTriangle(-13, -5, -3, 0, -10, 6).fillTriangle(13, -5, 3, 0, 10, 6);
     g.fillTriangle(0, 4, -4, 12, 4, 12);
+  } else if (kind === 'MAP') {
+    g.strokeCircle(0, -8, 14);
+    g.lineBetween(-12, 0, 0, 23).lineBetween(0, 23, 12, 0);
+    g.fillCircle(0, -8, 5);
   } else if (kind === 'RETREAT') {
     g.lineBetween(18, 0, -17, 0).lineBetween(-17, 0, -4, -13).lineBetween(-17, 0, -4, 13);
   } else {

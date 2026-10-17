@@ -3,6 +3,9 @@
 
 import { fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import Phaser from 'phaser';
+import { diagnosticSettings, setDiagnosticSettings, DIAGNOSTIC_LEVELS } from '../combat/CombatDiagnostics.js';
+import { isCombatLogging, startCombatLogging, stopCombatLogging, exportCombatRecording,
+  showCombatArchives, combatRecordingReady } from '../combat/CombatRecording.js';
 import GameState from '../game/GameState.js';
 import HapticsService from '../services/HapticsService.js';
 import { saveProfile, clearSavedProfile } from '../game/GameStorage.js';
@@ -15,6 +18,8 @@ import { hideLoadingScreenAfterRender } from '../ui/LoadingScreen.js';
 import { createScrollingWorldMap, updateScrollingWorldMap } from './ScrollingWorldMap.js';
 import { addRegionPanel, addRegionNotice, setRegionPanelState, regionMessageBounds } from '../ui/RegionMapTheme.js';
 import { showConfirmation } from '../ui/ConfirmationDialog.js';
+import { resolveWorldMapCharacter } from '../game/WorldMapCharacter.js';
+import { CHARACTER_SPRITES } from '../data/characterSprites.js';
 
 export default class TitleScene extends Phaser.Scene {
 
@@ -22,6 +27,22 @@ export default class TitleScene extends Phaser.Scene {
   // instance and can be reused by its other methods.
   constructor() {
     super('TitleScene');
+  }
+
+  // Load only the chosen adventurer's map animations. The default sprite stays in Boot.
+  preload() {
+    const previousId = GameState.world.mapCharacterId;
+    const hero = resolveWorldMapCharacter();
+    if (previousId !== GameState.world.mapCharacterId) saveProfile();
+    const definition = CHARACTER_SPRITES[hero?.id];
+    if (!definition) return;
+    const keys = new Set(['idle', 'walk'].flatMap(state =>
+      Object.values(definition.clips[state]).flatMap(clip => clip.frames.map(frame => frame.key))));
+    for (const texture of definition.textures) {
+      if (keys.has(texture.key) && !this.textures.exists(texture.key)) {
+        this.load.spritesheet(texture.key, texture.url, { frameWidth: 256, frameHeight: 256 });
+      }
+    }
   }
 
   // We build this screen and connect its input after the queued assets are ready. Display
@@ -45,7 +66,9 @@ export default class TitleScene extends Phaser.Scene {
 
   // Normal Settings keeps its existing controls. Seven taps on its heading open the
   // separate testing window in every build during the friends playtest.
-  showDevelopmentTools(devSettings = false) {
+  async showDevelopmentTools(devSettings = false) {
+    await combatRecordingReady;
+    if (!this.sys.isActive()) return;
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
@@ -153,6 +176,28 @@ export default class TitleScene extends Phaser.Scene {
 
       // These grants use the same caps and rewards as normal progression. No unlock
       // is saved for the window itself; only changes deliberately made here persist.
+      objects.push(this.add.text(firstX + 180, rowY(0), 'Combat logs', {
+        fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body32'), color: '#fff1d2'
+      }).setOrigin(0, 0.5).setDepth(depth + 3));
+      const diagnosticsToggle = addButton(firstX + 700, rowY(0), diagnosticSettings().level, 0, 0, () => {
+        HapticsService.tap();
+        const settings = diagnosticSettings();
+        const level = DIAGNOSTIC_LEVELS[(DIAGNOSTIC_LEVELS.indexOf(settings.level) + 1) % DIAGNOSTIC_LEVELS.length];
+        setDiagnosticSettings({ level });
+        diagnosticsToggle.caption.setText(level);
+        this.showToast('Diagnostic level applies to the next encounter.');
+      }, '#ffffff', 380);
+      objects.push(this.add.text(firstX + 180, rowY(1), 'Inactivity', {
+        fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body32'), color: '#fff1d2'
+      }).setOrigin(0, 0.5).setDepth(depth + 3));
+      const inactivityToggle = addButton(firstX + 700, rowY(1), `${diagnosticSettings().inactivityMs / 1000}s`, 0, 0, () => {
+        HapticsService.tap();
+        const choices = [2000, 5000, 10000];
+        const inactivityMs = choices[(choices.indexOf(diagnosticSettings().inactivityMs) + 1) % choices.length];
+        setDiagnosticSettings({ inactivityMs });
+        inactivityToggle.caption.setText(`${inactivityMs / 1000}s`);
+      }, '#ffffff', 380);
+
       addLabel(0, 'Map testing');
       const mapToggle = addButton(firstX, rowY(0), GameState.development.mapTestingEnabled ? 'ON' : 'OFF', 0x08192e, 0x00f2fa, () => {
         HapticsService.confirm();
@@ -264,6 +309,36 @@ export default class TitleScene extends Phaser.Scene {
         musicToggle.caption.setText(enabled ? 'ON' : 'OFF');
         setRegionPanelState(this, musicToggle.button, enabled ? 'selected' : 'normal');
       });
+
+    addLabel(2, 'Combat logging');
+    const loggingToggle = addButton(firstX, rowY(2), isCombatLogging() ? 'STOP LOGGING' : 'START LOGGING', 0, 0, async () => {
+      HapticsService.confirm();
+      loggingToggle.button.disableInteractive();
+      try {
+        if (isCombatLogging()) {
+          await stopCombatLogging();
+          await exportCombatRecording();
+        } else {
+          await startCombatLogging();
+          if (isCombatLogging()) this.showToast('Logging started. Fights are recorded until you stop logging.');
+        }
+      } catch {
+        this.showToast('Recording export failed. Keep the page open and use Export log to try again.');
+      } finally {
+        if (loggingToggle.button.active) {
+          loggingToggle.caption.setText(isCombatLogging() ? 'STOP LOGGING' : 'START LOGGING');
+          setRegionPanelState(this, loggingToggle.button, isCombatLogging() ? 'selected' : 'normal');
+          loggingToggle.button.setInteractive({ useHandCursor: true });
+        }
+      }
+    }, '#ffffff', 360);
+    setRegionPanelState(this, loggingToggle.button, isCombatLogging() ? 'selected' : 'normal');
+
+    addLabel(3, 'Recorded fights');
+    addButton(firstX, rowY(3), 'EXPORT LOG', 0, 0, () => {
+      HapticsService.tap();
+      void showCombatArchives();
+    }, '#ffffff', 360);
 
     addLabel(1, 'Reset progress');
     addButton(firstX, rowY(1), 'RESET', 0x7f1d1d, 0xf87171, () => {

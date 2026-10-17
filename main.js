@@ -3,12 +3,14 @@
 // progress survive a screen change.
 
 import Phaser from 'phaser';
+import { combatRecordingReady } from './combat/CombatRecording.js';
 import gameConfig from './config/gameConfig.js';
 import BackgroundProgress from './services/BackgroundProgress.js';
 import HapticsService from './services/HapticsService.js';
 import { settleEverdeep } from './game/Everdeep.js';
 import MusicService from './services/MusicService.js';
 
+void combatRecordingReady;
 const game = new Phaser.Game(gameConfig);
 game.music = new MusicService(game);
 

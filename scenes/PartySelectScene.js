@@ -17,6 +17,7 @@ import { getEquippedAdventurer } from '../game/Equipment.js';
 import HapticsService from '../services/HapticsService.js';
 import { happinessLabel } from '../game/AdventurerProgression.js';
 import { saveProfile } from '../game/GameStorage.js';
+import { resolveWorldMapCharacter } from '../game/WorldMapCharacter.js';
 import { everdeepUnavailableIds } from '../game/Everdeep.js';
 
 const MAX_PARTY_SIZE = 5;
@@ -76,7 +77,7 @@ export default class PartySelectScene extends Phaser.Scene {
   preload() {
     preloadCarvedStone(this);
     for (const definition of Object.values(CHARACTER_SPRITES)) {
-      const frame = definition.clips.idle.south.frames[0];
+      const frame = definition.portraitFrame ?? definition.clips.idle.south.frames[0];
 
       // find returns the first matching entry, or undefined when none matches. Check for
       // that missing result before using its fields.
@@ -242,7 +243,7 @@ export default class PartySelectScene extends Phaser.Scene {
       // ?. only follows this link when the value exists; a missing optional value gives
       // undefined.
       const sprite = CHARACTER_SPRITES[adventurer.id];
-      const frame = sprite?.clips.idle.south.frames[0];
+      const frame = sprite?.portraitFrame ?? sprite?.clips.idle.south.frames[0];
       const portraitX = contentCenterX - cardWidth / 2 + 62;
 
       // Compensate for extra transparent padding using the character's portrait multiplier.
@@ -591,6 +592,7 @@ export default class PartySelectScene extends Phaser.Scene {
       .filter((adventurer) => this.selectedIds.has(adventurer.id))
       .map((adventurer) => ({ ...adventurer }));
     GameState.lastPartyIds = GameState.activeParty.map((adventurer) => adventurer.id);
+    resolveWorldMapCharacter();
     saveProfile();
     this.scene.start('DungeonScene');
   }
@@ -613,6 +615,8 @@ export default class PartySelectScene extends Phaser.Scene {
     ].filter(Boolean).join('\n');
 
     showSelectionDetails(this, { title: adventurer.name, className: adventurer.className,
+      mapCharacterId: adventurer.id,
+      mapCharacterParty: GameState.roster.filter(hero => this.selectedIds.has(hero.id)),
       classHeader: adventurer.shortName ?? adventurer.className,
       description: `${adventurer.className}\n\n${stats}\n\n${adventurer.description ?? ''}` });
   }

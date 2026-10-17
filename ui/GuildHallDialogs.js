@@ -149,7 +149,7 @@ export function showGuildDetails(scene, details) {
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
-    const frame = CHARACTER_SPRITES[hero.id]?.clips.idle.south.frames[0];
+    const frame = CHARACTER_SPRITES[hero.id]?.portraitFrame ?? CHARACTER_SPRITES[hero.id]?.clips.idle.south.frames[0];
     guildSurface(scene, left + 235, top + 405, 290, 350, 'panel').setDepth(depth + 4);
 
     // Registry artwork shares the roster's portrait correction, including Vaeloria.

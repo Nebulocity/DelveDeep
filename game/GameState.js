@@ -34,6 +34,7 @@ const GameState = {
   },
 
   world: {
+    mapCharacterId: null,
     currentLocation: 'pineshire',
     discoveredLocations: ['pineshire', 'slime-cave'],
     clearedDelves: [],

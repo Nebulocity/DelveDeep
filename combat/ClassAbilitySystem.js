@@ -11,6 +11,7 @@ import { arenaDistance, ADJACENT_DISTANCE } from '../config/combatRanges.js';
 import { findAbilityEffect } from '../data/abilityEffects.js';
 import { incomingPressure, missingHealth, healingUrgency, reserveHealing, usefulHeal } from './CombatDecisions.js';
 import ReplacementAbilitySystem from './ReplacementAbilitySystem.js';
+import { basicCandidates } from './AbilityUsefulness.js';
 
 // Convert logical arena distance into the skill system's 100-unit reach measures. scene is
 // the Phaser screen that owns the objects, clock and input used here.
@@ -331,7 +332,26 @@ export default class ClassAbilitySystem {
   update(unit, time, delta, alreadyMoved = false) {
     const scene = this.scene;
     if (!unit.canStartAction(time)) return;
-    if (this.replacement.update(unit, time, delta)) return;
+    const decision = this.replacement.update(unit, time, delta);
+    if (decision.kind === 'acted') return;
+    if (!alreadyMoved && ['basic', 'movement'].includes(decision.kind)
+      && scene.movement.tryUsefulZoneMove(unit, time, delta, decision.action)) return;
+    if (decision.kind === 'basic') {
+
+      // Recheck the exact basic action before commitment. A rejected spell cannot
+      // accidentally hand its turn to an unrelated legacy ability.
+      const action = basicCandidates(this.replacement, unit, time)
+        .find(candidate => candidate.kind === decision.action.kind && candidate.target === decision.action.target);
+      if (action) {
+        if (action.kind === 'mend') scene.beginBasicHeal(unit, action.target, time);
+        else scene.beginBasicAttack(unit, action.target, time, action.attackType);
+        if (unit.pendingAction) {
+          scene.getPrimaryTarget(unit);
+          scene.getHealerPriorityTarget(unit);
+          if (action.kind === 'mend') return;
+        }
+      }
+    }
 
     // Use class data to find available actions, then rank support by the current need.
     const enemies = this.enemies(unit), allies = this.allies();
@@ -339,7 +359,8 @@ export default class ClassAbilitySystem {
     // Current kits use replacement skills. Only healers or a legacy saved kit need this
     // second support ranking after replacement choices finish. Basic attacks and movement
     // below still run normally, including old saved abilities.
-    const legacyChoices = Object.entries(unit.abilities).filter(([, ability]) => !ability.replacement);
+    const legacyChoices = decision.kind === 'legacy' && unit.canCast(time)
+      ? Object.entries(unit.abilities).filter(([, ability]) => !ability.replacement) : [];
     const needsInjured = unit.role === 'Healer' || legacyChoices.length > 0;
 
     // sort rearranges this array in place. A negative comparator result puts a before b;
@@ -510,12 +531,12 @@ export default class ClassAbilitySystem {
     const basicHealTarget = unit.role === 'Healer' && !ordered
       ? (healingPriority ? [healingPriority] : injured)
         .find(target => missingHealth(scene, target) > 0 && this.distance(unit, target) <= unit.basicHealRange) : null;
-    if (basicHealTarget && unit.canCast(time) && unit.canHeal(time)) {
+    if (decision.kind === 'legacy' && basicHealTarget && unit.canCast(time) && unit.canHeal(time)) {
       scene.beginBasicHeal(unit, basicHealTarget, time);
       return;
     }
 
-    if (!healingNeeded && !unit.stealthed && preferred && scene.isWithinAttackReach(unit, preferred) && unit.canAttack(time)) {
+    if (decision.kind === 'legacy' && !healingNeeded && !unit.stealthed && preferred && scene.isWithinAttackReach(unit, preferred) && unit.canAttack(time)) {
       scene.beginBasicAttack(unit, preferred, time, ['Tank', 'Melee DPS'].includes(unit.role) ? 'melee' : unit.className === 'Ranger' ? 'ranged' : 'spell');
     }
 
@@ -532,7 +553,10 @@ export default class ClassAbilitySystem {
   // skill data, including its current rank values.
   bestLine(unit, ability, candidates) {
     let best = null, score = 0;
-    for (const target of candidates) {
+    const anchors = candidates.filter(target => this.distance(unit, target) > 0 && this.distance(unit, target) <= ability.range);
+    const allowed = ability.effect === 'heal' ? anchors : this.replacement.commandAnchors(unit, anchors,
+      target => candidates.filter(other => beamContains(this.scene, unit, target, other, this.distance(unit, target) + .001)));
+    for (const target of allowed) {
       const length = this.distance(unit, target);
       if (!length || length > ability.range) continue;
 
@@ -553,7 +577,10 @@ export default class ClassAbilitySystem {
   // data, including its current rank values.
   bestZone(unit, ability, candidates) {
     let best = null, score = 0;
-    for (const target of candidates) {
+    const anchors = candidates.filter(target => this.distance(unit, target) <= ability.range);
+    const allowed = ability.effect === 'heal' ? anchors : this.replacement.commandAnchors(unit, anchors,
+      target => candidates.filter(other => zoneContains(this.scene, other, target, ability.zone)));
+    for (const target of allowed) {
       if (this.distance(unit, target) > ability.range) continue;
 
       // filter keeps entries whose callback returns true. It builds a new list and leaves
@@ -582,13 +609,18 @@ export default class ClassAbilitySystem {
     // replace earlier ones. This is a shallow copy, so nested objects are still shared.
     const a=unit.status.nextRangeBonus && base.effect === 'damage'
       ? { ...base, range: base.range + unit.status.nextRangeBonus } : base;
+    if (['damage', 'mark'].includes(a.effect) && (a.zone || a.endpoint)) {
+      const candidates = this.enemies(unit);
+      target = a.endpoint ? this.bestLine(unit, a, candidates) : this.bestZone(unit, a, candidates);
+      if (!target) return;
+    }
     const useWindupBonus = !unit.status.nextWindupProtectOnly || a.effect === 'protect';
 
     // Math.max chooses the largest value; pairing it with Math.min can keep a result
     // inside both a lower and an upper bound. ?? uses the fallback only for null or
     // undefined. A real zero or false stays intact.
     const windup = Math.max(100, Math.round(a.windup * (1 - (useWindupBonus ? unit.status.nextWindupReduction ?? 0 : 0))));
-    if(!unit.startAction(a.name,time,windup)) return;
+    if(!unit.startAction(a.name,time,windup,target,a)) return;
     if (useWindupBonus) {
       unit.status.nextWindupReduction = 0;
       unit.status.nextWindupProtectOnly = false;
@@ -631,13 +663,14 @@ export default class ClassAbilitySystem {
     // ranked definition, so an old encounter does not change kits during a respec.
     if (a.replacement) {
       const valid = target && (target.alive || a.handler === 'revive');
-      if (valid && (target === unit || this.distance(unit, target) <= a.range)) {
+      const inRange = valid && (target === unit || this.distance(unit, target) <= a.range);
+      if (inRange) {
         if (a.handler === 'chargeLine') {
           const charge = { ...a, charge: true, replacementOrigin: { arenaX: unit.arenaX, arenaY: unit.arenaY } };
           if (this.startCharge(unit, target, charge, action)) return;
         } else this.replacement.resolve(unit, target, a, scene.time.now);
       }
-      unit.finishAction();
+      unit.finishAction(inRange && a.handler !== 'chargeLine' ? 'resolved' : 'failed', !valid ? 'target_died' : !inRange ? 'target_out_of_range' : a.handler === 'chargeLine' ? 'movement_cancelled' : 'completed', 'Replacement cast resolution eligibility checked');
       return;
     }
 
@@ -645,20 +678,21 @@ export default class ClassAbilitySystem {
     // false.
     if(unit.role === 'Healer' && !a.healRatio && (a.effect === 'damage' || a.effect === 'mark')
       && this.allies().some(ally => ally.hp / ally.maxHp < 0.8)) {
-      unit.finishAction();
+      unit.finishAction('cancelled', 'state_invalidated', 'Healer reprioritized injured allies');
       return;
     }
 
     // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
-    if (target.alive && (target === unit || this.distance(unit, target) <= (a.radius ?? a.range))) {
+    const inRange = target.alive && (target === unit || this.distance(unit, target) <= (a.radius ?? a.range));
+    if (inRange) {
       if (a.charge) {
-        if (!this.startCharge(unit, target, a, action)) unit.finishAction();
+        if (!this.startCharge(unit, target, a, action)) unit.finishAction('failed', 'movement_cancelled', 'Charge could not start');
         return;
       }
       this.resolve(unit,target,a,scene.time.now);
     }
 
-    unit.finishAction();
+    unit.finishAction(inRange ? 'resolved' : 'failed', inRange ? 'completed' : !target.alive ? 'target_died' : 'target_out_of_range', 'Legacy ability resolution eligibility checked');
   }
 
   // Move the caster through the skill's gameplay charge tween and track it for pause and
@@ -685,6 +719,13 @@ export default class ClassAbilitySystem {
       : Math.max(180, Math.min(900, distance / 1100 * 1000));
     unit.charge = { point, startX, startY, duration, elapsed: 0, targetId: target.id, ability };
     unit.busyUntil = scene.time.now + duration;
+    const diagnostic = scene.combatLog?.diagnostics;
+    if (diagnostic?.enabled) {
+      const pending = diagnostic.state().active[diagnostic.actionId(unit)];
+      if (pending) pending.scheduledCompletionAt = unit.busyUntil;
+      diagnostic.emit('action_phase', { actionId: diagnostic.actionId(unit), actorId: unit.id,
+        stateBefore: 'windup', stateAfter: 'charge', scheduledCompletionAt: unit.busyUntil });
+    }
     unit.spriteVisual?.play('walk', target);
     const tween = scene.tweens.addCounter({
       from: 0, to: 1, duration,
@@ -711,7 +752,7 @@ export default class ClassAbilitySystem {
           tween.stop();
           this.chargeTweens.delete(tween);
           unit.charge = null;
-          unit.finishAction();
+          unit.finishAction('cancelled', 'movement_cancelled', 'Charge blocked by terrain');
 
           return;
         }
@@ -726,7 +767,8 @@ export default class ClassAbilitySystem {
         if (!scene.isActionCurrent(unit, action, target)) return;
         unit.setArenaPosition(point.x, point.y);
 
-        if (this.distance(unit, target) <= 1) {
+        const inRange = this.distance(unit, target) <= 1;
+        if (inRange) {
 
           // ?. only follows this link when the value exists; a missing optional value
           // gives undefined.
@@ -734,7 +776,7 @@ export default class ClassAbilitySystem {
           this.resolve(unit, target, ability, scene.time.now, true);
         }
 
-        unit.finishAction();
+        unit.finishAction(inRange ? 'resolved' : 'failed', inRange ? 'completed' : 'target_out_of_range', 'Charge arrival checked target range');
       }
     });
 
@@ -1030,7 +1072,7 @@ export default class ClassAbilitySystem {
       if(a.stun&&t.alive) {
         t.status.stunnedUntil=Math.max(t.status.stunnedUntil??0,time+a.stun);
         t.status.hardStunUntil=Math.max(t.status.hardStunUntil??0,time+a.stun);
-        t.finishAction?.();
+        t.finishAction?.('interrupted', 'stun', 'Legacy skill applied hard stun', { cause: scene.combatLog?.diagnostics?.control(t, a, 'stun', true, 'applied', a.stun, unit) });
       }
 
       if(a.blind&&t.alive) {

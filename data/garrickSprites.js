@@ -47,4 +47,5 @@ clips.dead = Object.fromEntries(Object.entries(clips.death).map(([heading, clip]
 // Garrick stands about 185 native pixels tall. A scale of 0.88 keeps his displayed height
 // near the former 245-pixel drawing at 0.66, while preserving his broader shoulders.
 // footY is the shared 30-unit floor offset; measured origins put his boots on that floor.
-export const GARRICK_SPRITES = { textures, clips, scale: 0.88, footY: 30 };
+// Enlarge fixed-size portraits to roughly match Vaeloria's visible height.
+export const GARRICK_SPRITES = { textures, clips, scale: 0.88, portraitScale: 1.2, footY: 30 };

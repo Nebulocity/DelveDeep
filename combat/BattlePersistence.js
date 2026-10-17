@@ -246,7 +246,7 @@ export function restoreBattle(scene, snapshot) {
 
     if (!target || !scene.classAbilitySystem.startCharge(unit, target, charge.ability, unit.pendingAction, charge)) {
       unit.charge = null;
-      unit.finishAction();
+      unit.finishAction('cancelled', 'movement_cancelled', 'Restored charge has no target or cannot restart');
     }
   }
 

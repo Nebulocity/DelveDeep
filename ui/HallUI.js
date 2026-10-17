@@ -141,7 +141,7 @@ export function addHallFrame(scene, active, message = '') {
 // that owns the objects, clock and input used here.
 export function preloadHallPortraits(scene) {
   for (const definition of Object.values(CHARACTER_SPRITES)) {
-    const frame = definition.clips.idle.south.frames[0];
+    const frame = definition.portraitFrame ?? definition.clips.idle.south.frames[0];
 
     // find returns the first matching entry, or undefined when none matches. Check for
     // that missing result before using its fields.
@@ -157,7 +157,7 @@ export function hallPortrait(scene, hero, x, y, size) {
 
   // ?. only follows this link when the value exists; a missing optional value gives
   // undefined.
-  const frame = CHARACTER_SPRITES[hero.id]?.clips.idle.south.frames[0];
+  const frame = CHARACTER_SPRITES[hero.id]?.portraitFrame ?? CHARACTER_SPRITES[hero.id]?.clips.idle.south.frames[0];
   if (!frame || !scene.textures.exists(frame.key)) return scene.add.circle(x, y, size / 3, hero.color);
   scene.textures.get(frame.key).setFilter(1);
 

@@ -134,7 +134,7 @@ export function finishOfflineFarm(scene) {
     // Resources belong to the existing saved unit, including its original stat totals.
     // Spent potions and once-per-encounter skills stay spent; already fallen allies stay
     // fallen. The elapsed absence creates no new deaths or fabricated damage log entries.
-    unit.finishAction();
+    unit.finishAction('cancelled', 'state_invalidated', 'Offline farming replaces the historical combat state');
     unit.status = {};
     unit.charge = null;
     unit.criticalKnockback = null;

@@ -348,7 +348,7 @@ export default class RosterScene extends Phaser.Scene {
 
       // The condition before ? chooses the first value when true and the value after :
       // when false.
-      const rankStatus = rank ? `Rank ${rank}/10 · ${loadout.includes(key) ? 'Equipped' : 'Learned'}` : 'Not learned';
+      const rankStatus = rank ? `Rank ${rank}/10 · ${ability.innate ? 'Always equipped · No slot' : loadout.includes(key) ? 'Equipped' : 'Learned'}` : 'Not learned';
       const requirement = next <= MAX_ABILITY_RANK && hero.level < level ? ` · Requires level ${level}` : '';
       const summary = abilityDescription(getEquippedAdventurer(hero), rankedAbility(ability, Math.max(1, rank)), { compact: true }).split('Range:')[0].trim();
       hallText(this, 1152, y - 22, summary, UI_FONT_SIZES.hallSkillDetail, { wordWrap: { width: 688 }, maxLines: 2 });
@@ -358,8 +358,8 @@ export default class RosterScene extends Phaser.Scene {
       const status = next > MAX_ABILITY_RANK ? 'Maximum rank' : `Next rank costs ${next} SP and ${cost} Gold to train`;
       hallText(this, 1152, y + 83, status, UI_FONT_SIZES.hallSkillDetail, { wordWrap: { width: 688 }, color: canTrain ? '#ffe0a7' : HALL.muted });
 
-      if (rank) hallButton(this, 1941, y, 178, 112, loadout.includes(key) ? 'Unequip' : 'Equip', () => this.commit(toggleAdventurerAbility(hero.id, key)), {
-        selected: loadout.includes(key), name: `hall-equip-skill-${key}`, size: UI_FONT_SIZES.support29
+      if (rank) hallButton(this, 1941, y, 178, 112, ability.innate ? 'Innate' : loadout.includes(key) ? 'Unequip' : 'Equip', () => this.commit(toggleAdventurerAbility(hero.id, key)), {
+        enabled: !ability.innate, selected: ability.innate || loadout.includes(key), name: `hall-equip-skill-${key}`, size: UI_FONT_SIZES.support29
       });
       hallButton(this, 2165, y, 210, 112, next > MAX_ABILITY_RANK ? 'Max rank' : rank ? 'Train' : 'Learn', () => {
 

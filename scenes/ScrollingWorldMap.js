@@ -8,6 +8,8 @@ import { addRegionPanel } from '../ui/RegionMapTheme.js';
 import { REGION_RAIL_WIDTH, MAP_HEADER_HEIGHT, MAP_FOOTER_HEIGHT, createRegionLocationRail, updateRegionLocationRail, syncRegionMapCameras } from '../ui/RegionMapUI.js';
 import GameState from '../game/GameState.js';
 import garrickLayout from '../assets/characters/garrick/sheets/layout.json' with { type: 'json' };
+import { CHARACTER_SPRITES } from '../data/characterSprites.js';
+import { resolveWorldMapCharacter } from '../game/WorldMapCharacter.js';
 import delves from '../data/delves.js';
 import { saveProfile } from '../game/GameStorage.js';
 
@@ -109,7 +111,7 @@ function createParty(scene) {
   // 0.5 is the center and 1 is the right/bottom edge. x/y place that anchor, not
   // necessarily the object's corner.
   scene.party = scene.add.sprite(x, y, 'world-party-idle', 0)
-    .setDisplaySize(181, 181).setOrigin(0.5, garrickLayout.anchors['south-east'].originY).setDepth(500);
+    .setDisplaySize(271.5, 271.5).setOrigin(0.5, garrickLayout.anchors['south-east'].originY).setDepth(500);
   scene.partyNode = savedEdge ? null : (nodes[GameState.world.currentLocation] ? GameState.world.currentLocation : 'pineshire');
   scene.activeEdge = savedEdge ?? null;
   scene.edgeT = savedEdge ? t : 0;
@@ -143,9 +145,30 @@ function createParty(scene) {
   }
 
   scene.partyFacing = 'south-east';
-  scene.party.play(savedEdge ? 'world-party-walk-south-east' : 'world-party-idle-south-east');
-  scene.partyLabel = scene.add.text(x, y + 92, 'PARTY', { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('support28'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#ffffff', stroke: '#142019', strokeThickness: 5 })
-    .setOrigin(0.5).setDepth(510);
+  const hero = resolveWorldMapCharacter();
+  scene.mapCharacterDefinition = CHARACTER_SPRITES[hero?.id] ?? null;
+  scene.mapCharacterAnimationPrefix = scene.mapCharacterDefinition ? `world-character-${hero.id}` : 'world-party';
+  if (scene.mapCharacterDefinition) {
+    for (const state of ['idle', 'walk']) {
+      for (const [facing, clip] of Object.entries(scene.mapCharacterDefinition.clips[state])) {
+        const key = `${scene.mapCharacterAnimationPrefix}-${state}-${facing}`;
+        if (!scene.anims.exists(key)) scene.anims.create({ key,
+          frames: clip.frames.map(frame => ({ key: frame.key, frame: frame.frame })),
+          frameRate: 1000 / clip.frameMs, repeat: -1 });
+      }
+    }
+  }
+  playPartyAnimation(scene, savedEdge ? 'walk' : 'idle');
+}
+
+// Keep the existing map size and foot position while using each adventurer's anchors.
+function playPartyAnimation(scene, state) {
+  const clips = scene.mapCharacterDefinition?.clips[state];
+  const facing = clips && !clips[scene.partyFacing] ? 'south' : scene.partyFacing;
+  const frame = clips?.[facing]?.frames[0];
+  scene.party.play(`${scene.mapCharacterAnimationPrefix}-${state}-${facing}`, true);
+  if (frame) scene.party.setOrigin(frame.originX ?? 0.5, frame.originY ?? 1).setFlipX(frame.flipX === true);
+  scene.party.setDisplaySize(271.5, 271.5);
 }
 
 // Refresh visible world destinations from their authored nodes and current saved access.
@@ -274,7 +297,6 @@ export function selectPoi(scene, poi) {
     scene.travelRoute = [];
     scene.partyNode = poi.node;
     scene.party.setPosition(point.x, point.y);
-    scene.partyLabel.setPosition(point.x, point.y + 92);
     scene.destination = poi;
     arrive(scene);
     return;
@@ -301,7 +323,7 @@ export function selectPoi(scene, poi) {
 
   if (scene.activeEdge) {
     scene.edgeTarget = path[0];
-    scene.party.play(`world-party-walk-${scene.partyFacing}`, true);
+    playPartyAnimation(scene, 'walk');
   } else if (path.length === 1) {
     arrive(scene);
   } else {
@@ -329,13 +351,13 @@ function advanceEdge(scene) {
   // false.
   scene.edgeT = edge.from === scene.partyNode ? 0 : 1;
   scene.partyNode = null;
-  scene.party.play(`world-party-walk-${scene.partyFacing}`, true);
+  playPartyAnimation(scene, 'walk');
 }
 
 // Commit arrival at the destination and open the matching location flow. scene is the
 // Phaser screen that owns the objects, clock and input used here.
 function arrive(scene) {
-  scene.party.play(`world-party-idle-${scene.partyFacing}`, true);
+  playPartyAnimation(scene, 'idle');
   const poi = scene.destination;
   scene.destination = null;
 
@@ -383,7 +405,7 @@ export function createScrollingWorldMap(scene) {
   renderPois(scene);
   const camera = scene.cameras.main;
   camera.setViewport(REGION_RAIL_WIDTH, MAP_HEADER_HEIGHT, width - REGION_RAIL_WIDTH,
-    height - MAP_HEADER_HEIGHT - MAP_FOOTER_HEIGHT).setZoom(0.70);
+    height - MAP_HEADER_HEIGHT - MAP_FOOTER_HEIGHT).setZoom(0.7);
 
   camera.setBounds(0, 0, WORLD_COLUMNS * TILE, WORLD_ROWS * TILE);
   scene.partyCameraOffset = camera.height * 0.18 / camera.zoom;
@@ -550,14 +572,13 @@ export function updateScrollingWorldMap(scene, delta) {
   scene.edgeT = Math.max(0, Math.min(1, scene.edgeT + sign * SPEED * Math.min(delta, 100) / 1000 / edge.length));
   const point = roadPoint(edge, scene.edgeT);
   scene.party.setPosition(point.x, point.y);
-  scene.partyLabel.setPosition(scene.party.x, scene.party.y + 92);
   const dx = point.x - before.x;
   const dy = point.y - before.y;
   const facing = `${dy < 0 ? 'north' : 'south'}-${dx < 0 ? 'west' : 'east'}`;
 
   if (scene.partyFacing !== facing) {
     scene.partyFacing = facing;
-    scene.party.play(`world-party-walk-${facing}`, true);
+    playPartyAnimation(scene, 'walk');
   }
 
   if (scene.edgeT !== (sign > 0 ? 1 : 0)) return;

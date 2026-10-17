@@ -21,9 +21,13 @@ import { preparationFrame, preparationButton, preparationNotice } from '../ui/De
 import { CHARACTER_SPRITES } from '../data/characterSprites.js';
 import { preloadEnvironment } from '../combat/LayeredEnvironment.js';
 import { bindButtonPress } from '../ui/ButtonPress.js';
+import { stoneIcon } from '../ui/CarvedStone.js';
+import { resolveWorldMapCharacter } from '../game/WorldMapCharacter.js';
+import { saveProfile } from '../game/GameStorage.js';
+import { chooseWorldMapCharacter } from '../ui/WorldMapCharacterSelection.js';
 
 import { abilitySummary, leaderAbilityDescription } from '../game/AbilityDescriptions.js';
-import { rankedAbility } from '../game/AdventurerAbilities.js';
+import { battleAbilities } from '../game/AdventurerAbilities.js';
 
 export default class DungeonScene extends Phaser.Scene {
 
@@ -48,7 +52,7 @@ export default class DungeonScene extends Phaser.Scene {
     const environment = GameState.currentDelve?.visuals?.environment;
     if (environment) preloadEnvironment(this, environment);
     for (const definition of Object.values(CHARACTER_SPRITES)) {
-      const frame = definition.clips.idle.south.frames[0];
+      const frame = definition.portraitFrame ?? definition.clips.idle.south.frames[0];
 
       // find returns the first matching entry, or undefined when none matches. Check for
       // that missing result before using its fields.
@@ -83,6 +87,20 @@ export default class DungeonScene extends Phaser.Scene {
     stoneText(this, width * 0.28, 218, 'PARTY', UI_FONT_SIZES.heading38, 3);
     preparationNotice(this, width * 0.28, 275, 'Hold for character details.', { width: 900, depth: 3 });
 
+    const previousMapCharacterId = GameState.world.mapCharacterId;
+    resolveWorldMapCharacter();
+    if (previousMapCharacterId !== GameState.world.mapCharacterId) saveProfile();
+    const mapMarkers = [];
+    const refreshMapMarkers = () => mapMarkers.forEach(({ id, button, icon, selectedIcon }) => {
+      const selected = GameState.world.mapCharacterId === id;
+      button.setFillStyle(selected ? 0x3b321d : 0x1f2937);
+      button.setStrokeStyle(2, selected ? STONE.gold : STONE.edge);
+      icon.setVisible(!selected);
+      selectedIcon.setVisible(selected);
+    });
+    this.events.on('world-map-character-changed', refreshMapMarkers);
+    this.events.once('shutdown', () => this.events.off('world-map-character-changed', refreshMapMarkers));
+
     // List the chosen adventurers with their class, role, and current level.
     GameState.activeParty.forEach((adventurer, index) => {
 
@@ -93,7 +111,7 @@ export default class DungeonScene extends Phaser.Scene {
       // ?. only follows this link when the value exists; a missing optional value gives
       // undefined.
       const sprite = CHARACTER_SPRITES[adventurer.id];
-      const frame = sprite?.clips.idle.south.frames[0];
+      const frame = sprite?.portraitFrame ?? sprite?.clips.idle.south.frames[0];
       const x = width * 0.28 - 390;
 
       // Match the character's combat size adjustment while preserving the card layout.
@@ -108,13 +126,24 @@ export default class DungeonScene extends Phaser.Scene {
       // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the center
       // and 1 is the right/bottom edge. x/y place that anchor, not necessarily the
       // object's corner.
-      stoneText(this, x + 80, y - 22, adventurer.name, UI_FONT_SIZES.overviewName, 4).setOrigin(0, 0.5);
+      const name = stoneText(this, x + 80, y - 22, adventurer.name, UI_FONT_SIZES.overviewName, 4).setOrigin(0, 0.5);
+      if (name.width > 600) name.setScale(600 / name.width);
 
       // ?? uses the fallback only for null or undefined. A real zero or false stays
       // intact.
-      stoneText(this, x + 80, y + 24, `${adventurer.shortName ?? adventurer.className} · ${adventurer.role} · Lv ${adventurer.level}`, UI_FONT_SIZES.overviewDetails, 4,
+      const summary = stoneText(this, x + 80, y + 24, `${adventurer.shortName ?? adventurer.className} · ${adventurer.role} · Lv ${adventurer.level}`, UI_FONT_SIZES.overviewDetails, 4,
         { fontFamily: UI_FONT_FAMILIES.sans, color: STONE.muted }).setOrigin(0, 0.5);
+      if (summary.width > 600) summary.setScale(600 / summary.width);
+
+      // The separate 104-pixel target consumes taps and holds before the row receives them.
+      const markerX = width * 0.28 + 396;
+      const marker = addStoneButton(this, markerX, y, 104, 104, 5);
+      const icon = stoneIcon(this, markerX, y, 'MAP', 42, 6, 0xbdc9d4).setAlpha(0.65);
+      const selectedIcon = stoneIcon(this, markerX, y, 'MAP', 42, 6, STONE.gold);
+      mapMarkers.push({ id: adventurer.id, button: marker, icon, selectedIcon });
+      bindButtonPress(this, marker, [icon, selectedIcon], () => chooseWorldMapCharacter(this, adventurer.id));
     });
+    refreshMapMarkers();
 
     // Resolve the equipped leadership IDs into names for the tactics review.
     const equipped = GameState.leader?.battleLoadout ?? [];
@@ -164,13 +193,13 @@ export default class DungeonScene extends Phaser.Scene {
     // return value becomes that output entry. filter keeps entries whose callback returns
     // true. It builds a new list and leaves the original list in place. ?? uses the
     // fallback only for null or undefined. A real zero or false stays intact.
-    const skills = (hero.abilityLoadout ?? []).filter(key => hero.abilities?.[key] && (hero.abilityRanks?.[key] ?? 0) > 0)
-      .map(key => abilitySummary(stats, rankedAbility(hero.abilities[key], hero.abilityRanks[key])));
+    const skills = Object.values(battleAbilities(hero)).map(ability => abilitySummary(stats, ability));
 
     // The condition before ? chooses the first value when true and the value after : when
     // false.
     return {
       title: hero.name, className: hero.className, classHeader: `${hero.shortName ?? hero.className} · Level ${hero.level}`, align: 'left',
+      mapCharacterId: hero.id,
       description: `${hero.className} | ${hero.role} | Level ${hero.level}\n\nHealth: ${Math.round(stats.maxHp)} | Mana: ${Math.round(stats.maxMana ?? 0)} | Armor: ${Math.round(stats.armor ?? 0)}\nAttack Power: ${Math.round(stats.attackPower)} | Spell Power: ${Math.round(stats.spellPower ?? Math.max(stats.spellDamage ?? 0, stats.spellHealing ?? 0))}\nSpeed: ${Math.round(stats.speed ?? 100)} | Dodge: ${Math.round((stats.dodge ?? 0) * 100)}% | Crit: ${Math.round((stats.critChance ?? 0) * 100)}%\n\nEquipped Skills\n${skills.length ? skills.join('\n\n') : 'No skills equipped.'}`,
       gear: ['weapon', 'armor', 'accessory', 'potion'].map(slot => {
         const item = equippedItem(hero, slot);

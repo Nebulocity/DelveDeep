@@ -16,6 +16,14 @@ const textures = states.map(state => ({
   key: `chaska-${state}`,
   url: new URL(`../assets/characters/chaska/sheets/Chaska-${state}.png`, import.meta.url).href
 }));
+textures.push({
+  character: 'chaska',
+  key: 'chaska-portrait',
+  url: new URL('../assets/characters/chaska/references/Chaska-selected.png', import.meta.url).href
+});
+
+// The selected reference faces down-right; the idle sheet's first row faces sideways.
+const portraitFrame = { key: 'chaska-portrait', frame: 0, flipX: false };
 const clips = {};
 
 // A row contains one authored diagonal facing. Row times column count finds its
@@ -45,8 +53,9 @@ clips.dead = Object.fromEntries(Object.entries(clips.death).map(([heading, clip]
   [heading, { frameMs: 1000, frames: [clip.frames.at(-1)] }]));
 
 // The measured scale matches the party's visible height rather than the empty cell.
-// Portraits use the same correction against the original 0.66 display convention.
 // footY retains the shared 30-unit offset used to place adventurers on the floor.
 const scale = layout.scale;
-export const CHASKA_SPRITES = { textures, clips, scale, portraitScale: scale / 0.66, footY: 30 };
+
+// The reference fills more of its cell, matching Vaeloria's portrait height at base size.
+export const CHASKA_SPRITES = { textures, clips, scale, portraitFrame, portraitScale: 1, footY: 30 };
 

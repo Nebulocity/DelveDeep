@@ -49,5 +49,5 @@ clips.dead = Object.fromEntries(Object.entries(clips.death).map(([heading, clip]
 // Scale uses painted height rather than empty cell size, keeping Yasmin shorter than
 // the human party members. Portrait correction shares the original 0.66 convention.
 // footY retains the shared 30-unit offset used to place adventurers on the floor.
-const scale = layout.scale;
+const scale = layout.scale * 1.15;
 export const YASMIN_SPRITES = { textures, clips, scale, portraitScale: scale / 0.66, footY: 30 };

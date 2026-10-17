@@ -77,6 +77,7 @@ export function replacementDescription(unit, ability, compact = false, structure
   // Explain requirements and tradeoffs that can change a player's loadout choice. Leave
   // AI selection rules, stacking implementation, and internal geometry out of the tooltip.
   const notes = [];
+  if (ability.innate) notes.push('Always equipped. Uses no skill slot.');
   const restrictions = {
     stealthStrike: 'Requires Stealth and ends it on use.',
     pairedEscape: 'Requires another ally below 25% Health.',

@@ -20,6 +20,8 @@ import { abilitySummary } from '../game/AbilityDescriptions.js';
 import GameState from '../game/GameState.js';
 import { hallScroll } from './HallUI.js';
 import { showBattleCharacterDetails } from './BattleCharacterDetails.js';
+import { worldMapParty } from '../game/WorldMapCharacter.js';
+import { chooseWorldMapCharacter } from './WorldMapCharacterSelection.js';
 
 export const DETAILS_HINT = 'Long-press or hold-click a selection for details.';
 
@@ -268,9 +270,28 @@ export function showSelectionDetails(scene, details) {
   }
 
   const buttonY = top + panelHeight - 52;
-  const button = (stone ? addStoneButton : regionMap ? addRegionPanel : addWoodenPanel)(scene, centerX, buttonY, 300, 72, depth + 3).setInteractive({ useHandCursor: true });
+  const hasMapSelection = stone && Boolean(details.mapCharacterId);
+  const closeX = hasMapSelection ? centerX + 305 : centerX;
+  const button = (stone ? addStoneButton : regionMap ? addRegionPanel : addWoodenPanel)(scene, closeX, buttonY, 300, 72, depth + 3).setInteractive({ useHandCursor: true });
+  if (hasMapSelection) {
+    const party = details.mapCharacterParty ?? worldMapParty();
+    const currentId = GameState.world.mapCharacterId ?? party[0]?.id;
+    const selected = currentId === details.mapCharacterId;
+    const eligible = party.some(hero => hero.id === details.mapCharacterId);
+    const mapX = centerX - 170;
+    const mapButton = addStoneButton(scene, mapX, buttonY, 600, 88, depth + 3,
+      selected ? 0x3b321d : 0x1f2937).setStrokeStyle(2, selected ? STONE.gold : STONE.edge);
+    const label = stoneText(scene, mapX, buttonY, selected ? 'CURRENT MAP CHARACTER' : 'SHOW ON WORLD MAP',
+      UI_FONT_SIZES.body30, depth + 4, { color: selected ? '#e8b75c' : eligible ? STONE.text : STONE.muted });
+    if (selected || !eligible) mapButton.disableInteractive();
+    else bindButtonPress(scene, mapButton, [label], () => {
+      chooseWorldMapCharacter(scene, details.mapCharacterId, party);
+      showSelectionDetails(scene, details);
+    });
+    objects.push(mapButton, label);
+  }
   if (stone) {
-    const label = stoneText(scene, centerX, buttonY, 'CLOSE', UI_FONT_SIZES.body32, depth + 4);
+    const label = stoneText(scene, closeX, buttonY, 'CLOSE', UI_FONT_SIZES.body32, depth + 4);
     objects.push(label);
     bindButtonPress(scene, button, [label], () => {
       HapticsService.tap();

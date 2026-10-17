@@ -149,6 +149,7 @@ function draw(scene, effect, elapsed, opacity, sharedMoons) {
   }
   if (effect.kind === 'cascade' || effect.kind === 'neutral') {
     const neutral = effect.kind === 'neutral';
+    const moonScale = effect.casterHeight / 110 * (neutral ? 2 : 2.7);
     const source = neutral
       ? project({ x: scene.battlefield.logicalWidth / 2, y: scene.battlefield.logicalHeight / 2 })
       : { x: scene.scale.width / 2, y: scene.battlefield.bottomY * .24 };
@@ -157,10 +158,15 @@ function draw(scene, effect, elapsed, opacity, sharedMoons) {
     // A small slime and a tall adventurer must not create separate moons.
     // Cascade stays above the floor at the reference height, independent of the caster.
     if (neutral) source.y -= effect.casterHeight * 1.25;
+    else {
+
+      // The top banner ends at y=96. Keep the full scaled moon 12 pixels below it.
+      source.y = Math.max(source.y, 96 + 12 + sheets.get('moon').anchor[1] * moonScale);
+    }
     if (!sharedMoons.has(effect.group)) {
       sharedMoons.add(effect.group);
       sheet(scene, effect, 'moon', neutral ? 'neutral' : 'moon', source, elapsed, 2100,
-        effect.casterHeight / 110 * (neutral ? 2 : 2.7), (neutral ? .65 : .78) * opacity, back - 5);
+        moonScale, (neutral ? .65 : .78) * opacity, back - 5);
     }
     if (neutral) {
       beam(scene, effect, 'moon-beam', source, chest(from), elapsed, 900, .6 * opacity, back);

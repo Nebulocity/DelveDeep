@@ -249,6 +249,7 @@ export default class BattleScene extends Phaser.Scene {
     this.combatLog = new CombatLog(GameState.currentDelve?.name ?? 'The Delve', this.partyUnits);
     this.combatLog.backgroundProgress = this.game.backgroundProgress;
     this.combatLog.setSimulationClock(() => this.time.now);
+    this.combatLog.attachDiagnostics(this);
     this.combatLog.onEntry = entry => recordIdleEvent(this, entry);
     this.createArenaInteraction();
     this.createTacticsMenus(width, height);
@@ -601,7 +602,7 @@ export default class BattleScene extends Phaser.Scene {
 
       // ?. only follows this link when the value exists; a missing optional value gives
       // undefined.
-      const frame = unit.spriteVisual?.definition?.clips.idle?.south?.frames[0];
+      const frame = unit.spriteVisual?.definition?.portraitFrame ?? unit.spriteVisual?.definition?.clips.idle?.south?.frames[0];
       if (frame) {
 
         // Match the portrait size adjustment used by the Hall and preparation cards.
@@ -976,7 +977,7 @@ export default class BattleScene extends Phaser.Scene {
       const raw = unit === target ? { x: target.arenaX, y: target.arenaY } : positions[movers.indexOf(unit)];
       const point = this.terrain.nearestSafeUnitPoint(unit, raw.x, raw.y, combatSpacing.terrainFootRadius);
       unit.spacingMode = 'normal';
-      unit.finishAction();
+      unit.finishAction('cancelled', 'movement_cancelled', 'Leader ally regroup order');
       this.attackTargets.delete(unit.id);
       this.healerPriorityTargets.delete(unit.id);
 
@@ -1007,7 +1008,8 @@ export default class BattleScene extends Phaser.Scene {
 
   // Healing priorities are encounter-only and end automatically when their target is full
   // health, defeated, or no longer in the party.
-  getHealerPriorityTarget(healer) {
+  // Candidate comparisons may inspect the order without clearing or changing it.
+  getHealerPriorityTarget(healer, remember = true) {
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
@@ -1018,7 +1020,7 @@ export default class BattleScene extends Phaser.Scene {
     const target = this.partyUnits.find((unit) => unit.id === targetId && unit.alive);
     if (!target || target.hp >= target.maxHp || this.heldUnitIds.has(healer.id)
       || this.attackTargets.has(healer.id) || this.manualTargets.has(healer.id)) {
-      this.healerPriorityTargets?.delete(healer.id);
+      if (remember) this.healerPriorityTargets?.delete(healer.id);
       return null;
     }
 
@@ -1113,6 +1115,7 @@ export default class BattleScene extends Phaser.Scene {
     // Hold confirms a destination already assigned by Move, or holds the current position.
     // Other commands wait for a target tap.
     if (label === 'HOLD') {
+      this.combatLog?.diagnostics?.command('HOLD', selected);
 
       // Confirm the same order for each selected adventurer.
       selected.forEach((unit) => {
@@ -1122,7 +1125,7 @@ export default class BattleScene extends Phaser.Scene {
           this.manualTargets.set(unit.id, { x: unit.arenaX, y: unit.arenaY });
         }
         this.attackTargets.delete(unit.id);
-        unit.finishAction();
+        unit.finishAction('cancelled', 'movement_cancelled', 'Leader Hold order');
         this.heldUnitIds.add(unit.id);
       });
       this.commandMode = null;
@@ -1286,6 +1289,7 @@ export default class BattleScene extends Phaser.Scene {
     // then hold those positions.
     if (this.commandMode === 'SPREAD' || this.commandMode === 'STACK') {
       const formationMode = this.commandMode;
+      this.combatLog?.diagnostics?.command(formationMode, units);
       const mode = formationMode.toLowerCase();
       const positions = this.movement.getFormationPositions(units, center, mode, anchor);
 
@@ -1294,7 +1298,7 @@ export default class BattleScene extends Phaser.Scene {
         const rawPoint = positions[index];
         const point = this.terrain.nearestSafeUnitPoint(unit, rawPoint.x, rawPoint.y, combatSpacing.terrainFootRadius);
         unit.spacingMode = mode;
-        unit.finishAction();
+        unit.finishAction('cancelled', 'movement_cancelled', `Leader ${formationMode} order`);
         this.manualTargets.set(unit.id, point);
         this.attackTargets.delete(unit.id);
         this.heldUnitIds.add(unit.id);
@@ -1308,6 +1312,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
+    this.combatLog?.diagnostics?.command('MOVE', units);
     const positions = this.movement.getFormationPositions(units, center);
     units.forEach((unit, index) => {
 
@@ -1315,7 +1320,7 @@ export default class BattleScene extends Phaser.Scene {
       const point = this.terrain.nearestSafeUnitPoint(unit, rawPoint.x, rawPoint.y, combatSpacing.terrainFootRadius);
       unit.spacingMode = 'normal';
 
-      unit.finishAction();
+      unit.finishAction('cancelled', 'movement_cancelled', 'Leader Move order');
       if (unit.classAbilities && !this.combatPaused) {
 
         // ??= fills a missing value once. It leaves an existing value, including zero or
@@ -1372,6 +1377,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
+    this.combatLog?.diagnostics?.command(this.commandMode ?? 'ATTACK', this.getSelectedUnits(), enemy);
     if (!this.commandMode || this.commandMode === 'ATTACK') {
       const units = this.getSelectedUnits();
       if (units.length === 0) return;
@@ -1384,7 +1390,7 @@ export default class BattleScene extends Phaser.Scene {
         this.heldUnitIds.delete(unit.id);
         unit.spacingMode = 'normal';
         this.attackTargets.set(unit.id, enemy.id);
-        unit.finishAction();
+        unit.finishAction('cancelled', 'action_replaced', 'Leader Attack order');
       });
 
       this.showBattleMessage(`ATTACK: ${enemy.name}`, '#fb923c');
@@ -1408,7 +1414,7 @@ export default class BattleScene extends Phaser.Scene {
           this.manualTargets.delete(unit.id);
           this.heldUnitIds.delete(unit.id);
           unit.spacingMode = 'normal';
-          unit.finishAction();
+          unit.finishAction('cancelled', 'action_replaced', 'Leader Coordinated Attack order');
           this.attackTargets.set(unit.id, enemy.id);
         });
 
@@ -1428,7 +1434,7 @@ export default class BattleScene extends Phaser.Scene {
         mages.forEach(unit => {
           this.manualTargets.delete(unit.id);
           this.heldUnitIds.delete(unit.id);
-          unit.finishAction();
+          unit.finishAction('cancelled', 'action_replaced', 'Leader Lunar Assault order');
           this.attackTargets.set(unit.id, enemy.id);
         });
         const damage = mages.reduce((sum, unit) => sum + (unit.spellPower ?? unit.spellDamage), 0) * 3;
@@ -1441,8 +1447,9 @@ export default class BattleScene extends Phaser.Scene {
 
       this.showBattleMessage('LUNAR ASSAULT - enemies rooted', '#c4b5fd');
     } else if (this.commandMode === 'INTERRUPT') {
+      this.combatLog?.diagnostics?.control(enemy, { name: 'INTERRUPT' }, 'explicit_interrupt', !!enemy.pendingAction, enemy.pendingAction ? 'applied' : 'no_active_action');
       if (enemy.pendingAction) {
-        enemy.finishAction();
+        enemy.finishAction('interrupted', 'explicit_interrupt', 'Party Leader interrupt command', { cause: { actorId: 'party_leader', ability: 'INTERRUPT' } });
 
         // Remove canceled area warnings immediately so the floor shows current danger.
         // The delayed hit also checks the canceled action before doing any damage.
@@ -1876,7 +1883,7 @@ export default class BattleScene extends Phaser.Scene {
     // false.
     const target = data.targetId ? units.find(entry => entry.id === data.targetId) : data.point;
     if (data.targetId && !target) {
-      unit.finishAction();
+      unit.finishAction('cancelled', 'state_invalidated', 'Saved action target no longer exists');
       return;
     }
     if (data.kind === 'attack') this.resolveBasicAttack(unit, action, target, data.attackType);
@@ -1963,6 +1970,7 @@ export default class BattleScene extends Phaser.Scene {
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
+    this.combatLog?.diagnostics?.waveStart();
     this.combatLog?.add('wave', `Wave ${index + 1} started`, { wave: index + 1 });
 
     const landings = chooseWaveLandings(wave, this.battlefield, this.terrain, this.partyUnits, () => this.combatRandom());
@@ -2316,6 +2324,7 @@ export default class BattleScene extends Phaser.Scene {
     this.classAbilitySystem.tickWorld(time);
     this.partyUnits.forEach((unit) => this.updatePartyUnit(unit, time, deltaSeconds));
     this.updateEnemies(time, deltaSeconds);
+    this.combatLog?.diagnostics?.sample();
     this.movement.separateUnits(deltaSeconds);
 
     this.partyUnits.forEach((unit) => this.movement.validateUnitPosition(unit));
@@ -2372,7 +2381,8 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   // This helper honors Focus first, then favors bosses and nearby enemies.
-  getPrimaryTarget(unit) {
+  // Read-only queries use the same precedence and stickiness without remembering a choice.
+  getPrimaryTarget(unit, remember = true) {
 
     // filter keeps entries whose callback returns true. It builds a new list and leaves
     // the original list in place.
@@ -2386,7 +2396,7 @@ export default class BattleScene extends Phaser.Scene {
     const focused = living.find((enemy) => enemy.id === this.focusTargetId);
     const ordered = this.getLivingEnemies().find((enemy) => enemy.id === this.attackTargets.get(unit.id));
     if (ordered) return ordered;
-    this.attackTargets.delete(unit.id);
+    if (remember) this.attackTargets.delete(unit.id);
 
     if (focused) return focused;
 
@@ -2401,7 +2411,7 @@ export default class BattleScene extends Phaser.Scene {
           const second = this.partyUnits.find(ally => ally.id === b.currentTargetId);
           return first.hp / first.maxHp - second.hp / second.maxHp || unit.distanceTo(a) - unit.distanceTo(b);
         });
-        unit.autoTargetId = endangered[0].id;
+        if (remember) unit.autoTargetId = endangered[0].id;
         return endangered[0];
       }
     }
@@ -2426,7 +2436,7 @@ export default class BattleScene extends Phaser.Scene {
     const priority = enemy => Number(enemy.isBoss || ['elderSlime', 'voidKeeperGuardian'].includes(enemy.enemyType));
     const target = previous && priority(previous) >= priority(best)
       && unit.distanceTo(previous) <= unit.distanceTo(best) + 80 ? previous : best;
-    unit.autoTargetId = target.id;
+    if (remember) unit.autoTargetId = target.id;
     return target;
   }
 
@@ -2498,7 +2508,8 @@ export default class BattleScene extends Phaser.Scene {
         enemy.status.forcedTargetUntil = time + tank.abilities[key].duration;
       }
 
-      enemy.finishAction();
+      const tauntCause = this.combatLog?.diagnostics?.control(enemy, tank.abilities[key], 'taunt', true, 'applied', tank.abilities[key].duration ?? 0, tank);
+      enemy.finishAction('cancelled', 'target_changed', 'Taunt explicitly releases the previous action', { cause: tauntCause });
 
       // filter keeps entries whose callback returns true. It builds a new list and leaves
       // the original list in place.
@@ -2576,19 +2587,19 @@ export default class BattleScene extends Phaser.Scene {
         && this.getLivingEnemies().reduce((sum, other) => sum
           + (other.pendingAction?.healingReservations?.[unit.id] ?? 0), 0) < unit.maxHp - unit.hp)
         .sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0];
-      if (!injured) return false;
+      if (!injured) { this.combatLog?.diagnostics?.reject(enemy, ability, 'no_eligible_injured_recipient'); return false; }
       this.beginEnemyAbility(enemy, injured, key, time);
     } else if (ability.telegraph) {
 
       // castRange is measured in logical arena units. Existing ground attacks keep their
       // 220-unit reach when no override is authored. Each slot pays its own cooldown.
-      if (enemy.distanceTo(target) > (ability.castRange ?? 220)) return false;
+      if (enemy.distanceTo(target) > (ability.castRange ?? 220)) { this.combatLog?.diagnostics?.reject(enemy, ability, 'target_out_of_range'); return false; }
       this.beginGroundSlam(enemy, target, time, ability, key);
     } else {
 
       // Explicit cast reach gates short strikes. Skills without it still track a target
       // anywhere in the arena, as the workbook's no-range-gate attacks request.
-      if (enemy.distanceTo(target) > (ability.castRange ?? Number.MAX_SAFE_INTEGER)) return false;
+      if (enemy.distanceTo(target) > (ability.castRange ?? Number.MAX_SAFE_INTEGER)) { this.combatLog?.diagnostics?.reject(enemy, ability, 'target_out_of_range'); return false; }
       this.beginEnemyAbility(enemy, target, key, time);
     }
 
@@ -2606,7 +2617,7 @@ export default class BattleScene extends Phaser.Scene {
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
     if (!unit.alive || this.battleOver || this.time.now < (unit.status?.stunnedUntil ?? 0) || (target && (!target.alive || (unit.isEnemy && target.stealthed)))) {
-      unit.finishAction();
+      unit.finishAction('cancelled', !unit.alive ? 'caster_died' : this.battleOver ? 'state_invalidated' : this.time.now < (unit.status?.stunnedUntil ?? 0) ? 'stun' : !target?.alive ? 'target_died' : 'state_invalidated', 'Delayed action validity check rejected the pending action');
       return false;
     }
 
@@ -2619,7 +2630,7 @@ export default class BattleScene extends Phaser.Scene {
     // some stops with true as soon as one entry passes the check; an empty list gives
     // false.
     if (attacker.role === 'Healer' && this.partyUnits.some(unit => unit.alive && unit.hp / unit.maxHp < 0.8)) return;
-    if (!attacker.startAction('Attack', time, attacker.attackWindup)) {
+    if (!attacker.startAction('Attack', time, attacker.attackWindup, target, { id: 'basic_attack' })) {
       return;
     }
 
@@ -2654,11 +2665,12 @@ export default class BattleScene extends Phaser.Scene {
     // some stops with true as soon as one entry passes the check; an empty list gives
     // false.
     if (attacker.role === 'Healer' && this.partyUnits.some(unit => unit.alive && unit.hp / unit.maxHp < 0.8)) {
-      attacker.finishAction();
+      attacker.finishAction('cancelled', 'state_invalidated', 'Healer prioritizes an injured ally over its pending attack');
       return;
     }
 
-    if (this.isWithinAttackReach(attacker, target, 28)) {
+    const diagnosticInReach = this.isWithinAttackReach(attacker, target, 28);
+    if (diagnosticInReach) {
 
       // The condition before ? chooses the first value when true and the value after :
       // when false.
@@ -2669,14 +2681,14 @@ export default class BattleScene extends Phaser.Scene {
         { hasArtwork: this.hasRangedTravel(attacker, 'Attack') });
       if (forced) attacker.status.replacementForcedAttack = null;
     }
-    attacker.finishAction();
+    attacker.finishAction(diagnosticInReach ? 'resolved' : 'failed', diagnosticInReach ? 'completed' : 'target_out_of_range', 'Basic attack resolution callback completed; damage event establishes whether a hit occurred');
   }
 
   // A healer's basic action pays Mana to restore a small amount to one injured ally.
   beginBasicHeal(healer, target, time) {
     if (!target.alive || target.hp >= target.maxHp || !healer.canHeal(time)
       || this.classAbilitySystem.distance(healer, target) > healer.basicHealRange
-      || !healer.startAction('Mend', time, healer.healWindup)) return;
+      || !healer.startAction('Mend', time, healer.healWindup, target, { id: 'basic_heal' })) return;
 
 
     // Pay once when Mend starts, just like a class spell. Resolution and restored
@@ -2704,17 +2716,18 @@ export default class BattleScene extends Phaser.Scene {
   resolveBasicHeal(healer, action, target) {
     this.finishRangedTravel(healer, action);
     if (!this.isActionCurrent(healer, action, target)) return;
-    if (target.hp < target.maxHp && this.classAbilitySystem.distance(healer, target) <= healer.basicHealRange) {
+    const diagnosticCanHeal = target.hp < target.maxHp && this.classAbilitySystem.distance(healer, target) <= healer.basicHealRange;
+    if (diagnosticCanHeal) {
       this.resolveHeal(healer, target, abilityPower(healer, {}, healer.basicHealPower, true), 'Mend', true, healer !== target);
     }
-    healer.finishAction();
+    healer.finishAction(diagnosticCanHeal ? 'resolved' : 'failed', diagnosticCanHeal ? 'completed' : target.hp >= target.maxHp ? 'no_missing_health' : 'target_out_of_range', 'Mend resolution eligibility checked');
   }
 
   // This helper announces an enemy cast and resolves it if the action remains valid.
   beginEnemyAbility(attacker, target, key, time) {
 
     const ability = attacker.abilities[key];
-    if (!ability || !attacker.startAction(ability.name, time, ability.windup)) {
+    if (!ability || !attacker.startAction(ability.name, time, ability.windup, target, ability)) {
       return;
     }
 
@@ -2776,14 +2789,14 @@ export default class BattleScene extends Phaser.Scene {
         { hasArtwork: hasThornbriarImpact || this.hasRangedTravel(attacker, ability.name) });
     }
 
-    attacker.finishAction();
+    attacker.finishAction('resolved', 'completed', 'Enemy ability resolution completed');
   }
 
   // Start an enemy area attack and draw a warning at its authored center. After the
   // warning delay, damage living party members still inside that fixed area.
   beginGroundSlam(attacker, target, time, ability, key = 'primary') {
 
-    if (!attacker.startAction(ability.name, time, ability.telegraph)) {
+    if (!attacker.startAction(ability.name, time, ability.telegraph, target, ability)) {
       return;
     }
 
@@ -2899,8 +2912,9 @@ export default class BattleScene extends Phaser.Scene {
         // Stomp and Belch stun surviving characters for three seconds. Use the unit's
         // shared status timer so pause, saved battles and idle catch-up see the same stun.
         if (unit.alive && ability.stunDuration) {
+          const stunCause = this.combatLog?.diagnostics?.control(unit, ability, 'stun', true, 'applied', ability.stunDuration, attacker);
           unit.status.stunnedUntil = Math.max(unit.status.stunnedUntil ?? 0, this.time.now + ability.stunDuration);
-          unit.finishAction();
+          unit.finishAction('interrupted', 'stun', 'Ground attack applied stun', { cause: stunCause });
         }
       }
     });
@@ -2926,7 +2940,7 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     this.removeTelegraph(telegraph);
-    attacker.finishAction();
+    attacker.finishAction('resolved', 'completed', 'Area attack resolution completed');
   }
 
   // This helper lets eligible units abandon their action to escape a ground warning.
@@ -2945,7 +2959,7 @@ export default class BattleScene extends Phaser.Scene {
       return false;
     }
 
-    unit.finishAction();
+    unit.finishAction('cancelled', 'movement_cancelled', 'AI abandons action to evade a ground warning');
     const warnings = this.activeTelegraphs.filter(warning => warning.autoAvoid !== false);
     const destination = this.movement.getEscapePoint(unit, warnings);
     if (destination) unit.moveToward(destination.x, destination.y, deltaSeconds, 6);
@@ -3009,6 +3023,8 @@ export default class BattleScene extends Phaser.Scene {
       // undefined.
       this.combatLog?.add('miss', `${attacker.name}'s ${abilityName} missed ${target.name}`, {
         wave: this.currentWaveIndex + 1,
+        actorId: attacker.id, targetId: target.id,
+        sourceActionId: this.combatLog?.diagnostics?.context?.sourceActionId ?? null,
         actor: attacker.name,
         target: target.name,
         ability: abilityName
@@ -3140,6 +3156,9 @@ export default class BattleScene extends Phaser.Scene {
     // immunity and fully absorbed hits do not bounce. Replayed background hits keep
     // their real damage but skip historical visual reactions when catching up.
     if (critical && actualDamage > 0) target.playCriticalHit?.(attacker);
+    else if (critical) this.combatLog?.diagnostics?.emit('knockback_not_attempted', {
+      actorId: attacker.id, targetId: target.id, attempted: false, displaced: false,
+      cancelsAction: false, reasonCode: 'no_hp_damage', cause: this.combatLog?.diagnostics?.context });
     if (actualDamage > 0 && target.isEnemy && attacker.status.nextPoisonPower) {
       target.status.poison = {
         caster: attacker,
@@ -3199,10 +3218,14 @@ export default class BattleScene extends Phaser.Scene {
     // threat snapshot.
     this.combatLog?.add('damage', `${attacker.name} used ${abilityName} on ${target.name} for ${actualDamage}${critical ? ' critical' : ''} damage`, {
       wave: this.currentWaveIndex + 1,
+      actorId: attacker.id, targetId: target.id,
+      sourceActionId: this.combatLog?.diagnostics?.context?.sourceActionId ?? null,
       actor: attacker.name,
       target: target.name,
       ability: abilityName,
       amount: actualDamage,
+      preMitigationDamage: amount,
+      effectId: this.combatLog?.diagnostics?.context?.effectId ?? null,
       targetSide: target.isDecoy ? 'decoy' : target.isEnemy ? 'enemy' : 'party',
       critical,
       targetHp: target.hp,
@@ -3238,6 +3261,8 @@ export default class BattleScene extends Phaser.Scene {
     if (hpBefore > 0 && !target.alive) {
       this.combatLog?.add('death', `${target.name} was defeated by ${attacker.name}'s ${abilityName}`, {
         wave: this.currentWaveIndex + 1,
+        actorId: attacker.id, targetId: target.id,
+        sourceActionId: this.combatLog?.diagnostics?.context?.sourceActionId ?? null,
         actor: attacker.name,
         target: target.name,
       ability: abilityName,
@@ -3292,6 +3317,10 @@ export default class BattleScene extends Phaser.Scene {
     // undefined.
     this.combatLog?.add('healing', `${healer.name} used ${abilityName} on ${target.name} for ${effectiveHealing}${critical ? ' critical' : ''} healing`, {
       wave: this.currentWaveIndex + 1,
+      actorId: healer.id, targetId: target.id,
+      sourceActionId: this.combatLog?.diagnostics?.context?.sourceActionId ?? null,
+      effectId: this.combatLog?.diagnostics?.context?.effectId ?? null,
+      attemptedHealing: amount, overhealing: Math.max(0, amount - effectiveHealing),
       actor: healer.name,
       target: target.name,
       ability: abilityName,
@@ -3432,6 +3461,11 @@ export default class BattleScene extends Phaser.Scene {
     enemy.setTargetName(target?.name ?? '');
     if (enemy.currentTargetId === targetId && enemy.currentTargetReason === reason) return;
 
+    const previousTargetId = enemy.currentTargetId ?? null;
+    if (this.combatLog?.diagnostics?.enabled) this.combatLog.diagnostics.emit('target_changed', { actorId: enemy.id, actor: enemy.name,
+      previousTargetId, targetId, reason, activeActionId: this.combatLog?.diagnostics?.actionId(enemy),
+      actionHandling: enemy.pendingAction ? 'remained_active_at_target_assignment' : 'no_active_action_at_target_assignment',
+      cause: this.combatLog?.diagnostics?.context, threat: this.getThreatSnapshot(enemy) });
     enemy.currentTargetId = targetId;
     enemy.currentTargetReason = reason;
     if (!target) return;
@@ -3455,6 +3489,8 @@ export default class BattleScene extends Phaser.Scene {
     // after : when false.
     this.combatLog?.add('action', `${actor.name} begins ${ability}${target ? ` on ${target.name}` : ''}`, {
       wave: this.currentWaveIndex + 1,
+      actorId: actor.id, targetId: target?.id ?? null,
+      actionId: this.combatLog?.diagnostics?.enabled ? this.combatLog.diagnostics.actionId(actor) : null,
       actor: actor.name,
       target: target?.name,
       ability
@@ -3874,6 +3910,7 @@ export default class BattleScene extends Phaser.Scene {
       }).setOrigin(0.5).setDepth(5000).setName('wave-reward-text');
 
     if (this.waveRewardText) this.tweens.add({ targets: this.waveRewardText, y: this.waveRewardText.y - 36, duration: 900, ease: 'Cubic.Out' });
+    this.combatLog?.diagnostics?.summary('cleared');
     this.combatLog?.add('wave', `Wave ${this.currentWaveIndex + 1} cleared`, { wave: this.currentWaveIndex + 1 });
     this.combatLog?.persist();
 

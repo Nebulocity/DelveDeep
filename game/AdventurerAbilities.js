@@ -104,6 +104,7 @@ export function abilityGoldCost(hero, key, rank = 1) {
 // the roster record, rather than the artwork that displays that character.
 export function restoreAdventurerAbilities(hero, saved, legacy = false) {
   const entries = abilityEntries(hero);
+  const innateKeys = new Set(entries.filter(([, ability]) => ability.innate).map(([key]) => key));
 
   // A full catalog replacement is a respec, not a silent loss of training. Historical
   // Gold prices were not saved, so credit the minimum price at each rank's earliest level.
@@ -160,7 +161,7 @@ export function restoreAdventurerAbilities(hero, saved, legacy = false) {
     // undefined.
     const value = needsRespec ? 0 : saved?.abilityRanks?.[key];
     if (Number.isSafeInteger(value) && value >= 1) ranks[key] = Math.min(MAX_ABILITY_RANK, value);
-    else if (starterKeys.includes(key) || legacyKeys.includes(key)) ranks[key] = 1;
+    else if (innateKeys.has(key) || starterKeys.includes(key) || legacyKeys.includes(key)) ranks[key] = 1;
   }
 
   // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
@@ -177,7 +178,7 @@ export function restoreAdventurerAbilities(hero, saved, legacy = false) {
   const mageStarter = entries.find(([, ability]) => ability.starter && ['Gloomburst', 'Celestial Flow', 'Ritual of Replenishment'].includes(ability.name))?.[0];
   const migratedDefaults = defaults.map(key => key === 'ability_v2_generic_magical_life_anchor' && mageStarter ? mageStarter : key);
   hero.abilityLoadout = [...new Set(migratedDefaults)]
-    .filter((key) => ranks[key] > 0 && keys.includes(key))
+    .filter((key) => ranks[key] > 0 && keys.includes(key) && !innateKeys.has(key))
     .slice(0, MAX_EQUIPPED_ABILITIES);
 
   // Math.max chooses the largest value; pairing it with Math.min can keep a result inside
@@ -220,7 +221,7 @@ export function purchaseAdventurerAbility(heroId, key, state = GameState) {
   hero.abilityRanks[key] = nextRank;
   hero.abilityLoadout ??= [];
 
-  if (!current && hero.abilityLoadout.length < MAX_EQUIPPED_ABILITIES) hero.abilityLoadout.push(key);
+  if (!current && !ability.innate && hero.abilityLoadout.length < MAX_EQUIPPED_ABILITIES) hero.abilityLoadout.push(key);
   return { ok: true, message: `${ability.name} is now rank ${nextRank}.` };
 }
 
@@ -231,6 +232,10 @@ export function toggleAdventurerAbility(heroId, key, state = GameState) {
   // find returns the first matching entry, or undefined when none matches. Check for that
   // missing result before using its fields.
   const hero = state.roster.find((entry) => entry.id === heroId);
+
+  if (CLASS_DEFINITIONS[hero?.className]?.abilities?.[key]?.innate) {
+    return { ok: false, message: 'This class ability is always equipped and uses no skill slot.' };
+  }
 
   // ?. only follows this link when the value exists; a missing optional value gives
   // undefined.
@@ -257,7 +262,7 @@ export function toggleAdventurerAbility(heroId, key, state = GameState) {
   return { ok: true, message: 'Ability equipped.' };
 }
 
-// Build only the equipped skills and their current ranked values for combat. hero is the
+// Build equipped and innate skills with their current ranked values for combat. hero is the
 // roster record, rather than the artwork that displays that character.
 export function battleAbilities(hero) {
   const result = {};
@@ -270,8 +275,8 @@ export function battleAbilities(hero) {
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
-    const rank = hero.abilityRanks?.[key] ?? 0;
-    if (!equipped.has(key) || rank < 1) continue;
+    const rank = hero.abilityRanks?.[key] ?? (base.innate ? 1 : 0);
+    if ((!base.innate && !equipped.has(key)) || rank < 1) continue;
     const ability = rankedAbility(base, rank);
     result[key] = ability;
   }

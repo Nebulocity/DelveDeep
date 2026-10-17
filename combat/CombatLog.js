@@ -1,11 +1,26 @@
+import { recordCombatEntry, persistCombatRecording, recordingSequenceFloor } from './CombatRecording.js';
+import { saveCompactCombatLog, loadCompactCombatLog } from './DiagnosticStorage.js';
+
 // We keep a readable history plus totals for the encounter. Entries describe what actually
 // happened, rather than guessing damage from an animation. Recent entries are bounded for
 // save size, while summary totals and casualty evidence must survive a long farming
 // session.
 
-const STORAGE_KEY = 'delveDeep.lastCombatLog.v1';
+import CombatDiagnostics from './CombatDiagnostics.js';
+
 
 export default class CombatLog {
+
+  attachDiagnostics(scene) {
+    this.diagnostics = new CombatDiagnostics(this, scene);
+    scene.events.once('shutdown', () => {
+      if (!this.record.finishedAt) {
+        this.diagnostics.close('scene_shutdown');
+        this.persist();
+      }
+      this.diagnostics.dispose();
+    });
+  }
 
   // Use the combat simulation's clock for event timestamps during catch-up.
   setSimulationClock(now) {
@@ -28,6 +43,9 @@ export default class CombatLog {
     // map builds one output entry for each input entry, in the same order. The callback's
     // return value becomes that output entry.
     this.record = {
+      schemaVersion: 2,
+      eventSequence: 0,
+      droppedEntries: 0,
       delve: delveName,
       startedAt: new Date(this.startedAt).toISOString(),
       party: party.map((unit) => ({ name: unit.name, className: unit.className, role: unit.role })),
@@ -56,12 +74,19 @@ export default class CombatLog {
       wave: details.wave,
       type,
       message,
-      ...details
+      ...details,
+      sequence: this.record.eventSequence = Math.max(this.record.eventSequence ?? 0, recordingSequenceFloor(this.record.startedAt)) + 1
     };
 
     this.entries.push(entry);
     this.entryCount += 1;
-    if (this.entries.length > 2000) this.entries.shift();
+    if (this.entries.length > 2000) {
+      this.entries.shift();
+      this.record.droppedEntries = (this.record.droppedEntries ?? 0) + 1;
+      this.record.truncation = { reason: 'recent_history_limit', limit: 2000,
+        droppedEvents: this.record.droppedEntries, firstRetainedSequence: this.entries[0].sequence };
+    }
+    this.diagnostics?.observe(entry);
 
     if (type === 'damage') {
 
@@ -89,18 +114,21 @@ export default class CombatLog {
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
+    recordCombatEntry(this, entry);
     this.onEntry?.(entry);
-    if (!this.backgroundProgress?.isReplaying) console.info(`[Combat ${entry.time.toFixed(2)}s] ${message}`, details);
+    if (!entry.diagnostic && !this.backgroundProgress?.isReplaying) console.info(`[Combat ${entry.time.toFixed(2)}s] ${message}`, details);
 
     // Save periodically to retain recent events without writing storage on every log
     // entry.
-    if (this.entryCount % 10 === 0 && !this.backgroundProgress?.isReplaying) this.persist();
+    if (this.entryCount % 10 === 0 && !this.backgroundProgress?.isReplaying
+      && (!this.diagnostics?.enabled || !this.simulationNow || this.simulationNow() - (this.lastDiagnosticPersistAt ?? -Infinity) >= 1000)) this.persist();
     return entry;
   }
 
   // This helper closes the combat record with the encounter outcome.
   finish(result) {
 
+    this.diagnostics?.close(result);
     this.record.result = result;
     this.record.finishedAt = new Date().toISOString();
     this.add('encounter', `Encounter ended: ${result}`);
@@ -113,15 +141,10 @@ export default class CombatLog {
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
     if (this.backgroundProgress?.isReplaying) return;
+    this.lastDiagnosticPersistAt = this.simulationNow?.();
+    persistCombatRecording();
 
-    try {
-
-      // ... copies the source's own fields into this object; fields listed later replace
-      // earlier ones. This is a shallow copy, so nested objects are still shared.
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...this.record, entries: this.entries.slice(-2000) }));
-    } catch (error) {
-      console.warn('Could not save the combat log.', error);
-    }
+    saveCompactCombatLog(this.record);
 
     this.publish();
   }
@@ -147,13 +170,5 @@ export default class CombatLog {
 
 // This helper recovers the previous combat record when reviewing a run.
 export function loadLastCombatLog() {
-
-  try {
-
-    // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null');
-  } catch (error) {
-    console.warn('Could not load the last combat log.', error);
-    return null;
-  }
+  return loadCompactCombatLog();
 }

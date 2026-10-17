@@ -23,7 +23,7 @@ export default class EncounterSummaryScene extends Phaser.Scene {
   }
 
   // Explain the unsuccessful run and offer another attempt or a return to the map.
-  create() {
+  async create() {
 
     // The braces pull named fields into local variables. This reads those fields without
     // copying the whole source object.
@@ -48,7 +48,8 @@ export default class EncounterSummaryScene extends Phaser.Scene {
     this.add.text(width / 2, height * 0.38, GameState.currentDelve?.name ?? 'The Delve', { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('heading46'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#ffffff' }).setOrigin(0.5);
     this.add.text(width / 2, height * 0.49, summary.message ?? '', { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body34'), color: '#d6d3d1', align: 'center', wordWrap: { width: width * 0.7 } }).setOrigin(0.5);
     const checkpoint = getDelveCheckpoint();
-    const combatLog = loadLastCombatLog();
+    const combatLog = await loadLastCombatLog();
+    if (!this.sys.isActive()) return;
     const combatStats = combatLog?.summary;
     this.add.text(width / 2, height * 0.57,
       `Time in encounter: ${formatDuration(summary.elapsedMs)}\n${checkpoint ? `Cleared rewards banked • ${checkpoint.campUnlocked ? 'Camp unlocked' : `Resume Wave ${checkpoint.nextWave + 1}`}` : 'Rewards kept: none'}${combatStats ? `\nDamage taken: ${combatStats.partyDamageTaken}  •  Healing: ${combatStats.partyHealing}  •  Falls: ${combatStats.partyDeaths}` : ''}`,

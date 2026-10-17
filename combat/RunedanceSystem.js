@@ -14,6 +14,7 @@ function place(system, caster, point, ability, time) {
   caster.status.replacementZones.push({ ability, point: { arenaX: point.arenaX, arenaY: point.arenaY },
     until: time + ability.duration, startedAt: time, next: time + 1000,
     wave: system.scene.currentWaveIndex, inside: {}, exitedAt: {} });
+  system.scene.combatLog?.diagnostics?.effectApplied(caster.status.replacementZones.at(-1), caster, ability, 'rune', caster);
   system.scene.createAbilityEffect?.(caster, caster, ability);
 }
 
@@ -59,7 +60,7 @@ export function runeTarget(system, unit, ability) {
   const near = system.enemies().filter(enemy => arenaDistance(unit, enemy) <= Math.max(ability.range * 100, 240));
   if (!near.length) return null;
   if (!strikeKinds.includes(ability.handler) || ability.handler === 'runeFinale') return unit;
-  const preferred = system.scene.getPrimaryTarget(unit);
+  const preferred = system.scene.getPrimaryTarget(unit, false);
   const reach = ability.handler === 'runeTraverse' && system.scene.isPositionLocked?.(unit) ? 100 : ability.range * 100;
   return [preferred, ...near].find(enemy => enemy?.alive && arenaDistance(unit, enemy) <= reach) ?? null;
 }
@@ -85,6 +86,16 @@ export function tickRune(system, owner, zone, time) {
   const a = zone.ability, kind = a.handler;
   const allies = system.allies().filter(ally => arenaDistance(ally, zone.point) <= a.radius);
   const enemies = system.enemies().filter(enemy => arenaDistance(enemy, zone.point) <= a.radius);
+  const diagnostics = system.scene.combatLog?.diagnostics;
+  if (diagnostics?.enabled) {
+    const key = allies.map(ally => ally.id).join(',');
+    const meta = diagnostics.effects.get(zone);
+    if (meta && meta.beneficiaries !== key) {
+      diagnostics.effectEvent('rune_beneficiaries', zone, { actorId: owner.id,
+        eligibleBeneficiaries: allies.map(ally => ally.id), enemyRecipients: enemies.map(enemy => enemy.id) });
+      meta.beneficiaries = key;
+    }
+  }
   const stat = { runeMovement: 'movement', runeSpeed: 'speed', runeDamage: 'damage', runeReduction: 'reduction' }[kind];
   if (stat) for (const ally of allies) system.modifier(ally, owner, a,
     { [stat]: a.primary.potency * (stat === 'reduction' ? -1 : 1) }, Math.min(100, zone.until - time));

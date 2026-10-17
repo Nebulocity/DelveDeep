@@ -4,6 +4,7 @@
 // Old save fields are migrated here, so be careful about removing a fallback just because
 // new saves work.
 
+import { compactCombatLog, initializeDiagnosticStorage, storageWarning, clearStorageWarning } from '../combat/DiagnosticStorage.js';
 import { rebuildCharacterStats } from './CharacterStats.js';
 import GameState from './GameState.js';
 import { restoreEverdeep } from './EverdeepState.js';
@@ -24,6 +25,7 @@ let lastBattleSaveAt = -Infinity;
 // pendingSave coalesces requests from one synchronous action. saveGeneration identifies
 // the current save lifecycle, allowing a reset to invalidate an already queued callback
 // before it writes old progress back.
+let profileSaveFailed = false;
 let pendingSave = false;
 let saveGeneration = 0;
 
@@ -125,6 +127,7 @@ export function loadProfile(baseRoster) {
   // Math.max chooses the largest value; pairing it with Math.min can keep a result inside
   // both a lower and an upper bound.
   GameState.world = {
+    mapCharacterId: saved?.world?.mapCharacterId ?? null,
     layoutId: WORLD_LAYOUT_ID,
     currentLocation: nodes[saved?.world?.currentLocation] ? saved.world.currentLocation : 'pineshire',
     discoveredLocations: Array.from(new Set(['pineshire', 'slime-cave', ...(saved?.world?.discoveredLocations ?? [])])),
@@ -226,6 +229,15 @@ function writeProfile() {
 
   // Select the fields that persist between sessions instead of serializing the entire live
   // game state.
+  let battleSnapshot = GameState.activeBattle;
+  if (battleSnapshot) {
+    try { battleSnapshot = { ...battleSnapshot, log: compactCombatLog(battleSnapshot.log) }; }
+    catch {
+      // A malformed optional history cannot stop saving resources and the battle model.
+      battleSnapshot = { ...battleSnapshot, log: { entries: [], summary: { partyDamageTaken: 0, partyHealing: 0, partyDeaths: 0, enemyDamageTaken: 0 }, persistence: { kind: 'history_unavailable' } } };
+      storageWarning('profile-history-unavailable', 'Combat history could not be included in the save. Progress and the battle model are still being saved.');
+    }
+  }
   const profile = {
     gold: GameState.gold,
     inventory: GameState.inventory,
@@ -235,7 +247,9 @@ function writeProfile() {
     development: GameState.development,
     world: GameState.world,
     everdeep: GameState.everdeep,
-    activeBattle: GameState.activeBattle,
+    // Diagnostics are optional evidence, never part of a gameplay save's storage budget.
+    // Also compact an already-loaded snapshot when saving outside an active battle.
+    activeBattle: battleSnapshot,
     roster: GameState.roster.map((adventurer) => ({
       id: adventurer.id,
       equipment: adventurer.equipment ?? { weapon: null, armor: null, accessory: null, potion: null },
@@ -257,9 +271,12 @@ function writeProfile() {
 
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+    profileSaveFailed = false;
+    clearStorageWarning('profile-save-failed');
     return true;
   } catch (error) {
-    console.warn('Could not save Delve Deep profile.', error);
+    profileSaveFailed = true;
+    storageWarning('profile-save-failed', 'Game progress could not be saved. Keep this page open. Export combat archives in Settings > Export log, then use its explicit cleanup controls to free space. Your existing player save has not been deleted.');
     return false;
   }
 }
@@ -284,3 +301,10 @@ export function flushProfileSave() {
   pendingSave = false;
   return writeProfile() === true;
 }
+
+// Archive legacy diagnostic blobs before releasing their localStorage slots. Once that
+// succeeds, retry a previously failed profile write with the normal coherent save path.
+globalThis.addEventListener?.('delve-diagnostic-storage-ready', () => {
+  if (profileSaveFailed) saveProfile();
+});
+void initializeDiagnosticStorage();

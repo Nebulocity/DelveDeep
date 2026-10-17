@@ -381,6 +381,7 @@ function startEffect(scene, caster, target, ability, definition, action = null, 
     scene.textures.get(clip.key).setFilter(1);
     const image = scene.add.image(0, 0, clip.key, 0).setOrigin(0).setScale(scale)
       .setDepth(100 + origin.y + (clip.depth === 'behind' ? -1 : 1));
+    if (clip.tint != null) image.setTint(clip.tint);
 
     // Crop coordinates are pixels inside each sheet cell and follow frame changes.
     // Keeping the original cell size preserves the floating marker's placement.

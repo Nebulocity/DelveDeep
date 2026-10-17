@@ -370,7 +370,7 @@ export default class BattleUnit {
   }
 
   // This helper begins an available action and shows its windup to the player.
-  startAction(name, time, duration) {
+  startAction(name, time, duration, diagnosticTarget = null, diagnosticAbility = null) {
 
     if (!this.canStartAction(time)) {
       return false;
@@ -380,6 +380,7 @@ export default class BattleUnit {
     this.actionSerial = (this.actionSerial ?? 0) + 1;
     this.pendingAction = { id: this.actionSerial, name, startAt: time, duration };
     this.busyUntil = time + duration;
+    this.scene.combatLog?.diagnostics?.start(this, diagnosticTarget, diagnosticAbility);
 
     // Action-punishment effects can defeat a monster as it commits a move. Stop before
     // scheduling that defeated unit's action or reading a cleared pendingAction object.
@@ -398,8 +399,9 @@ export default class BattleUnit {
   }
 
   // This helper releases the current action and clears its cast display.
-  finishAction() {
+  finishAction(outcome = 'cancelled', reasonCode = 'unknown', explanation = 'Unclassified action release', details = {}) {
 
+    this.scene.combatLog?.diagnostics?.end(this, outcome, reasonCode, explanation, details);
     this.pendingAction = null;
     this.busyUntil = 0;
     if (this.scene.idleSimulating) return;
@@ -571,16 +573,18 @@ export default class BattleUnit {
     // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
     const manaCost = ability.replacement && this.scene.classAbilitySystem?.replacement
       ? this.scene.classAbilitySystem.replacement.manaCost(this, ability, time) : ability.manaCost ?? 0;
-    if (manaCost > this.mana) return false;
-    if (!this.canCast(time)) return false;
-    if (this.isEnemy && time < (this.status.replacementForcedAttack?.until ?? 0)) return false;
-    if (ability.replacement && this.scene.classAbilitySystem?.replacement && !this.scene.classAbilitySystem.replacement.usable(this, ability, time)) return false;
-    if (time < (this.status.replacementTruceUntil ?? 0) && ability.effect !== 'heal') return false;
+    if (manaCost > this.mana) { this.scene.combatLog?.diagnostics?.reject(this, ability, 'insufficient_mana'); return false; }
+    if (!this.canCast(time)) { this.scene.combatLog?.diagnostics?.reject(this, ability, 'spell_lock'); return false; }
+    if (this.isEnemy && time < (this.status.replacementForcedAttack?.until ?? 0)) { this.scene.combatLog?.diagnostics?.reject(this, ability, 'forced_basic_attack'); return false; }
+    if (ability.replacement && this.scene.classAbilitySystem?.replacement && !this.scene.classAbilitySystem.replacement.usable(this, ability, time)) { this.scene.combatLog?.diagnostics?.reject(this, ability, 'ability_specific_restriction'); return false; }
+    if (time < (this.status.replacementTruceUntil ?? 0) && ability.effect !== 'heal') { this.scene.combatLog?.diagnostics?.reject(this, ability, 'truce'); return false; }
 
     // The condition before ? chooses the first value when true and the value after : when
     // false.
     const cooldown = ability.cooldown * (this.status.replacementCooldownFactors?.[key] ?? 1);
-    return time - (this.lastAbilityAt[key] ?? -Infinity) >= cooldown / (time < (this.status.attackSlowUntil ?? 0) ? 1 - this.status.attackSlow : 1);
+    const ready = time - (this.lastAbilityAt[key] ?? -Infinity) >= cooldown / (time < (this.status.attackSlowUntil ?? 0) ? 1 - this.status.attackSlow : 1);
+    if (!ready) this.scene.combatLog?.diagnostics?.reject(this, ability, 'cooldown');
+    return ready;
   }
 
   // This helper commits the ability cooldown and its configured mana cost.
@@ -618,6 +622,9 @@ export default class BattleUnit {
     const cost = Math.max(0, amount ?? 0);
     if (this.mana < cost) return false;
     this.mana = Math.max(0, this.mana - cost);
+    this.scene.combatLog?.diagnostics?.emit('resource_change', { actorId: this.id, actor: this.name,
+      sourceActionId: this.scene.combatLog?.diagnostics?.actionId(this), resource: 'mana',
+      delta: -cost, after: this.mana, reasonCode: 'ability_payment' });
 
     return true;
   }
@@ -736,6 +743,7 @@ export default class BattleUnit {
   // Knockback belongs to the gameplay unit, so saves and background combat retain it.
   // Screen projection makes the push look equally long in every attack direction.
   playCriticalHit(attacker) {
+    this.scene.combatLog?.diagnostics?.recoilStart(this, attacker);
     const direction = criticalHitDirection(this, attacker);
     const floor = this.battlefield;
     const start = floor.arenaToScreen(this.arenaX, this.arenaY);
@@ -770,7 +778,10 @@ export default class BattleUnit {
     this.setArenaPosition(safe.x, safe.y);
     recoil.travel = pose.travel;
     if (!this.scene.idleSimulating && !this.spriteVisual) this.body.setPosition(0, pose.y);
-    if (recoil.elapsed >= CRITICAL_RECOIL_MS) this.criticalKnockback = null;
+    if (recoil.elapsed >= CRITICAL_RECOIL_MS) {
+      this.scene.combatLog?.diagnostics?.recoilEnd(this);
+      this.criticalKnockback = null;
+    }
   }
 
   // Mark this combatant fallen, end its action and update the death lifecycle.
@@ -791,7 +802,7 @@ export default class BattleUnit {
       this.status.huntersMarkVisual = false;
       this.status.sunlitWardVisualUntil = 0;
     }
-    this.finishAction();
+    this.finishAction('cancelled', 'caster_died', 'Caster defeated');
 
     // Keep a newly defeated party member visible in the battle feed, but never replay
     // saved deaths as fresh announcements while restoring or simulating an encounter.
@@ -857,9 +868,11 @@ export default class BattleUnit {
 
     // Math.max chooses the largest value; pairing it with Math.min can keep a result
     // inside both a lower and an upper bound.
+    this.scene.combatLog?.diagnostics?.emit('revive', { actorId: this.id, actor: this.name,
+      cause: this.scene.combatLog?.diagnostics?.context });
     this.hp = Math.max(1, Math.round(this.maxHp * healthFraction));
     this.mana = Math.round(this.maxMana * manaFraction);
-    this.finishAction();
+    this.finishAction('cancelled', 'state_invalidated', 'Revival clears old action state');
     Object.keys(this.status).forEach((key) => {
 
       // Lists must stay iterable after revival. Clear record objects to null so channels

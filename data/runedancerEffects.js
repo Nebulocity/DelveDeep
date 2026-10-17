@@ -11,7 +11,7 @@ const runeGemstones = {
 };
 
 // Placed and impact runes share arena sizing, independent of the recipient's body.
-const runeArtworkScales = { ruby: 0.6, amethyst: 0.6, sapphire: 0.6 };
+const runeArtworkScales = { ruby: 1.2, amethyst: 1.2, sapphire: 1.2 };
 
 // Temporary gameplay range overlay. Disable this flag after reviewing rune coverage.
 const SHOW_RUNE_RANGES = false;
@@ -46,7 +46,7 @@ export const RUNEDANCER_EFFECTS = RUNEDANCER_ABILITIES.flatMap(ability => {
     // A 64-frame loop lasts about 2.13 seconds; combat time pauses every glow.
     fitTarget: false, opacity: impact ? 0.95 : 0.92,
     frames: 64, frameMs: 1000 / 30, holdMs: impact ? 800 : 1600, fadeMs: 400,
-    groundWidth: 112, artworkScale: runeArtworkScales[gemstone] ?? 0.5,
+    groundWidth: 112, artworkScale: runeArtworkScales[gemstone] ?? 1,
     clips: [{ name: gemstone, key: 'runedancer-' + gemstone + '-rune', width: 112, height: 112,
       frames: 64, start: 0, x: -56, y: impact ? -70 : -135, depth: 'front',
       loop: !impact, holdLastFrame: impact, url: sheet }]
@@ -60,3 +60,18 @@ const echo = RUNEDANCER_EFFECTS.find(effect => effect.abilityId === 'ability_v2_
   && effect.vfxPhase === 'impact');
 RUNEDANCER_EFFECTS.push({ ...echo, id: 'runic-refrain-echo', abilityId: 'runic_refrain',
   abilityName: 'Runic Refrain', opacity: 0.6, holdMs: 450 });
+
+// Stride's initial hit and detonation use a brief magenta slash on each victim.
+// Only the placed rune persists; the separate weapon echo keeps its gemstone art.
+const strideImpactIndex = RUNEDANCER_EFFECTS.indexOf(echo);
+RUNEDANCER_EFFECTS[strideImpactIndex] = {
+  id: echo.id, className: echo.className, abilityName: echo.abilityName,
+  abilityId: echo.abilityId, vfxPhase: 'impact',
+  singleTargetArtwork: true, recipientAnchor: true, fitTarget: true, followTarget: true,
+  targetSize: 0.9, groundWidth: 44, opacity: 1,
+  frames: 3, frameMs: 70, holdMs: 210, fadeMs: 100,
+  clips: [{ name: 'magenta-strike', key: 'runedancer-magenta-strike',
+    width: 44, height: 42, frames: 3, start: 0, x: -22, y: -21,
+    depth: 'front', holdLastFrame: true, tint: 0xff40d4,
+    url: new URL('../assets/effects/back-alley-cut/part-cut_slash.png', import.meta.url).href }]
+};

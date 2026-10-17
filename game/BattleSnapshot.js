@@ -5,6 +5,8 @@
 // should not change that contract. A Symbol is a unique marker. It cannot collide with a
 // real saved string like "omit", so callers can distinguish unsupported data from valid
 // values.
+import { compactCombatLog } from '../combat/DiagnosticStorage.js';
+
 const OMIT = Symbol('omit');
 
 // Ignore these property names when rebuilding plain saved objects. They have special
@@ -136,7 +138,7 @@ export function captureBattle(scene, state, savedAtMs = Date.now()) {
       [...scene.movement[key]].map(([owner, value]) => ({ ownerId: owner.id,
         state: { ...value, target: undefined, targetId: value.target.id } }))]))),
     preferences: packBattleValue(scene.tactics.preferences),
-    log: packBattleValue({ ...scene.combatLog.record, entries: scene.combatLog.entries.slice(-1000) }),
+    log: packBattleValue(compactCombatLog(scene.combatLog.record)),
     logStartedAt: scene.combatLog.startedAt
   };
 }

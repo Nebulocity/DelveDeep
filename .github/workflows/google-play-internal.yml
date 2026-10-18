@@ -99,9 +99,10 @@ jobs:
           DELVE_UPLOAD_KEY_ALIAS: ${{ secrets.DELVE_UPLOAD_KEY_ALIAS }}
           DELVE_UPLOAD_KEY_PASSWORD: ${{ secrets.DELVE_UPLOAD_KEY_PASSWORD }}
         run: |
-          bash android/gradlew -p android --no-daemon -PAPP_VERSION_CODE="$APP_VERSION_CODE" :app:checkReleaseSigning
+          # A fresh checkout needs Capacitor's generated Gradle files before any Gradle task.
           npm run build
           npx cap sync android
+          bash android/gradlew -p android --no-daemon -PAPP_VERSION_CODE="$APP_VERSION_CODE" :app:checkReleaseSigning
           bash android/gradlew -p android --no-daemon -PAPP_VERSION_CODE="$APP_VERSION_CODE" :app:bundleRelease
 
       - name: Save signed bundle

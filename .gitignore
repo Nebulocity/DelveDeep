@@ -7,6 +7,11 @@ node_modules/
 !/README.md
 AGENTS.md*
 /docs/
+
+# Public runtime guidance for authored regional artwork.
+!/docs/
+/docs/*
+!/docs/REGIONAL_MAP_LAYERS.md
 /changelog/
 /change_log/
 

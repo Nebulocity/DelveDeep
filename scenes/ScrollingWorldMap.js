@@ -2,10 +2,10 @@
 // so travel follows their points rather than moving directly through scenery. Map/world
 // coordinates move with the camera; fixed menu coordinates belong to the screen.
 
-import { fontPx, UI_FONT_SIZES, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
+import { fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import { showTutorialSlideshow } from '../ui/TutorialSlideshow.js';
-import { addRegionPanel } from '../ui/RegionMapTheme.js';
-import { REGION_RAIL_WIDTH, MAP_HEADER_HEIGHT, MAP_FOOTER_HEIGHT, createRegionLocationRail, updateRegionLocationRail, syncRegionMapCameras } from '../ui/RegionMapUI.js';
+import { addRegionPanel, addRegionButton, setRegionPanelState } from '../ui/RegionMapTheme.js';
+import { REGION_RAIL_WIDTH, MAP_HEADER_HEIGHT, MAP_FOOTER_HEIGHT, createRegionLocationRail, updateRegionLocationRail, syncRegionMapCameras, createRegionMapHeader, refreshRegionMapGold, showRegionDestination } from '../ui/RegionMapUI.js';
 import GameState from '../game/GameState.js';
 import garrickLayout from '../assets/characters/garrick/sheets/layout.json' with { type: 'json' };
 import { CHARACTER_SPRITES } from '../data/characterSprites.js';
@@ -16,9 +16,12 @@ import { saveProfile } from '../game/GameStorage.js';
 import HapticsService from '../services/HapticsService.js';
 import { createWorldMapAmbience } from '../ui/WorldMapAmbience.js';
 import { privateTransfersEnabled, showSaveTransferDialog } from '../ui/SaveTransferDialog.js';
-import { bindSelectionDetails, addDetailsHint, delveDetails } from '../ui/SelectionDetails.js';
+import { bindSelectionDetails, showSelectionDetails, delveDetails } from '../ui/SelectionDetails.js';
 import { TILE, WORLD_COLUMNS, WORLD_ROWS, regions, nodes, roads, pois, nodePoint, roadPoint, mapPoint, branchLock, regionExit, routeBetween, routeFromEdge, nearestTown } from '../data/worldMap.js';
 import { everdeepUnlocked, settleEverdeep } from '../game/Everdeep.js';
+import { REGIONAL_MAPS } from '../data/regionalMaps.js';
+import { RegionalMapRenderer } from '../ui/RegionalMapRenderer.js';
+import { UI_SAFE_RIGHT } from '../ui/Layout.js';
 
 // Object.fromEntries turns [key, value] pairs back into an object. A later pair with the
 // same key replaces the earlier value. map builds one output entry for each input entry,
@@ -53,8 +56,7 @@ function drawWorld(scene) {
   // lower-depth objects. Origin is the anchor within the object: 0 is the left/top edge,
   // 0.5 is the center and 1 is the right/bottom edge. x/y place that anchor, not
   // necessarily the object's corner.
-  scene.add.image(0, 0, 'world-pineshire-final').setOrigin(0)
-    .setDisplaySize(WORLD_COLUMNS * TILE, WORLD_ROWS * TILE).setDepth(0);
+  scene.regionalMap = new RegionalMapRenderer(scene, REGIONAL_MAPS['pineshire-reach']);
   if (!cleared(branchLock.requiresClear)) {
     const point = mapPoint(branchLock.position);
     addRegionPanel(scene, point.x, point.y, 180, 100, 90, 'normal', false);
@@ -69,7 +71,7 @@ function drawWorld(scene) {
   // an object respond to a tap. The condition before ? chooses the first value when true
   // and the value after : when false.
   const sign = scene.add.text(exit.x, exit.y, open ? 'HIGHMERE →' : 'PORTAL LOCK', {
-    fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('support28'), fontStyle: UI_FONT_WEIGHTS.bold, color: open ? '#c9f2d3' : '#d7b3eb',
+    fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx('support28'), fontStyle: UI_FONT_WEIGHTS.bold, color: open ? '#f2d79f' : '#d7b3eb',
     padding: { x: 16, y: 14 }
   }).setOrigin(1, 0.5).setDepth(170).setInteractive({ useHandCursor: true });
   addRegionPanel(scene, exit.x - sign.width / 2, exit.y, sign.width + 14, sign.height + 8, 169, 'normal', false);
@@ -80,7 +82,7 @@ function drawWorld(scene) {
 
     // The condition before ? chooses the first value when true and the value after : when
     // false.
-    scene.showToast(open ? 'Road opened. Highmere Crags is coming next.' : 'Defeat The Murmuring Abyss to open this road.', 'map');
+    scene.showToast(open ? 'The kobolds are still building this one!' : 'Defeat The Murmuring Abyss to open this road.', 'map');
   }, undefined, { allowSceneInput: true });
 }
 
@@ -179,6 +181,7 @@ function playPartyAnimation(scene, state) {
 // Refresh visible world destinations from their authored nodes and current saved access.
 // scene is the Phaser screen that owns the objects, clock and input used here.
 function renderPois(scene) {
+  scene.mapLabels = [];
   for (const poi of pois) {
     const point = nodePoint(poi.node);
     const unlocked = available(poi);
@@ -188,30 +191,63 @@ function renderPois(scene) {
     // false.
     const color = poi.type === 'everdeep' ? 0x257d79 : poi.type === 'void' ? 0x9247bb : poi.type === 'town' ? 0xd5a84f : 0x738db7;
 
-    // Depth is drawing order, not distance or size. Higher-depth objects draw on top of
-    // lower-depth objects.
-    scene.add.circle(label.x, label.y + 58, 22, unlocked ? color : 0x415047, 0.95)
-      .setStrokeStyle(4, unlocked ? 0xf4eac9 : 0x738278).setDepth(160);
-
     // This gives the display object an input hit area. Visible artwork alone does not make
     // an object respond to a tap. Origin is the anchor within the object: 0 is the
     // left/top edge, 0.5 is the center and 1 is the right/bottom edge. x/y place that
     // anchor, not necessarily the object's corner.
-    const nameplate = scene.add.text(label.x, label.y, `${unlocked ? '' : 'LOCKED · '}${poi.name}`, {
+    const nameplate = scene.add.text(0, 0, poi.name, {
       fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx('mapLabel'), fontStyle: UI_FONT_WEIGHTS.bold, color: unlocked ? '#fff1d1' : '#bcc4bb',
-      stroke: '#142019', strokeThickness: 5, padding: { x: 18, y: 12 }
-    }).setOrigin(0.5).setDepth(170).setInteractive({ useHandCursor: true });
-    addRegionPanel(scene, label.x, label.y, nameplate.width + 14, nameplate.height + 8, 169, 'normal', false);
+      stroke: '#111318', strokeThickness: 2, wordWrap: { width: 360 }, align: 'center'
+    }).setOrigin(0.5, 0).setDepth(170).setInteractive({ useHandCursor: true });
+    const status = scene.add.text(0, nameplate.height + 8, 'Current location', {
+      fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body34'), color: '#dcc38b'
+    }).setOrigin(0.5, 0).setDepth(170);
+    const w = Math.max(250, nameplate.width + 48, status.width + 48);
+    const h = nameplate.height + status.height + 36;
+    const x = Math.max(w / 2 + 24, Math.min(WORLD_COLUMNS * TILE - w / 2 - 24, label.x));
+    let y = Math.max(24, Math.min(WORLD_ROWS * TILE - h - 24, label.y - h / 2));
 
-    if (cleared(poi.id) && (poi.type === 'delve' || poi.type === 'void')) {
-      scene.add.text(label.x, label.y + 58, '✓', { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body34'), color: '#a8efb4', stroke: '#142019', strokeThickness: 5 })
-        .setOrigin(0.5).setDepth(180);
+    // Only the display plaque moves when labels would overlap. Nodes, roads and
+    // the large landmark touch targets remain at their authored positions.
+    for (const other of scene.mapLabels) {
+      if (Math.abs(x - other.x) < (w + other.w) / 2 + 20 && y < other.y + other.h + 20 && y + h > other.y - 20) {
+        y = Math.max(24, other.y - h - 24);
+      }
     }
+    const panel = addRegionPanel(scene, 0, h / 2 - 14, w, h, 169, 'normal', false, 'card');
+    const plaque = scene.add.container(x, y, [panel.regionMapArt, panel, nameplate, status]).setDepth(169);
+    const connector = scene.add.graphics().lineStyle(2, unlocked ? 0xd3a750 : 0x8b887e, 0.45).setDepth(150);
+    connector.lineBetween(x, y + h - 14, point.x, point.y - 100);
+    connector.fillStyle(unlocked ? color : 0x807b70, 0.9).fillCircle(point.x, point.y - 100, 8);
+    scene.mapLabels.push({ poi, panel, nameplate, status, plaque, connector, x, y, w, h, unlocked });
     const hit = scene.add.circle(point.x, point.y - 100, 145, 0xffffff, 0.001).setDepth(900);
     const details = () => locationDetails(poi);
-    bindSelectionDetails(scene, hit, details, () => selectPoi(scene, poi), undefined, { allowSceneInput: true });
+    bindSelectionDetails(scene, hit, details, () => inspectDestination(scene, poi), undefined, { allowSceneInput: true });
 
-    bindSelectionDetails(scene, nameplate, details, () => selectPoi(scene, poi), undefined, { allowSceneInput: true });
+    bindSelectionDetails(scene, nameplate, details, () => inspectDestination(scene, poi), undefined, { allowSceneInput: true });
+  }
+  refreshMapLabels(scene);
+}
+
+function refreshMapLabels(scene) {
+  const camera = scene.cameras.main;
+  const view = camera.worldView;
+  const inset = 8 / camera.zoom;
+  for (const { poi, panel, nameplate, status, plaque, connector, x, y, w, h, unlocked } of scene.mapLabels ?? []) {
+    // A plaque enters as a complete label rather than leaving clipped text at a
+    // viewport edge. Its landmark hit target stays available while it is hidden.
+    const visible = x - w / 2 >= view.x + inset && x + w / 2 <= view.right - inset
+      && y - 14 >= view.y + inset && y + h - 14 <= view.bottom - inset;
+    plaque.setVisible(visible);
+    connector.setVisible(visible);
+    nameplate.input.enabled = visible;
+    const here = !scene.activeEdge && scene.partyNode === poi.node;
+    const selected = scene.selectedMapPoi?.id === poi.id;
+    const label = !unlocked ? 'Locked' : here ? 'Current location' : scene.destination?.id === poi.id ? 'Traveling here'
+      : cleared(poi.id) && ['delve', 'void'].includes(poi.type) ? 'Completed' : 'Available';
+    if (status.text !== label) status.setText(label);
+    nameplate.setColor(here ? '#ffdb86' : unlocked ? '#fff1d2' : '#b5b1a8');
+    setRegionPanelState(scene, panel, here || selected ? 'selected' : 'normal', unlocked ? 1 : 0.85);
   }
 }
 
@@ -231,6 +267,15 @@ function locationDetails(poi) {
   // ... copies the source's own fields into this object; fields listed later replace
   // earlier ones. This is a shallow copy, so nested objects are still shared.
   return { ...details, messageScope: 'map' };
+}
+
+function inspectDestination(scene, poi) {
+  HapticsService.tap();
+  showRegionDestination(scene, poi, {
+    open: available(poi), completed: cleared(poi.id) && ['delve', 'void'].includes(poi.type),
+    details: locationDetails(poi), travel: () => selectPoi(scene, poi),
+    inspect: details => showSelectionDetails(scene, details)
+  });
 }
 
 // Pan to the traveling party and restore the intended camera follow behavior. scene is the
@@ -403,9 +448,9 @@ export function createScrollingWorldMap(scene) {
   // The braces pull named fields into local variables. This reads those fields without
   // copying the whole source object.
   const { width, height } = scene.scale;
-  scene.cameras.main.setBackgroundColor('#233b2b');
+  scene.cameras.main.setBackgroundColor('#111318');
   drawWorld(scene);
-  createWorldMapAmbience(scene);
+  scene.regionalMap.layers.environment.add(createWorldMapAmbience(scene));
   createParty(scene);
   renderPois(scene);
   const camera = scene.cameras.main;
@@ -417,43 +462,11 @@ export function createScrollingWorldMap(scene) {
   scene.partyPan = null;
   camera.startFollow(scene.party, false, 0.09, 0.09, 0, scene.partyCameraOffset);
   scene.mapUiCamera = scene.cameras.add(0, 0, width, height, false, 'region-map-ui');
-  createRegionLocationRail(scene, pois, available, cleared, locationDetails, poi => selectPoi(scene, poi));
-  addRegionPanel(scene, width / 2, 58, width, MAP_HEADER_HEIGHT, 1000);
-
-  // Depth is drawing order, not distance or size. Higher-depth objects draw on top of
-  // lower-depth objects. Scroll factor controls how much the object follows the camera.
-  // Zero keeps it fixed while the world scrolls.
-  scene.add.text(58, 18, 'DELVE DEEP', { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('display54'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#f8fafc' })
-    .setScrollFactor(0).setDepth(1001);
-  scene.regionText = scene.add.text(58, 69, 'WORLD MAP', { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('mapRegion'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#b2c7d1' })
-    .setScrollFactor(0).setDepth(1001);
-
-  // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the center and
-  // 1 is the right/bottom edge. x/y place that anchor, not necessarily the object's
-  // corner.
-  scene.currencyText = scene.add.text(width - 58, 26, `Gold: ${GameState.gold}`, {
-    fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('mapGold'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fbbf24'
-  }).setOrigin(1, 0).setScrollFactor(0).setDepth(1001);
-
-  // This gives the display object an input hit area. Visible artwork alone does not make
-  // an object respond to a tap.
-  const recenter = addRegionPanel(scene, width - 185, height - 65, 300, 100, 1000)
-    .setInteractive({ useHandCursor: true });
-  scene.add.text(width - 185, height - 65, 'FIND PARTY', {
-    fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('heading38'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#f1f8ec'
-  }).setOrigin(0.5).setScrollFactor(0).setDepth(1001);
-
-  // on registers a callback for later events; it does not call that callback now.
-  // Long-lived emitters need matching listener cleanup.
-  recenter.on('pointerdown', (pointer, x, y, event) => {
-
-    // ?. only follows this link when the value exists; a missing optional value gives
-    // undefined.
-    event?.stopPropagation?.();
-    HapticsService.tap();
-    findParty(scene);
+  createRegionLocationRail(scene, pois, available, cleared, locationDetails, poi => inspectDestination(scene, poi));
+  createRegionMapHeader(scene, () => {
+    scene.mapLocationClose?.();
+    scene.showDevelopmentTools();
   });
-
   let drag = null;
   const startDrag = (pointer, objects) => {
 
@@ -501,38 +514,23 @@ export function createScrollingWorldMap(scene) {
     scene.input.off('pointerup', endDrag);
     scene.input.off('gameout', endDrag);
   });
-  addRegionPanel(scene, (width + REGION_RAIL_WIDTH) / 2, height - MAP_FOOTER_HEIGHT / 2, width - REGION_RAIL_WIDTH, MAP_FOOTER_HEIGHT, 999);
-
-  addDetailsHint(scene, height - 65, 'Drag map to explore. Hold for details.', { x: privateTransfersEnabled ? 1390 : 1430, fontSize: UI_FONT_SIZES.support28, fixed: true, width: privateTransfersEnabled ? 500 : 570 });
-  const help = addRegionPanel(scene, 640, height - 65, 300, 100, 1000).setInteractive({ useHandCursor: true });
-  scene.add.text(640, height - 65, 'HOW TO PLAY', { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('heading38'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#f1f8ec' })
-    .setOrigin(0.5).setScrollFactor(0).setDepth(1001);
-  help.on('pointerdown', () => {
-    HapticsService.tap();
-    showTutorialSlideshow(scene);
+  const footerY = height - MAP_FOOTER_HEIGHT / 2;
+  addRegionPanel(scene, (width + REGION_RAIL_WIDTH) / 2, footerY,
+    width - REGION_RAIL_WIDTH, MAP_FOOTER_HEIGHT, 999);
+  const utility = (x, label, action) => addRegionButton(scene, x, footerY, 300, 90, label, () => {
+    scene.mapLocationClose?.();
+    action();
   });
-
-  const reset = addRegionPanel(scene, 970, height - 65, 300, 100, 1000).setInteractive({ useHandCursor: true });
-  scene.add.text(970, height - 65, 'SETTINGS', { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('heading38'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff1d2' })
-    .setOrigin(0.5).setScrollFactor(0).setDepth(1001);
-  reset.on('pointerdown', () => {
-    HapticsService.tap();
-    scene.showDevelopmentTools();
+  utility(REGION_RAIL_WIDTH + 180, 'How to Play', () => showTutorialSlideshow(scene));
+  if (privateTransfersEnabled) utility(REGION_RAIL_WIDTH + 510, 'Save Transfer', () => {
+    persistTravel(scene);
+    showSaveTransferDialog(scene);
   });
-  // Private builds add a transfer button; normal release builds omit this control.
-  if (privateTransfersEnabled) {
-    // Leave a separate slot before FIND PARTY, whose center follows the right edge.
-    const transferX = width - 530;
-    const transfer = addRegionPanel(scene, transferX, height - 65, 300, 100, 1000).setInteractive({ useHandCursor: true });
-    scene.add.text(transferX, height - 65, 'SAVE TRANSFER', { fontFamily: UI_FONT_FAMILIES.sans,
-      fontSize: fontPx('body32'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff1d2' })
-      .setOrigin(0.5).setScrollFactor(0).setDepth(1001);
-    transfer.on('pointerdown', () => {
-      persistTravel(scene);
-      HapticsService.tap();
-      showSaveTransferDialog(scene);
-    });
-  }
+  utility(width - UI_SAFE_RIGHT - 150, 'Find Party', () => findParty(scene));
+  scene.add.text((REGION_RAIL_WIDTH + 680 + width - UI_SAFE_RIGHT - 320) / 2, footerY,
+    'Drag to explore · Hold for details', {
+      fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx('body30'), color: '#c6bdac'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(1001);
   syncRegionMapCameras(scene);
 
   scene.time.addEvent({ delay: 2000, loop: true, callback: () => persistTravel(scene) });
@@ -558,11 +556,13 @@ function persistTravel(scene) {
 export function updateScrollingWorldMap(scene, delta) {
   syncRegionMapCameras(scene);
   updateRegionLocationRail(scene, cleared);
+  refreshMapLabels(scene);
   const region = regions[0];
 
   // ?. only follows this link when the value exists; a missing optional value gives
   // undefined.
-  scene.regionText?.setText(`WORLD MAP  ·  ${region.name}`);
+  scene.regionText?.setText(region.name);
+  refreshRegionMapGold(scene);
   if (scene.selectionDetailsClose) return;
   if (!scene.activeEdge || !scene.edgeTarget) return;
   const edge = scene.activeEdge;

@@ -1,5 +1,5 @@
 // This private utility uses real password/file controls for the mobile keyboard and
-// accessibility. Its green panel and large controls match the region map's palette.
+// accessibility. Shared charcoal and gold styling keeps its scrolling controls readable.
 import GameState from '../game/GameState.js';
 import { LEADER_STORAGE_KEY } from '../game/BuildSave.js';
 import { flushProfileSave } from '../game/GameStorage.js';
@@ -22,10 +22,11 @@ const filename = label => `DelveDeep-${label}-${new Date().toISOString().replace
 export function showSaveTransferDialog(scene) {
   if (!privateTransfersEnabled || document.querySelector('.save-transfer-overlay')) return;
   scene.selectionDetailsClose?.();
+  scene.mapLocationClose?.();
   const previousFocus = document.activeElement;
   const root = document.createElement('div');
   root.className = 'save-transfer-overlay';
-  root.innerHTML = `<section class="save-transfer-panel" role="dialog" aria-modal="true" aria-labelledby="save-transfer-title">
+  root.innerHTML = `<section class="map-dialog save-transfer-panel" role="dialog" aria-modal="true" aria-labelledby="save-transfer-title">
     <header><h2 id="save-transfer-title">Save import and export</h2><button type="button" data-action="close" aria-label="Close save transfer">Close</button></header>
     <p>Encrypted backups for your own devices. Keep the backup passphrase safe; forgotten passphrases cannot be recovered.</p>
     <label>Backup passphrase (at least 12 characters)<input type="password" autocomplete="off" spellcheck="false" data-field="password" maxlength="1024"></label>

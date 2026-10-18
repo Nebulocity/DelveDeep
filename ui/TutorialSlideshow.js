@@ -4,10 +4,8 @@
 
 import { UI_FONT_SIZES, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import { tutorialSlides } from '../data/tutorial.js';
-import { addRegionPanel, setRegionPanelState } from './RegionMapTheme.js';
+import { addRegionPanel, addRegionButton, setRegionPanelState } from './RegionMapTheme.js';
 import { syncRegionMapCameras } from './RegionMapUI.js';
-import { bindButtonPress } from './ButtonPress.js';
-import HapticsService from '../services/HapticsService.js';
 
 // Open the video tutorial with slide navigation, playback controls and complete cleanup.
 // scene is the Phaser screen that owns the objects, clock and input used here.
@@ -16,6 +14,7 @@ export function showTutorialSlideshow(scene) {
   // ?. only follows this link when the value exists; a missing optional value gives
   // undefined.
   scene.selectionDetailsClose?.();
+  scene.mapLocationClose?.();
 
   // The braces pull named fields into local variables. This reads those fields without
   // copying the whole source object.
@@ -33,7 +32,7 @@ export function showTutorialSlideshow(scene) {
     return object;
   };
   const text = (x, y, value, size, options = {}) => keep(scene.add.text(x, y, value, {
-    fontFamily: UI_FONT_FAMILIES.sans, fontSize: `${size}px`, color: '#f1f8ec', align: 'center', ...options
+    fontFamily: UI_FONT_FAMILIES.serif, fontSize: `${size}px`, color: '#fff1d2', align: 'center', ...options
   }).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 3));
   const close = () => {
     if (closed) return;
@@ -56,36 +55,34 @@ export function showTutorialSlideshow(scene) {
   // an object respond to a tap. Depth is drawing order, not distance or size. Higher-depth
   // objects draw on top of lower-depth objects. Scroll factor controls how much the object
   // follows the camera. Zero keeps it fixed while the world scrolls.
-  keep(scene.add.rectangle(cx, height / 2, width, height, 0x000000, 0.78)
-    .setScrollFactor(0).setDepth(depth).setInteractive());
-  keep(addRegionPanel(scene, cx, height / 2, width - 120, height - 60, depth + 1)).setInteractive();
-  text(cx, 80, 'HOW TO PLAY', UI_FONT_SIZES.heading38, { fontStyle: UI_FONT_WEIGHTS.bold, color: '#f2d79f' });
-  const title = text(cx, 137, '', UI_FONT_SIZES.body36, { fontStyle: UI_FONT_WEIGHTS.bold });
+  const stop = (pointer, x, y, event) => event?.stopPropagation?.();
+  keep(scene.add.rectangle(cx, height / 2, width, height, 0x000000, 0.72)
+    .setScrollFactor(0).setDepth(depth).setInteractive()).on('pointerdown', stop).on('pointerup', stop);
+  keep(addRegionPanel(scene, cx, height / 2, width - 120, height - 96, depth + 1))
+    .setInteractive().on('pointerdown', stop).on('pointerup', stop);
+  text(cx, 116, 'HOW TO PLAY', UI_FONT_SIZES.heading38, { fontStyle: UI_FONT_WEIGHTS.bold, color: '#f2d79f' });
+  const title = text(cx, 176, '', UI_FONT_SIZES.body36, {
+    fontStyle: UI_FONT_WEIGHTS.bold, wordWrap: { width: width - 600 }
+  });
 
   // Keep each short instruction below the video, with larger phone-readable text.
   const caption = text(cx, height - 236, '', UI_FONT_SIZES.body36, { wordWrap: { width: width - 330 }, fixedWidth: width - 330 }).setName('tutorial-caption');
-  const status = text(cx, 472, 'Loading gameplay...', UI_FONT_SIZES.body34);
+  const status = text(cx, 472, 'Loading gameplay...', UI_FONT_SIZES.body34, { wordWrap: { width: width - 500 } });
 
-  const count = text(cx, height - 66, '', UI_FONT_SIZES.support28, { color: '#b4c4af' });
+  const count = text(cx, height - 78, '', UI_FONT_SIZES.support28, { color: '#c6bdac' });
   const button = (x, label, action, buttonWidth = 310) => {
 
     // This gives the display object an input hit area. Visible artwork alone does not make
     // an object respond to a tap.
-    const panel = keep(addRegionPanel(scene, x, height - 136, buttonWidth, 82, depth + 4))
-      .setInteractive({ useHandCursor: true }).setName(`tutorial-${label.toLowerCase()}`);
-
-    // Depth is drawing order, not distance or size. Higher-depth objects draw on top of
-    // lower-depth objects.
-    const caption = text(x, height - 136, label, UI_FONT_SIZES.body32, { fontStyle: UI_FONT_WEIGHTS.bold }).setDepth(depth + 5);
-    bindButtonPress(scene, panel, [caption], () => {
-      HapticsService.tap();
-      action();
-    });
+    const control = addRegionButton(scene, x, height - 152, buttonWidth, 88, label, action, { depth: depth + 4 });
+    const panel = keep(control.panel).setName(`tutorial-${label.toLowerCase()}`);
+    const caption = keep(control.text);
     return { panel, caption };
   };
 
-  const previous = button(cx - 750, 'PREVIOUS', () => show(index - 1));
-  const playback = button(cx - 250, 'PAUSE', () => {
+  const step = Math.min(500, (width - 300) / 4);
+  const previous = button(cx - step * 1.5, 'PREVIOUS', () => show(index - 1));
+  const playback = button(cx - step / 2, 'PAUSE', () => {
     if (!video) return;
     paused = !paused;
     video.setPaused(paused);
@@ -95,7 +92,7 @@ export function showTutorialSlideshow(scene) {
     playback.caption.setText(paused ? 'PLAY' : 'PAUSE');
   });
 
-  button(cx + 250, 'REPLAY', () => {
+  button(cx + step / 2, 'REPLAY', () => {
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
@@ -108,14 +105,10 @@ export function showTutorialSlideshow(scene) {
     playback.caption.setText('PAUSE');
   });
 
-  const next = button(cx + 750, 'NEXT', () => show(index + 1));
-  const closePanel = keep(addRegionPanel(scene, width - 235, 87, 270, 74, depth + 4))
-    .setInteractive({ useHandCursor: true }).setName('tutorial-close');
-  const closeLabel = text(width - 235, 87, 'CLOSE', UI_FONT_SIZES.body32).setDepth(depth + 5);
-  bindButtonPress(scene, closePanel, [closeLabel], () => {
-    HapticsService.tap();
-    close();
-  });
+  const next = button(cx + step * 1.5, 'NEXT', () => show(index + 1));
+  const closeControl = addRegionButton(scene, width - 264, 116, 272, 88, 'CLOSE', close, { depth: depth + 4 });
+  keep(closeControl.panel).setName('tutorial-close');
+  keep(closeControl.text);
   const enable = (control, enabled) => {
     control.panel.input.enabled = enabled;
 
@@ -137,6 +130,11 @@ export function showTutorialSlideshow(scene) {
     const slide = tutorialSlides[index];
     title.setText(slide.title);
     caption.setText(slide.caption);
+    caption.setY(height - 224 - caption.height / 2);
+    const videoTop = Math.max(230, title.y + title.height / 2 + 24);
+    const videoHeight = Math.max(120, caption.y - caption.height / 2 - 24 - videoTop);
+    const videoY = videoTop + videoHeight / 2;
+    status.setY(videoY);
     count.setText(`${index + 1} of ${tutorialSlides.length}`);
     playback.caption.setText('PAUSE');
     enable(previous, index > 0);
@@ -147,7 +145,7 @@ export function showTutorialSlideshow(scene) {
     // Depth is drawing order, not distance or size. Higher-depth objects draw on top of
     // lower-depth objects. Scroll factor controls how much the object follows the camera.
     // Zero keeps it fixed while the world scrolls.
-    const current = scene.add.video(cx, 472).setScrollFactor(0).setDepth(depth + 2).setName('tutorial-video');
+    const current = scene.add.video(cx, videoY).setScrollFactor(0).setDepth(depth + 2).setName('tutorial-video');
     video = current;
 
     // once registers a callback that removes itself after the first matching event.
@@ -156,7 +154,7 @@ export function showTutorialSlideshow(scene) {
 
       // Math.min chooses the smallest value; pairing it with Math.max can keep a result
       // inside both a lower and an upper bound.
-      current.setScale(Math.min((width - 420) / current.width, 570 / current.height));
+      current.setScale(Math.min((width - 420) / current.width, videoHeight / current.height));
       status.setVisible(false);
     });
 

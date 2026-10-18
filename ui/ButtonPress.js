@@ -39,6 +39,7 @@ export function bindButtonPress(scene, target, labels = [], onClick) {
   // Scroll factor controls how much the object follows the camera. Zero keeps it fixed
   // while the world scrolls.
   shadow.setScrollFactor(target.scrollFactorX, target.scrollFactorY);
+  if (surface?.hidePressShadow) shadow.setAlpha(0);
   let tween = null;
   let pointerId = null;
   let disposed = false;

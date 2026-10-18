@@ -3,36 +3,18 @@
 // rows outside the visible window from receiving a tap.
 
 import Phaser from 'phaser';
+import { renderShopCatalog } from '../ui/ShopCatalog.js';
 import { FACILITIES, renderFacilityMenu } from '../ui/FacilityMenu.js';
 import GameState from '../game/GameState.js';
 import { saveProfile } from '../game/GameStorage.js';
 import { buyPotionPack, equipmentOwner, equipmentStatsText } from '../game/Equipment.js';
-import { equipmentDetails } from '../game/EquipmentDescriptions.js';
-import { fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import { POTION_ITEMS, CRAFTING_RECIPES, getEquipmentDefinition } from '../data/items.js';
 
 import { ACTIVE_ENCHANTMENTS, ENCHANTMENT_BY_ID } from '../data/enchantments.js';
-import { bindSelectionDetails } from '../ui/SelectionDetails.js';
-import { addCategoryIcon } from '../ui/FacilityChoiceArt.js';
-import { itemNameClasses } from '../ui/IdentityIcons.js';
-import { addFacilityDetailsHint } from '../ui/FacilityChrome.js';
-import { addShopButton, addShopButtonFace, bindShopButtonFeedback } from '../ui/ShopButton.js';
-import { hallScroll } from '../ui/HallUI.js';
 import HapticsService from '../services/HapticsService.js';
 import { canCraft, craftItem, recipeIngredientText } from '../game/Crafting.js';
 
-import { GEAR_STOCK, saleRows, sellOwnedItem, sellAllOwnedItem, buyGear, inscribeEnchantment, applyEnchantment, disenchantItem, sortShopRows } from '../game/ShopServices.js';
-
-const THEMES = {
-  Blacksmith: { panel: 0x1b2023, face: 0x353535, edge: 0xd58b55, text: '#fff0d8' },
-  Alchemist: { panel: 0x14271f, face: 0x294b36, edge: 0x9fbd78, text: '#eff9d7' },
-  Enchanter: { panel: 0x201a31, face: 0x403152, edge: 0xb69ada, text: '#f3eaff' }
-};
-
-const CATEGORIES = {
-  all: ['All items', 'satchel'], weapon: ['Weapons', 'sword'], armor: ['Armor', 'shield'],
-  accessory: ['Accessories', 'rune'], potion: ['Potions', 'flask'], material: ['Materials', 'ingot'], scroll: ['Scrolls', 'scroll']
-};
+import { GEAR_STOCK, saleRows, sellOwnedItem, sellAllOwnedItem, buyGear, inscribeEnchantment, applyEnchantment, disenchantItem } from '../game/ShopServices.js';
 
 // Scroll cards state the exact bonus without expanding it into derived character stats.
 const enchantmentText = definition => equipmentStatsText(definition.stats).replace(/\b(STR|AGI|INT|WIS|HP)\b/g,
@@ -52,7 +34,10 @@ export default class FacilityScene extends Phaser.Scene {
     // undefined.
     this.facility = FACILITIES[data?.title] ?? FACILITIES.Alchemist;
     this.returnScene = data?.returnScene ?? 'TownScene';
-    this.selection = null;
+    this.selection = this.facility.choices[0].id;
+    this.selectedItemId = null;
+    this.detailOffset = 0;
+    this.leaving = false;
     this.category = 'all';
     this.itemOffset = 0;
     this.message = '';
@@ -61,20 +46,42 @@ export default class FacilityScene extends Phaser.Scene {
 
   // We build this screen and connect its input after the queued assets are ready. Display
   // objects belong to this scene and are removed when the scene shuts down.
-  create() { this.render(); }
+  create() {
+    const back = () => {
+      if (this.selectionDetailsClose) this.selectionDetailsClose();
+      else this.returnToTown();
+    };
+    const resize = () => this.render();
+    this.scale.on('resize', resize);
+    this.input.keyboard?.on('keydown-ESC', back);
+    this.events.once('shutdown', () => {
+      this.scale.off('resize', resize);
+      this.input.keyboard?.off('keydown-ESC', back);
+      this.selectionDetailsClose?.();
+    });
+    this.render();
+  }
+
+  returnToTown() {
+    if (this.leaving) return;
+    this.leaving = true;
+    this.scene.start(this.returnScene);
+  }
 
   // Build the visible workspace from the current selection, page and game state.
   render() {
     renderFacilityMenu(this, this.facility, this.selection,
       selection => {
         this.selection = selection;
+        this.selectedItemId = null;
+        this.detailOffset = 0;
         this.category = 'all';
         this.itemOffset = 0;
         this.message = '';
         this.selectedScroll = null;
         this.render();
       },
-      () => this.scene.start(this.returnScene),
+      () => this.returnToTown(),
       choice => this.renderFacilityDetail(choice));
   }
 
@@ -88,6 +95,7 @@ export default class FacilityScene extends Phaser.Scene {
     if (result.ok) {
       saveProfile();
       HapticsService.confirm();
+      this.transactionGlow = true;
     }
     this.render();
   }
@@ -182,136 +190,8 @@ export default class FacilityScene extends Phaser.Scene {
     return [];
   }
 
-  // Display the selected facility item's details and available transaction controls.
+  // The catalog reads rows from the existing service rules and owns presentation only.
   renderFacilityDetail(choice) {
-    const theme = THEMES[this.facility.name];
-    const allRows = sortShopRows(this.rowsFor(choice));
-
-    // ... expands these entries into the new list or call. It does not deep-copy the
-    // objects inside. filter keeps entries whose callback returns true. It builds a new
-    // list and leaves the original list in place.
-    const categories = ['all', ...Object.keys(CATEGORIES).filter(key => key !== 'all' && allRows.some(row => row.category === key))];
-    if (!categories.includes(this.category)) this.category = 'all';
-    const rows = allRows.filter(row => this.category === 'all' || row.category === this.category);
-
-    this.add.rectangle(1200, 553, 2280, 690, theme.panel, 0.97).setStrokeStyle(4, theme.edge);
-
-    // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the center
-    // and 1 is the right/bottom edge. x/y place that anchor, not necessarily the object's
-    // corner. The condition before ? chooses the first value when true and the value after
-    // : when false.
-    const heading = this.add.text(255, 252, choice.id === 'sell' ? 'YOUR INVENTORY' : choice.label, { fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx('heading42'), fontStyle: UI_FONT_WEIGHTS.bold, color: theme.text }).setOrigin(0.5);
-    if (heading.width > 330) heading.setScale(330 / heading.width);
-    addFacilityDetailsHint(this, this.facility.name, 252, { x: 1400 });
-    if (choice.id === 'enchant' && this.selectedScroll) {
-      const back = addShopButton(this, theme, 2160, 252, 272, 58, 'Back to Scrolls', { prominent: true, fontSize: fontPx('shopCategory') });
-      back.target.setName('enchant-back-to-scrolls');
-      bindSelectionDetails(this, back.target, { title: 'Choose another scroll', description: 'Return to your scrolls without consuming the selected one.', shopTheme: theme }, () => {
-        HapticsService.tap();
-        this.selectedScroll = null;
-        this.category = 'all';
-        this.itemOffset = 0;
-        this.render();
-      });
-      bindShopButtonFeedback(this, back);
-    }
-    this.add.rectangle(255, 578, 350, 570, theme.face, 0.45).setStrokeStyle(2, theme.edge, 0.45);
-    categories.forEach((category, index) => {
-      const y = 333 + index * 76;
-
-      // The brackets unpack entries by position; their order matters.
-      const [label, icon] = CATEGORIES[category];
-      const active = category === this.category;
-
-      // Highlight the selected category while keeping every category visibly pressable.
-      const control = addShopButton(this, theme, 255, y, 330, 68, label,
-        { prominent: active, fontSize: fontPx('shopCategory') });
-      const button = control.target;
-      const emblem = addCategoryIcon(this, icon, 118, y, active ? 0x171319 : theme.edge);
-
-      // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the center
-      // and 1 is the right/bottom edge. x/y place that anchor, not necessarily the
-      // object's corner.
-      control.label.setX(154).setOrigin(0, 0.5);
-      bindSelectionDetails(this, button, { title: label, description: `Browse ${label.toLowerCase()}.`, shopTheme: theme }, () => {
-        HapticsService.tap();
-        this.category = category;
-        this.itemOffset = 0;
-        this.render();
-      });
-      bindShopButtonFeedback(this, control, [emblem]);
-    });
-
-    if (!rows.length) this.add.text(1400, 520, choice.id === 'sell' ? 'No owned items in this category.' : choice.id === 'disenchant' ? 'No gear with known enchantments.' : choice.id === 'enchant' ? this.selectedScroll ? 'No compatible gear without an enchantment.\nChoose Enchant again to select another scroll.' : 'Buy or inscribe a scroll to begin.' : 'Nothing available.', { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body34'), color: theme.text, align: 'center', wordWrap: { width: 1450 } }).setOrigin(0.5);
-    const start = this.children.list.length;
-    const stride = this.facility.name === 'Enchanter' ? 344 : 290;
-    rows.forEach((row, index) => {
-
-      // % gives the remainder. With a nonnegative index and positive list length, it wraps
-      // the index back to the start of the list.
-      const x = 962 + index % 2 * 900;
-
-      // Math.floor rounds toward the smaller whole number, so 3.8 becomes 3.
-      const y = 291 + (stride - 18) / 2 + Math.floor(index / 2) * stride;
-      const card = this.add.rectangle(x, y, 872, stride - 18, theme.face, 0.64).setStrokeStyle(2, theme.edge, 0.7).setName(`shop-item-${row.id}`);
-
-      // ?? uses the fallback only for null or undefined. A real zero or false stays
-      // intact. ?. only follows this link when the value exists; a missing optional value
-      // gives undefined.
-      addCategoryIcon(this, CATEGORIES[row.category]?.[1] ?? 'satchel', x - 399, y - 81, theme.edge);
-
-      // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the center
-      // and 1 is the right/bottom edge. x/y place that anchor, not necessarily the
-      // object's corner.
-      const title = this.add.text(x - 363, y - (stride - 18) / 2 + 17, row.name, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body34'), fontStyle: UI_FONT_WEIGHTS.bold, color: theme.text,
-        wordWrap: { width: 770 }, maxLines: 2 }).setOrigin(0, 0);
-      this.add.text(x - 409, y - (stride - 18) / 2 + 94, row.description, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('shopDescription'), color: '#ddd5c7', wordWrap: { width: 804 }, maxLines: 4 });
-      const inspectedItem = row.item ?? GEAR_STOCK.find(item => item.id === row.id) ?? POTION_ITEMS.find(item => item.id === row.id);
-      const recipe = CRAFTING_RECIPES.find(entry => entry.id === row.id);
-      const equipment = inspectedItem ?? getEquipmentDefinition(recipe?.output.itemId);
-      if (equipment && ['weapon', 'armor', 'accessory', 'potion'].includes(equipment.slot)) {
-        itemNameClasses(this, title, equipmentDetails(equipment).usableBy, x + 409);
-      }
-      const details = { ...(inspectedItem && inspectedItem.slot !== 'scroll'
-        ? equipmentDetails(inspectedItem) : { title: row.name, description: row.detailsDescription ?? row.description }), shopTheme: theme };
-      bindSelectionDetails(this, card, details);
-
-      // Boolean converts an unavailable recipe's missing value into an explicit false.
-      // Only actions allowed by the existing rules get a bright face and input binding.
-      const control = addShopButton(this, theme, x + 247, y + (stride - 18) / 2 - 44, 330, 68, row.action,
-        { enabled: Boolean(row.enabled), prominent: true });
-      const button = control.target.setName(`shop-action-${row.id}`);
-
-      if (row.enabled) {
-        bindSelectionDetails(this, button, details, () => this.transact(row.run));
-        bindShopButtonFeedback(this, control);
-      }
-
-      // Keep the single-sale control on the right and place bulk selling on the left.
-      // Both controls travel with the card inside the existing masked scroll region.
-      if (row.runAll) {
-        const allControl = addShopButton(this, theme, x - 224, y + (stride - 18) / 2 - 44, 376, 68, row.allAction,
-          { enabled: Boolean(row.enabled), prominent: true });
-        const allButton = allControl.target.setName(`shop-sell-all-${row.id}`);
-
-        if (row.enabled) {
-          bindSelectionDetails(this, allButton, details, () => this.transact(row.runAll));
-          bindShopButtonFeedback(this, allControl);
-        }
-      }
-    });
-
-    const surface = (scene, x, y, width, height, variant) => addShopButtonFace(scene, theme, x, y, width, height,
-      { prominent: variant === 'thumb', enabled: variant === 'thumb' });
-
-    // Math.ceil rounds upward to the next integer, including when the value has a
-    // fractional part.
-    this.itemList = hallScroll(this, { x: 516, y: 291, width: 1794, height: 548 },
-      this.children.list.slice(start), Math.ceil(rows.length / 2) * stride, this.itemOffset,
-      value => { this.itemOffset = value; }, surface);
-    this.add.text(1400, 868, this.message || `${rows.length} items · Drag or scroll to browse`, { fontFamily: UI_FONT_FAMILIES.sans,
-      fontSize: fontPx('shopPager'), color: theme.text, align: 'center', wordWrap: { width: 1700 } }).setOrigin(0.5);
-
-    return { x: 1200, y: 553, width: 2280, height: 690 };
+    renderShopCatalog(this, choice);
   }
 }

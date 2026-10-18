@@ -16,7 +16,7 @@ export function rankComparisonText(scene, value, width, size, color) {
     if (!lineWidth && /^\s+$/.test(token)) continue;
     const gain = token.startsWith('{{');
     const span = scene.add.text(0, 0, gain ? token.slice(2, -2) : token, {
-      fontFamily: 'Arial', fontSize: `${size}px`, color: gain ? '#238531' : color
+      fontFamily: 'Arial', fontSize: `${size}px`, color: gain ? '#72d79a' : color
     }).setOrigin(0, 0);
     if (lineWidth && lineWidth + span.width > width) {
       rows.push([]);
@@ -29,7 +29,7 @@ export function rankComparisonText(scene, value, width, size, color) {
     lineWidth += span.width;
   }
 
-  // Center each wrapped line independently, matching the existing parchment dialogs.
+  // Center each wrapped line independently inside the shared details panel.
   rows.forEach((row, index) => {
     const usedWidth = row.reduce((sum, span) => sum + span.width, 0);
     for (const span of row) span.setPosition(span.x + (width - usedWidth) / 2, index * lineHeight);

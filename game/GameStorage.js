@@ -62,6 +62,9 @@ export function loadProfile(baseRoster) {
   // missing save fields.
   // Older shop prices could leave fractional Gold. Preserve the nearest whole balance.
   GameState.gold = Number.isFinite(saved?.gold) ? Math.round(saved.gold) : 0;
+  GameState.preferences = {
+    townNavigation: saved?.preferences?.townNavigation === 'side-rails' ? 'side-rails' : 'compact-bar'
+  };
 
   // ?? uses the fallback only for null or undefined. A real zero or false stays intact. ?.
   // only follows this link when the value exists; a missing optional value gives
@@ -240,6 +243,7 @@ function writeProfile() {
   }
   const profile = {
     gold: GameState.gold,
+    preferences: GameState.preferences,
     inventory: GameState.inventory,
     records: GameState.records,
     delveCheckpoints: GameState.delveCheckpoints,

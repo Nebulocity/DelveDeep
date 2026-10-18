@@ -3,8 +3,8 @@
 
 export const tutorialSlides = [
   {
-    title: 'Visit Pineshire and the Hall',
-    caption: 'Tap Pineshire, then the Adventurer\'s Hall sign. Follow the pointer; the gold PRESS pulse marks each tap.',
+    title: 'Visit Pineshire and Heroes',
+    caption: 'Visit Pineshire, then choose Heroes from the Town Hub to browse your adventurers.',
     video: new URL('../assets/tutorial/town.mp4', import.meta.url).href
   },
   {
@@ -14,32 +14,32 @@ export const tutorialSlides = [
   },
   {
     title: 'Equip gear and potions',
-    caption: 'Choose an adventurer, tap Equip beside a slot, then Equip an owned item. Only compatible gear is offered.',
+    caption: 'Open Equipment from town, choose an adventurer and slot, then compare and equip a compatible owned item.',
     video: new URL('../assets/tutorial/equipment.mp4', import.meta.url).href
   },
   {
     title: 'Train an ability',
-    caption: 'Open Abilities, tap Train, and confirm the Gold and skill point cost. Higher ranks require higher character levels.',
+    caption: 'Open Abilities from town, choose a character and skill, then train and confirm the Gold and skill point cost. Higher ranks require higher character levels.',
     video: new URL('../assets/tutorial/abilities.mp4', import.meta.url).href
   },
   {
     title: 'Learn and equip an ability',
-    caption: 'Tap Learn and confirm. New skills fill an empty slot; use Unequip and Equip to change your four-ability battle loadout.',
+    caption: 'Select an unlearned skill in Abilities, then tap Learn and confirm. New skills fill an empty slot; Equip and Unequip change the battle loadout.',
     video: new URL('../assets/tutorial/learn-ability.mp4', import.meta.url).href
   },
   {
     title: 'Unlock and equip a tactic',
-    caption: 'Open Tactics. Spend your starting Renown Point on Focus! and confirm. New tactics equip automatically if a slot is free.',
+    caption: 'Open Party Tactics, select Focus! from the library, then unlock and confirm. New tactics equip automatically if a slot is free.',
     video: new URL('../assets/tutorial/tactics-town.mp4', import.meta.url).href
   },
   {
     title: 'Buy potion packs',
-    caption: 'Visit the Alchemist, choose Buy, and purchase a potion pack. Equip it in the Hall before entering a Delve.',
+    caption: 'Open Market, select the Alchemist and Buy, then purchase a potion pack. Equip it in Equipment before entering a Delve.',
     video: new URL('../assets/tutorial/alchemist.mp4', import.meta.url).href
   },
   {
     title: 'Buy equipment',
-    caption: 'Visit the Blacksmith, choose Buy, and browse a category. Purchased gear goes into your inventory for equipping.',
+    caption: 'Open Market, select the Blacksmith and Buy, then browse a category. Purchased gear goes into shared Inventory for equipping.',
     video: new URL('../assets/tutorial/blacksmith.mp4', import.meta.url).href
   },
   {

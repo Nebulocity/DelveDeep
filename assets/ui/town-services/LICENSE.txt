@@ -1,0 +1,25 @@
+Delve Deep town service emblems
+Created specifically for this project, October 17, 2026.
+
+Original PixelLab outputs: potion.png, mana-potion.png, armor.png, accessory.png,
+material.png, scroll.png, anvil.png and cauldron.png. These are item-family and
+merchant emblems; they do not claim to be unique portraits of individual items.
+
+PixelLab's terms grant ownership of created outputs to the user and permit
+commercial use, modification and distribution. No output attribution or royalty
+requirement is stated. Training other models requires permission. Users remain
+responsible for lawful use and third-party rights. Original fantasy UI output
+assets can be included in a distributed commercial Android game.
+
+Primary terms reviewed October 17, 2026:
+https://www.pixellab.ai/termsofservice (sections 1.3, 3.3 and 4.1)
+https://github.com/CompVis/stable-diffusion/blob/main/LICENSE
+(CreativeML Open RAIL-M, output section 6 and Attachment A)
+
+No model, external asset pack or service library is distributed. Private
+generation records remain outside shipped assets. Local terms copies are held
+with the existing ignored town-hub authoring records.
+
+Town Hub frames, charcoal texture, existing icons and selection glint are reused
+under the rights documented in ../town-hub/LICENSE.txt. Existing merchant and
+Hall backgrounds are preserved; their files were not replaced or relicensed.

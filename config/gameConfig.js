@@ -8,8 +8,15 @@ import Phaser from 'phaser';
 import BootScene from '../scenes/BootScene.js';
 import TitleScene from '../scenes/TitleScene.js';
 import TownScene from '../scenes/TownScene.js';
-import RosterScene from '../scenes/RosterScene.js';
-import PartyLeaderScene from '../scenes/PartyLeaderScene.js';
+import HeroesScene from '../scenes/HeroesScene.js';
+import AbilitiesScene from '../scenes/AbilitiesScene.js';
+import EquipmentScene from '../scenes/EquipmentScene.js';
+import TacticsScene from '../scenes/TacticsScene.js';
+import InventoryScene from '../scenes/InventoryScene.js';
+import QuestJournalScene from '../scenes/QuestJournalScene.js';
+import MarketScene from '../scenes/MarketScene.js';
+import TavernScene from '../scenes/TavernScene.js';
+import ExchangeScene from '../scenes/ExchangeScene.js';
 
 import DelveSelectScene from '../scenes/DelveSelectScene.js';
 import PartySelectScene from '../scenes/PartySelectScene.js';
@@ -17,10 +24,8 @@ import DungeonScene from '../scenes/DungeonScene.js';
 import BattleScene from '../scenes/BattleScene.js';
 import RewardScene from '../scenes/RewardScene.js';
 import FacilityScene from '../scenes/FacilityScene.js';
-import AdventurersHallScene from '../scenes/AdventurersHallScene.js';
 
 import BlacksmithScene from '../scenes/BlacksmithScene.js';
-import ItemsScene from '../scenes/ItemsScene.js';
 import EncounterSummaryScene from '../scenes/EncounterSummaryScene.js';
 import EverdeepScene from '../scenes/EverdeepScene.js';
 
@@ -39,12 +44,17 @@ const gameConfig = {
     BootScene,
     TitleScene,
     TownScene,
+    HeroesScene,
+    AbilitiesScene,
+    EquipmentScene,
+    TacticsScene,
+    InventoryScene,
+    QuestJournalScene,
+    MarketScene,
+    TavernScene,
+    ExchangeScene,
     FacilityScene,
-    AdventurersHallScene,
     BlacksmithScene,
-    ItemsScene,
-    RosterScene,
-    PartyLeaderScene,
     DelveSelectScene,
     PartySelectScene,
     DungeonScene,

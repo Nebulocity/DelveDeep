@@ -77,14 +77,15 @@ export default class MusicService {
     // that missing result before using its fields.
     const scene = this.game.scene.getScenes(true).find(active =>
       ['TitleScene', 'BattleScene', 'TownScene', 'FacilityScene', 'BlacksmithScene',
-        'AdventurersHallScene', 'RosterScene', 'PartyLeaderScene', 'ItemsScene'].includes(active.scene.key));
+        'HeroesScene', 'AbilitiesScene', 'EquipmentScene', 'TacticsScene', 'InventoryScene',
+        'QuestJournalScene', 'MarketScene', 'TavernScene', 'ExchangeScene'].includes(active.scene.key));
     if (!scene) return null;
 
     if (scene.scene.key === 'TitleScene') return 'music-pineshire';
 
-    // Hall subpages keep the same loop; the three shops share one assigned track.
-    if (scene.scene.key === 'TownScene') return 'music-town';
-    if (['FacilityScene', 'BlacksmithScene'].includes(scene.scene.key)) return 'music-shops';
+    // Character workspaces share the Hall loop; the Market keeps the shop track.
+    if (['TownScene', 'QuestJournalScene', 'TavernScene', 'ExchangeScene'].includes(scene.scene.key)) return 'music-town';
+    if (['FacilityScene', 'BlacksmithScene', 'MarketScene'].includes(scene.scene.key)) return 'music-shops';
     if (scene.scene.key !== 'BattleScene') return 'music-hall';
     if (scene.battleOver) return null;
 

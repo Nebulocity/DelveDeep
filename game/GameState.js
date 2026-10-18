@@ -5,6 +5,7 @@
 // boots.
 const GameState = {
   gold: 0,
+  preferences: { townNavigation: 'compact-bar' },
   roster: [],
   activeParty: [],
   activeBattle: null,

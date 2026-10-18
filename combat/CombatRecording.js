@@ -400,14 +400,19 @@ export async function exportCombatRecording(id = current?.id) {
 export async function showCombatArchives(onCleared = () => {}) {
   await combatRecordingReady;
   const dialog = document.createElement('dialog');
-  dialog.style.cssText = 'width:85vw;max-height:80vh;overflow:auto;background:#292524;color:#fff1d2;padding:20px;font:18px sans-serif;';
-  const title = document.createElement('h2'); title.textContent = 'Combat recordings'; dialog.append(title);
+  dialog.className = 'map-dialog combat-recordings-dialog';
+  dialog.setAttribute('aria-labelledby', 'combat-recordings-title');
+  const header = document.createElement('header');
+  const title = document.createElement('h2'); title.textContent = 'Combat recordings';
+  title.id = 'combat-recordings-title';
+  const closeHeader = document.createElement('button'); closeHeader.textContent = 'Close';
+  closeHeader.onclick = () => dialog.close();
+  header.append(title, closeHeader); dialog.append(header);
   const note = document.createElement('p');
   note.textContent = 'Export logs to keep them, or Clear All Logs to discard every recording and stop logging. Player saves and settings are kept.';
   dialog.append(note);
   const add = (label, action) => {
     const button = document.createElement('button'); button.textContent = label;
-    button.style.cssText = 'min-height:44px;margin:6px;';
     button.onclick = async () => { button.disabled = true; try { await action(button); }
       catch (error) { storageWarning('archive-operation', `Combat archive operation failed. ${error?.message ?? 'Try exporting again.'} Your recording remains available in the app.`); }
       finally { if (button.isConnected) button.disabled = false; } };
@@ -423,7 +428,7 @@ export async function showCombatArchives(onCleared = () => {}) {
       await showCombatArchives(onCleared);
     } else buttons.forEach(button => { button.disabled = false; });
   });
-  clearButton.style.cssText += 'background:#633d3d;color:#ffe2df;border:1px solid #a76a65;border-radius:4px;padding:10px 18px;';
+  clearButton.className = 'map-dialog-danger';
   for (const session of [...sessions.values()].reverse()) {
     const row = document.createElement('p'); row.textContent = `${session.startedAt}${session.active ? ' (recording)' : ''}${session.incomplete ? ' (incomplete)' : ''}`; dialog.append(row);
     let exportRequested = false;

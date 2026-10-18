@@ -1,6 +1,6 @@
 // Shared icon keys keep the supplied artwork consistent across town and battle panels.
 import { CLASS_CATALOG_NAMES, CLASS_ABILITY_RULES, abilityAllowed } from '../data/replacementAbilities.js';
-import { addCategoryIcon } from './FacilityChoiceArt.js';
+import { addCategoryIcon } from './CategoryIcons.js';
 
 const classes = Object.keys(CLASS_ABILITY_RULES);
 const slug = name => (CLASS_CATALOG_NAMES[name] ?? name).toLowerCase().replaceAll(' ', '_');
@@ -9,7 +9,10 @@ const slug = name => (CLASS_CATALOG_NAMES[name] ?? name).toLowerCase().replaceAl
 export function preloadIdentityIcons(scene) {
   for (const name of classes) {
     const file = slug(name);
-    scene.load.image(`class-icon-${file}`, new URL(`../assets/icons/classes/128px/${file}.png`, import.meta.url).href);
+    const artwork = name === 'Runedancer'
+      ? new URL('../assets/effects/runedancer/fluorite-rune.png', import.meta.url).href
+      : new URL(`../assets/icons/classes/128px/${file}.png`, import.meta.url).href;
+    scene.load.image(`class-icon-${file}`, artwork);
   }
   for (const category of ['assault', 'protect', 'restore', 'prepare']) {
     scene.load.image(`category-icon-${category}`, new URL(`../assets/icons/categories/${category}.png`, import.meta.url).href);

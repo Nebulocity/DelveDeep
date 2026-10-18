@@ -3,7 +3,7 @@ import { usableByIcons } from '../ui/IdentityIcons.js';
 // inset and long content scrolls rather than shrinking to an unreadable size. Closing
 // removes the blocker so the main shop becomes interactive again.
 
-import { addFacilityPlate } from './FacilityChoiceArt.js';
+import { serviceFrame, serviceScrollSurface } from './TownServiceTheme.js';
 import { bindButtonPress } from './ButtonPress.js';
 import { hallScroll } from './HallUI.js';
 import HapticsService from '../services/HapticsService.js';
@@ -28,7 +28,6 @@ export function showShopDetails(scene, details) {
   // The braces pull named fields into local variables. This reads those fields without
   // copying the whole source object.
   const { width, height } = scene.scale;
-  const facility = scene.facility.name;
   const x = width / 2;
 
   // Math.min chooses the smallest value; pairing it with Math.max can keep a result inside
@@ -52,13 +51,15 @@ export function showShopDetails(scene, details) {
   }).setDepth(depth + 4);
 
   const headerHeight = title.height + 80;
-  const footerSpace = details.usableBy?.length ? 88 : 0;
+  const footer = usableByIcons(scene, details.usableBy, body.x, 0, textWidth, depth + 4, details.shopTheme.text);
+  const footerSpace = footer.height;
   const panelHeight = Math.min(height - 120, Math.max(420, headerHeight + body.height + 180 + footerSpace));
   const top = (height - panelHeight) / 2;
   const bodyY = top + headerHeight + 30;
-  const bodyHeight = panelHeight - headerHeight - 170 - footerSpace;
+  const bodyHeight = panelHeight - headerHeight - 200 - footerSpace;
   title.setY(top + 40);
   body.setY(bodyY);
+  footer.objects.forEach(object => object.setY(object.y + top + panelHeight - 114 - footerSpace));
 
   let closed = false;
   const close = () => {
@@ -79,10 +80,8 @@ export function showShopDetails(scene, details) {
   // an object respond to a tap.
   const shade = scene.add.rectangle(x, height / 2, width, height, 0x000000, 0.7)
     .setName('shop-details-shade').setDepth(depth).setInteractive();
-  const { art: panel, theme } = addFacilityPlate(scene, facility, x, height / 2, panelWidth, panelHeight);
+  const panel = serviceFrame(scene, x, height / 2, panelWidth, panelHeight, 'panel');
   panel.setName('shop-details-panel').setDepth(depth + 1);
-  panel.lineStyle(2, theme.edge, 0.65);
-  panel.lineBetween(-panelWidth / 2 + 60, -panelHeight / 2 + headerHeight, panelWidth / 2 - 60, -panelHeight / 2 + headerHeight);
   const blocker = scene.add.rectangle(x, height / 2, panelWidth, panelHeight, 0, 0)
     .setDepth(depth + 2).setInteractive();
 
@@ -96,15 +95,14 @@ export function showShopDetails(scene, details) {
     HapticsService.tap();
     close();
   });
-  usableByIcons(scene, details.usableBy, body.x, top + panelHeight - 164, textWidth, depth + 4, details.shopTheme.text);
   const scroll = hallScroll(scene, { x: body.x, y: bodyY, width: textWidth, height: bodyHeight },
     [body], body.height, 0, () => {},
-    (owner, sx, sy, sw, sh) => addFacilityPlate(owner, facility, sx, sy, sw, sh).art.setDepth(depth + 4),
+    (owner, sx, sy, sw, sh, variant) => serviceScrollSurface(owner, sx, sy, sw, sh, variant).setDepth(depth + 4),
     () => false);
   scroll.container.setDepth(depth + 4);
 
   const buttonY = top + panelHeight - 70;
-  const { art: button } = addFacilityPlate(scene, facility, x, buttonY, 380, 96);
+  const button = serviceFrame(scene, x, buttonY, 380, 96, 'option');
   button.setDepth(depth + 5);
   const label = scene.add.text(x, buttonY, 'CLOSE', {
     fontFamily: UI_FONT_FAMILIES.serif, fontSize: `${UI_FONT_SIZES.body32}px`, color: details.shopTheme.text

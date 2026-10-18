@@ -5,7 +5,9 @@
 import { fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import HapticsService from '../services/HapticsService.js';
 import { addWoodenPanel } from './WoodenPanel.js';
-import { addRegionPanel } from './RegionMapTheme.js';
+import { addRegionPanel, addRegionButton } from './RegionMapTheme.js';
+import { hallScroll } from './HallUI.js';
+import { serviceScrollSurface } from './TownServiceTheme.js';
 import { isGuildHall } from './GuildHallTheme.js';
 import { showGuildConfirmation } from './GuildHallDialogs.js';
 import { addStonePanel, addStoneButton, STONE } from './CarvedStone.js';
@@ -26,6 +28,7 @@ export function showConfirmation(scene, { title, description, category, usableBy
   const { width, height } = scene.scale;
   const hall = true;
   const regionMap = scene.scene?.key === 'TitleScene';
+  if (regionMap) scene.mapLocationClose?.();
   const stone = scene.scene?.key === 'BattleScene';
   const objects = [];
   const depth = 11000;
@@ -59,9 +62,15 @@ export function showConfirmation(scene, { title, description, category, usableBy
     fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body36'), color: stone ? STONE.text : hall ? '#f1dfca' : '#e2e8f0', wordWrap: { width: panelWidth - 104 },
     align: stone ? 'center' : 'left', fixedWidth: stone ? panelWidth - 104 : undefined
   }).setDepth(depth + 2));
-  const panelHeight = Math.max(420, body.height + 240);
+  const panelHeight = regionMap ? Math.min(height - 140, Math.max(480, body.height + 300)) : Math.max(420, body.height + 240);
   const top = (height - panelHeight) / 2;
-  body.setY(top + 110);
+  body.setY(top + (regionMap ? 132 : 110));
+  if (regionMap && body.height > panelHeight - 280) {
+    const scroll = hallScroll(scene, { x: body.x, y: body.y, width: panelWidth - 104, height: panelHeight - 280 },
+      [body], body.height, 0, () => {},
+      (owner, x, y, w, h, variant) => serviceScrollSurface(owner, x, y, w, h, variant).setDepth(depth + 2), () => false);
+    objects.push(scroll.container.setDepth(depth + 2));
+  }
 
   const stop = (pointer, x, y, event) => event?.stopPropagation?.();
   for (const [index, [w, h, color, alpha]] of [[width, height, 0x000000, 0.75], [panelWidth, panelHeight, hall ? 0x21130d : 0x111827, 1]].entries()) {
@@ -80,13 +89,23 @@ export function showConfirmation(scene, { title, description, category, usableBy
   // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the center and
   // 1 is the right/bottom edge. x/y place that anchor, not necessarily the object's
   // corner.
-  add(scene.add.text(width / 2, top + 52, title, {
-    fontFamily: stone ? UI_FONT_FAMILIES.serif : UI_FONT_FAMILIES.sans, fontSize: fontPx('heading42'), fontStyle: UI_FONT_WEIGHTS.bold, color: stone ? STONE.text : hall ? '#fff1d2' : '#f8fafc',
+  add(scene.add.text(width / 2, top + (regionMap ? 72 : 52), title, {
+    fontFamily: stone || regionMap ? UI_FONT_FAMILIES.serif : UI_FONT_FAMILIES.sans, fontSize: fontPx('heading42'), fontStyle: UI_FONT_WEIGHTS.bold, color: stone ? STONE.text : hall ? '#fff1d2' : '#f8fafc',
     wordWrap: { width: panelWidth - 104 }, align: 'center'
   }).setOrigin(0.5).setDepth(depth + 2));
 
   const button = (x, label, color, accept) => {
-    const y = top + panelHeight - 72;
+    const y = top + panelHeight - (regionMap ? 88 : 72);
+    if (regionMap) {
+      const control = addRegionButton(scene, x, y, (panelWidth - 156) / 2, 88, label, () => {
+        if (closed) return;
+        close();
+        if (accept) onConfirm();
+        else onCancel?.();
+      }, { depth: depth + 2, state: accept ? 'danger' : 'normal' });
+      objects.push(control.panel, control.text);
+      return;
+    }
     if (stone) {
 
       // The condition before ? chooses the first value when true and the value after :
@@ -115,7 +134,7 @@ export function showConfirmation(scene, { title, description, category, usableBy
     // an object respond to a tap.
     const box = add((regionMap ? addRegionPanel : addWoodenPanel)(scene, x, y, (panelWidth - 156) / 2, 96, depth + 2,
       regionMap && accept ? 'danger' : 'normal').setInteractive({ useHandCursor: true }));
-    add(scene.add.text(x, y, label, { fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body34'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#ffffff' })
+    add(scene.add.text(x, y, label, { fontFamily: regionMap ? UI_FONT_FAMILIES.serif : UI_FONT_FAMILIES.sans, fontSize: fontPx('body34'), fontStyle: UI_FONT_WEIGHTS.bold, color: regionMap ? '#fff1d2' : '#ffffff' })
       .setOrigin(0.5).setDepth(depth + 3));
     let press = null;
 

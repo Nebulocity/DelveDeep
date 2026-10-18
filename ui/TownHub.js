@@ -62,7 +62,7 @@ export default class TownHub {
       .setDepth(depth).setInteractive({ useHandCursor: true }), modal);
     hit.pressVisuals = visuals;
     bindButtonPress(this.scene, hit, [], () => {
-      if (this.opening || (!modal && this.modal)) return;
+      if (this.opening || (!modal && this.modal && hit !== this.settingsControl)) return;
       HapticsService.tap();
       action();
     });
@@ -138,9 +138,11 @@ export default class TownHub {
     if (title.width > titleWidth - 150 * u) title.setScale((titleWidth - 150 * u) / title.width);
 
     const settingsX = width - UI_SAFE_RIGHT - 53 * u;
-    const settingsFrame = this.frame(settingsX, y, 106 * u, 106 * u, 'button');
-    const settingsIcon = this.icon(settingsX, y, 79 * u, 'settings');
-    this.control(settingsX, y, 100 * u, 100 * u, [settingsFrame, settingsIcon], () => this.showModal('settings')).setName('town-settings');
+    const settingsIcon = this.icon(settingsX, y, 100 * u, 'settings', 106);
+    this.settingsControl = this.control(settingsX, y, 100 * u, 100 * u, [settingsIcon], () => {
+      if (this.modal === 'settings') this.closeModal();
+      else this.showModal('settings');
+    }, 107).setName('town-settings');
     const aetherX = settingsX - 228 * u;
     const goldX = aetherX - 300 * u;
     this.frame(goldX, y, 290 * u, 96 * u, 'capsule');
@@ -181,7 +183,7 @@ export default class TownHub {
   showModal(mode) {
     this.closeModal();
     this.modal = mode;
-    this.hits.forEach(hit => hit.disableInteractive());
+    this.hits.forEach(hit => { if (hit !== this.settingsControl) hit.disableInteractive(); });
     const { width, height } = this.scene.scale;
     const u = this.unit;
     const w = Math.min(750 * u, width - 2 * UI_SAFE_LEFT);

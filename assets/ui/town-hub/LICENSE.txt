@@ -1,0 +1,26 @@
+Delve Deep Town Hub artwork
+Created specifically for Delve Deep, October 17, 2026.
+
+All PNG files in this folder are original outputs created for this project.
+No third-party asset pack, reference screenshot crop, model or service library is
+distributed here. The original town background is preserved separately.
+
+Frames (title, bar, button, selected, panel, capsule, option):
+OpenAI generated output; rights assigned to the requesting user, subject to the
+applicable service terms. Commercial game distribution and modification are
+permitted. No output attribution or royalty requirement is stated.
+https://openai.com/policies/terms-of-use/ (Content / Ownership of content)
+
+Icons and selection-glint animation:
+PixelLab original outputs. Its terms permit commercial and non-commercial use,
+modification and distribution of created outputs. No output attribution or
+royalty requirement is stated. Outputs cannot be used to train another model
+without permission. Users remain responsible for lawful use and third-party
+rights. These are output assets, not copies or derivatives of a model.
+https://www.pixellab.ai/termsofservice (sections 1.3, 3.3, 4.1)
+https://github.com/CompVis/stable-diffusion/blob/main/LICENSE
+(CreativeML Open RAIL-M, section 6 and Attachment A)
+
+Terms reviewed October 17, 2026. Those terms allow these original fantasy UI
+outputs to be included in the distributed commercial Android game. Private
+authoring records and retained terms are kept outside shipped assets.

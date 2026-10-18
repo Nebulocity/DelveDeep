@@ -51,7 +51,7 @@ function isHallMenu(scene) {
 
   // ?. only follows this link when the value exists; a missing optional value gives
   // undefined.
-  return ['AdventurersHallScene', 'RosterScene', 'ItemsScene', 'PartyLeaderScene', 'FacilityScene', 'BlacksmithScene']
+  return ['HeroesScene', 'AbilitiesScene', 'EquipmentScene', 'InventoryScene', 'TacticsScene', 'FacilityScene', 'BlacksmithScene']
     .includes(scene.scene?.key);
 }
 

@@ -20,6 +20,7 @@ import { addRegionPanel, addRegionNotice, setRegionPanelState, regionMessageBoun
 import { showConfirmation } from '../ui/ConfirmationDialog.js';
 import { resolveWorldMapCharacter } from '../game/WorldMapCharacter.js';
 import { CHARACTER_SPRITES } from '../data/characterSprites.js';
+import { townLayout, setTownLayout } from '../game/TownPreferences.js';
 
 export default class TitleScene extends Phaser.Scene {
 
@@ -344,6 +345,13 @@ export default class TitleScene extends Phaser.Scene {
         loggingToggle.caption.setText('START LOGGING');
         setRegionPanelState(this, loggingToggle.button, 'normal');
       });
+    }, '#ffffff', 360);
+
+    addLabel(4, 'Town navigation');
+    const townToggle = addButton(firstX, rowY(4), townLayout() === 'side-rails' ? 'SIDE RAILS' : 'COMPACT BAR', 0, 0, () => {
+      HapticsService.tap();
+      setTownLayout(townLayout() === 'side-rails' ? 'compact-bar' : 'side-rails');
+      townToggle.caption.setText(townLayout() === 'side-rails' ? 'SIDE RAILS' : 'COMPACT BAR');
     }, '#ffffff', 360);
 
     addLabel(1, 'Reset progress');

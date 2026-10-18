@@ -1,6 +1,6 @@
 // Shared icon keys keep the supplied artwork consistent across town and battle panels.
 import { CLASS_CATALOG_NAMES, CLASS_ABILITY_RULES, abilityAllowed } from '../data/replacementAbilities.js';
-import { addCategoryIcon } from './FacilityChoiceArt.js';
+import { addCategoryIcon } from './CategoryIcons.js';
 
 const classes = Object.keys(CLASS_ABILITY_RULES);
 const slug = name => (CLASS_CATALOG_NAMES[name] ?? name).toLowerCase().replaceAll(' ', '_');

@@ -2,24 +2,15 @@
 // display object can still need selection handlers and cleanup from its caller.
 
 import { UI_FONT_SIZES, UI_FONT_FAMILIES } from '../config/uiTypography.js';
-import { addHallBackground } from './HallBackground.js';
 import { bindSelectionDetails } from './SelectionDetails.js';
 import { bindButtonPress } from './ButtonPress.js';
-import { addCategoryIcon } from './FacilityChoiceArt.js';
+import { addCategoryIcon } from './CategoryIcons.js';
 import { CHARACTER_SPRITES } from '../data/characterSprites.js';
-import GameState from '../game/GameState.js';
 
 import HapticsService from '../services/HapticsService.js';
-import { guildSurface, guildCrest } from './GuildHallTheme.js';
+import { guildSurface } from './GuildHallTheme.js';
 
 export const HALL = { text: '#fff1d2', muted: '#d2b895', gold: 0xe6bd70, green: '#afd69f', edge: 0x866039 };
-
-export const HALL_ARCHETYPES = [
-  { role: 'Tank', label: 'Tanks', icon: 'shield', color: 0xa8c9dc },
-  { role: 'Healer', label: 'Healers', icon: 'healer', color: 0xafd69f },
-  { role: 'Melee DPS', label: 'Melee DPS', icon: 'sword', color: 0xe4ad85 },
-  { role: 'Ranged DPS', label: 'Ranged DPS', icon: 'bow', color: 0xc3b3e3 }
-];
 
 // Build Hall text with the shared typography, color and requested alignment.
 export function hallText(scene, x, y, value, size = UI_FONT_SIZES.body34, options = {}) {
@@ -100,41 +91,6 @@ export function hallDetails(scene, target, details, onTap, onDetails) {
 
   // once registers a callback that removes itself after the first matching event.
   target.once('destroy', () => scene.game.events.off('blur', cancel));
-}
-
-// Build the persistent Hall navigation and shared workspace framing. scene is the Phaser
-// screen that owns the objects, clock and input used here.
-export function addHallFrame(scene, active, message = '') {
-  addHallBackground(scene, 0.3);
-
-  // The braces pull named fields into local variables. This reads those fields without
-  // copying the whole source object.
-  const { width, height } = scene.scale;
-  guildSurface(scene, width / 2, 63, width, 126, 'beam');
-  guildCrest(scene, width / 2 - 370, 63, 78);
-  guildCrest(scene, width / 2 + 370, 63, 78);
-
-  // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the center and
-  // 1 is the right/bottom edge. x/y place that anchor, not necessarily the object's
-  // corner.
-  hallText(scene, width / 2, 23, 'PINESHIRE', UI_FONT_SIZES.compact24, { color: '#e6bd70', letterSpacing: 6 }).setOrigin(0.5);
-  hallText(scene, width / 2, 70, 'Adventurer’s Hall', UI_FONT_SIZES.display54, { fontFamily: UI_FONT_FAMILIES.serif }).setOrigin(0.5);
-  hallButton(scene, 200, 63, 290, 112, 'TOWN', () => scene.scene.start('TownScene'), { size: UI_FONT_SIZES.hallNavigation });
-  hallText(scene, width - 60, 67, `${GameState.gold} GOLD`, UI_FONT_SIZES.heading38, { color: '#e6bd70' }).setOrigin(1, 0.5).setName('hall-gold');
-  guildSurface(scene, width / 2, 186, width, 120, 'beam');
-  [['Adventurers', 'RosterScene'], ['Items', 'ItemsScene'], ['Tactics', 'PartyLeaderScene']].forEach(([label, destination], index) => {
-    hallButton(scene, 225 + index * 350, 186, 330, 112, label, () => {
-      if (destination !== scene.scene.key) scene.scene.start(destination);
-    }, { selected: label === active, size: UI_FONT_SIZES.hallNavigation, name: `hall-nav-${label.toLowerCase()}` });
-  });
-
-  guildSurface(scene, width / 2, height - 31, width, 62, 'beam');
-
-  // The condition before ? chooses the first value when true and the value after : when
-  // false.
-  hallText(scene, 58, height - 31, message || 'Drag lists to scroll. Hold an adventurer, item or skill for details.', UI_FONT_SIZES.hallHint, {
-    color: message ? '#ffe0a7' : HALL.muted, wordWrap: { width: width - 116 }
-  }).setName('hall-feedback');
 }
 
 // Queue the portraits required by the Hall's current roster. scene is the Phaser screen

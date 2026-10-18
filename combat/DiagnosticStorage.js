@@ -159,21 +159,24 @@ export function compactCombatLog(record) {
 
 export function saveCompactCombatLog(record) {
   try {
+    if (clearingLogs) return;
     // The in-memory summary is immediate; IndexedDB is independent from game save success.
     latestLog = compactCombatLog(record);
     if (lastWriteFailed) return;
     pendingLog = latestLog;
     if (latestTimer) return;
-    latestTimer = setTimeout(async () => {
+    latestTimer = setTimeout(() => {
       latestTimer = null;
       const value = pendingLog;
-      try {
-        if (!await initializeDiagnosticStorage()) return;
-        await diagnosticTransaction(['sessions'], 'readwrite', tx => tx.objectStore('sessions').put({ id: 'latest-log', log: value }));
-      } catch {
-        lastWriteFailed = true;
-        storageWarning('latest-log-failed', 'The latest combat summary could not be archived. It remains available in memory; game saves use separate storage.');
-      }
+      latestWrite = (async () => {
+        try {
+          if (!await initializeDiagnosticStorage()) return;
+          await diagnosticTransaction(['sessions'], 'readwrite', tx => tx.objectStore('sessions').put({ id: 'latest-log', log: value }));
+        } catch {
+          lastWriteFailed = true;
+          storageWarning('latest-log-failed', 'The latest combat summary could not be archived. It remains available in memory; game saves use separate storage.');
+        }
+      })();
     }, 2000);
   } catch {
     lastWriteFailed = true;
@@ -184,6 +187,39 @@ let latestLog = null;
 let pendingLog;
 let latestTimer;
 let lastWriteFailed = false;
+let latestWrite = Promise.resolve();
+let clearingLogs = false;
+
+// Only diagnostic stores/keys are cleared. Drain any old latest-summary write first so
+// it cannot resurrect a log after the clear transaction commits.
+export async function clearDiagnosticLogs(allowMemoryOnly = false) {
+  clearingLogs = true;
+  clearTimeout(latestTimer);
+  latestTimer = null;
+  try {
+    await latestWrite;
+    let durableCleared = true;
+    try {
+      await diagnosticTransaction(['sessions', 'chunks', 'encounters', 'legacy'], 'readwrite', tx => {
+        for (const name of ['sessions', 'chunks', 'encounters', 'legacy']) tx.objectStore(name).clear();
+      });
+    } catch (error) {
+      if (!allowMemoryOnly) throw error;
+      durableCleared = false;
+    }
+    for (const key of LEGACY_KEYS) localStorage.removeItem(key);
+    latestLog = null;
+    pendingLog = null;
+    lastWriteFailed = false;
+    warnings.clear();
+    globalThis.document?.getElementById('combat-storage-warning')?.remove();
+    globalThis.dispatchEvent?.(new Event('delve-diagnostic-storage-ready'));
+    return durableCleared;
+  } finally {
+    clearingLogs = false;
+  }
+}
+
 export async function loadCompactCombatLog() {
   if (latestLog) return latestLog;
   try {

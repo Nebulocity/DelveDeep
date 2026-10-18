@@ -31,13 +31,14 @@ export class SpriteMotion {
     this.state = 'idle';
     this.elapsed = 0;
     this.quietMs = 0;
+    this.walkRate = 1;
     this.pendingDirection = null;
     this.pendingDirectionMs = 0;
   }
 
   // Compare current and previous positions to choose stable walking direction and reaction
   // state.
-  update(x, y, delta, speed, alive = true, frozen = false) {
+  update(x, y, delta, speed, alive = true, frozen = false, expectedSpeed = speed, locomotion = true) {
     const dx = x - this.x;
     const dy = y - this.y;
     this.x = x;
@@ -51,8 +52,10 @@ export class SpriteMotion {
 
     // Math.max chooses the largest value; pairing it with Math.min can keep a result
     // inside both a lower and an upper bound.
-    const teleported = distance > Math.max(20, speed * delta / 1000 * 2);
-    const moving = distance > Math.max(0.15, speed * delta / 1000 * 0.15) && !teleported;
+    // Gameplay movement can arrive in 33/50 ms steps between shorter render frames.
+    // A legitimate rush must not be mistaken for an instantaneous relocation.
+    const teleported = distance > Math.max(20, expectedSpeed * Math.max(delta, 50) / 1000 * 2);
+    const moving = locomotion && distance > Math.max(0.15, speed * delta / 1000 * 0.15) && !teleported;
 
     // The condition before ? chooses the first value when true and the value after : when
     // false.
@@ -63,7 +66,7 @@ export class SpriteMotion {
     if (moving) {
       const direction = movementDirection(dx, dy);
 
-      // Start walking promptly, but require 180 ms of consistent motion before turning.
+      // Start walking promptly, with a short turn confirmation to reject jitter.
       // Alternating avoidance nudges then cannot flip the character every frame.
       if (this.state !== 'walk' || teleported) this.direction = direction;
       if (direction !== this.pendingDirection) {
@@ -71,13 +74,14 @@ export class SpriteMotion {
         this.pendingDirectionMs = 0;
       }
       this.pendingDirectionMs += Math.min(delta, 100);
-      if (this.pendingDirectionMs >= 180) this.direction = direction;
+      if (this.pendingDirectionMs >= 60) this.direction = direction;
     }
+    if (moving) this.walkRate = Math.max(.35, Math.min(3, distance / Math.max(.001, speed * delta / 1000)));
     if (nextState !== this.state) {
       this.state = nextState;
       this.elapsed = 0;
     } else {
-      this.elapsed += Math.min(delta, 100);
+      this.elapsed += Math.min(delta, 100) * (this.state === 'walk' ? this.walkRate : 1);
     }
   }
 }

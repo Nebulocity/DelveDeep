@@ -294,7 +294,7 @@ export default class TitleScene extends Phaser.Scene {
       });
       return;
     }
-
+    
     addLabel(0, 'BGM');
     const musicEnabled = GameState.development.musicEnabled === true;
     const musicToggle = addButton(firstX, rowY(0), musicEnabled ? 'ON' : 'OFF',
@@ -333,13 +333,17 @@ export default class TitleScene extends Phaser.Scene {
         }
       }
     }, '#ffffff', 360);
-    
+
     setRegionPanelState(this, loggingToggle.button, isCombatLogging() ? 'selected' : 'normal');
 
     addLabel(3, 'Recorded fights');
     addButton(firstX, rowY(3), 'EXPORT LOG', 0, 0, () => {
       HapticsService.tap();
-      void showCombatArchives();
+      void showCombatArchives(() => {
+        if (!loggingToggle.button.active) return;
+        loggingToggle.caption.setText('START LOGGING');
+        setRegionPanelState(this, loggingToggle.button, 'normal');
+      });
     }, '#ffffff', 360);
 
     addLabel(1, 'Reset progress');

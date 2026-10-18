@@ -32,10 +32,19 @@ export const CLASS_CATALOG_NAMES = {
   'Cleric of the Sanguine Song': 'Sanguine Cleric'
 };
 
+// These identities override generic physical/magical pools, including Dawnwarden Interpose.
+export const CLASS_RESTRICTED_ABILITIES = {
+  ability_v2_generic_physical_intervene: ['Gladiator', 'Oathwarden'],
+  ability_v2_generic_physical_charge: ['Barbarian', 'Barmaid'],
+  ability_v2_generic_physical_interpose: ['Dawnwarden']
+};
+
 // Check this again when loading and equipping, rather than trusting a saved category.
 export function abilityAllowed(className, row) {
   const name = CLASS_CATALOG_NAMES[className] ?? className;
   const rules = CLASS_ABILITY_RULES[name];
+  const exclusive = CLASS_RESTRICTED_ABILITIES[row.id];
+  if (exclusive) return exclusive.includes(name) && rules.slice(1).includes(row.category);
   if (!rules || row.excludedClasses?.includes(name) || !rules.slice(1).includes(row.category)) return false;
   return row.className === name || row.className === `Generic (${rules[0]})`;
 }
@@ -56,7 +65,7 @@ export function replacementAbilities(className, healingMultiplier) {
   return Object.fromEntries(rows.map(row => {
     const range = row.castRange === 'Anywhere' ? Infinity : row.castRange === 'Self' ? 0
       : row.castRange === 'Weapon reach' ? (name === 'Ranger' ? 6 : 1) : row.castRange / 100;
-    const target = row.targetLabel === 'Self' ? 'self' : row.targetLabel.includes('ally') || row.targetLabel === 'Allies' ? 'ally'
+    const target = row.handler === 'intervene' ? 'dual' : row.targetLabel === 'Self' ? 'self' : row.targetLabel.includes('ally') || row.targetLabel === 'Allies' ? 'ally'
       : row.targetLabel === 'Ground position' ? 'ground' : 'enemy';
     return [row.id, {
       ...row, replacement: true, effect: 'replacement', range, target,

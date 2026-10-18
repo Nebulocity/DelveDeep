@@ -1,17 +1,26 @@
 // Tactical estimates read model state only. No routes, actions or forecasts are saved.
-import { arenaDistance } from '../config/combatRanges.js';
+import { arenaDistance, NEAR_DISTANCE } from '../config/combatRanges.js';
 import { armorReduction } from '../config/characterProgression.js';
 import { abilityPower } from '../game/CharacterStats.js';
 import { incomingPressure, missingHealth } from './CombatDecisions.js';
-import { replacementAmount, replacementMultiplier } from './ReplacementEffects.js';
+import { replacementAmount, replacementMultiplier, replacementChance } from './ReplacementEffects.js';
+import { intervenePlan } from './Intervene.js';
+import { equipmentPerkBonus } from '../game/EquipmentPerks.js';
+import { HOLD_THE_LINE, INTERPOSE, INTERVENE, VIGILANCE, PERIMETER_RADIUS, PERIMETER_REDUCTION, perimeterOwner } from './TankMechanics.js';
 
 export const TACTICAL_HANDLERS = new Set(['damageEscapeTeleport', 'damageEnemyTeleport', 'arenaRepositionTruce',
   'revive', 'lethalExchange', 'conditionalHeal', 'manaBasedShield', 'shieldReflect', 'shieldBurst',
   'armor', 'allyArmor', 'partyArmor', 'spellReduction', 'partyReduction', 'taunt', 'tauntReduction',
-  'damageDebuffTaunt', 'areaStun', 'conditionalStun', 'areaRoot', 'disarm', 'abilityLock',
+  'damageDebuffTaunt', 'damageTaunt', 'areaStun', 'conditionalStun', 'areaRoot', 'disarm', 'abilityLock',
   'decoyThreat', 'decoyAllyRescue', 'pairedEscape', 'escapeMovementBuff']);
 export const TACTICAL_ALLY_HANDLERS = new Set(['lethalExchange', 'conditionalHeal', 'manaBasedShield',
   'shieldReflect', 'shieldBurst', 'armor', 'allyArmor', 'partyArmor', 'spellReduction', 'partyReduction']);
+
+// Scope new support to these skills. Other intercept/counterattack kits retain their
+// completed evaluation paths rather than inheriting a new handler-wide policy.
+const TANK_TACTICAL_IDS = new Set([HOLD_THE_LINE, INTERPOSE, INTERVENE, VIGILANCE]);
+export const usesTacticalAbility = ability => TACTICAL_HANDLERS.has(ability.handler) || TANK_TACTICAL_IDS.has(ability.id);
+export const usesTacticalAllyTarget = ability => TACTICAL_ALLY_HANDLERS.has(ability.handler) || TANK_TACTICAL_IDS.has(ability.id);
 
 // Observe at most one approaching hit per enemy over four seconds. These provisional
 // thresholds describe serious loss and endangered survivors, not universal HP gates.
@@ -51,6 +60,7 @@ export function createTacticalContext(system, time) {
       let amount = skill ? abilityPower(enemy, skill) : physical ? enemy.attackPower : enemy.spellPower ?? enemy.spellDamage;
       amount *= Math.max(0, replacementMultiplier(enemy, physical ? 'attack' : 'spell', time))
         * Math.max(0, replacementMultiplier(enemy, 'damage', time));
+      const rawAmount = amount;
       const armor = (ally.armor ?? 0) * replacementMultiplier(ally, 'armor', time)
         * (ally.status.armorUntil > time ? ally.status.armorMultiplier : 1);
       if (physical) amount *= 1 - armorReduction(armor);
@@ -60,7 +70,7 @@ export function createTacticalContext(system, time) {
       if (ally.status.shieldUntil > time) amount *= .35;
       if (ally.status.immuneUntil > time + remaining) amount = 0;
       if (ally.status.arcaneShieldUntil > time + remaining) amount *= !physical || reach > 180 ? 0 : .55;
-      if (Number.isFinite(amount) && amount > 0) threats.push({ enemy, amount, physical, pending: Boolean(action),
+      if (Number.isFinite(amount) && amount > 0) threats.push({ enemy, amount, rawAmount, physical, pending: Boolean(action),
         remaining, pursuing, area: Boolean(warning), warning, skill });
     }
     observations.set(ally, { threats, pressure,
@@ -76,7 +86,7 @@ export function createTacticalContext(system, time) {
       : incoming >= ally.maxHp * SERIOUS_LOSS || observed.health - incoming <= ally.maxHp * ENDANGERED_HP ? 2 : 1;
     return { ...observed, threats, incoming, tier };
   };
-  return { system, scene, time, allies, enemies, warnings, risk };
+  return { system, scene, time, allies, enemies, warnings, risk, intervenePlans: new Map(), interveneRouteBudget: { remaining: 192 } };
 }
 
 function locked(context, unit) {
@@ -168,6 +178,24 @@ function redundant(ally, ability, time) {
       && ally.status.temporaryHp > 0 && ally.status.temporaryHpUntil > time;
 }
 
+function armorAt(unit, time) {
+  return (unit.armor ?? 0) * replacementMultiplier(unit, 'armor', time)
+    * (unit.status.armorUntil > time ? unit.status.armorMultiplier : 1);
+}
+
+// A conservative post-defense transfer estimate, not a hit roll or future simulation.
+function interceptedDamage(unit, hit, ability, time) {
+  if (unit.status.immuneUntil > time + hit.remaining) return 0;
+  let amount = hit.rawAmount * (1 - ability.secondary.potency);
+  if (hit.physical) amount *= 1 - armorReduction(armorAt(unit, time));
+  amount *= (unit.damageTakenMultiplier ?? 1) * Math.max(0, replacementMultiplier(unit, 'reduction', time));
+  if (!hit.physical) amount *= Math.max(0, replacementMultiplier(unit, 'spellReduction', time));
+  if (unit.status.damageReductionUntil > time) amount *= 1 - unit.status.damageReduction;
+  if (unit.status.shieldUntil > time) amount *= .35;
+  if (unit.status.arcaneShieldUntil > time + hit.remaining) amount *= !hit.physical || hit.enemy.attackRange > 180 ? 0 : .55;
+  return Math.max(0, amount);
+}
+
 function reviveValue(context, target, ability) {
   const { allies, enemies, risk } = context;
   if (target.alive || target.noReviveThisBattle || target.delvesUsed?.honorSacrifice || !enemies.length) return { benefit: 0, tier: 0 };
@@ -185,6 +213,34 @@ function reviveValue(context, target, ability) {
   const health = Math.min(1, ability.primary.potency);
   const mana = target.maxMana > 0 ? Math.min(1, ability.secondary.potency) : 0;
   return { benefit: (health + mana * .25) * (missingRole ? 2 : 1), tier: crisis ? 3 : missingRole ? 2 : 1 };
+}
+
+export function interveneRescueValue(context, unit, target, ability, plan) {
+  const empty = { benefit: 0, tier: 0 };
+  const { allies, time, risk } = context;
+  const guard = target.status.replacementIntercept;
+  if (guard?.until > time && allies.some(ally => ally.id === guard.ownerId)
+    || target.status.interceptUntil > time && target.status.interceptSource?.alive
+    || allies.some(ally => ally !== unit && ally.pendingAction?.interceptionTargetId === target.id)) return empty;
+  const arrival = ability.windup + plan.travelMs;
+  const danger = risk(target, arrival, ability.duration);
+
+  // Basic windups and near-ready basic attacks are trustworthy single-target observations.
+  // Unclassified monster skills remain conservative instead of promising an area rescue.
+  const hit = danger.threats.filter(hit => !hit.area && !hit.skill && hit.remaining > arrival + 50)
+    .sort((a, b) => a.remaining - b.remaining)[0];
+  if (!hit) return empty;
+  const tier = hit.amount >= danger.health ? 3
+    : hit.amount >= target.maxHp * SERIOUS_LOSS || danger.health - hit.amount <= target.maxHp * ENDANGERED_HP ? 2 : 1;
+  // Preserve an already committed rescue during its last few steps. The mobility
+  // threshold only prevents choosing a routine stationary cast in the first place.
+  if (hit.amount < target.maxHp * .08 && tier < 2
+    || !plan.committed && plan.distance < 24 && tier < 2) return empty;
+  const transfer = interceptedDamage(unit, hit, ability, time), own = risk(unit, 0, hit.remaining);
+  if (transfer + own.incoming >= own.health) return empty;
+  let benefit = hit.amount / target.maxHp * (target.role === 'Healer' ? 1.3 : 1) - transfer / unit.maxHp;
+  if (unit.className === 'Oathwarden') benefit *= 1.25;
+  return { benefit: Math.max(0, benefit), tier, attackerId: hit.enemy.id, remaining: hit.remaining };
 }
 
 export function tacticalAllyTarget(context, unit, ability) {
@@ -217,8 +273,82 @@ export function evaluateTactical(context, unit, ability, target, damage = 0, dam
       || danger.incoming >= danger.health && danger.incoming - saved < danger.health)) emergencyRelief = true;
     tier = Math.max(tier, danger.tier);
   };
-  if (h === 'revive') return reviveValue(context, target, ability);
-  if (TACTICAL_ALLY_HANDLERS.has(h)) {
+  if (ability.id === INTERVENE) {
+    const plan = intervenePlan(system, unit, target, ability, time, { context });
+    if (!plan) return { benefit: 0, tier: 0 };
+    if (plan.mode === 'offensive') {
+      const ordered = system.commandedEnemy(unit) ?? enemies.find(enemy => enemy.id === scene.focusTargetId);
+      if (ordered && ordered !== target || damage <= 0) return { benefit: 0, tier: 0 };
+      const own = risk(unit, 0, start + plan.travelMs);
+      if (own.incoming >= own.health) return { benefit: 0, tier: 0 };
+      const walkingSaved = arenaDistance(unit, plan.point) / Math.max(1, unit.moveSpeed) - plan.travelMs / 1000;
+      benefit = damage + Math.min(.3, Math.max(0, walkingSaved) * .08)
+        + Math.min(2, plan.coverage) * .025 + Math.min(1, system.rescuePriority(unit, target)) * .08;
+      if (unit.className === 'Oathwarden') benefit *= .75;
+    } else {
+      const value = interveneRescueValue(context, unit, target, ability, plan);
+      benefit = value.benefit; tier = value.tier;
+    }
+  } else if (ability.id === INTERPOSE) {
+    const existing = target.status.replacementIntercept;
+    if (target === unit || !target.alive || arenaDistance(unit, target) > ability.range * 100
+      || existing?.until > time && allies.some(ally => ally.id === existing.ownerId)
+      || target.status.interceptUntil > time && target.status.interceptSource?.alive
+      || allies.some(ally => ally !== unit && ally.pendingAction?.interceptionTargetId === target.id)) return { benefit: 0, tier: 0 };
+    const danger = risk(target, start, duration);
+    const hit = danger.threats.filter(hit => hit.pending && !hit.area).sort((a, b) => a.remaining - b.remaining)[0];
+    if (!hit) return { benefit: 0, tier: 0 };
+    const hitTier = hit.amount >= danger.health ? 3
+      : hit.amount >= target.maxHp * SERIOUS_LOSS || danger.health - hit.amount <= target.maxHp * ENDANGERED_HP ? 2 : 1;
+    if (hit.amount < target.maxHp * .08 && hitTier < 2) return { benefit: 0, tier: 0 };
+    const transferred = interceptedDamage(unit, hit, ability, time);
+    const own = risk(unit, 0, hit.remaining);
+    if (transferred + own.incoming >= own.health) return { benefit: 0, tier: 0 };
+    credit(target, hit.amount, { ...danger, incoming: hit.amount, tier: hitTier });
+    benefit -= transferred / unit.maxHp;
+    benefit *= 1 - .15 * Math.min(1, arenaDistance(unit, target) / (ability.range * 100));
+  } else if (ability.id === HOLD_THE_LINE) {
+    const ordered = system.commandedEnemy(unit) ?? enemies.find(enemy => enemy.id === scene.focusTargetId);
+    if (scene.manualTargets?.has(unit.id) || ordered && !scene.isWithinAttackReach(unit, ordered)
+      || !enemies.some(enemy => arenaDistance(unit, enemy) <= NEAR_DISTANCE)) return { benefit: 0, tier: 0 };
+    const engaged = enemies.some(enemy => scene.isWithinAttackReach(unit, enemy));
+    const nearby = allies.filter(ally => ally !== unit && arenaDistance(unit, ally) <= PERIMETER_RADIUS);
+    const guarding = nearby.some(ally => risk(ally, start, duration).tier >= 2);
+    if (!engaged && !guarding) return { benefit: 0, tier: 0 };
+    const danger = risk(unit, start, duration), armor = armorAt(unit, time);
+    const fraction = (armorReduction(armor * (1 + ability.primary.potency)) - armorReduction(armor))
+      / Math.max(.01, 1 - armorReduction(armor));
+    credit(unit, danger.threats.filter(hit => hit.physical).reduce((sum, hit) => sum + hit.amount, 0) * fraction, danger);
+    for (const ally of nearby) {
+      if (!perimeterOwner(scene, ally, time)) credit(ally, risk(ally, start, duration).incoming * PERIMETER_REDUCTION);
+    }
+    const preferred = scene.getPrimaryTarget(unit, false);
+    if (!engaged || preferred && !scene.isWithinAttackReach(unit, preferred)) benefit -= guarding ? .04 : .1;
+  } else if (ability.id === VIGILANCE) {
+    const danger = risk(unit, start, duration);
+    const block = Math.min(.35, Math.max(0, (unit.block ?? 0) + replacementChance(unit, 'block', time)
+      + equipmentPerkBonus(unit, 'block') + (unit.status.leaderBlockUntil > time ? unit.status.leaderBlockBonus ?? 0 : 0)));
+    const extraBlock = Math.max(0, Math.min(.35 - block, ability.primary.potency));
+    const armor = armorReduction(armorAt(unit, time));
+    for (const hit of danger.threats.filter(hit => hit.physical)) {
+      const reduction = extraBlock * Math.min(armor, 1 - armor) / Math.max(.01, 1 - armor);
+      const stun = hit.enemy.controlImmunities?.includes('stun') ? 0 : Math.min(.15, ability.secondaryDuration / 10000) * (block + extraBlock);
+      credit(unit, hit.amount * Math.min(1, reduction + stun), danger);
+    }
+  } else if (h === 'damageTaunt') {
+    for (const enemy of system.recipients(unit, target, ability)) {
+      if ((damageByEnemy.get(enemy) ?? 0) >= enemy.hp) continue;
+      const urgency = system.rescuePriority(unit, enemy);
+      if (!urgency || unit.hp / unit.maxHp < .4) continue;
+      benefit += urgency * .08;
+      for (const ally of allies.filter(ally => ally !== unit)) {
+        const danger = risk(ally, start, ability.tauntDuration);
+        credit(ally, danger.threats.filter(hit => hit.enemy === enemy).reduce((sum, hit) => sum + hit.amount, 0) * .5, danger);
+      }
+    }
+    return { benefit: benefit + damage, tier };
+  } else if (h === 'revive') return reviveValue(context, target, ability);
+  else if (TACTICAL_ALLY_HANDLERS.has(h)) {
     const recipients = system.recipients(unit, target, ability, true);
     for (const ally of recipients) {
       if (redundant(ally, ability, time)) continue;
@@ -312,6 +442,8 @@ export function evaluateTactical(context, unit, ability, target, damage = 0, dam
     const kind = { areaStun: 'stun', conditionalStun: 'stun', areaRoot: 'root', disarm: 'disarm', abilityLock: 'abilityLock' }[h];
     const taunt = ['taunt', 'tauntReduction', 'damageDebuffTaunt'].includes(h);
     for (const enemy of system.recipients(unit, target, ability)) {
+      const canTaunt = taunt && system.canTaunt(enemy);
+      if (ability.threatPulseInterval && !system.rescuePriority(unit, enemy)) continue;
       if (kind && enemy.controlImmunities?.includes(kind)) continue;
       const status = { stun: 'stunnedUntil', root: 'rootedUntil', disarm: 'replacementDisarmUntil', abilityLock: 'spellLockUntil' }[kind];
       if (status && enemy.status[status] > time + start) continue;
@@ -323,16 +455,44 @@ export function evaluateTactical(context, unit, ability, target, damage = 0, dam
           || kind === 'disarm' && !hit.pending && hit.physical
           || kind === 'abilityLock' && !hit.pending && Object.entries(enemy.abilities ?? {})
             .some(([key, a]) => a.effect !== 'heal' && enemy.abilityReady(key, time))
-          || taunt && (ally !== unit || hit.pending)));
+          || canTaunt && (ally !== unit || hit.pending)));
         let prevented = threats.reduce((sum, hit) => sum + hit.amount, 0);
         if (kind === 'abilityLock') prevented *= .25;
         if (taunt && ally !== unit) prevented *= unit.hp / unit.maxHp >= .4 ? .5 : 0;
         credit(ally, prevented, danger);
+        if (canTaunt && ally !== unit && threats.length
+          && (ability.id === 'ability_v2_gladiator_defiant_roar' || h === 'damageDebuffTaunt')) {
+          const urgency = Math.min(2, system.rescuePriority(unit, enemy));
+          benefit += .04 * urgency * (ally.role === 'Healer' ? 1.5 : 1);
+        }
         if (h === 'damageDebuffTaunt') credit(ally, danger.threats.filter(hit => hit.enemy === enemy)
           .reduce((sum, hit) => sum + hit.amount, 0) * ability.primary.potency, danger);
       }
     }
     if (h === 'tauntReduction') credit(unit, risk(unit, start, duration).incoming * ability.secondary.potency);
+    if (ability.threatPulseInterval && !(unit.status.replacementShelter?.until > time + start)) {
+      const seconds = ability.threatPulseDuration / 1000;
+      const pulseThreat = system.shelterThreat(unit, ability);
+      for (const enemy of enemies) {
+        const victim = allies.find(ally => ally.id === enemy.currentTargetId);
+        if (victim && victim !== unit && victim.role === 'Tank' && victim.hp / victim.maxHp >= .4
+          && !system.rescuePriority(unit, enemy)) continue;
+        const distance = arenaDistance(unit, enemy);
+
+        // Credit approaching enemies only when their current ally destination is inside
+        // Shelter. Resolution still checks the live radius on every individual pulse.
+        const arrival = distance <= ability.radius ? 0 : victim && arenaDistance(unit, victim) <= ability.radius
+          ? (distance - ability.radius) / Math.max(1, enemy.moveSpeed ?? 0) : Infinity;
+        if (arrival >= seconds) continue;
+        const table = scene.enemyThreat.get(enemy.id) ?? new Map();
+        const own = table.get(unit.id) ?? 0;
+        const leader = Math.max(0, ...allies.filter(ally => ally !== unit).map(ally => table.get(ally.id) ?? 0));
+        const generated = pulseThreat * Math.floor((seconds - arrival) * 1000 / ability.threatPulseInterval);
+        const needed = Math.max(pulseThreat, leader - own + pulseThreat * 2);
+        if (own > leader + pulseThreat * 2 && !system.rescuePriority(unit, enemy)) continue;
+        benefit += .12 * Math.min(1, generated / needed) * (arrival ? .5 : 1);
+      }
+    }
   }
 
   // Long cooldowns carry a modest opportunity cost. Only real emergency benefit

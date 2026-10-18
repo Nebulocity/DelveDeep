@@ -74,6 +74,7 @@ import { trackLoading, hideLoadingScreenAfterRender } from '../ui/LoadingScreen.
 
 import { installBattlePersistence, restoreBattle } from '../combat/BattlePersistence.js';
 import { cappedChance } from '../config/characterProgression.js';
+import { canTankTaunt, INTERPOSE, INTERVENE, INTERCEPT_THREAT_FRACTION, reactiveTankThreat } from '../combat/TankMechanics.js';
 import { advanceIdleBattle, resumeIdleBattle, recordIdleEvent } from '../combat/IdleBattle.js';
 import { prepareDeathNotifications } from '../services/DeathNotifications.js';
 import { idleRewardLines } from '../game/IdleSummary.js';
@@ -2319,16 +2320,12 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    // Run party decisions, resolve crowding, and then let enemies choose their actions.
+    // Decisions move only their own actor through swept collision checks.
     this.classAbilitySystem ??= new ClassAbilitySystem(this);
     this.classAbilitySystem.tickWorld(time);
     this.partyUnits.forEach((unit) => this.updatePartyUnit(unit, time, deltaSeconds));
     this.updateEnemies(time, deltaSeconds);
     this.combatLog?.diagnostics?.sample();
-    this.movement.separateUnits(deltaSeconds);
-
-    this.partyUnits.forEach((unit) => this.movement.validateUnitPosition(unit));
-    livingEnemies.forEach((enemy) => this.movement.validateUnitPosition(enemy));
 
     if (!replaying) this.partyUnits.forEach((unit) => {
       unit.spriteVisual?.update(delta);
@@ -2403,6 +2400,11 @@ export default class BattleScene extends Phaser.Scene {
     // Rescue an ally before building more threat on a safely controlled boss. Explicit
     // Attack and Focus orders above still select exactly the enemy the player chose.
     if (unit.role === 'Tank') {
+      const cluster = this.classAbilitySystem?.replacement?.roarPursuitTarget(unit, this.time.now);
+      if (cluster) {
+        if (remember) unit.autoTargetId = cluster.id;
+        return cluster;
+      }
       const endangered = living.filter(enemy => enemy.currentTargetId && enemy.currentTargetId !== unit.id
         && this.partyUnits.some(ally => ally.id === enemy.currentTargetId && ally.alive && ally.role !== 'Tank'));
       if (endangered.length) {
@@ -2453,6 +2455,7 @@ export default class BattleScene extends Phaser.Scene {
     // false, alone.
     this.classAbilitySystem ??= new ClassAbilitySystem(this);
     this.classAbilitySystem.tick(unit, time);
+    if (unit.pendingAction?.intervene) return;
     if (this.applyManualMovement(unit, deltaSeconds)) return;
 
     if (!this.isPositionLocked(unit) && this.tryEvadeTelegraph(unit, deltaSeconds)) return;
@@ -2479,7 +2482,7 @@ export default class BattleScene extends Phaser.Scene {
   // This helper raises the tank above each target's existing threat and redirects it
   // immediately. Canceling its old action prevents a queued attack from still hitting the
   // ally the taunt just protected.
-  applyTankTaunt(tank, enemies, key, time, commit = true) {
+  applyTankTaunt(tank, enemies, key, time, commit = true, resolvedAbility = tank.abilities[key]) {
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
@@ -2489,9 +2492,19 @@ export default class BattleScene extends Phaser.Scene {
       tank.markAbilityUsed(key, time);
       this.announceAbility(tank, tank.abilities[key].name, '#fde68a');
     }
+    const affected = [];
     enemies.forEach((enemy) => {
 
       const table = this.enemyThreat.get(enemy.id);
+      if (!table || !enemy.alive) return;
+
+      // Immunity prevents the threat lift, forced target and action release together.
+      // Ordinary offensive/intent threat has its own path and remains legal on bosses.
+      if (!canTankTaunt(enemy)) {
+        this.combatLog?.diagnostics?.control(enemy, resolvedAbility, 'taunt', false, 'taunt_immune', 0, tank);
+        return;
+      }
+      affected.push(enemy);
 
       // Math.max chooses the largest value; pairing it with Math.min can keep a result
       // inside both a lower and an upper bound. ... expands these entries into the new
@@ -2500,23 +2513,24 @@ export default class BattleScene extends Phaser.Scene {
 
       // ?? uses the fallback only for null or undefined. A real zero or false stays
       // intact.
-      table.set(tank.id, highest * (1 + (tank.abilities[key].threatBonus ?? 0)) + 1);
+      table.set(tank.id, highest * (1 + (resolvedAbility.threatBonus ?? 0)) + 1);
       enemy.engagedByTank = true;
-      if (tank.abilities[key].duration) {
-        enemy.status.forcedApproach = tank.abilities[key].farthest === true;
+      if (resolvedAbility.duration) {
+        enemy.status.forcedApproach = resolvedAbility.farthest === true;
         enemy.status.forcedTargetId = tank.id;
-        enemy.status.forcedTargetUntil = time + tank.abilities[key].duration;
+        enemy.status.forcedTargetUntil = time + resolvedAbility.duration;
       }
 
-      const tauntCause = this.combatLog?.diagnostics?.control(enemy, tank.abilities[key], 'taunt', true, 'applied', tank.abilities[key].duration ?? 0, tank);
+      const tauntCause = this.combatLog?.diagnostics?.control(enemy, resolvedAbility, 'taunt', true, 'taunt_applied', resolvedAbility.duration ?? 0, tank);
       enemy.finishAction('cancelled', 'target_changed', 'Taunt explicitly releases the previous action', { cause: tauntCause });
 
       // filter keeps entries whose callback returns true. It builds a new list and leaves
       // the original list in place.
       this.activeTelegraphs.filter((telegraph) => telegraph.attacker === enemy)
         .forEach((telegraph) => this.removeTelegraph(telegraph));
-      this.setEnemyTarget(enemy, tank, tank.abilities[key].name);
+      this.setEnemyTarget(enemy, tank, 'taunt_applied');
     });
+    return affected;
   }
 
   // This helper drives enemy targeting, abilities, movement, and basic attacks.
@@ -3041,8 +3055,15 @@ export default class BattleScene extends Phaser.Scene {
     const guardUnit = guard && this.partyUnits.find(unit => unit.id === guard.ownerId && unit.alive);
     if (attacker.isEnemy && guardUnit && guardUnit !== target && guard.until > now && !contact?.area && !contact?.redirected) {
       guard.until = 0;
-      this.resolveDamage(attacker, guardUnit, baseAmount, attackType, threatMultiplier, abilityName, allowCrit,
-        { ...contact, redirected: true, interceptReduction: guard.reduction });
+      const intercepted = { ...contact, redirected: true, interceptReduction: guard.reduction };
+      const redirectedDamage = this.resolveDamage(attacker, guardUnit, baseAmount, attackType, threatMultiplier, abilityName, allowCrit,
+        intercepted) ?? 0;
+      if ([INTERPOSE, INTERVENE].includes(guard.abilityId) && intercepted.hit) {
+        const threat = reactiveTankThreat(this, guardUnit, attacker, intercepted.preMitigationDamage ?? 0, INTERCEPT_THREAT_FRACTION);
+        this.combatLog?.diagnostics?.emit('tank_interception', { actorId: guardUnit.id, targetId: target.id,
+          attackerId: attacker.id, abilityId: guard.abilityId, sourceActionId: guard.sourceActionId ?? null,
+          reduction: guard.reduction, damage: redirectedDamage, threat, cause: this.combatLog?.diagnostics?.context });
+      }
       return 0;
     }
     if (attacker.isEnemy && interceptor?.alive && interceptor !== target
@@ -3143,8 +3164,9 @@ export default class BattleScene extends Phaser.Scene {
 
     // Accuracy, dodge and parry checks have passed. The projectile touched its target
     // even if the defenses below absorb all of the damage.
-    if (contact) contact.hit = true;
+    if (contact) { contact.hit = true; contact.preMitigationDamage = amount; }
     target.takeDamage(amount, { time: now, ranged, attacker, physical, armorBlocked,
+      periodic: contact?.periodic, reflection: attackType === 'reflection',
       armorPiercing: contact?.armorPiercing, interceptReduction: contact?.interceptReduction,
       blocked: armorBlocked || (!target.isEnemy && now < this.braceUntil)
         || now < (target.status.shieldUntil ?? 0)
@@ -3155,10 +3177,10 @@ export default class BattleScene extends Phaser.Scene {
     // Only a critical that actually takes HP starts the shock animation. Misses,
     // immunity and fully absorbed hits do not bounce. Replayed background hits keep
     // their real damage but skip historical visual reactions when catching up.
-    if (critical && actualDamage > 0) target.playCriticalHit?.(attacker);
+    if (critical && actualDamage > 0 && !contact?.suppressKnockback) target.playCriticalHit?.(attacker);
     else if (critical) this.combatLog?.diagnostics?.emit('knockback_not_attempted', {
       actorId: attacker.id, targetId: target.id, attempted: false, displaced: false,
-      cancelsAction: false, reasonCode: 'no_hp_damage', cause: this.combatLog?.diagnostics?.context });
+      cancelsAction: false, reasonCode: contact?.suppressKnockback ? 'ability_no_control' : 'no_hp_damage', cause: this.combatLog?.diagnostics?.context });
     if (actualDamage > 0 && target.isEnemy && attacker.status.nextPoisonPower) {
       target.status.poison = {
         caster: attacker,
@@ -3199,6 +3221,10 @@ export default class BattleScene extends Phaser.Scene {
     target.flash(flashColor);
 
     if (!attacker.isEnemy) {
+      const threatReduction = now < (attacker.status.threatReductionUntil ?? 0) ? 1 - (attacker.status.threatReduction ?? 0) : 1;
+      const preparedThreat = attacker.status.nextThreatBonus ?? 1;
+      const normalThreat = amount * threatMultiplier * threatReduction * preparedThreat;
+      if (contact) contact.normalThreat = normalThreat;
       this.getLivingEnemies().forEach((enemy) => {
 
         if (enemy === target) {
@@ -3206,9 +3232,7 @@ export default class BattleScene extends Phaser.Scene {
           // The condition before ? chooses the first value when true and the value after :
           // when false. ?? uses the fallback only for null or undefined. A real zero or
           // false stays intact.
-          const threatReduction = now < (attacker.status.threatReductionUntil ?? 0) ? 1 - (attacker.status.threatReduction ?? 0) : 1;
-          const preparedThreat = attacker.status.nextThreatBonus ?? 1;
-          this.addThreat(enemy, attacker, amount * threatMultiplier * threatReduction * preparedThreat);
+          this.addThreat(enemy, attacker, normalThreat);
           attacker.status.nextThreatBonus = 1;
         }
       });
@@ -3391,7 +3415,8 @@ export default class BattleScene extends Phaser.Scene {
       ? 1 - (unit.status.threatReduction ?? 0) : 1;
     const intent = Math.max(1, (ability.manaCost ?? 0) * 0.5
       + Math.max(unit.attackPower ?? 0, unit.spellPower ?? unit.spellDamage ?? 0, unit.spellPower ?? unit.spellHealing ?? 0) * 0.1);
-    this.getLivingEnemies().forEach(enemy => this.addThreat(enemy, unit, intent * reduction));
+    this.getLivingEnemies().filter(enemy => !ability.threatPulseInterval || unit.distanceTo(enemy) <= ability.radius)
+      .forEach(enemy => this.addThreat(enemy, unit, intent * reduction));
   }
 
   // This helper chooses the living threat leader. With equal threat, tanks take priority
@@ -3976,7 +4001,7 @@ export default class BattleScene extends Phaser.Scene {
       if (distance > 6 && !this.waveReturnTimedOut && !this.waveReturnSettled.has(unit.id)) {
         unit.moveToward(destination.x, destination.y, deltaSeconds * 2, 0, false);
       } else if (distance > 0 && distance <= 6) {
-        unit.setArenaPosition(destination.x, destination.y);
+        unit.moveBy(destination.x - unit.arenaX, destination.y - unit.arenaY, false);
       }
       const remaining = Math.hypot(unit.arenaX - destination.x, unit.arenaY - destination.y);
 
@@ -4619,6 +4644,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
     this.battleOver = true;
+    this.classAbilitySystem?.replacement?.clearShelters();
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
@@ -4684,6 +4710,7 @@ export default class BattleScene extends Phaser.Scene {
 
     if (this.battleOver) return;
     this.battleOver = true;
+    this.classAbilitySystem?.replacement?.clearShelters();
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
@@ -4723,6 +4750,7 @@ export default class BattleScene extends Phaser.Scene {
       this.time.paused = false;
     }
     this.battleOver = true;
+    this.classAbilitySystem?.replacement?.clearShelters();
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.

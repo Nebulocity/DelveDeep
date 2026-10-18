@@ -5,6 +5,7 @@
 // tweens affect movement and must keep running during background simulation even when
 // drawing is deferred.
 
+import { abilityAllowed, CLASS_RESTRICTED_ABILITIES } from '../data/replacementAbilities.js';
 import { abilityPower, linkedHealing } from '../game/CharacterStats.js';
 
 import { arenaDistance, ADJACENT_DISTANCE } from '../config/combatRanges.js';
@@ -662,6 +663,11 @@ export default class ClassAbilitySystem {
     // Fallen targets are legal only for revival. Saved actions retain their resolved
     // ranked definition, so an old encounter does not change kits during a respec.
     if (a.replacement) {
+      if (CLASS_RESTRICTED_ABILITIES[a.id] && !abilityAllowed(unit.className, a)) {
+        unit.finishAction('failed', 'state_invalidated', 'Class cannot activate this ability');
+        return;
+      }
+      if (a.handler === 'intervene') return this.replacement.resolveIntervene(unit, action, target, a);
       const valid = target && (target.alive || a.handler === 'revive');
       const inRange = valid && (target === unit || this.distance(unit, target) <= a.range);
       if (inRange) {

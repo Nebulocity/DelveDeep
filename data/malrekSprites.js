@@ -22,8 +22,10 @@ const clips = {};
 // first cell, and column advances through the painted frames in that animation.
 for (const state of states) {
   const sheet = layout.states[state];
+
+  // Per-facing rates keep the same clip duration when painted frame counts differ.
   const authored = Object.fromEntries(layout.directions.map((direction, row) => [direction, {
-    frameMs: sheet.frameMs,
+    frameMs: sheet.frameMsByDirection?.[direction] ?? sheet.frameMs,
     frames: Array.from({ length: sheet.counts[direction] }, (_, column) => ({
       key: `malrek-${state}`,
       frame: row * sheet.columns + column,
@@ -34,7 +36,7 @@ for (const state of states) {
   }]));
 
   // The other four movement headings reuse the closest diagonal drawing. Mirroring
-  // would switch her mace between hands, so every frame keeps its authored facing.
+  // would switch his mace between hands, so every frame keeps its authored facing.
   clips[state] = Object.fromEntries(Object.entries(facings).map(([heading, direction]) =>
     [heading, authored[direction]]));
 }

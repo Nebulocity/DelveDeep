@@ -50,6 +50,123 @@ export default class CombatMovement {
     return this.scene.partyUnits.filter(unit => !unit.alive && unit.container?.active !== false);
   }
 
+  // Planning and execution share the same footprint, foot projection and tolerance.
+  // Keep these observations local to one search; bodies and warnings can move afterward.
+  rushClearanceContext(unit, target) {
+    return { target, blockers: [...this.getLivingCombatUnits(), ...this.getFallenPartyUnits()]
+      .filter(other => other !== unit).map(other => ({ other,
+        clearance: Math.max((unit.bodyRadius ?? 0) + (other.bodyRadius ?? 0) + this.config.personalSpaceGap,
+          Math.min(this.getRequiredUnitSpacing(unit, other), this.config.normal)) })),
+      warnings: (this.scene.activeTelegraphs ?? []).filter(warning => warning.autoAvoid !== false) };
+  }
+
+  rushFloorBlock(unit, point) {
+    const terrain = this.scene.terrain;
+    const foot = terrain?.getUnitFootPoint(unit, point.x, point.y) ?? point;
+    if (!this.scene.battlefield.containsArenaPoint(point.x, point.y, this.config.edgePadding)
+      || !this.scene.battlefield.containsArenaPoint(foot.x, foot.y, this.config.terrainFootRadius))
+      return { reason: 'floor_edge', point };
+    if (terrain?.isUnitBlocked(unit, point.x, point.y, this.config.terrainFootRadius)) {
+      const zone = terrain.blockedZones.find(area => terrain.containsPoint(area, foot.x, foot.y));
+      return { reason: 'terrain', blockerId: zone?.id, point };
+    }
+    return null;
+  }
+
+  rushBodyBlock(other, target) {
+    return { reason: other === target ? 'target_footprint' : other.alive ? 'dynamic_body' : 'fallen_body',
+      blockerId: other.id, blockerName: other.name, blockerType: other.isEnemy ? 'enemy' : 'ally' };
+  }
+
+  rushStandingBlock(unit, point, context) {
+    const floor = this.rushFloorBlock(unit, point);
+    if (floor) return floor;
+    const body = context.blockers.find(({ other, clearance }) => arenaDistance(other, point) < clearance - .25);
+    if (body) return this.rushBodyBlock(body.other, context.target);
+    const warning = context.warnings.find(area => arenaDistance(point, area) < area.radius + (unit.bodyRadius ?? 20) + 25);
+    return warning ? { reason: 'warning', blockerId: warning.id ?? warning.attacker?.id, point } : null;
+  }
+
+  rushSegmentBlock(unit, start, end, context) {
+    const dx = end.x - start.x, dy = end.y - start.y, length = Math.hypot(dx, dy);
+
+    // A zero-time launch callback has no movement segment to collide with.
+    if (length <= .001) return null;
+    for (const { other, clearance } of context.blockers) {
+      const projection = ((other.arenaX - start.x) * dx + (other.arenaY - start.y) * dy) / (length * length);
+      const closest = { x: start.x + dx * Math.max(0, Math.min(1, projection)),
+        y: start.y + dy * Math.max(0, Math.min(1, projection)) };
+      const initial = arenaDistance(other, start);
+
+      // A crowded origin may separate, but cannot move deeper into an existing overlap.
+      if (arenaDistance(other, closest) < Math.min(clearance, initial) - .25)
+        return this.rushBodyBlock(other, context.target);
+    }
+    const count = Math.ceil(length / 12);
+    for (let index = 1; index <= count; index++) {
+      const point = { x: start.x + dx * index / count, y: start.y + dy * index / count };
+      const floor = this.rushFloorBlock(unit, point);
+      if (floor) return floor;
+      const warning = context.warnings.find(area => arenaDistance(point, area)
+        < Math.min(area.radius + (unit.bodyRadius ?? 20) + 25, arenaDistance(start, area) - .25));
+      if (warning) return { reason: 'warning', blockerId: warning.id ?? warning.attacker?.id, point };
+    }
+    return null;
+  }
+
+  // Use the ordinary navigator's 48-unit stepping-stone spacing, with a small local
+  // A* budget and exact destination. This never changes walking paths or range caches.
+  getRushRoute(unit, destination, maxDistance, context, budget = { remaining: 64 }) {
+    const start = { x: unit.arenaX, y: unit.arenaY };
+    const blocked = this.rushStandingBlock(unit, destination, context);
+    if (blocked) return { blocked: { ...blocked, stage: 'landing' } };
+    const direct = arenaDistance(start, destination);
+    if (direct > maxDistance + .001) return { blocked: { reason: 'travel_budget', stage: 'reach' } };
+    const obstruction = this.rushSegmentBlock(unit, start, destination, context);
+    if (!obstruction) return { waypoints: [destination], distance: direct };
+    const limit = Math.min(maxDistance, direct + Math.min(160, direct * .5 + 48));
+    const open = [{ x: start.x, y: start.y, id: '0,0', ix: 0, iy: 0, cost: 0, score: direct, previous: null }];
+    const costs = new Map([['0,0', 0]]);
+    let visits = 0;
+    while (open.length && visits < 64 && budget.remaining > 0) {
+      open.sort((a, b) => a.score - b.score || a.cost - b.cost);
+      const current = open.shift();
+      if (current.cost > costs.get(current.id)) continue;
+      visits++; budget.remaining--;
+      const remaining = arenaDistance(current, destination);
+      if (current.cost + remaining <= limit + .001 && !this.rushSegmentBlock(unit, current, destination, context)) {
+        const chain = [destination];
+        for (let node = current; node.previous; node = node.previous) chain.unshift({ x: node.x, y: node.y });
+        const waypoints = [];
+        let from = start, index = 0;
+        while (index < chain.length && waypoints.length < 6) {
+          let last = index;
+          for (let next = chain.length - 1; next > index; next--) {
+            if (!this.rushSegmentBlock(unit, from, chain[next], context)) { last = next; break; }
+          }
+          waypoints.push(chain[last]); from = chain[last]; index = last + 1;
+        }
+        if (index < chain.length) return { blocked: { ...obstruction, routeLimit: 'waypoints' } };
+        let distance = 0; from = start;
+        for (const point of waypoints) { distance += arenaDistance(from, point); from = point; }
+        return { waypoints, distance };
+      }
+      for (let ix = -1; ix <= 1; ix++) for (let iy = -1; iy <= 1; iy++) {
+        if (!ix && !iy) continue;
+        const next = { ix: current.ix + ix, iy: current.iy + iy };
+        next.x = start.x + next.ix * 48; next.y = start.y + next.iy * 48;
+        next.id = next.ix + ',' + next.iy;
+        next.cost = current.cost + Math.hypot(ix, iy) * 48;
+        next.score = next.cost + arenaDistance(next, destination);
+        if (next.score > limit + .001 || next.cost >= (costs.get(next.id) ?? Infinity)
+          || this.rushStandingBlock(unit, next, context) || this.rushSegmentBlock(unit, current, next, context)) continue;
+        costs.set(next.id, next.cost);
+        open.push({ ...next, previous: current });
+      }
+    }
+    return { blocked: { ...obstruction, routeLimit: budget.remaining <= 0 ? 'decision_budget' : 'search_limit' } };
+  }
+
   // Clamp the requested point and ask terrain for a nearby legal destination. unit is the
   // live combatant, with current resources and arena position.
   getSafeArenaPoint(arenaX, arenaY, unit = null) {
@@ -69,19 +186,35 @@ export default class CombatMovement {
     ) ?? clampedPoint;
   }
 
-  // Move a newly spawned or displaced unit to the nearest position where its feet are
-  // legal.
+  // Normalize a new actor's placement once, before combat movement begins.
   validateUnitPosition(unit) {
 
     // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
-    const safePosition = this.scene.terrain?.nearestSafeUnitPoint(
+    let safePosition = this.scene.terrain?.nearestSafeUnitPoint(
       unit,
       unit.arenaX,
       unit.arenaY,
       this.config.terrainFootRadius
     ) ?? this.scene.battlefield.clampPoint(unit.arenaX, unit.arenaY, this.config.edgePadding, this.config.edgePadding);
+
+    // Placement repair runs only on spawn, before this actor starts combat. Never
+    // move existing actors, and never turn this into a mid-combat repulsion pass.
+    const blockers = [...this.getLivingCombatUnits(), ...this.getFallenPartyUnits()].filter(other => other !== unit);
+    const clear = point => !this.rushFloorBlock(unit, point)
+      && blockers.every(other => arenaDistance(other, point) >= this.getCollisionSpacing(unit, other));
+    if (!clear(safePosition)) {
+      let found = null;
+      for (let radius = 24; radius <= 288 && !found; radius += 24) {
+        for (let index = 0; index < 16; index++) {
+          const angle = index * Math.PI / 8;
+          const point = { x: safePosition.x + Math.cos(angle) * radius, y: safePosition.y + Math.sin(angle) * radius };
+          if (clear(point)) { found = point; break; }
+        }
+      }
+      if (found) safePosition = found;
+    }
     unit.setArenaPosition(safePosition.x, safePosition.y);
 
     return safePosition;
@@ -124,7 +257,7 @@ export default class CombatMovement {
   // edge. Cosine supplies x; sine supplies y.
   getFormationPositions(units, center, mode = 'normal', anchor = null) {
     if (mode === 'spread') return this.getSpreadPositions(units, center, anchor);
-    const formationSpacing = this.config[mode];
+    const formationSpacing = Math.max(this.config[mode], ...units.map(unit => (unit.bodyRadius ?? 0) * 2));
 
     // The condition before ? chooses the first value when true and the value after : when
     // false. Angles are radians. cos(angle) gives the horizontal part of a circle;
@@ -205,142 +338,83 @@ export default class CombatMovement {
     return units.map(unit => positions.get(unit));
   }
 
-  // Soften steps that run into other units, then give crowded walkers room to pass.
-  getSteeredMovementPoint(unit, movementX, movementY, includeLiving = true) {
-
-    // ?. only follows this link when the value exists; a missing optional value gives
-    // undefined. Math.max chooses the largest value; pairing it with Math.min can keep a
-    // result inside both a lower and an upper bound. ?? uses the fallback only for null or
-    // undefined. A real zero or false stays intact.
-    const isRootedOrStunned = this.scene.time?.now < Math.max(
-      unit.status?.rootedUntil ?? 0,
-      unit.status?.stunnedUntil ?? 0
-    );
-
-    if (isRootedOrStunned) return { x: unit.arenaX, y: unit.arenaY };
-
-    // movementX/movementY are this step's offsets, not the destination itself. Their
-    // straight-line length tells us how far the unit wanted to move this frame.
-    const requestedDistance = Math.hypot(movementX, movementY);
-    const fallenPartyUnits = this.getFallenPartyUnits();
-
-    // ... expands these entries into the new list or call. It does not deep-copy the
-    // objects inside. The condition before ? chooses the first value when true and the
-    // value after : when false.
-    const nearbyUnits = [...(includeLiving ? this.getLivingCombatUnits() : []), ...fallenPartyUnits];
-
-    for (const otherUnit of nearbyUnits) {
-      if (otherUnit === unit) continue;
-
-      const awayX = unit.arenaX - otherUnit.arenaX;
-      const awayY = unit.arenaY - otherUnit.arenaY;
-      const distance = Math.hypot(awayX, awayY);
-
-      // Spread is a formation preference, not a wide movement obstruction.
-      const safeSpacing = otherUnit.alive
-        ? Math.min(this.getRequiredUnitSpacing(unit, otherUnit), this.config.normal)
-        : this.getRequiredUnitSpacing(unit, otherUnit);
-      const lookAheadDistance = otherUnit.alive ? requestedDistance : requestedDistance * 4;
-
-      if (distance < 0.001 || distance >= safeSpacing + lookAheadDistance) continue;
-
-      const awayDirectionX = awayX / distance;
-      const awayDirectionY = awayY / distance;
-
-      // This dot product compares our proposed step with the direction away from the other
-      // unit. A negative result means we are moving toward that unit; zero or positive
-      // means the step does not need that particular avoidance.
-      const movementTowardUnit = movementX * awayDirectionX + movementY * awayDirectionY;
-
-      if (movementTowardUnit >= 0) continue;
-
-      if (!otherUnit.alive) {
-
-        // The cross product tells us which side of the obstacle our step favors. Rotating
-        // the away vector by a quarter turn gives a sideways passing step. Keeping
-        // requestedDistance preserves this frame's intended movement length.
-        const passingSide = awayX * movementY - awayY * movementX >= 0 ? 1 : -1;
-        movementX = -awayDirectionY * passingSide * requestedDistance;
-        movementY = awayDirectionX * passingSide * requestedDistance;
-        continue;
-      }
-
-      const personalSpaceCore = safeSpacing * this.config.personalSpaceCore;
-      const inwardMovementAllowed = Math.max(0, Math.min(1,
-        (distance - personalSpaceCore) / (safeSpacing - personalSpaceCore)));
-
-      movementX -= awayDirectionX * movementTowardUnit * (1 - inwardMovementAllowed);
-      movementY -= awayDirectionY * movementTowardUnit * (1 - inwardMovementAllowed);
-
-      if (Math.abs(movementX * awayDirectionY - movementY * awayDirectionX) < requestedDistance * 0.1) {
-
-        // Keep a steady passing side so two walkers do not keep swapping places.
-        movementX -= awayDirectionY * requestedDistance * this.config.sidestepStrength * (1 - inwardMovementAllowed);
-        movementY += awayDirectionX * requestedDistance * this.config.sidestepStrength * (1 - inwardMovementAllowed);
-      }
-    }
-
-    const adjustedDistance = Math.hypot(movementX, movementY);
-    const movementScale = Math.min(1, requestedDistance / (adjustedDistance || 1));
-    const desiredPoint = this.scene.battlefield.clampPoint(
-      unit.arenaX + movementX * movementScale,
-      unit.arenaY + movementY * movementScale,
-      this.config.edgePadding,
-      this.config.edgePadding
-    );
-
-    const terrainSafePoint = this.scene.terrain?.resolveStep(
-      unit,
-      desiredPoint.x,
-      desiredPoint.y,
-      this.config.terrainFootRadius
-    ) ?? desiredPoint;
-
-    return this.getSafeStepBeforeFallenUnit(unit, terrainSafePoint, fallenPartyUnits);
+  // Only the mover may change position. Formation spacing is a destination preference;
+  // authored arena body radii are the hard footprints, independent of sprite height.
+  getCollisionSpacing(first, second) {
+    return (first.bodyRadius ?? 0) + (second.bodyRadius ?? 0);
   }
 
-  // Stop a movement segment at the first fallen character it would cross.
-  getSafeStepBeforeFallenUnit(unit, desiredPoint, fallenPartyUnits = this.getFallenPartyUnits()) {
-    let safePoint = desiredPoint;
+  // Forced displacement can leave feet legal but the center inside the larger edge
+  // margin. Allow voluntary steps back out of that margin, never through actual terrain.
+  walkingFloorBlock(unit, point) {
+    const blocked = this.rushFloorBlock(unit, point);
+    if (!blocked || blocked.reason !== 'floor_edge') return blocked;
+    const start = { x: unit.arenaX, y: unit.arenaY };
+    if (this.rushFloorBlock(unit, start)?.reason !== 'floor_edge'
+      || !this.scene.battlefield.containsArenaPoint(start.x, start.y)
+      || !this.scene.battlefield.containsArenaPoint(point.x, point.y)
+      || this.scene.terrain?.isUnitBlocked(unit, start.x, start.y, this.config.terrainFootRadius)
+      || this.scene.terrain?.isUnitBlocked(unit, point.x, point.y, this.config.terrainFootRadius)) return blocked;
+    const interior = this.getSafeArenaPoint(start.x, start.y, unit);
+    return arenaDistance(point, interior) < arenaDistance(start, interior) - .001 ? null : blocked;
+  }
 
-    for (const fallenUnit of fallenPartyUnits) {
-      if (fallenUnit === unit) continue;
-      const clearanceRadius = this.getRequiredUnitSpacing(unit, fallenUnit);
-      const unitFromCorpseX = unit.arenaX - fallenUnit.arenaX;
-      const unitFromCorpseY = unit.arenaY - fallenUnit.arenaY;
-      const movementX = safePoint.x - unit.arenaX;
-      const movementY = safePoint.y - unit.arenaY;
-      const movementLengthSquared = movementX * movementX + movementY * movementY;
+  getCollisionStep(unit, desiredPoint, blockers) {
+    const start = { x: unit.arenaX, y: unit.arenaY };
+    const dx = desiredPoint.x - start.x, dy = desiredPoint.y - start.y;
+    const lengthSquared = dx * dx + dy * dy;
+    if (lengthSquared < .000001) return start;
+    let fraction = 1;
+    for (const other of blockers) {
+      if (other === unit) continue;
+      const radius = this.getCollisionSpacing(unit, other);
+      const x = start.x - other.arenaX, y = start.y - other.arenaY;
+      const distanceSquared = x * x + y * y, dot = x * dx + y * dy;
 
-      if (movementLengthSquared < 0.000001) continue;
-
-      const startDistanceSquared = unitFromCorpseX * unitFromCorpseX + unitFromCorpseY * unitFromCorpseY;
-
-      // If the unit already overlaps a body, let separation help it get free.
-      if (startDistanceSquared < clearanceRadius * clearanceRadius) continue;
-
-      const lineDotProduct = unitFromCorpseX * movementX + unitFromCorpseY * movementY;
-      const closestPointRatio = -lineDotProduct / movementLengthSquared;
-
-      // Math.max chooses the largest value; pairing it with Math.min can keep a result
-      // inside both a lower and an upper bound.
-      const clampedClosestPointRatio = Math.max(0, Math.min(1, closestPointRatio));
-      const closestX = unitFromCorpseX + movementX * clampedClosestPointRatio;
-      const closestY = unitFromCorpseY + movementY * clampedClosestPointRatio;
-
-      if (closestX * closestX + closestY * closestY >= clearanceRadius * clearanceRadius) continue;
-
-      const intersectionRoot = Math.sqrt(Math.max(0, lineDotProduct ** 2
-        - movementLengthSquared * (startDistanceSquared - clearanceRadius * clearanceRadius)));
-      const collisionEntryRatio = Math.max(0, (-lineDotProduct - intersectionRoot) / movementLengthSquared);
-
-      safePoint = {
-        x: unit.arenaX + movementX * collisionEntryRatio,
-        y: unit.arenaY + movementY * collisionEntryRatio
-      };
+      // Initial/spawn or forced-displacement overlaps can be exited voluntarily.
+      // Never deepen them or relocate the other actor to manufacture an exit.
+      if (distanceSquared < radius * radius) {
+        if (dot < -.001) fraction = 0;
+        continue;
+      }
+      if (dot >= 0) continue;
+      const discriminant = dot * dot - lengthSquared * (distanceSquared - radius * radius);
+      if (discriminant <= 0) continue;
+      const entry = (-dot - Math.sqrt(discriminant)) / lengthSquared;
+      if (entry >= 0 && entry < fraction) fraction = Math.max(0, entry - .001 / Math.sqrt(lengthSquared));
     }
+    const count = Math.max(1, Math.ceil(Math.sqrt(lengthSquared) * fraction / 12));
+    let safe = start;
+    for (let index = 1; index <= count; index++) {
+      const sample = { x: start.x + dx * fraction * index / count, y: start.y + dy * fraction * index / count };
+      if (this.walkingFloorBlock(unit, sample)) break;
+      safe = sample;
+    }
+    return safe;
+  }
 
-    return safePoint;
+  // Try stable forward steering, then stop at the first swept collision. Every
+  // candidate checks living/fallen bodies and the whole terrain segment.
+  getSteeredMovementPoint(unit, movementX, movementY, steer = true) {
+    const start = { x: unit.arenaX, y: unit.arenaY };
+    if (this.scene.time?.now < Math.max(unit.status?.rootedUntil ?? 0, unit.status?.stunnedUntil ?? 0)) return start;
+    const distance = Math.hypot(movementX, movementY);
+    if (distance < .001) return start;
+    const blockers = [...this.getLivingCombatUnits(), ...this.getFallenPartyUnits()];
+    const direct = this.getCollisionStep(unit, { x: start.x + movementX, y: start.y + movementY }, blockers);
+    if (!steer || arenaDistance(start, direct) >= distance - .001) return direct;
+    let best = direct, score = ((direct.x - start.x) * movementX + (direct.y - start.y) * movementY) / distance;
+    const seed = String(unit.id ?? '').split('').reduce((total, char) => total + char.charCodeAt(0), 0);
+    const side = seed % 2 ? 1 : -1;
+    for (const degrees of [25, 45, 65, 85]) for (const turn of [side, -side]) {
+      const angle = degrees * turn * Math.PI / 180;
+      const x = movementX * Math.cos(angle) - movementY * Math.sin(angle);
+      const y = movementX * Math.sin(angle) + movementY * Math.cos(angle);
+      const point = this.getCollisionStep(unit, { x: start.x + x, y: start.y + y }, blockers);
+      const progress = ((point.x - start.x) * movementX + (point.y - start.y) * movementY) / distance;
+      if (progress > score + .001) { best = point; score = progress; }
+    }
+    return best;
   }
 
   // Move an unreachable wave return target just outside a fallen ally.
@@ -491,7 +565,8 @@ export default class CombatMovement {
       // Math.hypot calculates straight-line length from the x/y differences: square each,
       // add them, then take the square root.
       return Math.hypot(nearestSafePosition.x - slotPosition.x, nearestSafePosition.y - slotPosition.y)
-        < spacingConfig.arrival;
+        < spacingConfig.arrival && [...this.getLivingCombatUnits(), ...this.getFallenPartyUnits()]
+          .every(other => other === unit || arenaDistance(other, slotPosition) >= this.getCollisionSpacing(unit, other));
     };
 
     if (!slotClaim || slotClaim.target !== target
@@ -623,6 +698,12 @@ export default class CombatMovement {
       return;
     }
 
+    const flank = this.scene.tactics?.tactics?.meleePosition;
+    const wrongFlank = unit.role === 'Melee DPS' && (flank === 'left' && unit.arenaX > target.arenaX
+      || flank === 'right' && unit.arenaX < target.arenaX);
+    const clear = [...this.getLivingCombatUnits(), ...this.getFallenPartyUnits()].every(other => other === unit
+      || arenaDistance(unit, other) >= this.getCollisionSpacing(unit, other) - .001);
+    if (!wrongFlank && clear && this.scene.isWithinAttackReach(unit, target)) return;
     const approachPosition = this.getMeleeApproachPosition(unit, target, time);
 
     if (unit.distanceToPoint(approachPosition.x, approachPosition.y) > this.config.arrivalTolerance) {
@@ -636,21 +717,12 @@ export default class CombatMovement {
 
     // filter keeps entries whose callback returns true. It builds a new list and leaves
     // the original list in place.
-    // Route around standing opponents as well as fallen allies. Ignore bodies already
-    // overlapping our starting point so a surrounded unit can still walk outward.
-    // The destination's body is also excluded so melee units can reach their slots.
-    const opponents = this.getLivingCombatUnits().filter(other => other !== unit
-      && other.isEnemy !== unit.isEnemy
-      && Math.hypot(other.arenaX - unit.arenaX, other.arenaY - unit.arenaY)
-        > this.getRequiredUnitSpacing(unit, other)
-      && Math.hypot(other.arenaX - destination.x, other.arenaY - destination.y)
-        > this.getRequiredUnitSpacing(unit, other));
-    const fallenAllies = [...this.getFallenPartyUnits().filter(fallenAlly => fallenAlly !== unit), ...opponents];
-
-    // Body sizes and spacing stay fixed during this one route search. Calculate each
-    // clearance once instead of repeating it for every candidate stone and segment.
-    const bodyClearances = new Map(fallenAllies.map(other => [other, this.getRequiredUnitSpacing(unit, other)]));
-    const getBodyClearance = fallenAlly => bodyClearances.get(fallenAlly);
+    // Route around all physical bodies, including allies and the target. The final
+    // swept movement check remains authoritative when a body moves after planning.
+    const fallenAllies = [...this.getFallenPartyUnits(), ...this.getLivingCombatUnits()]
+      .filter(other => other !== unit);
+    const bodyClearances = new Map(fallenAllies.map(other => [other, this.getCollisionSpacing(unit, other)]));
+    const getBodyClearance = other => bodyClearances.get(other);
 
     // Automatic travel avoids entering warning circles. Player Move orders and authored
     // manual-response boss attacks keep their existing control rules.
@@ -687,8 +759,9 @@ export default class CombatMovement {
 
         // Math.hypot calculates straight-line length from the x/y differences: square
         // each, add them, then take the square root.
+        const initial = arenaDistance(fallenAlly, segmentStart);
         return Math.hypot(closestX - fallenAlly.arenaX, closestY - fallenAlly.arenaY)
-          < getBodyClearance(fallenAlly);
+          < Math.min(getBodyClearance(fallenAlly), initial) - .001;
       });
 
       if (crossesFallenAlly) return true;
@@ -699,7 +772,7 @@ export default class CombatMovement {
       // fractional part.
       const sampleCount = Math.ceil(segmentLength / 12);
 
-      for (let sampleIndex = 1; sampleIndex < sampleCount; sampleIndex += 1) {
+      for (let sampleIndex = 1; sampleIndex <= sampleCount; sampleIndex += 1) {
         const sampleRatio = sampleIndex / sampleCount;
         const sampleX = segmentStart.x + segmentX * sampleRatio;
         const sampleY = segmentStart.y + segmentY * sampleRatio;
@@ -708,9 +781,7 @@ export default class CombatMovement {
 
         // ?. only follows this link when the value exists; a missing optional value gives
         // undefined.
-        if (this.scene.terrain?.isUnitBlocked(unit, sampleX, sampleY, this.config.terrainFootRadius)) {
-          return true;
-        }
+        if (this.walkingFloorBlock(unit, { x: sampleX, y: sampleY })) return true;
       }
 
       return false;
@@ -763,12 +834,7 @@ export default class CombatMovement {
       Math.hypot(standingPoint.x - fallenAlly.arenaX, standingPoint.y - fallenAlly.arenaY)
         < getBodyClearance(fallenAlly))
       && !entersWarning(standingPoint)
-      && !this.scene.terrain?.isUnitBlocked(
-        unit,
-        standingPoint.x,
-        standingPoint.y,
-        this.config.terrainFootRadius
-      );
+      && !this.rushFloorBlock(unit, standingPoint);
 
     // A* can visit the same candidate from eight neighbors. Keep its exact safety result
     // for this search only; moving bodies, warnings and floor changes are checked afresh
@@ -827,7 +893,9 @@ export default class CombatMovement {
       }
     }
 
-    const startCellId = getCellId(startCellX, startCellY);
+    // The actor's exact position is a virtual node, not its containing cell center.
+    // A legal rush landing may lie between occupied or out-of-floor grid centers.
+    const startCellId = -1;
     const goalCellId = getCellId(goalCellX, goalCellY);
     const cellsToCheck = [];
 
@@ -882,18 +950,25 @@ export default class CombatMovement {
       return bestCell;
     };
 
-    // The score adds the walk already taken to a straight-line guess of what is left.
-    addCellToCheck({
-      cellX: startCellX,
-      cellY: startCellY,
-      id: startCellId,
-      distanceWalked: 0,
-      score: Math.hypot(goalCellX - startCellX, goalCellY - startCellY)
-    });
-
-    // Remember the cheapest path so far and the stone that led to each new stone.
-    const cheapestKnownDistance = new Map([[startCellId, 0]]);
+    const cheapestKnownDistance = new Map();
     const previousCellById = new Map();
+
+    // Connect to visible legal stones within three local rings. This bounded exit
+    // search handles narrow gaps without moving the actor or ignoring any bodies.
+    for (let offsetY = -3; offsetY <= 3; offsetY++) {
+      for (let offsetX = -3; offsetX <= 3; offsetX++) {
+        const cellX = startCellX + offsetX, cellY = startCellY + offsetY;
+        if (cellX < 0 || cellY < 0 || cellX >= gridWidth || cellY >= gridHeight || !isSafeCell(cellX, cellY)) continue;
+        const point = getCellCenter(cellX, cellY);
+        if (isSegmentBlocked(startPosition, point)) continue;
+        const id = getCellId(cellX, cellY);
+        const distanceWalked = arenaDistance(startPosition, point) / gridStep;
+        cheapestKnownDistance.set(id, distanceWalked);
+        previousCellById.set(id, startCellId);
+        addCellToCheck({ cellX, cellY, id, distanceWalked,
+          score: distanceWalked + Math.hypot(goalCellX - cellX, goalCellY - cellY) });
+      }
+    }
 
     // A Set keeps each value once. has checks membership without searching a list for
     // duplicate entries.
@@ -926,9 +1001,7 @@ export default class CombatMovement {
 
           // The condition before ? chooses the first value when true and the value after :
           // when false.
-          const segmentStart = currentCell.id === startCellId
-            ? startPosition
-            : getCellCenter(currentCell.cellX, currentCell.cellY);
+          const segmentStart = getCellCenter(currentCell.cellX, currentCell.cellY);
 
         // Only step onto safe stones, and only when the line between stones is clear.
           if (alreadyCheckedCellIds.has(nextCellId)
@@ -957,7 +1030,8 @@ export default class CombatMovement {
       }
     }
 
-    if (!reachedGoal) return warnings.length ? startPosition : destination;
+    // No route is a stop, not permission to repeatedly steer into the blocked goal.
+    if (!reachedGoal) { this.paths.delete(unit); return startPosition; }
 
     // Follow the remembered stones backward, then take just the first step.
     const routeCellIds = [goalCellId];
@@ -967,13 +1041,12 @@ export default class CombatMovement {
       routeCellIds.push(previousCellById.get(routeCellIds[routeCellIds.length - 1]));
     }
 
-    const nextStepCellId = routeCellIds[routeCellIds.length - 2];
+    const routePoints = routeCellIds.filter(id => id !== startCellId)
+      .map(id => getCellCenter(id % gridWidth, Math.floor(id / gridWidth)));
 
-    // % gives the remainder. With a nonnegative index and positive list length, it wraps
-    // the index back to the start of the list.
-    const waypoint = routeCellIds.length > 1
-      ? getCellCenter(nextStepCellId % gridWidth, Math.floor(nextStepCellId / gridWidth))
-      : destination;
+    // Follow the farthest visible part of the real route. Never command a tiny
+    // cell-center correction when a longer, equally safe segment is available.
+    const waypoint = routePoints.find(point => !isSegmentBlocked(startPosition, point)) ?? startPosition;
 
     // Reuse this first step briefly so we do not redraw the map every frame.
     this.paths.set(unit, {
@@ -1150,94 +1223,4 @@ export default class CombatMovement {
     return rangeState.direction !== 0;
   }
 
-  // Check every pair from the same snapshot so update order does not change the result. A
-  // held unit can move a little to fix an overlap, and its anchor moves with it.
-  separateUnits(delta) {
-    const livingUnits = this.getLivingCombatUnits();
-
-    // ... expands these entries into the new list or call. It does not deep-copy the
-    // objects inside.
-    const unitsToSeparate = [...livingUnits, ...this.getFallenPartyUnits()];
-
-    // A Map pairs a key with a value. Unlike an array index, the key can be an ID or an
-    // object; get/set read and write that same key.
-    const movementOffsets = new Map(livingUnits.map(unit => [unit, { x: 0, y: 0 }]));
-    const isPlayerUnitLocked = unit => !unit.isEnemy && this.scene.isPositionLocked(unit);
-
-    for (let firstIndex = 0; firstIndex < unitsToSeparate.length; firstIndex += 1) {
-      for (let secondIndex = firstIndex + 1; secondIndex < unitsToSeparate.length; secondIndex += 1) {
-        const firstUnit = unitsToSeparate[firstIndex];
-        const secondUnit = unitsToSeparate[secondIndex];
-        const distanceX = firstUnit.arenaX - secondUnit.arenaX;
-        const distanceY = firstUnit.arenaY - secondUnit.arenaY;
-
-        // Math.hypot calculates straight-line length from the x/y differences: square
-        // each, add them, then take the square root.
-        const distanceBetweenUnits = Math.hypot(distanceX, distanceY);
-        const desiredSpacing = this.getRequiredUnitSpacing(firstUnit, secondUnit);
-
-        if (distanceBetweenUnits >= desiredSpacing) continue;
-
-        // Stable directions also resolve exact overlap (including spawn piles).
-        const stableAngle = firstIndex * 2.399963 + secondIndex * 1.618034;
-
-        // The condition before ? chooses the first value when true and the value after :
-        // when false. Angles are radians. cos(angle) gives the horizontal part of a
-        // circle; sin(angle) gives the vertical part. Multiplying by a radius turns those
-        // fractions into offsets.
-        const directionX = distanceBetweenUnits > 0.001 ? distanceX / distanceBetweenUnits : Math.cos(stableAngle);
-        const directionY = distanceBetweenUnits > 0.001 ? distanceY / distanceBetweenUnits : Math.sin(stableAngle);
-        const pushDistance = (desiredSpacing - distanceBetweenUnits)
-          * (1 - Math.exp(-this.config.separationForce * delta));
-        const firstUnitIsFixed = !firstUnit.alive || isPlayerUnitLocked(firstUnit) || firstUnit.isEnemy;
-        const secondUnitIsFixed = !secondUnit.alive || isPlayerUnitLocked(secondUnit) || secondUnit.isEnemy;
-        const firstUnitShare = firstUnitIsFixed && !secondUnitIsFixed
-          ? 0
-          : secondUnitIsFixed && !firstUnitIsFixed ? 1 : 0.5;
-
-        if (firstUnit.alive) {
-          movementOffsets.get(firstUnit).x += directionX * pushDistance * firstUnitShare;
-          movementOffsets.get(firstUnit).y += directionY * pushDistance * firstUnitShare;
-        }
-
-        if (secondUnit.alive) {
-          movementOffsets.get(secondUnit).x -= directionX * pushDistance * (1 - firstUnitShare);
-          movementOffsets.get(secondUnit).y -= directionY * pushDistance * (1 - firstUnitShare);
-        }
-      }
-    }
-
-    for (const unit of livingUnits) {
-      if (unit.criticalKnockback) continue;
-
-      // ?. only follows this link when the value exists; a missing optional value gives
-      // undefined. Math.max chooses the largest value; pairing it with Math.min can keep a
-      // result inside both a lower and an upper bound. ?? uses the fallback only for null
-      // or undefined. A real zero or false stays intact.
-      if (this.scene.time?.now < Math.max(unit.status?.rootedUntil ?? 0, unit.status?.stunnedUntil ?? 0)) continue;
-      const movementOffset = movementOffsets.get(unit);
-      const offsetLength = Math.hypot(movementOffset.x, movementOffset.y);
-
-      if (offsetLength < 0.001) continue;
-
-      const maxCorrectionDistance = this.config.maxSeparationSpeed * delta;
-      const correctionScale = Math.min(1, maxCorrectionDistance / offsetLength);
-      const correctedPosition = this.getSafeArenaPoint(
-        unit.arenaX + movementOffset.x * correctionScale,
-        unit.arenaY + movementOffset.y * correctionScale,
-        unit
-      );
-
-      const manualHoldAnchor = this.scene.manualTargets.get(unit.id);
-      const isAtHoldAnchor = manualHoldAnchor
-        && unit.distanceToPoint(manualHoldAnchor.x, manualHoldAnchor.y) <= this.config.arrivalTolerance;
-
-      if (isPlayerUnitLocked(unit) && isAtHoldAnchor) {
-        manualHoldAnchor.x += correctedPosition.x - unit.arenaX;
-        manualHoldAnchor.y += correctedPosition.y - unit.arenaY;
-      }
-
-      unit.setArenaPosition(correctedPosition.x, correctedPosition.y);
-    }
-  }
 }

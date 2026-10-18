@@ -168,7 +168,12 @@ function playPartyAnimation(scene, state) {
   const frame = clips?.[facing]?.frames[0];
   scene.party.play(`${scene.mapCharacterAnimationPrefix}-${state}-${facing}`, true);
   if (frame) scene.party.setOrigin(frame.originX ?? 0.5, frame.originY ?? 1).setFlipX(frame.flipX === true);
-  scene.party.setDisplaySize(271.5, 271.5);
+
+  // Native drawing height can differ between sheet sets. Keep the traveling
+  // character's visible size steady when its art supplies a size adjustment.
+  const definition = scene.mapCharacterDefinition ?? CHARACTER_SPRITES.garrick;
+  const size = 271.5 * (definition.worldMapScale ?? 1);
+  scene.party.setDisplaySize(size, size);
 }
 
 // Refresh visible world destinations from their authored nodes and current saved access.

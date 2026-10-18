@@ -6,6 +6,8 @@
 
 import { fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import Phaser from 'phaser';
+import { perimeterOwner, maintainedHold, PERIMETER_REDUCTION, PERIMETER_THREAT_FRACTION,
+  BLOCK_THREAT_FRACTION, reactiveTankThreat, HOLD_THE_LINE } from './TankMechanics.js';
 import { armorReduction } from '../config/characterProgression.js';
 import { characterStats } from '../game/CharacterStats.js';
 import UnitSprite from './UnitSprite.js';
@@ -401,6 +403,15 @@ export default class BattleUnit {
   // This helper releases the current action and clears its cast display.
   finishAction(outcome = 'cancelled', reasonCode = 'unknown', explanation = 'Unclassified action release', details = {}) {
 
+    const rush = this.pendingAction?.intervene;
+    if (rush && !rush.movementFinished) {
+      const diagnostic = this.scene.combatLog?.diagnostics;
+      diagnostic?.emit('action_phase', { actionId: diagnostic.actionId(this), actorId: this.id,
+        abilityId: 'ability_v2_generic_physical_intervene', targetId: rush.targetId, mode: rush.mode, stateAfter: 'intervene_movement_failed',
+        reasonCode, explanation, routeFailure: rush.failure ?? { reason: reasonCode },
+        distanceTravelled: rush.travelled, neverLeftOrigin: !(rush.travelled > 1), replans: rush.replans,
+        waypoints: rush.waypoints, position: { x: this.arenaX, y: this.arenaY }, destination: rush.point });
+    }
     this.scene.combatLog?.diagnostics?.end(this, outcome, reasonCode, explanation, details);
     this.pendingAction = null;
     this.busyUntil = 0;
@@ -521,8 +532,8 @@ export default class BattleUnit {
     this.moveBy(route.x * travel, route.y * travel);
   }
 
-  // Combat movement shares personal-space steering. Wave returns ignore living allies
-  // while still steering around fallen characters and terrain.
+  // Wave returns may disable steering, but every voluntary step still collides
+  // with living/fallen bodies and terrain. Forced knockback has its own path.
   moveBy(dx, dy, avoidUnits = true) {
     if (this.criticalKnockback) return;
     if ((this.scene.time?.now ?? 0) < (this.status.replacementCostRootUntil ?? 0)) return;
@@ -540,7 +551,9 @@ export default class BattleUnit {
       : this.scene?.terrain?.resolveStep(this, this.arenaX + dx, this.arenaY + dy,
         this.scene.movement?.config.terrainFootRadius)
         ?? { x: this.arenaX + dx, y: this.arenaY + dy };
+    const moved = Math.hypot(point.x - this.arenaX, point.y - this.arenaY);
     this.setArenaPosition(point.x, point.y);
+    if (moved > .001) this.spriteVisual?.recordMovement?.();
   }
 
   // This helper checks whether the unit can begin another basic attack.
@@ -603,7 +616,7 @@ export default class BattleUnit {
 
     // All party skills announce intent to active enemies. Buffs and escapes can pull
     // aggro too; resolved damage and healing still contribute their separate amounts.
-    this.scene?.generateAbilityThreat?.(this, manaCostOverride === null ? ability : { ...ability, manaCost: manaCostOverride });
+    if (ability?.handler !== 'intervene') this.scene?.generateAbilityThreat?.(this, manaCostOverride === null ? ability : { ...ability, manaCost: manaCostOverride });
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
@@ -715,6 +728,12 @@ export default class BattleUnit {
       adjusted *= 1 - this.status.nextHitReduction;
       this.status.nextHitReduction = 0;
     }
+
+    // One perimeter multiplies the existing post-defense damage once. It never
+    // changes the owner's personal Armor or mitigates allied/self-inflicted costs.
+    const protector = options.attacker?.isEnemy && !this.isEnemy ? perimeterOwner(this.scene, this, now) : null;
+    const perimeterPrevented = protector ? adjusted * PERIMETER_REDUCTION : 0;
+    if (protector) adjusted *= 1 - PERIMETER_REDUCTION;
     adjusted = Math.max(adjusted > 0 ? 1 : 0, Math.round(adjusted));
 
     if (now < (this.status.enrageUntil ?? 0)) adjusted = Math.round(adjusted * this.status.enrageIncoming);
@@ -726,6 +745,21 @@ export default class BattleUnit {
     // Resolve this here so periodic and triggered damage follow the same rule.
     if (absorbed > 0) this.scene?.classAbilitySystem?.replacement?.shieldDamaged?.(this);
     adjusted = this.scene?.classAbilitySystem?.replacement?.preventLethal(this, adjusted) ?? adjusted;
+
+    // These are hit reactions, not periodic threat or forced taunts. A real block
+    // uses the resolver's block roll, never its broader cosmetic blocked flag.
+    if (options.attacker?.isEnemy && !this.isEnemy && !options.periodic && !options.reflection && amount > 0) {
+      if (protector) {
+        const threat = reactiveTankThreat(this.scene, protector, options.attacker, amount, PERIMETER_THREAT_FRACTION);
+        this.scene.combatLog?.diagnostics?.emit('tank_protection', { actorId: protector.id, targetId: this.id,
+          attackerId: options.attacker.id, abilityId: HOLD_THE_LINE, avoidedDamage: perimeterPrevented,
+          avoidanceMeasurement: 'post_defense_before_rounding_and_shields', threat,
+          cause: this.scene.combatLog?.diagnostics?.context });
+      }
+      if (options.armorBlocked && maintainedHold(this.scene, this, now)) {
+        reactiveTankThreat(this.scene, this, options.attacker, amount, BLOCK_THREAT_FRACTION);
+      }
+    }
     this.hp = Math.max(0, this.hp - adjusted);
 
     this.updateHealthBar();
@@ -795,6 +829,7 @@ export default class BattleUnit {
     }
     this.hp = 0;
     this.alive = false;
+    delete this.status.replacementShelter;
 
     // These optional flags save cosmetic effects only. Death clears them before idle
     // replay or revival can accidentally restore an old mark or shield bubble.

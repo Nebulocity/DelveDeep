@@ -90,7 +90,7 @@ export default class CombatDiagnostics {
     const scene = this.scene, system = scene.classAbilitySystem;
     this.wrap(scene, 'resolveDamage', (actor, target, amount, type, threat, ability) => this.cause(actor, ability));
     this.wrap(scene, 'resolveHeal', (actor, target, amount, ability) => this.cause(actor, ability));
-    this.wrap(scene, 'applyTankTaunt', (actor, targets, key) => this.cause(actor, actor.abilities[key]));
+    this.wrap(scene, 'applyTankTaunt', (actor, targets, key, time, commit, ability) => this.cause(actor, ability ?? actor.abilities[key]));
     this.wrap(scene, 'resolveGroundSlam', (actor, action, center, ability) => this.cause(actor, ability));
     this.wrap(system, 'resolve', (actor, target, ability) => this.cause(actor, ability));
     this.wrap(system?.replacement, 'resolve', (actor, target, ability) => this.cause(actor, ability));
@@ -107,7 +107,8 @@ export default class CombatDiagnostics {
       boss: unit.isBoss, castStartAt: action.startAt, scheduledCompletionAt: action.startAt + action.duration,
       stateBefore: 'idle', stateAfter: 'pending', actorState: snapshot(unit, this.now()),
       targetState: snapshot(target, this.now()), wave: this.scene.currentWaveIndex + 1,
-      observedDamage: 0, observedHealing: 0, recipients: [] };
+      observedDamage: 0, observedHealing: 0, recipients: [],
+      ...(ability?.handler === 'intervene' ? { mode: ability.interveneMode } : {}) };
     this.state().active[actionId] = record;
     this.emit('action_started', record);
     if (this.ai) {
@@ -131,6 +132,17 @@ export default class CombatDiagnostics {
       startObservation: 'not captured in this diagnostic record', boss: unit.isBoss }),
       stateBefore: 'pending', stateAfter: outcome, actualTerminalAt: this.now(), reasonCode, explanation,
       cause: this.context, actorState: snapshot(unit, this.now()), ...extra };
+    const rush = action.intervene;
+    if (rush) {
+      record.mode = rush.mode;
+      record.intervene = { distanceTravelled: rush.travelled, neverLeftOrigin: !(rush.travelled > 1),
+        destination: rush.point, waypoints: rush.waypoints, replans: rush.replans,
+        failure: rush.failure ?? (outcome === 'resolved' ? null : { reason: reasonCode }) };
+      const modes = state.totals.intervene ??= {};
+      const metrics = modes[rush.mode] ??= { attempted: 0, travelled: 0, completed: 0, neverLeftOrigin: 0, braced: 0 };
+      if (!(rush.travelled > 1)) metrics.neverLeftOrigin++;
+      if (outcome === 'resolved') { metrics.completed++; if (!(rush.travelled > 1)) metrics.braced++; }
+    }
     record.targetState = snapshot(this.units().find(target => target.id === record.targetId), this.now());
     record.commandedTargetId = this.scene.attackTargets?.get(unit.id) ?? this.scene.focusTargetId ?? null;
     record.commandedTargetAffected = record.commandedTargetId ? record.recipients?.includes(record.commandedTargetId) ?? false : null;
@@ -189,6 +201,13 @@ export default class CombatDiagnostics {
         abilityId: entry.abilityId, ability: entry.ability, boss: entry.boss, attempts: 0,
         resolved: 0, cancelled: 0, interrupted: 0, failed: 0, expired: 0, reasons: {} };
       stats.attempts++;
+    }
+    if (entry.abilityId === 'ability_v2_generic_physical_intervene' && entry.mode
+      && (entry.type === 'action_started' || entry.stateAfter === 'intervene_movement_started')) {
+      const modes = state.totals.intervene ??= {};
+      const metrics = modes[entry.mode] ??= { attempted: 0, travelled: 0, completed: 0, neverLeftOrigin: 0, braced: 0 };
+      if (entry.type === 'action_started') metrics.attempted++;
+      else metrics.travelled++;
     }
     const actorStats = (id, name) => state.totals.actors[id] ??= { id, name, damageDealt: 0, damageTaken: 0,
       effectiveHealing: 0, overhealing: 0, deaths: 0, revives: 0 };

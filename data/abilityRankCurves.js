@@ -1,5 +1,7 @@
 // Rank tables use tuned combat coefficients, not the larger untuned healing reference values.
 // Each effect family has its own steps; fixed rules improve through timing instead of potency.
+import { ADJACENT_DISTANCE } from '../config/combatRanges.js';
+
 const roundTo = (value, step) => Number((Math.round(value / step) * step).toFixed(4));
 
 // Build ten explicit records at catalog entry. Saves keep learned ranks and old battle definitions.
@@ -35,6 +37,12 @@ export function withAbilityRankCurve(base) {
       ceiling = 1;
     }
 
+    // Intervene has authored impact/protection caps; movement and guard duration stay fixed.
+    if (base.handler === 'intervene') {
+      step = secondary ? .05 : .1;
+      ceiling = effect.cap;
+    }
+
     // Lunar Alignment always discounts 15% Mana; training improves its other values.
     if (effect.fixedPotency) step = 0;
     return rank => ({ ...effect, potency: start === 0 ? 0 : roundTo(Math.min(ceiling, start + step * rank), 0.005),
@@ -63,6 +71,15 @@ export function withAbilityRankCurve(base) {
     restockDamageBonus: ['restoreCharges', 'partyRestoreCharges'].includes(base.handler) ? (rank + 1) * 0.05 : 0,
     duration: duration(base.duration, base.durationCap, rank, base.primary),
     secondaryDuration: duration(base.secondaryDuration, base.secondaryDurationCap, rank, base.secondary),
-    cooldown: Math.max(floor, base.cooldown - rank * cooldownStep)
+    cooldown: Math.max(floor, base.cooldown - rank * cooldownStep),
+
+    // Dawnwarden control grows by ability rank, independently of defensive timing.
+    ...(base.threatPulseInterval ? {
+      radius: Math.min(6, base.radius / ADJACENT_DISTANCE + Math.floor(rank / 2)) * ADJACENT_DISTANCE,
+      threatPulseDuration: base.threatPulseDuration + rank * 1000
+    } : {}),
+    ...(base.handler === 'damageTaunt' ? {
+      maxTargets: rank + 1, tauntDuration: base.tauntDuration + rank * 1000
+    } : {})
   })) };
 }

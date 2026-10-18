@@ -1,6 +1,6 @@
 import { deliverCombatLog } from '../services/CombatLogFiles.js';
 import { LEGACY_KEYS, initializeDiagnosticStorage, diagnosticRead, diagnosticTransaction,
-  storageWarning, storageMessages } from './DiagnosticStorage.js';
+  storageWarning, storageMessages, clearDiagnosticLogs } from './DiagnosticStorage.js';
 
 const RAW_LIMIT = 16 * 1024 * 1024;
 const TOTAL_RAW_LIMIT = 64 * 1024 * 1024;
@@ -33,6 +33,7 @@ let memoryBytes = 0;
 let dirty = false;
 let latestRecord = null;
 let latestEncounterId = null;
+let clearingLogs = false;
 const exportedLegacy = new Map();
 
 async function acquireArchiveWriter() {
@@ -91,7 +92,7 @@ export const combatRecordingReady = (async () => {
   } catch { failStorage(); }
 })();
 
-export function isCombatLogging() { return current?.active === true; }
+export function isCombatLogging() { return !clearingLogs && current?.active === true; }
 export function hasCombatRecording() { return sessions.size > 0; }
 export function recordingSequenceFloor(encounterId) { return sequenceFloors.get(encounterId) ?? 0; }
 
@@ -201,11 +202,13 @@ function captureCheckpoint() {
 }
 
 export function persistCombatRecording() {
+  if (clearingLogs) return;
   if (!current || !dirty || timer) return;
   timer = setTimeout(() => { timer = null; void flushCombatRecording(); }, 2000);
 }
 
 export async function flushCombatRecording() {
+  if (clearingLogs) return;
   clearTimeout(timer); timer = null;
   captureCheckpoint();
   sealBuffer();
@@ -237,7 +240,9 @@ export async function flushCombatRecording() {
 
 export async function startCombatLogging() {
   await combatRecordingReady;
+  if (clearingLogs) return;
   await flushCombatRecording();
+  if (clearingLogs) return;
   if (current?.active) return;
   if (!storageAvailable && current) {
     storageWarning('memory-session-retained', 'The memory-only recording is retained. Export and explicitly remove it before starting another memory-only session.');
@@ -261,6 +266,7 @@ export async function startCombatLogging() {
 }
 
 export function recordCombatEntry(log, entry) {
+  if (clearingLogs) return;
   if (!current?.active || !log.simulationNow || log.backgroundProgress?.isReplaying) return;
   try {
     if (latestEncounterId !== log.record.startedAt) {
@@ -321,6 +327,44 @@ export async function stopCombatLogging() {
   await flushCombatRecording();
 }
 
+// This is the explicit discard-all action, including an active recording. Await old
+// writes before clearing storage, then reset every budget so Start logging works again.
+export async function clearAllCombatLogs() {
+  await combatRecordingReady;
+  if (clearingLogs) return false;
+  if (!writerOwned && [...sessions.values()].some(session => session.durable)) {
+    storageWarning('clear-logs-locked', 'Clear logs in the game tab that owns the recording, or close that tab and reopen this one. No logs were cleared.');
+    return false;
+  }
+  clearingLogs = true;
+  clearTimeout(timer);
+  timer = null;
+  if (current) current.active = false;
+  try {
+    await writing;
+    const durableCleared = await clearDiagnosticLogs(![...sessions.values()].some(session => session.durable));
+    sessions.clear(); checkpoints.clear(); changedCheckpoints.clear(); restoredTotals.clear();
+    restoredDiagnostics.clear(); sequenceFloors.clear(); exportedLegacy.clear();
+    pending.length = 0;
+    buffer = [];
+    bufferBytes = 0; memoryBytes = 0; totalRawBytes = 0; chunkIndex = 0;
+    current = null; latestRecord = null; latestEncounterId = null; dirty = false;
+    // A prior quota failure can recover after the archive space is released.
+    storageAvailable = writerOwned;
+    if (!durableCleared) {
+      storageAvailable = false;
+      storageWarning('clear-memory-only', 'Memory logs were cleared and recording can start again. Browser archive storage is unavailable, so any inaccessible stored logs could not be cleared. New logs remain in memory until exported.');
+    }
+    globalThis.dispatchEvent?.(new Event('delve-combat-logs-cleared'));
+    return true;
+  } catch {
+    storageWarning('clear-logs-failed', 'Could not finish clearing combat logs. Recording is stopped. Player saves and settings were not touched; close other game tabs and try again.');
+    return false;
+  } finally {
+    clearingLogs = false;
+  }
+}
+
 export async function exportCombatRecording(id = current?.id) {
   await combatRecordingReady;
   await flushCombatRecording();
@@ -353,13 +397,13 @@ export async function exportCombatRecording(id = current?.id) {
   return delivered && !archiveReadFailed;
 }
 
-export async function showCombatArchives() {
+export async function showCombatArchives(onCleared = () => {}) {
   await combatRecordingReady;
   const dialog = document.createElement('dialog');
   dialog.style.cssText = 'width:85vw;max-height:80vh;overflow:auto;background:#292524;color:#fff1d2;padding:20px;font:18px sans-serif;';
   const title = document.createElement('h2'); title.textContent = 'Combat recordings'; dialog.append(title);
   const note = document.createElement('p');
-  note.textContent = 'Save or share and verify the JSON file before removing archives. Cleanup only affects the selected combat log; player saves and settings are never removed.';
+  note.textContent = 'Export logs to keep them, or Clear All Logs to discard every recording and stop logging. Player saves and settings are kept.';
   dialog.append(note);
   const add = (label, action) => {
     const button = document.createElement('button'); button.textContent = label;
@@ -369,6 +413,17 @@ export async function showCombatArchives() {
       finally { if (button.isConnected) button.disabled = false; } };
     dialog.append(button); return button;
   };
+  const clearButton = add('Clear All Logs', async () => {
+    // Disable the old archive controls while clearing, then replace their stale rows.
+    const buttons = [...dialog.querySelectorAll('button')];
+    buttons.forEach(button => { button.disabled = true; });
+    if (await clearAllCombatLogs()) {
+      onCleared();
+      dialog.close();
+      await showCombatArchives(onCleared);
+    } else buttons.forEach(button => { button.disabled = false; });
+  });
+  clearButton.style.cssText += 'background:#633d3d;color:#ffe2df;border:1px solid #a76a65;border-radius:4px;padding:10px 18px;';
   for (const session of [...sessions.values()].reverse()) {
     const row = document.createElement('p'); row.textContent = `${session.startedAt}${session.active ? ' (recording)' : ''}${session.incomplete ? ' (incomplete)' : ''}`; dialog.append(row);
     let exportRequested = false;
@@ -415,7 +470,7 @@ export async function showCombatArchives() {
       });
     }
   }
-  if (!dialog.querySelector('button')) { const empty = document.createElement('p'); empty.textContent = 'No stored combat recordings.'; dialog.append(empty); }
+  if (!sessions.size && dialog.querySelectorAll('p').length === 1) { const empty = document.createElement('p'); empty.textContent = 'No stored combat recordings.'; dialog.append(empty); }
   add('Close', () => dialog.close()); dialog.onclose = () => dialog.remove();
   document.body.append(dialog); dialog.showModal();
 }

@@ -8,6 +8,31 @@
     "north-east",
     "north-west"
   ],
+  "anchors": {
+    "south-east": {
+      "originX": 0.5,
+      "originY": 0.80078125
+    },
+    "south-west": {
+      "originX": 0.5,
+      "originY": 0.80078125
+    },
+    "north-east": {
+      "originX": 0.5,
+      "originY": 0.79296875
+    },
+    "north-west": {
+      "originX": 0.5,
+      "originY": 0.79296875
+    }
+  },
+  "display": {
+    "nativeHeight": 152.0,
+    "scale": 1.0710526315789475,
+    "portraitScale": 1.4605263157894737,
+    "worldMapScale": 1.2171052631578947,
+    "footY": 30
+  },
   "states": {
     "idle": {
       "columns": 16,
@@ -17,7 +42,8 @@
         "north-east": 16,
         "north-west": 16
       },
-      "frameMs": 100,
+      "frameMs": 100.0,
+      "durationMs": 1600,
       "loop": true
     },
     "walk": {
@@ -28,79 +54,87 @@
         "north-east": 16,
         "north-west": 16
       },
-      "frameMs": 50,
+      "frameMs": 50.0,
+      "durationMs": 800,
       "loop": true
     },
     "attack": {
-      "columns": 9,
+      "columns": 25,
       "counts": {
-        "south-east": 9,
+        "south-east": 25,
         "south-west": 9,
         "north-east": 9,
-        "north-west": 9
+        "north-west": 25
       },
-      "frameMs": 90,
+      "frameMs": 32.4,
+      "durationMs": 810,
       "loop": false
     },
     "block": {
-      "columns": 5,
+      "columns": 13,
       "counts": {
-        "south-east": 5,
-        "south-west": 5,
-        "north-east": 5,
-        "north-west": 5
+        "south-east": 13,
+        "south-west": 13,
+        "north-east": 13,
+        "north-west": 13
       },
-      "frameMs": 100,
+      "frameMs": 38.46153846153846,
+      "durationMs": 500,
       "loop": false
     },
     "hit": {
-      "columns": 5,
+      "columns": 13,
       "counts": {
-        "south-east": 5,
-        "south-west": 5,
-        "north-east": 5,
-        "north-west": 5
+        "south-east": 13,
+        "south-west": 13,
+        "north-east": 13,
+        "north-west": 13
       },
-      "frameMs": 90,
+      "frameMs": 34.61538461538461,
+      "durationMs": 450,
       "loop": false
     },
     "death": {
-      "columns": 17,
+      "columns": 25,
       "counts": {
-        "south-east": 17,
-        "south-west": 17,
-        "north-east": 17,
-        "north-west": 17
+        "south-east": 25,
+        "south-west": 25,
+        "north-east": 25,
+        "north-west": 25
       },
-      "frameMs": 85,
+      "frameMs": 57.8,
+      "durationMs": 1445,
       "loop": false
-    }
-  },
-  "anchors": {
-    "south-east": {
-      "originX": 0.5,
-      "originY": 0.8671875
     },
-    "south-west": {
-      "originX": 0.5,
-      "originY": 0.8671875
-    },
-    "north-east": {
-      "originX": 0.5,
-      "originY": 0.8828125
-    },
-    "north-west": {
-      "originX": 0.5,
-      "originY": 0.8828125
-    }
-  },
-  "facing": {
-    "columns": 1,
-    "counts": {
-      "south-east": 1,
-      "south-west": 1,
-      "north-east": 1,
-      "north-west": 1
+    "intervene": {
+      "columns": 16,
+      "counts": {
+        "south-east": 16,
+        "south-west": 16,
+        "north-east": 16,
+        "north-west": 16
+      },
+      "frameMs": 50.0,
+      "durationMs": 800,
+      "loop": true,
+      "anchors": {
+        "south-east": {
+          "originX": 0.5,
+          "originY": 0.77734375
+        },
+        "south-west": {
+          "originX": 0.5,
+          "originY": 0.77734375
+        },
+        "north-east": {
+          "originX": 0.5,
+          "originY": 0.79296875
+        },
+        "north-west": {
+          "originX": 0.5,
+          "originY": 0.79296875
+        }
+      }
     }
   }
 }

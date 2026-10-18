@@ -4,19 +4,21 @@
 import GameState from '../game/GameState.js';
 import { equippedItem, consumePotionCharge } from '../game/Equipment.js';
 import { getPotionDefinition } from '../data/items.js';
-import { arenaDistance, NEAR_DISTANCE } from '../config/combatRanges.js';
+import { arenaDistance, ADJACENT_DISTANCE, NEAR_DISTANCE } from '../config/combatRanges.js';
 import { incomingPressure, missingHealth, healingUrgency, reserveHealing } from './CombatDecisions.js';
 import { replacementAmount, replacementMultiplier, refreshReplacementTiming } from './ReplacementEffects.js';
 import { findAbilityEffect } from '../data/abilityEffects.js';
 import { rememberBarmaidIntercept } from '../data/barmaidAbilityEffects.js';
 import { hasAssaultAbilityEffect } from './AssaultAbilityEffects.js';
 import { CLASS_DEFINITIONS } from '../data/classes.js';
-import { rankedReplacementAbility } from '../data/replacementAbilities.js';
+import { abilityAllowed, CLASS_RESTRICTED_ABILITIES, rankedReplacementAbility } from '../data/replacementAbilities.js';
 import { retireUmbralDecoy } from './UmbralDecoyEffects.js';
 import { isRune, runeTarget, resolveRune, tickRune, runesAfterDamage } from './RunedanceSystem.js';
 import { basicCandidates, betterAssessment, evaluateAbility } from './AbilityUsefulness.js';
 import { preparedAbility } from './PreparationUsefulness.js';
-import { createTacticalContext, tacticalAllyTarget, TACTICAL_HANDLERS, TACTICAL_ALLY_HANDLERS } from './TacticalUsefulness.js';
+import { createTacticalContext, tacticalAllyTarget, usesTacticalAbility, usesTacticalAllyTarget, evaluateTactical, interveneRescueValue } from './TacticalUsefulness.js';
+import { intervenePlan, interveneLocked, interveneSpeed } from './Intervene.js';
+import { INTERVENE, canTankTaunt, spreadHitThreat, SECONDARY_THREAT } from './TankMechanics.js';
 
 // A modifier names the actual stat changed. Negative fractions reduce that stat; chance
 // fields add percentage points. Recipient choice is handled separately from the modifier.
@@ -54,6 +56,7 @@ export default class ReplacementAbilitySystem {
     this.scene.events?.once?.('shutdown', () => {
       for (const view of this.zoneViews.values()) view.destroy();
       this.zoneViews.clear();
+      this.clearShelters();
     });
   }
 
@@ -64,6 +67,62 @@ export default class ReplacementAbilitySystem {
   allies() { return this.scene.partyUnits.filter(unit => unit.alive); }
   enemies() { return this.scene.getLivingEnemies(); }
   now() { return this.scene.time.now; }
+
+  clearShelters() {
+    for (const unit of this.scene.partyUnits ?? []) delete unit.status.replacementShelter;
+  }
+
+  canTaunt(enemy) {
+    return canTankTaunt(enemy);
+  }
+
+  // Feed a nearby productive Roar cluster into ordinary tank pursuit. No movement
+  // state, route controller or destination survives this read-only target choice.
+  roarPursuitTarget(unit, time) {
+    const ability = Object.entries(unit.abilities).find(([key, ability]) => ability.id === 'ability_v2_gladiator_defiant_roar'
+      && unit.abilityReady(key, time) && this.usable(unit, ability, time))?.[1];
+    if (!ability || this.scene.isPositionLocked(unit) || this.scene.manualTargets?.has(unit.id)) return null;
+    const threats = this.enemies().filter(enemy => this.canTaunt(enemy) && this.allies().some(ally => ally !== unit
+      && enemy.currentTargetId === ally.id && (!enemy.pendingAction?.healingReservations)
+      && (enemy.pendingAction || arenaDistance(enemy, ally) <= (enemy.attackRange ?? 100) + 90)));
+    if (threats.filter(enemy => arenaDistance(unit, enemy) <= ability.radius).length >= 2) return null;
+    const candidates = threats.filter(enemy => arenaDistance(unit, enemy) <= ability.radius + NEAR_DISTANCE);
+    const count = enemy => threats.filter(other => arenaDistance(enemy, other) <= ability.radius).length;
+    const ranked = candidates.filter(enemy => count(enemy) >= 2).sort((a, b) => count(b) - count(a)
+      || arenaDistance(unit, a) - arenaDistance(unit, b));
+    const best = ranked[0], previous = ranked.find(enemy => enemy.id === unit.autoTargetId);
+    return best && previous && count(previous) === count(best)
+      && arenaDistance(unit, previous) <= arenaDistance(unit, best) + 80 ? previous : best ?? null;
+  }
+
+  // Read both live targeting and accumulated threat so an expiring taunt cannot hide
+  // an ally who will immediately regain aggro. Securely held enemies need no rescue.
+  rescuePriority(caster, enemy) {
+    if (!this.canTaunt(enemy)) return 0;
+    const table = this.scene.enemyThreat.get(enemy.id) ?? new Map();
+    const own = table.get(caster.id) ?? 0;
+    const threatened = this.allies().filter(ally => ally !== caster && (ally.role !== 'Tank' || ally.hp / ally.maxHp < .4)
+      && (enemy.currentTargetId === ally.id
+      || enemy.pendingAction?.targetId === ally.id || (table.get(ally.id) ?? 0) > own));
+    if (!threatened.length) return 0;
+    return Math.max(...threatened.map(ally => (ally.role === 'Tank' ? .5 : 1)
+      + 1 - ally.hp / ally.maxHp));
+  }
+
+  shelterThreat(caster, ability) {
+    return Math.max(1, Math.max(caster.attackPower ?? 0, caster.spellPower ?? caster.spellDamage ?? 0)
+      * ability.threatPulsePower * (caster.threatMultiplier ?? 1));
+  }
+
+  // Use the shared threat lift and action cancellation with this cast's resolved
+  // duration. Filter immunity first, including bosses, before forcing any target.
+  dawnwardenTaunt(caster, enemies, ability, time, duration) {
+    const affected = this.scene.applyTankTaunt(caster, enemies, ability.id, time, false, { ...ability, duration });
+    if (!affected.length) return;
+    this.scene.combatLog?.add('taunt', `${caster.name}: ${ability.name} taunts ${affected.length} enemies for ${duration / 1000}s.`, {
+      actorId: caster.id, abilityId: ability.id, targetIds: affected.map(enemy => enemy.id), durationMs: duration
+    });
+  }
 
   // Refresh a named effect instead of stacking every cast. The record is plain data and
   // includes a removable flag so cleanse and dispel cannot erase encounter restrictions.
@@ -100,6 +159,15 @@ export default class ReplacementAbilitySystem {
   recipients(caster, target, ability, allies = false) {
     if (ability.replacementOrigin) caster = { ...caster, ...ability.replacementOrigin };
     const candidates = allies ? this.allies() : this.enemies();
+    if (ability.handler === 'damageTaunt') {
+      if (!candidates.includes(target)) return [];
+
+      // Snapshot around the primary only, before any damage can kill or displace it.
+      const adjacent = candidates.filter(enemy => enemy !== target && arenaDistance(enemy, target) <= ADJACENT_DISTANCE);
+      adjacent.sort((a, b) => this.rescuePriority(caster, b) - this.rescuePriority(caster, a)
+        || arenaDistance(a, target) - arenaDistance(b, target) || String(a.id).localeCompare(String(b.id)));
+      return [target, ...adjacent].slice(0, ability.maxTargets);
+    }
     const center = ability.anchor === 'Caster' ? caster : target;
     let result;
     if (ability.shape === 'Circle') result = candidates.filter(unit => arenaDistance(unit, center) <= ability.radius);
@@ -173,6 +241,7 @@ export default class ReplacementAbilitySystem {
   }
 
   usable(unit, ability, time) {
+    if (CLASS_RESTRICTED_ABILITIES[ability.id] && !abilityAllowed(unit.className, ability)) return false;
     const used = unit.delvesUsed ?? {};
     if (!this.affordable(unit, ability)) return false;
     if (ability.oncePerEncounter && used[ability.id] !== undefined) return false;
@@ -200,7 +269,20 @@ export default class ReplacementAbilitySystem {
       .some(ally => ally !== unit && missingHealth(this.scene, ally) > 0);
   }
 
+  interveneTarget(unit, ability, context) {
+    const ordered = this.commandedEnemy(unit) ?? this.enemies().find(enemy => enemy.id === this.scene.focusTargetId);
+    const enemies = ordered ? [ordered] : this.enemies().slice().sort((a, b) => arenaDistance(unit, a) - arenaDistance(unit, b)).slice(0, 8);
+    const candidates = [...this.allies().filter(ally => ally !== unit), ...enemies];
+    let best = null, value = null;
+    for (const target of candidates) {
+      const current = evaluateAbility(this, unit, ability, target, this.now(), context);
+      if (betterAssessment(current, value)) { best = target; value = current; }
+    }
+    return best;
+  }
+
   target(unit, ability, context = null, demand = null) {
+    if (ability.handler === 'intervene') return this.interveneTarget(unit, ability, context ?? createTacticalContext(this, this.now()));
     if (isRune(ability)) return runeTarget(this, unit, ability);
     const enemies = this.enemies(), allies = this.allies();
     if (!enemies.length) return null;
@@ -249,7 +331,7 @@ export default class ReplacementAbilitySystem {
 
     // Protection can be useful before injury. Rank actual threatened beneficiaries,
     // retaining range, active-effect guards and the resolver's self/party geometry.
-    if (TACTICAL_ALLY_HANDLERS.has(handler)) {
+    if (usesTacticalAllyTarget(ability)) {
       return tacticalAllyTarget(context ?? createTacticalContext(this, this.now()), unit, ability);
     }
 
@@ -291,6 +373,27 @@ export default class ReplacementAbilitySystem {
     if (ability.range === 0) return this.allowsHealerOffense(unit, unit, ability) ? unit : null;
     const preferred = this.scene.getPrimaryTarget(unit, false);
     const eligible = this.enemyCandidates(unit, ability);
+    if (SECONDARY_THREAT[ability.id]) {
+      const ordered = this.commandedEnemy(unit) ?? enemies.find(enemy => enemy.id === this.scene.focusTargetId);
+      if (ordered) return eligible.includes(ordered) ? ordered : null;
+    }
+    if (handler === 'damageDebuffTaunt') {
+      const ordered = this.commandedEnemy(unit) ?? enemies.find(enemy => enemy.id === this.scene.focusTargetId);
+      if (ordered) return eligible.includes(ordered) ? ordered : null;
+      const tactical = context ?? createTacticalContext(this, this.now());
+      const values = new Map(eligible.map(enemy => [enemy, evaluateTactical(tactical, unit, ability, enemy)]));
+      return eligible.sort((a, b) => values.get(b).tier - values.get(a).tier
+        || values.get(b).benefit - values.get(a).benefit || arenaDistance(unit, a) - arenaDistance(unit, b))[0];
+    }
+    if (handler === 'damageTaunt') {
+      const ordered = this.commandedEnemy(unit);
+      if (eligible.includes(ordered)) return ordered;
+      const score = enemy => this.recipients(unit, enemy, ability)
+        .reduce((sum, other) => sum + this.rescuePriority(unit, other) * 2 + 1, 0);
+      return eligible.sort((a, b) => score(b) - score(a)
+        || Number(b === preferred) - Number(a === preferred)
+        || arenaDistance(unit, a) - arenaDistance(unit, b) || String(a.id).localeCompare(String(b.id)))[0];
+    }
     const chosen = eligible.includes(preferred) ? preferred : eligible[0];
     if (handler === 'rearStrike' && chosen && !this.isBehind(unit, chosen)) return null;
     return chosen;
@@ -334,7 +437,7 @@ export default class ReplacementAbilitySystem {
     const aimed = ability.shape === 'Circle' && (ability.anchor === 'Target'
       || ability.anchor === 'Ground position' && ability.targetLabel === 'Ground position')
       || ['Line', 'Cone'].includes(ability.shape);
-    if (!isRune(ability) && !TACTICAL_ALLY_HANDLERS.has(ability.handler) && aimed
+    if (!isRune(ability) && !usesTacticalAllyTarget(ability) && aimed
       && target !== this.scene.getHealerPriorityTarget?.(unit, false)) {
       let candidates = ability.target === 'ally'
         ? this.allies().filter(other => arenaDistance(unit, other) <= ability.range * 100)
@@ -374,12 +477,12 @@ export default class ReplacementAbilitySystem {
     const basics = basicCandidates(this, unit, time);
     let basic = null;
     for (const candidate of basics) if (betterAssessment(candidate.assessment, basic?.assessment)) basic = candidate;
-    const context = choices.some(([, ability]) => TACTICAL_HANDLERS.has(ability.handler) || SETUPS.has(ability.handler)
+    const context = choices.some(([, ability]) => usesTacticalAbility(ability) || SETUPS.has(ability.handler)
       || isRune(ability)) ? createTacticalContext(this, time) : null;
     let best = null, unsupported = null, emergency = null;
     for (const [key, ability] of choices) {
       if (!unit.abilityReady(key, time) || !this.usable(unit, ability, time)) continue;
-      if (unsupported && !TACTICAL_HANDLERS.has(ability.handler) && !isRune(ability)) continue;
+      if (unsupported && !usesTacticalAbility(ability) && !isRune(ability)) continue;
       const target = this.candidateTarget(unit, ability, context);
       if (!target) { if (trace && trace.rejected.length < 3) trace.rejected.push({ ability: ability.name, reason: 'no_eligible_target' }); continue; }
       const assessment = evaluateAbility(this, unit, ability, target, time, context, basic?.assessment);
@@ -395,7 +498,7 @@ export default class ReplacementAbilitySystem {
         continue;
       }
       const candidate = { key, ability, target, assessment };
-      if ((TACTICAL_HANDLERS.has(ability.handler) || isRune(ability)) && assessment.tier >= 2
+      if ((usesTacticalAbility(ability) || isRune(ability)) && assessment.tier >= 2
         && betterAssessment(assessment, emergency?.assessment)) emergency = candidate;
       if (!unsupported && betterAssessment(assessment, best?.assessment)) best = candidate;
     }
@@ -426,6 +529,161 @@ export default class ReplacementAbilitySystem {
     return basic ? { kind: 'basic', action: basic } : { kind: 'movement' };
   }
 
+  interveneEvent(unit, target, ability, phase, details = {}) {
+    const diagnostic = this.scene.combatLog?.diagnostics;
+    if (diagnostic?.enabled && phase === 'committed') {
+      const active = diagnostic.state().active[diagnostic.actionId(unit)];
+      if (active) Object.assign(active, { mode: ability.interveneMode, destination: ability.interveneTravel.point,
+        scheduledCompletionAt: this.now() + ability.windup + this.interveneRemainingMs(unit, ability) });
+    }
+    diagnostic?.emit('action_phase', { actionId: diagnostic.actionId(unit), actorId: unit.id,
+      abilityId: ability.id, targetId: target.id, mode: ability.interveneMode,
+      stateAfter: 'intervene_' + phase, position: { x: unit.arenaX, y: unit.arenaY }, ...details });
+  }
+
+  interveneRemainingMs(unit, ability) {
+    const travel = ability.interveneTravel;
+    let from = { x: unit.arenaX, y: unit.arenaY }, distance = 0;
+    for (const point of travel.waypoints.slice(travel.routeIndex)) {
+      distance += arenaDistance(from, point); from = point;
+    }
+    return distance / Math.max(1, interveneSpeed(unit, this.now())) * 1000;
+  }
+
+  interveneRescue(unit, target, ability, time, travelling = false) {
+    const travel = ability.interveneTravel;
+    let from = { x: unit.arenaX, y: unit.arenaY }, distance = 0;
+    for (const point of travel.waypoints.slice(travel.routeIndex)) {
+      distance += arenaDistance(from, point); from = point;
+    }
+    const value = interveneRescueValue(createTacticalContext(this, time), unit, target,
+      travelling ? { ...ability, windup: 0 } : ability,
+      { distance, committed: travelling, travelMs: distance / Math.max(1, interveneSpeed(unit, time)) * 1000 });
+    return value.benefit > 0;
+  }
+
+  refreshInterveneRoute(unit, target, ability, time, launch = false) {
+    const travel = ability.interveneTravel, failure = {};
+    if (!launch) travel.replans++;
+    travel.lastPlanAt = time;
+    const plan = intervenePlan(this, unit, target, ability, time, { travelling: true,
+      context: createTacticalContext(this, time), origin: travel.origin,
+      remainingDistance: ability.range * ADJACENT_DISTANCE - travel.travelled,
+      attackerId: travel.attackerId, allowBrace: travel.brace, failure });
+    if (!plan) { travel.routeBlocked = failure; return false; }
+    Object.assign(travel, { point: plan.point, waypoints: plan.waypoints, routeIndex: 0,
+      targetPosition: { x: target.arenaX, y: target.arenaY }, routeBlocked: null });
+    const diagnostic = this.scene.combatLog?.diagnostics;
+    const active = diagnostic?.enabled && diagnostic.state().active[diagnostic.actionId(unit)];
+    if (active) Object.assign(active, { destination: plan.point, waypoints: plan.waypoints,
+      scheduledCompletionAt: time + this.interveneRemainingMs(unit, ability) });
+    return true;
+  }
+
+  // Saved classAbility events advance real distance on the shared combat clock.
+  // Refresh the stale windup landing before travel, then permit only four timed replans.
+  resolveIntervene(unit, action, target, ability) {
+    const scene = this.scene, time = this.now(), travel = ability.interveneTravel;
+    if (!travel || !Array.isArray(travel.waypoints) || !Number.isFinite(travel.replans)
+      || !abilityAllowed(unit.className, ability)) {
+      unit.finishAction('failed', 'state_invalidated', 'Intervene class or travel state is invalid');
+      return;
+    }
+    action.intervene = travel;
+    const fail = (reason, explanation, blockage = { reason }) => {
+      travel.failure = blockage;
+      unit.finishAction('failed', reason, explanation);
+    };
+    const schedule = () => scene.scheduleBattleEvent(33, scene.actionEvent('classAbility', unit, target, { ability }),
+      () => this.parent.resolveCast(unit, action, target, ability));
+    if (!scene.isActionCurrent(unit, action, target)) return;
+    const mode = this.enemies().includes(target) ? 'offensive' : this.allies().includes(target) ? 'defensive' : null;
+    if (target.id !== travel.targetId || mode !== ability.interveneMode)
+      return fail('state_invalidated', 'Intervene committed target or side changed', { reason: 'target_invalid' });
+    if (interveneLocked(scene, unit, time) || !unit.canCast(time)) {
+      const command = scene.isPositionLocked(unit) ? 'hold' : scene.manualTargets?.has(unit.id) ? 'move' : null;
+      return fail('movement_cancelled', 'Intervene interrupted by control or a Party Leader movement order',
+        { reason: command ? 'command' : 'control_or_displacement', command });
+    }
+    if (arenaDistance(unit, travel.expected) > 1)
+      return fail('movement_cancelled', 'Intervene interrupted by external displacement', { reason: 'external_displacement' });
+    if (time > travel.deadline) return fail('target_out_of_range', 'Intervene travel timed out', { reason: 'timeout' });
+    if (arenaDistance(travel.origin, target) > ability.range * ADJACENT_DISTANCE)
+      return fail('target_out_of_range', 'Intervene target left authored reach', { reason: 'target_movement' });
+    if (!travel.launched) {
+      travel.launched = true;
+      this.refreshInterveneRoute(unit, target, ability, time, true);
+    }
+    let collision = scene.movement.rushClearanceContext(unit, target);
+    const contact = () => mode === 'offensive' ? scene.isWithinAttackReach(unit, target)
+      : arenaDistance(unit, target) <= ADJACENT_DISTANCE;
+    const landingBlock = scene.movement.rushStandingBlock(unit, travel.point, collision);
+    const needsRoute = travel.routeBlocked || landingBlock || arenaDistance(travel.targetPosition, target) > 24
+      || travel.routeIndex >= travel.waypoints.length && !contact();
+    if (needsRoute && time - travel.lastPlanAt >= 150 && travel.replans < 4) {
+      this.refreshInterveneRoute(unit, target, ability, time);
+      collision = scene.movement.rushClearanceContext(unit, target);
+    }
+    if (travel.routeBlocked) {
+      if (travel.replans >= 4) return fail('movement_cancelled', 'Intervene has no safe bounded route', travel.routeBlocked);
+      travel.lastAt = time;
+      schedule();
+      return;
+    }
+    if (mode === 'defensive' && !this.interveneRescue(unit, target, ability, time, true))
+      return fail('state_invalidated', 'Intervene no longer has a safe imminent single-target rescue', { reason: 'rescue_invalid' });
+    let available = Math.min(ability.range * ADJACENT_DISTANCE - travel.travelled,
+      interveneSpeed(unit, time) * Math.max(0, time - travel.lastAt) / 1000);
+    travel.lastAt = time;
+    while (available > .001 && travel.routeIndex < travel.waypoints.length) {
+      const waypoint = travel.waypoints[travel.routeIndex];
+      const start = { x: unit.arenaX, y: unit.arenaY }, distance = arenaDistance(start, waypoint);
+      if (distance <= .001) { travel.routeIndex++; continue; }
+      const step = Math.min(distance, available);
+      const point = { x: start.x + (waypoint.x - start.x) * step / distance,
+        y: start.y + (waypoint.y - start.y) * step / distance };
+      const blockage = scene.movement.rushSegmentBlock(unit, start, point, collision);
+      if (blockage) { travel.routeBlocked = blockage; break; }
+      unit.spriteVisual?.play('walk', { arenaX: waypoint.x, arenaY: waypoint.y });
+      unit.setArenaPosition(point.x, point.y);
+      travel.expected = point;
+      travel.travelled += step; available -= step;
+      if (!travel.begun && travel.travelled > 1) {
+        travel.begun = true;
+        travel.startedAt = time;
+        this.interveneEvent(unit, target, ability, 'movement_started', { origin: travel.origin, destination: travel.point, waypoints: travel.waypoints });
+      }
+      if (distance - step <= .001) travel.routeIndex++;
+    }
+    if (travel.routeIndex >= travel.waypoints.length && !travel.routeBlocked) {
+      const arrivalBlock = scene.movement.rushStandingBlock(unit, { x: unit.arenaX, y: unit.arenaY }, collision);
+      if (!contact() || arrivalBlock) {
+        travel.routeBlocked = arrivalBlock ?? { reason: 'target_movement' };
+      } else {
+        travel.movementFinished = true;
+        const brace = !travel.begun;
+        this.interveneEvent(unit, target, ability, brace ? 'brace' : 'movement_finished',
+          { distance: travel.travelled, travelMs: brace ? 0 : time - travel.startedAt, replans: travel.replans });
+        if (mode === 'offensive') {
+          unit.spriteVisual?.play('attack', target);
+          this.damage(unit, target, replacementAmount(unit, target, ability.primary), ability);
+        } else {
+          unit.spriteVisual?.play('block', target);
+          this.resolve(unit, target, { ...ability, handler: 'intercept' }, time);
+          this.interveneEvent(unit, target, ability, 'guard_registered', { reduction: ability.secondary.potency,
+            expiresAt: time + ability.duration });
+        }
+        unit.finishAction('resolved', 'completed', 'Intervene reached its committed target and resolved one mode');
+        return;
+      }
+    }
+    if (travel.travelled >= ability.range * ADJACENT_DISTANCE - .001)
+      return fail('target_out_of_range', 'Intervene exhausted its travel budget', { reason: 'travel_budget' });
+    if (travel.routeBlocked && travel.replans >= 4)
+      return fail('movement_cancelled', 'Intervene route remained blocked after limited replanning', travel.routeBlocked);
+    schedule();
+  }
+
   // Useful recovery per Mana and windup distinguishes two ready Restore choices.
   // Critical allies favor immediate recovery over starting a slower periodic effect.
   priority(unit, ability) {
@@ -445,13 +703,27 @@ export default class ReplacementAbilitySystem {
 
   cast(unit, target, key, time) {
     const base = unit.abilities[key];
-    if (!this.usable(unit, base, time) || !unit.abilityReady(key, time)) return false;
+    if (!base || !this.usable(unit, base, time) || !unit.abilityReady(key, time)) return false;
+    if (base.handler === 'damageTaunt' && (!this.enemies().includes(target)
+      || arenaDistance(unit, target) > base.range * ADJACENT_DISTANCE)) return false;
     if (base.handler === 'manaDrain' && (!this.enemies().includes(target) || target.mana <= 0
       || arenaDistance(unit, target) > base.range * 100)) return false;
     if (base.handler === 'stealthStrike' && !unit.stealthed) return false;
     let ability = { ...base, primary: { ...base.primary }, secondary: { ...base.secondary } };
+    if (base.handler === 'intervene') {
+      const plan = intervenePlan(this, unit, target, base, time, { context: createTacticalContext(this, time) });
+      if (!plan) return false;
+      ability.interveneMode = plan.mode;
+      ability.interveneTravel = { point: plan.point, waypoints: plan.waypoints, routeIndex: 0,
+        mode: plan.mode, origin: { x: unit.arenaX, y: unit.arenaY }, targetPosition: { x: target.arenaX, y: target.arenaY },
+        targetId: target.id, attackerId: plan.attackerId, brace: plan.distance < 24,
+        expected: { x: unit.arenaX, y: unit.arenaY }, travelled: 0, replans: 0,
+        startedAt: time + ability.windup, lastAt: time + ability.windup,
+        deadline: time + ability.windup + base.range * ADJACENT_DISTANCE / interveneSpeed(unit, time) * 1000 + 500 };
+      if (plan.mode === 'defensive' && !this.interveneRescue(unit, target, ability, time)) return false;
+    }
     const preparations = unit.status.replacementPreparations ?? [];
-    const ready = preparations.filter(prep => prep.until > time && this.preparationMatches(prep.ability.handler, base));
+    const ready = preparations.filter(prep => prep.until > time && this.preparationMatches(prep.ability.handler, ability));
     for (const prep of ready) {
       const h = prep.ability.handler, x = prep.ability.primary.potency, y = prep.ability.secondary.potency;
       if (h === 'duplicateNextAssault') ability.echoScale = x;
@@ -469,7 +741,21 @@ export default class ReplacementAbilitySystem {
       }
     }
     const scene = this.scene;
+    if (ability.interveneTravel) {
+      const travel = ability.interveneTravel;
+      travel.deadline -= travel.startedAt - (time + ability.windup);
+      travel.startedAt = time + ability.windup;
+      travel.lastAt = travel.startedAt;
+    }
     if (!unit.startAction(ability.name, time, ability.windup, target, ability)) return false;
+    if (ability.id === 'ability_v2_generic_physical_interpose' || ability.interveneMode === 'defensive') unit.pendingAction.interceptionTargetId = target.id;
+    if (ability.handler === 'intervene') {
+      const travel = ability.interveneTravel;
+      unit.pendingAction.intervene = travel;
+      unit.pendingAction.duration = travel.deadline - time + 100;
+      unit.busyUntil = time + unit.pendingAction.duration;
+      this.interveneEvent(unit, target, ability, 'committed', { cooldown: ability.cooldown, destination: travel.point, waypoints: travel.waypoints });
+    }
 
     // Capture the opening bonus on the committed action, including its saved bleed ticks.
     // Interruption spends Stealth too; later casts cannot borrow this action's bonus.
@@ -529,6 +815,9 @@ export default class ReplacementAbilitySystem {
   }
 
   preparationMatches(handler, ability) {
+    // The displayed Protect category must not spend protection setups on an enemy hit.
+    if (ability.handler === 'intervene') return handler === 'nextWindupReduction'
+      || handler === 'nextCritBonus' && ability.interveneMode === 'offensive';
     if (handler.includes('Restore')) return ability.category === 'Restore';
     if (handler === 'nextProtectionBoost') return ability.category === 'Protect';
     if (handler === 'nextPhysicalBoost' || handler === 'nextCritBonus') return ability.category === 'Assault' && ability.damageType === 'physical';
@@ -588,10 +877,19 @@ export default class ReplacementAbilitySystem {
     // Measured damage already includes the opening bonus on its original hit.
     if (ability.fromStealth && !extras.measured) amount *= ability.stealthDamageMultiplier ?? 1;
     const contact = { area: ability.shape !== 'None', replacementTriggered: triggered,
-      hasArtwork: Boolean(findAbilityEffect(caster, ability) || hasAssaultAbilityEffect(ability)), ...extras };
+      hasArtwork: Boolean(findAbilityEffect(caster, ability) || hasAssaultAbilityEffect(ability)),
+      suppressKnockback: ability.handler === 'intervene', ...extras };
+    const impactPoint = { arenaX: recipient.arenaX, arenaY: recipient.arenaY };
     const oldBonus = caster.status.abilityCritBonus, oldUntil = caster.status.abilityCritUntil;
     if (ability.criticalBonus) { caster.status.abilityCritBonus = ability.criticalBonus; caster.status.abilityCritUntil = this.now() + 1; }
-    const value = this.scene.resolveDamage(caster, recipient, amount, ability.damageType === 'physical' ? 'melee' : ability.element === 'radiant' ? 'holy' : 'spell', 1, ability.name, !triggered || ability.handler === 'counterattackWindow', contact) ?? 0;
+    const value = this.scene.resolveDamage(caster, recipient, amount, ability.damageType === 'physical' ? 'melee' : ability.element === 'radiant' ? 'holy' : 'spell', ability.handler === 'intervene' ? caster.threatMultiplier ?? 1 : 1, ability.name, !triggered || ability.handler === 'counterattackWindow', contact) ?? 0;
+    if (ability.handler === 'intervene') {
+      const extraThreat = contact.hit && recipient.alive ? contact.normalThreat ?? 0 : 0;
+      if (extraThreat > 0 && recipient.alive) this.scene.addThreat(recipient, caster, extraThreat);
+      this.interveneEvent(caster, recipient, ability, 'impact', { hit: Boolean(contact.hit), damage: value,
+        normalThreat: contact.normalThreat ?? 0, totalThreat: recipient.alive ? (contact.normalThreat ?? 0) + extraThreat : 0 });
+    }
+    if (contact.hit && !triggered) spreadHitThreat(this.scene, caster, recipient, ability, contact.normalThreat, impactPoint);
     if (ability.criticalBonus) { caster.status.abilityCritBonus = oldBonus; caster.status.abilityCritUntil = oldUntil; }
     return { amount: value, hit: contact.hit === undefined ? value > 0 : contact.hit };
   }
@@ -648,6 +946,8 @@ export default class ReplacementAbilitySystem {
   // Special setup, zones, costs and reactions are handled first so they never fall through
   // into an unintended immediate hit.
   resolve(caster, target, ability, time, triggered = false) {
+    if (CLASS_RESTRICTED_ABILITIES[ability.id] && !abilityAllowed(caster.className, ability)) return;
+    if (ability.handler === 'intervene') return;
     if (isRune(ability)) return resolveRune(this, caster, target, ability, time);
     if (ability.handler === 'bonusCritDamage') ability = { ...ability, criticalBonus: ability.secondary.potency };
     const h = ability.handler, x = ability.primary.potency, y = ability.secondary.potency;
@@ -797,7 +1097,8 @@ export default class ReplacementAbilitySystem {
       if (h === 'blockStun') this.modifier(caster, caster, ability, { block: x }, ability.duration); return;
     }
     if (h === 'intercept') {
-      target.status.replacementIntercept = { ownerId: caster.id, until: time + ability.duration, reduction: y };
+      target.status.replacementIntercept = { ownerId: caster.id, until: time + ability.duration, reduction: y, abilityId: ability.id };
+      if (ability.id === INTERVENE) target.status.replacementIntercept.sourceActionId = this.scene.combatLog?.diagnostics?.actionId(caster);
 
       // Identify this live intercept without adding an ability field to saves.
       // Another cast replaces the record, which lets the old tray fade out.
@@ -880,15 +1181,28 @@ export default class ReplacementAbilitySystem {
         this.mana(recipient, replacementAmount(caster, recipient, ability.primary));
       } else if (ability.primary.unit === '% of power basis') {
         damageAttempted = true;
-        const result = this.damage(caster, recipient, replacementAmount(caster, recipient, ability.primary), ability, triggered,
+
+        // Solar Strike folds prepared extra damage into one hit per selected enemy.
+        const amount = replacementAmount(caster, recipient, ability.primary) * (h === 'damageTaunt' ? 1 + (ability.echoScale ?? 0) : 1)
+          + (h === 'damageTaunt' && ability.coveringFire && !triggered ? caster.attackPower * ability.coveringFire.power : 0);
+        const result = this.damage(caster, recipient, amount, ability, triggered,
           h === 'armorPiercingDamage' ? { armorPiercing: y } : {});
         dealt += result.amount;
         if (result.hit) landed.push(recipient);
       }
     }
-    if (h === 'taunt' || h === 'tauntReduction' || h === 'attackBuffTaunt' || h === 'damageDebuffTaunt') {
-      this.scene.applyTankTaunt(caster, recipients, ability.id, time, false);
-      for (const enemy of recipients) if (!enemy.isBoss) { enemy.status.forcedTargetId = caster.id; enemy.status.forcedTargetUntil = time + (h === 'attackBuffTaunt' ? ability.secondaryDuration : ability.duration); }
+    if (h === 'damageTaunt' || ability.threatPulseInterval) {
+      this.dawnwardenTaunt(caster, recipients, ability, time, ability.tauntDuration ?? ability.duration);
+      if (ability.threatPulseInterval) {
+        this.modifier(caster, caster, ability, { reduction: -y }, ability.duration);
+
+        // One saved combat-clock record replaces any prior cast and follows the caster.
+        caster.status.replacementShelter = { ability, next: time + ability.threatPulseInterval,
+          until: time + ability.threatPulseDuration, wave: this.scene.currentWaveIndex };
+      }
+    } else if (h === 'taunt' || h === 'tauntReduction' || h === 'attackBuffTaunt' || h === 'damageDebuffTaunt') {
+      this.scene.applyTankTaunt(caster, recipients, ability.id, time, false,
+        { ...ability, duration: h === 'attackBuffTaunt' ? ability.secondaryDuration : ability.duration });
       if (h === 'tauntReduction') this.modifier(caster, caster, ability, { reduction: -y }, ability.duration);
     }
     if (h === 'armorSelfRoot') caster.status.replacementCostRootUntil = time + ability.duration;
@@ -912,7 +1226,7 @@ export default class ReplacementAbilitySystem {
       this.scene.createAbilityEffect?.(caster, recipient, { ...ability, vfxPhase: barmaidPhase }, [recipient]);
     }
     if (!damageAttempted || landed.length) this.scene.createAbilityEffect?.(caster, target, ability, landed.length ? landed : recipients);
-    if (ability.echoScale && !triggered) this.resolve(caster, target, { ...ability, echoScale: 0, primary: { ...ability.primary, potency: x * ability.echoScale }, secondary: { ...ability.secondary, potency: y * ability.echoScale } }, time, true);
+    if (ability.echoScale && !triggered && h !== 'damageTaunt') this.resolve(caster, target, { ...ability, echoScale: 0, primary: { ...ability.primary, potency: x * ability.echoScale }, secondary: { ...ability.secondary, potency: y * ability.echoScale } }, time, true);
   }
 
   // Secondary effects use their own coefficient and timer. Damage-linked effects use
@@ -1006,7 +1320,7 @@ export default class ReplacementAbilitySystem {
     }
     if (ability.coveringFire && !triggered) for (const enemy of landed) {
       this.modifier(enemy, caster, ability, { hit: -ability.coveringFire.fraction }, ability.coveringFire.duration, true);
-      this.damage(caster, enemy, caster.attackPower * ability.coveringFire.power, ability, true);
+      if (h !== 'damageTaunt') this.damage(caster, enemy, caster.attackPower * ability.coveringFire.power, ability, true);
     }
   }
 
@@ -1159,6 +1473,23 @@ export default class ReplacementAbilitySystem {
   // once after loading and use the same calculation during visible and background play.
   tick(time) {
     for (const unit of this.units()) {
+      const shelter = unit.status.replacementShelter;
+      if (shelter) {
+        if (!unit.alive || this.scene.battleOver || shelter.wave !== this.scene.currentWaveIndex) {
+          delete unit.status.replacementShelter;
+        } else {
+          while (shelter.next <= Math.min(time, shelter.until)) {
+            const affected = this.enemies().filter(enemy => arenaDistance(unit, enemy) <= shelter.ability.radius);
+            const threat = this.shelterThreat(unit, shelter.ability);
+            for (const enemy of affected) this.scene.addThreat(enemy, unit, threat);
+            if (affected.length) this.scene.combatLog?.add('threat', `${unit.name}: Dawn's Shelter pulses on ${affected.length} enemies.`, {
+              actorId: unit.id, abilityId: shelter.ability.id, targetIds: affected.map(enemy => enemy.id), generatedThreat: threat
+            });
+            shelter.next += shelter.ability.threatPulseInterval;
+          }
+          if (time >= shelter.until) delete unit.status.replacementShelter;
+        }
+      }
       this.initializePotion(unit);
       unit.status.replacementEffects = (unit.status.replacementEffects ?? []).filter(effect => effect.until > time);
       refreshReplacementTiming(unit, time);

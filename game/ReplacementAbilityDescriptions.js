@@ -3,6 +3,7 @@
 // in the Hall. Timing and costs remain concrete and readable instead of exposing formulas.
 
 import { replacementAmount } from '../combat/ReplacementEffects.js';
+import { HOLD_THE_LINE, INTERPOSE, INTERVENE, PERIMETER_RADIUS, PERIMETER_REDUCTION, SECONDARY_THREAT } from '../combat/TankMechanics.js';
 
 export function replacementDescription(unit, ability, compact = false, structured = false) {
   const rounded = value => Number(value.toFixed(2));
@@ -39,6 +40,21 @@ export function replacementDescription(unit, ability, compact = false, structure
   };
   let effects = [effectText(ability.primary, '[x]')];
   if (ability.secondary.text !== 'None') effects.push(effectText(ability.secondary, '[y]'));
+  if (ability.id === HOLD_THE_LINE) {
+    effects.push(`While holding position, other allies within ${distance(PERIMETER_RADIUS / 100)} take ${rounded(PERIMETER_REDUCTION * 100)}% less incoming damage. Protecting them and blocking hits generates threat on their attackers.`,
+      'The movement lock and perimeter end early if no enemies remain within Near range; the Armor bonus keeps its own duration.');
+  }
+  if (ability.id === INTERVENE) effects.push('Choose an enemy or another ally. Both modes share this rank, equipped slot and cooldown. Rush at 3 times normal movement speed along a clear lane; effects require arrival. Intercepting a hit generates threat on its attacker.');
+  if (ability.id === INTERPOSE) effects.push('Successfully intercepting a hit generates threat on its attacker.');
+  const spread = SECONDARY_THREAT[ability.id];
+  if (spread) effects.push(`Successful hits also generate ${rounded(spread.fraction * 100)}% of their normal threat on other enemies within ${distance(spread.radius / 100)} of the struck target, without dealing additional damage.`);
+  if (ability.threatPulseInterval) {
+    effects.push(`Generate threat on enemies within ${distance(ability.radius / 100)} every ${seconds(ability.threatPulseInterval)} for ${seconds(ability.threatPulseDuration)}, including new arrivals.`);
+  }
+  if (ability.handler === 'damageTaunt') {
+    effects.push(`Strike at up to ${distance(ability.range)}, hitting up to ${ability.maxTargets} ${ability.maxTargets === 1 ? 'enemy' : 'enemies'}. Any additional targets must be within 1 pace of the primary.`,
+      `Taunt each affected enemy for ${seconds(ability.tauntDuration)} and raise your threat above its current leader. Taunt-immune enemies still take damage.`);
+  }
 
   // These few mechanics need a shorter explanation than the design workbook wording.
   // Values still come from the inspected rank and gear, just like the shared text above.

@@ -8,6 +8,7 @@ import { ENEMY_SPRITES } from '../data/enemySprites.js';
 import { VOID_SPRITES } from '../data/voidSprites.js';
 import { SUNKEN_WATCH_SPRITES } from '../data/sunkenWatchSprites.js';
 import { QUARRY_SPRITES } from '../data/quarrySprites.js';
+import { replacementMultiplier } from './ReplacementEffects.js';
 import { SpriteMotion, movementDirection } from './SpriteMotion.js';
 import { slimePose, monsterDeathPose, criticalHitPose } from './SpritePresentation.js';
 
@@ -65,13 +66,22 @@ export default class UnitSprite {
     return new UnitSprite(unit, definition);
   }
 
+  // Intervene uses its charge artwork only during actual walking travel. Reactions
+  // and arrival attacks keep priority, and other characters retain their walk clips.
+  presentationState() {
+    const state = this.action?.state ?? this.motion.state;
+    const travel = this.unit.pendingAction?.intervene;
+    return state === 'walk' && travel?.begun && !travel.movementFinished && !travel.routeBlocked
+      && this.definition.clips.intervene ? 'intervene' : state;
+  }
+
   // Find the playable frame from the current animation and facing metadata.
   currentFrame() {
 
     // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
-    const state = this.action?.state ?? this.motion.state;
+    const state = this.presentationState();
     const clips = this.definition.clips[state];
     const clip = clips[this.motion.direction] ?? clips.south;
     const elapsed = this.action?.elapsed ?? this.motion.elapsed;
@@ -93,6 +103,10 @@ export default class UnitSprite {
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
     if (!this.definition.clips[state] || this.action?.state === 'death') return;
+
+    // Walking loops follow actual displacement. A walk cue only releases the old
+    // action pose; it must not run a one-shot cycle while the actor is stationary.
+    if (state === 'walk') { this.action = null; this.recordMovement(); return; }
     if (target && target !== this.unit && !['hit', 'block'].includes(state)) {
 
       // Incoming hits from different sides keep our facing. Turning on every hit made
@@ -114,6 +128,12 @@ export default class UnitSprite {
     }
     this.applyFrame(this.currentFrame());
     this.applyPose();
+  }
+
+  // Accepted locomotion marks intent; frame selection still requires real displacement.
+  // Spawn repairs, teleports and forced knockback do not create a walking cycle.
+  recordMovement() {
+    this.lastMovementAt = this.unit.scene.time?.now ?? 0;
   }
 
   // Apply the selected sheet frame and its anchor to the visible sprite.
@@ -138,7 +158,7 @@ export default class UnitSprite {
     // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
-    const state = this.action?.state ?? this.motion.state;
+    const state = this.presentationState();
     const elapsed = this.action?.elapsed ?? this.motion.elapsed;
     const clip = this.definition.clips[state]?.[this.motion.direction]
       ?? this.definition.clips[state]?.south;
@@ -190,7 +210,14 @@ export default class UnitSprite {
     if (unit.landing) return;
     const scene = unit.scene;
     const frozen = scene.combatPaused || (this.action?.state !== 'death' && scene.battleOver);
+    const now = scene.time?.now ?? 0;
+    const locomotion = Boolean(unit.charge) || now - (this.lastMovementAt ?? -Infinity) <= 50;
+    const distance = Math.hypot(unit.arenaX - this.motion.x, unit.arenaY - this.motion.y);
 
+    // Finished attack/guard artwork must not cover a new legal walking action.
+    // Live casts and forced hit reactions keep their normal presentation priority.
+    if (!frozen && this.action?.state !== 'death' && !unit.pendingAction && !unit.criticalKnockback
+      && locomotion && distance > Math.max(.15, unit.moveSpeed * delta / 1000 * .15)) this.action = null;
     if (this.action) {
       this.motion.x = unit.arenaX;
       this.motion.y = unit.arenaY;
@@ -208,9 +235,16 @@ export default class UnitSprite {
       return;
     }
 
-    // The condition before ? chooses the first value when true and the value after : when
-    // false.
-    this.motion.update(unit.arenaX, unit.arenaY, delta, unit.moveSpeed * (scene.waveRetreating ? 2 : 1), unit.alive, frozen || !!unit.criticalKnockback);
+    // Expected speed recognizes fast gameplay travel; real displacement controls cadence.
+    const bonus = now < (unit.status.moveSpeedBonusUntil ?? 0) ? 1 + unit.status.moveSpeedBonus : 1;
+    const slow = now < (unit.status.moveSpeedSlowUntil ?? 0) ? 1 - unit.status.moveSpeedSlow : 1;
+    let expectedSpeed = unit.moveSpeed * bonus * slow * replacementMultiplier(unit, 'movement', now)
+      * (unit.pendingAction?.intervene ? 3 : scene.waveRetreating ? 2 : 1);
+    if (unit.charge) expectedSpeed = Math.max(expectedSpeed, Math.hypot(unit.charge.point.x - unit.charge.startX,
+      unit.charge.point.y - unit.charge.startY) / Math.max(.001, unit.charge.duration / 1000));
+    this.motion.update(unit.arenaX, unit.arenaY, delta, unit.moveSpeed, unit.alive,
+      frozen || !!unit.criticalKnockback, expectedSpeed,
+      locomotion);
 
     // Idle allies face the incoming wave from their current screen lane.
     if (!unit.isEnemy && unit.alive && !frozen && scene.waveTransitioning
@@ -228,7 +262,7 @@ export default class UnitSprite {
     const followingOrder = orderedPoint && unit.distanceToPoint(orderedPoint.x, orderedPoint.y)
       > (scene.movement?.config.arrivalTolerance ?? 12);
     if (!unit.isEnemy && unit.alive && !frozen && ['Ranged DPS', 'Healer'].includes(unit.role)
-      && !followingOrder) {
+      && !followingOrder && this.motion.state === 'idle') {
       const enemies = scene.getLivingEnemies?.() ?? [];
 
       // sort rearranges this array in place. A negative comparator result puts a before b;

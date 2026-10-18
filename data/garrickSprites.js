@@ -1,8 +1,8 @@
-// Garrick uses the original dragon-wing Gladiator artwork. The roster ID links
+// Garrick uses the rebuilt dragon-wing Gladiator artwork. The roster ID links
 // his party choices, equipment and character sheets.
 import layout from '../assets/characters/garrick/sheets/layout.json' with { type: 'json' };
 
-const states = ['idle', 'walk', 'attack', 'block', 'hit', 'death'];
+const states = ['idle', 'walk', 'attack', 'block', 'hit', 'death', 'intervene'];
 const facing = {
   south: 'south-east', 'south-east': 'south-east', east: 'south-east',
   'south-west': 'south-west', west: 'south-west', north: 'north-east',
@@ -23,12 +23,13 @@ const clips = {};
 for (const state of states) {
   const sheet = layout.states[state];
   const authored = Object.fromEntries(layout.directions.map((direction, row) => [direction, {
-    frameMs: sheet.frameMs,
+    // Each facing plays the full action duration even if its pose count differs.
+    frameMs: sheet.durationMs / sheet.counts[direction],
     frames: Array.from({ length: sheet.counts[direction] }, (_, column) => ({
       key: `garrick-${state}`,
       frame: row * sheet.columns + column,
-      originX: layout.anchors[direction].originX,
-      originY: layout.anchors[direction].originY,
+      originX: (sheet.anchors ?? layout.anchors)[direction].originX,
+      originY: (sheet.anchors ?? layout.anchors)[direction].originY,
       flipX: false
     }))
   }]));
@@ -44,8 +45,6 @@ for (const state of states) {
 clips.dead = Object.fromEntries(Object.entries(clips.death).map(([heading, clip]) =>
   [heading, { frameMs: 1000, frames: [clip.frames.at(-1)] }]));
 
-// Garrick stands about 185 native pixels tall. A scale of 0.88 keeps his displayed height
-// near the former 245-pixel drawing at 0.66, while preserving his broader shoulders.
-// footY is the shared 30-unit floor offset; measured origins put his boots on that floor.
-// Enlarge fixed-size portraits to roughly match Vaeloria's visible height.
-export const GARRICK_SPRITES = { textures, clips, scale: 0.88, portraitScale: 1.2, footY: 30 };
+// Enlarge Delve combat artwork by 10% over its measured base size. Portrait and
+// world-map sizing use their separate display values; the boot anchors stay fixed.
+export const GARRICK_SPRITES = { textures, clips, ...layout.display, scale: layout.display.scale * 1.1 };

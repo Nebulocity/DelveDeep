@@ -6,11 +6,13 @@ import { arenaDistance } from '../config/combatRanges.js';
 import { equipmentPerkBonus } from '../game/EquipmentPerks.js';
 import { incomingPressure, missingHealth, healingUrgency } from './CombatDecisions.js';
 import { replacementAmount, replacementMultiplier, replacementChance } from './ReplacementEffects.js';
-import { createTacticalContext, evaluateTactical, TACTICAL_HANDLERS } from './TacticalUsefulness.js';
+import { createTacticalContext, evaluateTactical, usesTacticalAbility } from './TacticalUsefulness.js';
 import { preparedAbility, evaluatePreparation, PREPARATION_HANDLERS } from './PreparationUsefulness.js';
 import { evaluateRune } from './BeneficialZones.js';
+import { intervenePlan } from './Intervene.js';
+import { SECONDARY_THREAT } from './TankMechanics.js';
 
-const DAMAGE = new Set(['damage', 'beamDamage', 'coneDamage', 'armorPiercingDamage', 'damageLifesteal', 'areaDamageLifesteal',
+const DAMAGE = new Set(['damage', 'damageTaunt', 'beamDamage', 'coneDamage', 'armorPiercingDamage', 'damageLifesteal', 'areaDamageLifesteal',
   'areaDamageLinkedHeal', 'allDamagePartyLinkedHeal', 'areaDamageLowestHeal', 'damageNearestHeal',
   'damageEscapeTeleport', 'damageEnemyTeleport']);
 const HEALTH = new Set(['heal', 'healthCostHeal', 'partyHealthCostHeal', 'healMana', 'partyHealMana']);
@@ -135,9 +137,18 @@ export function basicCandidates(system, unit, time, preparations = unit.status.r
 
 export function evaluateAbility(system, unit, ability, target, time, context = null, basic = null, options = {}) {
   const handler = ability.handler;
-  const tactical = TACTICAL_HANDLERS.has(handler);
+  const tactical = usesTacticalAbility(ability);
 
   if (unit.stealthed) return null;
+  if (handler === 'intervene') {
+    context ??= createTacticalContext(system, time);
+    const plan = intervenePlan(system, unit, target, ability, time, { context });
+    if (!plan) return { benefit: 0, tier: 0, score: 0 };
+    const damage = plan.mode === 'offensive' ? damageEstimate(system.scene, unit, target,
+      replacementAmount(unit, target, ability.primary), true, time) / target.maxHp : 0;
+    const value = evaluateTactical(context ?? createTacticalContext(system, time), unit, ability, target, damage);
+    return assessment(unit, value.benefit, value.tier, ability.windup + plan.travelMs, 0);
+  }
   if (PREPARATION_HANDLERS.has(handler)) return evaluatePreparation(system, unit, ability, target, time, context, evaluateAbility, basicCandidates);
   if (handler.startsWith('rune')) {
     const preview = options.prepared ? ability : preparedAbility(system, unit, ability, time);
@@ -152,7 +163,7 @@ export function evaluateAbility(system, unit, ability, target, time, context = n
 
   // Echoes of mixed effects need their own repeated-recipient accounting. Keep those
   // on the existing path rather than inventing repeated control, healing or teleports.
-  if (ability.echoScale && !['damage', 'beamDamage', 'coneDamage', 'armorPiercingDamage'].includes(handler)) return null;
+  if (ability.echoScale && !['damage', 'damageTaunt', 'beamDamage', 'coneDamage', 'armorPiercingDamage'].includes(handler)) return null;
   if ((ability.coveringFire || ability.manaReturn) && !DAMAGE.has(handler)) return null;
   const scene = system.scene, cost = ability.manaCost ?? 0;
   let benefit = 0, tier = 1, dealt = 0, healthCost = 0;
@@ -185,19 +196,23 @@ export function evaluateAbility(system, unit, ability, target, time, context = n
     const opening = { remaining: unit.status.nextAttackBoost ?? 0 };
     let noLandedHit = 1, primaryDealt = 0;
     for (const enemy of system.recipients(unit, target, ability)) {
-      let amount = damageEstimate(scene, unit, enemy, replacementAmount(unit, enemy, ability.primary),
+
+      // Match Solar Strike's single combined hit, including any prepared extra damage.
+      const power = replacementAmount(unit, enemy, ability.primary) * (handler === 'damageTaunt' ? 1 + (ability.echoScale ?? 0) : 1)
+        + (handler === 'damageTaunt' && ability.coveringFire ? unit.attackPower * ability.coveringFire.power : 0);
+      let amount = damageEstimate(scene, unit, enemy, power,
         ability.damageType === 'physical', time, handler === 'armorPiercingDamage' ? ability.secondary.potency : 0, false, opening, ability.criticalBonus ?? 0);
       const landedChance = amount > 0 ? opening.hitChance : 0;
       primaryDealt += amount;
       noLandedHit *= 1 - landedChance;
-      if (ability.echoScale) {
+      if (ability.echoScale && handler !== 'damageTaunt') {
         const echo = damageEstimate(scene, unit, enemy, replacementAmount(unit, enemy,
           { ...ability.primary, potency: ability.primary.potency * ability.echoScale }), ability.damageType === 'physical',
           time, handler === 'armorPiercingDamage' ? ability.secondary.potency * ability.echoScale : 0,
           false, { remaining: 0 });
         amount += Math.min(Math.max(0, enemy.hp - amount), echo);
       }
-      if (ability.coveringFire && amount > 0) {
+      if (ability.coveringFire && amount > 0 && handler !== 'damageTaunt') {
 
         // Conservative lower bound: the extra hit follows a landed hit. Suppression
         // is omitted, and the resolver's damage type is retained despite the UI text.
@@ -209,6 +224,17 @@ export function evaluateAbility(system, unit, ability, target, time, context = n
       damageByEnemy.set(enemy, amount);
     }
     dealt = primaryDealt;
+    const spread = SECONDARY_THREAT[ability.id];
+    if (spread && dealt > 0) {
+
+      // Crowd threat is useful only where control is actually lost. Keep this small
+      // and bounded; it never substitutes secondary damage for a single-target hit.
+      const influence = system.enemies().filter(enemy => enemy !== target
+        && arenaDistance(enemy, target) <= spread.radius && enemy.currentTargetId !== unit.id
+        && system.allies().some(ally => ally !== unit && ally.id === enemy.currentTargetId))
+        .reduce((sum, enemy) => sum + .04 * spread.fraction / .25 * Math.min(2, 1 + system.rescuePriority(unit, enemy)), 0);
+      benefit += Math.min(.12, influence);
+    }
     if (ability.manaReturn && dealt > 0) {
       addMana(unit, Math.min(unit.maxMana * .1, dealt * ability.manaReturn.fraction));
       for (const ally of system.allies()) if (ally !== unit) addMana(ally, ally.maxMana * ability.manaReturn.party * (1 - noLandedHit));

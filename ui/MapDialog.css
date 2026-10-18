@@ -1,0 +1,52 @@
+.map-dialog {
+  box-sizing: border-box;
+  min-width: 0;
+  color: #fff1d2;
+  background: #13161b;
+  border: 28px solid transparent;
+  border-image: url('../assets/ui/town-hub/panel.png') 128 fill / 28px stretch;
+  padding: 18px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: #c4a366 #17191e;
+  font: 18px/1.4 Arial, sans-serif;
+}
+.map-dialog::backdrop { background: rgb(0 0 0 / 72%); }
+.map-dialog header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  padding-bottom: 12px;
+  background: #13161b;
+}
+.map-dialog h2 { margin: 0; font: bold 26px/1.15 Georgia, serif; color: #f2d79f; overflow-wrap: anywhere; }
+.map-dialog header h2 { flex: 1 1 240px; }
+.map-dialog header button { flex: 0 0 auto; min-width: 90px; }
+.map-dialog p { margin: 12px 0; overflow-wrap: anywhere; }
+.map-dialog button {
+  font: bold 17px/1.25 Georgia, serif;
+  color: #fff1d2;
+  background: linear-gradient(#32302b, #15181d);
+  border: 1px solid #c4a366;
+  box-shadow: inset 0 0 0 3px #17191e, inset 0 0 0 4px #76613d;
+  border-radius: 6px;
+  padding: 12px 18px;
+  min-height: 48px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.map-dialog button:active:not(:disabled) { transform: translateY(1px); background: #3b3327; }
+.map-dialog button:disabled { opacity: .55; cursor: wait; }
+.map-dialog button:focus-visible, .map-dialog input:focus-visible { outline: 3px solid #eacb80; outline-offset: 2px; }
+.map-dialog .map-dialog-danger, .map-dialog .save-transfer-danger { background: linear-gradient(#53302b, #291c1d); color: #ffd5c6; }
+.combat-recordings-dialog {
+  width: min(1000px, calc(100vw - 40px - env(safe-area-inset-left) - env(safe-area-inset-right)));
+  max-height: calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+}
+.combat-recordings-dialog > button { margin: 6px; max-width: calc(100% - 12px); }

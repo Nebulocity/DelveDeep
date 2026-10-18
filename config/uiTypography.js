@@ -59,7 +59,7 @@ export const UI_FONT_SIZES = Object.freeze({
 
   // Region map labels and the scrollable destination rail.
   mapRegion: 34, mapGold: 35, mapDestination: 35,
-  mapDestinationStatus: 29, mapDestinationHint: 31, mapLabel: 46,
+  mapDestinationStatus: 29, mapDestinationHint: 31, mapLabel: 44,
 
   // Delve preparation, party review and combat readouts.
   delveDescription: 36, delveInfoHeading: 36, delveInfoLabel: 32,

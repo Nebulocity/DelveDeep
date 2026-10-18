@@ -9,7 +9,7 @@ import { addWoodenPanel, addWoodenNotice } from './WoodenPanel.js';
 import { addStonePanel, addStoneButton, addStoneOrnaments, stoneText, STONE } from './CarvedStone.js';
 import { preparationNotice } from './DelvePreparation.js';
 import { bindButtonPress } from './ButtonPress.js';
-import { addRegionPanel, addRegionNotice, regionMessageBounds } from './RegionMapTheme.js';
+import { addRegionPanel, addRegionButton, addRegionNotice, regionMessageBounds } from './RegionMapTheme.js';
 
 import { isGuildHall } from './GuildHallTheme.js';
 import { showGuildDetails } from './GuildHallDialogs.js';
@@ -173,6 +173,7 @@ export function showSelectionDetails(scene, details) {
   const hall = isHallMenu(scene);
   const town = isTownMenu(scene);
   const regionMap = scene.scene?.key === 'TitleScene';
+  if (regionMap) scene.mapLocationClose?.();
 
   // The condition before ? chooses the first value when true and the value after : when
   // false.
@@ -213,12 +214,13 @@ export function showSelectionDetails(scene, details) {
     fontFamily: UI_FONT_FAMILIES.sans, fontSize: `${UI_FONT_SIZES.detailBody}px`, color: stone ? STONE.text : warm ? '#f1dfca' : '#e2e8f0',
     wordWrap: { width: bodyWidth }, fixedWidth: bodyWidth, align: details.align ?? 'center'
   }).setOrigin(0.5, 0).setDepth(depth + 2);
-  const panelHeight = Math.min(height - 140, Math.max(hasImage ? 540 : 340, body.height + (details.gear ? 480 : 210)));
+  const panelHeight = Math.min(height - 140, Math.max(hasImage ? 540 : regionMap ? 400 : 340,
+    body.height + (details.gear ? 480 : regionMap ? 280 : 210)));
   const top = (height - panelHeight) / 2;
-  body.setY(top + 94);
+  body.setY(top + (regionMap ? 122 : 94));
 
   // Scroll long descriptions without shrinking the reading size.
-  const bodyHeight = panelHeight - (details.gear ? 450 : 190) - (details.classHeader ? 52 : 0);
+  const bodyHeight = panelHeight - (details.gear ? 450 : regionMap ? 260 : 190) - (details.classHeader ? 52 : 0);
 
   // Keep the class artwork beside its label while the detailed description scrolls below.
   if (details.classHeader) {
@@ -229,7 +231,7 @@ export function showSelectionDetails(scene, details) {
 
   // This gives the display object an input hit area. Visible artwork alone does not make
   // an object respond to a tap.
-  const shade = scene.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7)
+  const shade = scene.add.rectangle(width / 2, height / 2, width, height, 0x000000, regionMap ? 0.72 : 0.7)
     .setDepth(depth).setInteractive();
   const panel = (stone ? addStonePanel : regionMap ? addRegionPanel : addWoodenPanel)(scene, centerX, height / 2, panelWidth + 36, panelHeight + 36, depth + 1);
 
@@ -270,10 +272,12 @@ export function showSelectionDetails(scene, details) {
     });
   }
 
-  const buttonY = top + panelHeight - 52;
+  const buttonY = top + panelHeight - (regionMap ? 80 : 52);
   const hasMapSelection = stone && Boolean(details.mapCharacterId);
   const closeX = hasMapSelection ? centerX + 305 : centerX;
-  const button = (stone ? addStoneButton : regionMap ? addRegionPanel : addWoodenPanel)(scene, closeX, buttonY, 300, 72, depth + 3).setInteractive({ useHandCursor: true });
+  const regionClose = regionMap ? addRegionButton(scene, closeX, buttonY, 300, 88, 'CLOSE', close, { depth: depth + 3 }) : null;
+  const button = regionClose?.panel ?? (stone ? addStoneButton : addWoodenPanel)(scene, closeX, buttonY, 300, 72, depth + 3).setInteractive({ useHandCursor: true });
+  if (regionClose) objects.push(regionClose.text);
   if (hasMapSelection) {
     const party = details.mapCharacterParty ?? worldMapParty();
     const currentId = GameState.world.mapCharacterId ?? party[0]?.id;
@@ -298,7 +302,7 @@ export function showSelectionDetails(scene, details) {
       HapticsService.tap();
       close();
     });
-  } else button.on('pointerdown', dismiss);
+  } else if (!regionMap) button.on('pointerdown', dismiss);
 
   objects.push(shade, panel, body, button);
   if (body.height > bodyHeight) {
@@ -315,13 +319,13 @@ export function showSelectionDetails(scene, details) {
   if (conceptImage) objects.push(conceptImage);
   if (town) objects.push(panelHit);
   objects.push(
-    scene.add.text(details.titleAboveBody ? bodyCenter : centerX, top + 44, details.title, {
+    scene.add.text(details.titleAboveBody ? bodyCenter : centerX, top + (regionMap ? 64 : 44), details.title, {
       fontFamily: town || stone || regionMap ? UI_FONT_FAMILIES.serif : UI_FONT_FAMILIES.sans, fontSize: fontPx('body36'), fontStyle: UI_FONT_WEIGHTS.bold,
       wordWrap: { width: details.titleAboveBody ? bodyWidth : panelWidth - 170 }, align: 'center',
       color: warm ? '#fff1d2' : '#bef264', stroke: town ? '#24170f' : undefined,
       strokeThickness: town ? 3 : 0
     }).setOrigin(0.5).setDepth(depth + 2),
-    scene.add.text(centerX, button.y, stone ? '' : 'CLOSE', {
+    scene.add.text(centerX, button.y, stone || regionMap ? '' : 'CLOSE', {
       fontFamily: town || regionMap ? UI_FONT_FAMILIES.serif : UI_FONT_FAMILIES.sans, fontSize: fontPx('body32'), color: warm ? '#fff1d2' : '#ffffff',
       stroke: town ? '#24170f' : undefined, strokeThickness: town ? 2 : 0
     }).setOrigin(0.5).setDepth(depth + 4));

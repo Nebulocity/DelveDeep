@@ -17,7 +17,9 @@ export function regionMessageBounds(scene, scope = 'ui') {
 // cards. Decorative art never takes input or changes camera ownership.
 export function addRegionPanel(scene, x, y, width, height, depth = 1000, state = 'normal', fixed = true, kind) {
   const compact = height < 110 || width < 110;
-  const art = (kind ? serviceFrame(scene, x, y, width, height, kind)
+  const art = (kind === 'card' ? serviceCard(scene, x, y, width, height, { selected: state === 'selected' })
+    : kind === 'control' ? regionControl(scene, x, y, width, height, 'selected', true)
+    : kind ? regionControl(scene, x, y, width, height, kind)
     : compact ? serviceCard(scene, x, y, width, height, { selected: state === 'selected' })
     : serviceFrame(scene, x, y, width, height, width > height * 6 ? 'bar' : 'panel'))
     .setScrollFactor(fixed ? 0 : 1).setDepth(depth - 0.01)
@@ -32,25 +34,49 @@ export function addRegionPanel(scene, x, y, width, height, depth = 1000, state =
   return hit;
 }
 
+// Dense controls reuse Town's smaller painted corners, with one restrained state
+// accent rather than another large ornamental frame around every action.
+function regionControl(scene, x, y, width, height, kind = 'selected', restrained = false) {
+  const frame = serviceFrame(scene, 0, 0, width, height, kind, restrained ? 0.55 : 1);
+  const accent = scene.add.graphics();
+  const art = scene.add.container(x, y, [frame, accent]).setSize(width, height);
+  art.hidePressShadow = true;
+  art.setRegionState = state => {
+    accent.clear();
+    if (state === 'selected' || state === 'danger') {
+      const color = state === 'danger' ? 0xe59b87 : 0xffdb86;
+      accent.fillStyle(color, 0.09).fillRect(-width / 2 + 18, -height / 2 + 14, width - 36, height - 28);
+      accent.lineStyle(3, color, 0.95).lineBetween(-width / 2 + 24, height / 2 - 12, width / 2 - 24, height / 2 - 12);
+    }
+  };
+  return art;
+}
+
 export function setRegionPanelState(scene, panel, state = 'normal', alpha = 1) {
   const art = panel.regionMapArt;
   if (panel.regionMapState !== state || !panel.regionMapStyled) {
     art.setSelected?.(state === 'selected');
-    if (state === 'danger') art.list?.[0]?.setTint?.(0xb87970);
-    else art.list?.[0]?.clearTint?.();
+    art.setRegionState?.(state);
+    if (!art.setRegionState) {
+      if (state === 'danger') art.list?.[0]?.setTint?.(0xb87970);
+      else art.list?.[0]?.clearTint?.();
+    }
+    panel.regionButtonText?.setColor(state === 'selected' ? '#ffdb86' : state === 'danger' ? '#ffd5c6' : '#fff1d2');
     panel.regionMapState = state;
     panel.regionMapStyled = true;
   }
   art.setAlpha(alpha);
 }
 
-export function addRegionButton(scene, x, y, width, height, label, action, { depth = 1002, enabled = true, state = 'normal', icon } = {}) {
+export function addRegionButton(scene, x, y, width, height, label, action, { depth = 1002, enabled = true, state = 'normal', icon, restrained = false, haptic = true } = {}) {
   const panel = addRegionPanel(scene, x, y, width, height, depth, state, true,
-    width >= 240 ? state === 'selected' ? 'selected' : 'option' : undefined);
+    restrained || width < 240 ? 'control' : state === 'selected' ? 'selected' : 'option');
   const text = scene.add.text(x, y, label, {
     fontFamily: UI_FONT_FAMILIES.serif, fontSize: UI_FONT_SIZES.body32,
-    fontStyle: 'bold', color: '#fff1d2', align: 'center', wordWrap: { width: width - 36 }
+    fontStyle: 'bold', color: state === 'selected' ? '#ffdb86' : state === 'danger' ? '#ffd5c6' : '#fff1d2',
+    align: 'center', wordWrap: { width: width - (restrained ? 40 : 72) }
   }).setOrigin(0.5).setDepth(depth + 1).setScrollFactor(0);
+  panel.regionButtonText = text;
   panel.regionMapArt.setAlpha(enabled ? 1 : 0.5);
   text.setAlpha(enabled ? 1 : 0.5);
   const image = icon ? scene.add.image(x, y, icon).setDisplaySize(width - 8, height - 8)
@@ -61,7 +87,7 @@ export function addRegionButton(scene, x, y, width, height, label, action, { dep
   }
   if (enabled) {
     panel.setInteractive({ useHandCursor: true });
-    bindButtonPress(scene, panel, [text], () => { HapticsService.tap(); action(); });
+    bindButtonPress(scene, panel, [text], () => { if (haptic) HapticsService.tap(); action(); });
     const cancelDrag = pointer => {
       if (pointer.isDown && Math.hypot(pointer.x - pointer.downX, pointer.y - pointer.downY) > 24) panel.emit('pointerout');
     };

@@ -7,6 +7,7 @@ import { bindSelectionDetails } from './SelectionDetails.js';
 import { addRegionPanel, addRegionButton, setRegionPanelState } from './RegionMapTheme.js';
 import { UI_SAFE_LEFT, UI_SAFE_RIGHT } from './Layout.js';
 import GameState from '../game/GameState.js';
+import { nodePoint } from '../data/worldMap.js';
 
 export const REGION_RAIL_WIDTH = 460;
 export const MAP_HEADER_HEIGHT = 116;
@@ -22,16 +23,21 @@ export function createRegionLocationRail(scene, locations, canVisit, isCleared, 
   const width = REGION_RAIL_WIDTH;
   const fixed = object => object.setScrollFactor(0).setDepth(1000);
   addRegionPanel(scene, width / 2, (height + MAP_HEADER_HEIGHT) / 2, width, height - MAP_HEADER_HEIGHT);
-  fixed(scene.add.text(32, 147, 'DESTINATIONS', {
+  fixed(scene.add.text(40, 147, 'DESTINATIONS', {
     fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx('body36'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#f2d79f'
   }));
 
-  fixed(scene.add.text(32, 198, 'Choose a place to travel', {
+  fixed(scene.add.text(40, 198, 'Choose a destination', {
     fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('mapDestinationHint'), color: '#c6bdac'
   }));
-  const listTop = 239;
-  const listBottom = height - 158;
-  const rowStep = 102;
+  const hint = fixed(scene.add.text(40, height - 44, 'Hold a destination\nfor details', {
+    fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('mapDestinationHint'), color: '#c6bdac', lineSpacing: 4
+  })).setOrigin(0, 1);
+  const listTop = 248;
+  const listBottom = hint.y - hint.height - 28;
+  const rowHeight = 144;
+  const rowStep = rowHeight + 12;
+  const firstY = listTop + rowHeight / 2;
 
   // Scroll factor controls how much the object follows the camera. Zero keeps it fixed
   // while the world scrolls. Depth is drawing order, not distance or size. Higher-depth
@@ -52,24 +58,27 @@ export function createRegionLocationRail(scene, locations, canVisit, isCleared, 
   // map builds one output entry for each input entry, in the same order. The callback's
   // return value becomes that output entry.
   scene.locationRows = locations.map((poi, index) => {
-    const y = 282 + index * rowStep;
+    const y = firstY + index * rowStep;
     const open = canVisit(poi);
-    const row = addRegionPanel(scene, width / 2 - 3, y, width - 40, 92, 1001).setName(`destination-${poi.id}`);
+    const row = addRegionPanel(scene, width / 2 - 6, y, width - 48, rowHeight, 1001, 'normal', true, 'card').setName(`destination-${poi.id}`);
 
     // Depth is drawing order, not distance or size. Higher-depth objects draw on top of
     // lower-depth objects. The condition before ? chooses the first value when true and
     // the value after : when false.
-    const name = fixed(scene.add.text(38, y - 28, poi.name, {
-      fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx('mapDestination'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff0cd'
+    const name = fixed(scene.add.text(44, y - rowHeight / 2 + 14, poi.name, {
+      fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx('mapDestination'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff0cd',
+      wordWrap: { width: width - 100 }
     })).setDepth(1002).setAlpha(open ? 1 : 0.55);
 
     // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the center
     // and 1 is the right/bottom edge. x/y place that anchor, not necessarily the object's
     // corner.
-    const status = fixed(scene.add.text(38, y + 20, '', {
+    const status = fixed(scene.add.text(44, y + rowHeight / 2 - 25, 'Available', {
       fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('mapDestinationStatus'), color: '#dcc38b'
     })).setOrigin(0, 0.5).setDepth(1002);
-    bindSelectionDetails(scene, row, () => details(poi), () => select(poi));
+    name.y = y - (name.height + 8 + status.height) / 2;
+    status.y = name.y + name.height + 8 + status.height / 2;
+    bindSelectionDetails(scene, row, () => details(poi), () => select(poi), undefined, { allowSceneInput: true });
     list.add([row.regionMapArt, row, name, status]);
     const hitTest = row.input.hitAreaCallback;
     row.input.hitAreaCallback = (area, localX, localY, object) => {
@@ -77,12 +86,12 @@ export function createRegionLocationRail(scene, locations, canVisit, isCleared, 
       return screenY >= listTop && screenY <= listBottom && hitTest(area, localX, localY, object);
     };
 
-    return { poi, row, status, open };
+    return { poi, row, name, status, open };
   });
 
   // Math.max chooses the largest value; pairing it with Math.min can keep a result inside
   // both a lower and an upper bound.
-  const maxOffset = Math.max(0, 282 + (locations.length - 1) * rowStep + 46 - listBottom);
+  const maxOffset = Math.max(0, firstY + (locations.length - 1) * rowStep + rowHeight / 2 - listBottom);
   const track = scene.add.graphics().lineStyle(4, 0xd3a750, 0.35)
     .lineBetween(0, -(listBottom - listTop - 10) / 2, 0, (listBottom - listTop - 10) / 2)
     .setPosition(width - 12, (listTop + listBottom) / 2).setScrollFactor(0).setDepth(1003);
@@ -102,13 +111,16 @@ export function createRegionLocationRail(scene, locations, canVisit, isCleared, 
       + (-list.y / maxOffset) * (listBottom - listTop - 10 - thumbHeight);
   };
 
-  const inList = pointer => pointer.x >= 18 && pointer.x <= width - 18 && pointer.y >= listTop && pointer.y <= listBottom;
+  const inList = pointer => !scene.selectionDetailsClose && pointer.x >= 18 && pointer.x <= width - 18 && pointer.y >= listTop && pointer.y <= listBottom;
   const onWheel = (pointer, objects, deltaX, deltaY) => { if (inList(pointer)) scroll(deltaY); };
   let drag = null;
   const onDown = pointer => { if (inList(pointer)) drag = { id: pointer.id, y: pointer.y, startY: pointer.y }; };
   const onMove = pointer => {
+    if (scene.selectionDetailsClose) { drag = null; return; }
     if (!drag || drag.id !== pointer.id || !pointer.isDown) return;
-    if (Math.abs(pointer.y - drag.startY) > 6) scene.locationRows.forEach(({ row }) => row.emit('pointerout'));
+    if (!drag.moving && Math.abs(pointer.y - drag.startY) < 12) return;
+    drag.moving = true;
+    scene.locationRows.forEach(({ row }) => row.emit('pointerout'));
     scroll(drag.y - pointer.y);
     drag.y = pointer.y;
   };
@@ -122,17 +134,15 @@ export function createRegionLocationRail(scene, locations, canVisit, isCleared, 
   scene.input.on('pointermove', onMove);
   scene.input.on('pointerup', onUp);
   scene.input.on('gameout', onUp);
+  scene.game.events.on('blur', onUp);
   scene.events.once('shutdown', () => {
     scene.input.off('wheel', onWheel);
     scene.input.off('pointerdown', onDown);
     scene.input.off('pointermove', onMove);
     scene.input.off('pointerup', onUp);
     scene.input.off('gameout', onUp);
+    scene.game.events.off('blur', onUp);
   });
-
-  fixed(scene.add.text(32, height - 95, 'Hold a destination\nfor details', {
-    fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('mapDestinationHint'), color: '#c6bdac', lineSpacing: 7
-  }));
   updateRegionLocationRail(scene, isCleared);
 }
 
@@ -141,7 +151,7 @@ export function createRegionLocationRail(scene, locations, canVisit, isCleared, 
 export function updateRegionLocationRail(scene, isCleared) {
 
   // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
-  for (const { poi, row, status, open } of scene.locationRows ?? []) {
+  for (const { poi, row, name, status, open } of scene.locationRows ?? []) {
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
@@ -151,6 +161,7 @@ export function updateRegionLocationRail(scene, isCleared) {
     // The condition before ? chooses the first value when true and the value after : when
     // false.
     setRegionPanelState(scene, row, traveling || here || scene.selectedMapPoi?.id === poi.id ? 'selected' : 'normal', open ? 1 : 0.55);
+    name.setColor(here ? '#ffdb86' : '#fff1d2');
     const waystone = poi.id === 'pineshire' && !scene.activeEdge && scene.partyNode === 'verge-delves';
     status.setText(waystone ? 'Waystone · Instant return' : !open ? 'Locked' : traveling ? 'Traveling...' : here ? 'Party is here'
       : isCleared(poi.id) && ['delve', 'void'].includes(poi.type) ? 'Completed · Available' : 'Available')
@@ -195,55 +206,79 @@ export function refreshRegionMapGold(scene) {
   if (scene.currencyText?.width > 195) scene.currencyText.setScale(195 / scene.currencyText.width);
 }
 
-// Selection is a small, dismissible card. Full encounter information remains in
-// the existing scrollable held-details dialog; Travel calls the original router.
+// Measured text keeps the nonmodal card compact without shrinking the reading size.
 export function showRegionDestination(scene, poi, { open, completed, details, travel, inspect }) {
   scene.mapLocationClose?.();
   scene.selectedMapPoi = poi;
-  const { width, height } = scene.scale;
-  const w = Math.min(760, width - REGION_RAIL_WIDTH - UI_SAFE_LEFT - UI_SAFE_RIGHT);
-  const h = 344;
-  const x = width - UI_SAFE_RIGHT - w / 2;
-  const y = height - MAP_FOOTER_HEIGHT - h / 2 - 20;
-  const top = y - h / 2;
+  const camera = scene.cameras.main;
+  const w = Math.min(640, camera.width - 64);
   const depth = 1100;
   const objects = [];
   const keep = object => { objects.push(object); return object; };
+  const text = (x, y, value, slot, wrap, color = '#fff1d2') => keep(scene.add.text(x, y, value, {
+    fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx(slot), color,
+    wordWrap: { width: wrap }, align: 'left'
+  }).setDepth(depth + 2));
+  const title = text(-w / 2 + 38, 28, poi.name, 'body36', w - 174);
+  const here = !scene.activeEdge && scene.partyNode === poi.node;
+  const traveling = scene.destination?.id === poi.id;
+  const waystone = poi.id === 'pineshire' && !scene.activeEdge && scene.partyNode === 'verge-delves';
+  const status = text(-w / 2 + 38, Math.max(82, title.y + title.height + 10), !open ? 'Locked' : traveling ? 'Traveling here'
+    : here ? 'Current location' : completed ? 'Completed · Available' : 'Available', 'body30', w - 76, '#f2d79f');
+  const summary = !open ? 'Defeat the preceding Delve boss to open this road.'
+    : waystone ? 'Use the waystone for an instant return to Pineshire.'
+    : poi.subtitle ?? (poi.type === 'town' ? 'Prepare your party and visit town services.'
+      : poi.type === 'everdeep' ? 'Prepare expeditions and review rewards.' : 'Inspect this place or follow the road.');
+  const body = text(-w / 2 + 38, status.y + status.height + 10, summary, 'body30', w - 76, '#c6bdac');
+  const h = Math.max(300, body.y + body.height + 152);
+  const panel = keep(addRegionPanel(scene, 0, h / 2, w, h, depth));
+  objects.push(panel.regionMapArt);
+  panel.setInteractive().on('pointerdown', (pointer, x, y, event) => event.stopPropagation());
+  const container = scene.add.container(0, 0).setDepth(depth).setScrollFactor(0).setSize(w, h);
+  let closed = false;
   const close = () => {
-    objects.forEach(object => object.destroy());
+    if (closed) return;
+    closed = true;
+    container.destroy(true);
     scene.selectedMapPoi = null;
     scene.mapLocationClose = null;
     scene.events.off('shutdown', close);
   };
   scene.mapLocationClose = close;
   scene.events.once('shutdown', close);
-  const panel = keep(addRegionPanel(scene, x, y, w, h, depth));
-  panel.setInteractive().on('pointerdown', (pointer, localX, localY, event) => event.stopPropagation());
-  const text = (px, py, value, slot, color = '#fff1d2') => keep(scene.add.text(px, py, value, {
-    fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx(slot), color,
-    wordWrap: { width: w - 110 }, align: 'left'
-  }).setScrollFactor(0).setDepth(depth + 2));
-  text(x - w / 2 + 44, top + 28, poi.name, 'heading40');
-  const here = !scene.activeEdge && scene.partyNode === poi.node;
-  const traveling = scene.destination?.id === poi.id;
-  const waystone = poi.id === 'pineshire' && !scene.activeEdge && scene.partyNode === 'verge-delves';
-  text(x - w / 2 + 44, top + 88, !open ? 'Locked' : traveling ? 'Traveling here' : here ? 'Current location'
-    : completed ? 'Completed · Available' : 'Available', 'body30', '#f2d79f');
-  const summary = !open ? 'Defeat the preceding Delve boss to unlock this destination.'
-    : waystone ? 'The Sunken Watch waystone can return you directly to Pineshire.'
-    : poi.subtitle ?? (poi.type === 'town' ? 'Prepare your party, visit the market, and rest in town.'
-      : poi.type === 'everdeep' ? 'Prepare expeditions and review their rewards.' : 'Review this destination, then follow the road with your party.');
-  text(x - w / 2 + 44, top + 134, summary, 'body32', '#c6bdac');
   const addAction = (px, py, bw, label, action, options = {}) => {
-    const button = addRegionButton(scene, px, py, bw, 84, label, action, { depth: depth + 3, ...options });
-    objects.push(button.panel, button.text);
+    const button = addRegionButton(scene, px, py, bw, 88, label, action, { depth: depth + 3, ...options });
+    objects.push(...button.objects);
   };
-  addAction(x + w / 2 - 63, top + 52, 76, '×', close);
-  addAction(x - w / 2 + 201, top + h - 66, 310, waystone ? 'Return to Pineshire' : here ? 'Enter location' : 'Travel', () => {
+  addAction(w / 2 - 78, 76, 96, '×', close, { restrained: true });
+  const buttonWidth = (w - 100) / 2;
+  addAction(-(buttonWidth + 24) / 2, h - 80, buttonWidth, waystone ? 'Return' : here ? 'Enter' : 'Travel', () => {
     close();
     travel();
   }, { enabled: open, state: 'selected' });
-  addAction(x + w / 2 - 193, top + h - 66, 290, 'Details', () => { close(); inspect(details); });
+  addAction((buttonWidth + 24) / 2, h - 80, buttonWidth, 'Details', () => { close(); inspect(details); });
+  container.add(objects.sort((a, b) => a.depth - b.depth));
+
+  // Project the unchanged node into the camera, choosing the opposite side with
+  // a margin so the card does not jitter while the player drags across the center.
+  let side = null;
+  const position = () => {
+    const point = nodePoint(poi.node);
+    const screenX = camera.x + camera.width / 2 + (point.x - camera.midPoint.x) * camera.zoom;
+    const screenY = camera.y + camera.height / 2 + (point.y - camera.midPoint.y) * camera.zoom;
+    const middle = camera.x + camera.width / 2;
+    if (!side) side = screenX < middle ? 'right' : 'left';
+    if (side === 'right' && screenX > middle + 100) side = 'left';
+    else if (side === 'left' && screenX < middle - 100) side = 'right';
+    const x = side === 'right' ? camera.x + camera.width - w / 2 - 24 : camera.x + w / 2 + 24;
+    const top = camera.y + 24;
+    const bottom = camera.y + camera.height - h - 24;
+    const y = screenY < camera.y + camera.height / 2 ? bottom : top;
+    container.setPosition(x, Math.max(top, y));
+  };
+  position();
+  scene.events.on('postupdate', position);
+  container.once('destroy', () => scene.events.off('postupdate', position));
   syncRegionMapCameras(scene);
 }
 

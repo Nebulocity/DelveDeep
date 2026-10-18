@@ -16,7 +16,7 @@ import { everdeepRuns } from '../game/Everdeep.js';
 
 import { hideLoadingScreenAfterRender } from '../ui/LoadingScreen.js';
 import { createScrollingWorldMap, updateScrollingWorldMap } from './ScrollingWorldMap.js';
-import { addRegionPanel, addRegionNotice, setRegionPanelState, regionMessageBounds } from '../ui/RegionMapTheme.js';
+import { addRegionPanel, addRegionButton, addRegionNotice, setRegionPanelState, regionMessageBounds } from '../ui/RegionMapTheme.js';
 import { showConfirmation } from '../ui/ConfirmationDialog.js';
 import { resolveWorldMapCharacter } from '../game/WorldMapCharacter.js';
 import { CHARACTER_SPRITES } from '../data/characterSprites.js';
@@ -24,8 +24,9 @@ import { townLayout, setTownLayout } from '../game/TownPreferences.js';
 import { preloadTownAssets } from '../ui/TownAssets.js';
 import { REGIONAL_MAPS } from '../data/regionalMaps.js';
 import { preloadRegionalMap } from '../ui/RegionalMapRenderer.js';
-import { bindButtonPress } from '../ui/ButtonPress.js';
 import { refreshRegionMapGold } from '../ui/RegionMapUI.js';
+import { hallScroll } from '../ui/HallUI.js';
+import { serviceScrollSurface } from '../ui/TownServiceTheme.js';
 
 export default class TitleScene extends Phaser.Scene {
 
@@ -77,6 +78,7 @@ export default class TitleScene extends Phaser.Scene {
   async showDevelopmentTools(devSettings = false) {
     await combatRecordingReady;
     if (!this.sys.isActive()) return;
+    this.mapLocationClose?.();
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
@@ -96,17 +98,22 @@ export default class TitleScene extends Phaser.Scene {
 
     // Math.min chooses the smallest value; pairing it with Math.max can keep a result
     // inside both a lower and an upper bound.
-    const panelWidth = Math.min(devSettings ? 1740 : 1280, width * 0.90);
-    const panelHeight = Math.min(devSettings ? 920 : 850, height * 0.90);
+    const panelWidth = Math.min(devSettings ? 1840 : 1360, width - 104);
+    const panelHeight = Math.min(devSettings ? 1000 : 900, height - (devSettings ? 80 : 96));
     const panelTop = (height - panelHeight) / 2;
     const panelLeft = (width - panelWidth) / 2;
-    const rowY = (index) => panelTop + (devSettings ? 160 : 180) + index * (devSettings ? 88 : 120);
+    const rowY = (index) => panelTop + (devSettings ? 166 : 186) + index * (devSettings ? 90 : 114);
     const labelX = panelLeft + 100;
     const firstX = panelLeft + (devSettings ? 650 : 720);
 
     const buttonWidth = 220;
     const objects = [shade];
+    const contentObjects = [];
+    const closeY = panelTop + panelHeight - 88;
     const panel = addRegionPanel(this, width / 2, height / 2, panelWidth, panelHeight, depth + 1);
+    const stop = (pointer, x, y, event) => event?.stopPropagation?.();
+    shade.on('pointerdown', stop).on('pointerup', stop);
+    panel.setInteractive().on('pointerdown', stop).on('pointerup', stop);
     objects.push(panel);
 
     // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the center
@@ -137,38 +144,18 @@ export default class TitleScene extends Phaser.Scene {
       // lower-depth objects. Origin is the anchor within the object: 0 is the left/top
       // edge, 0.5 is the center and 1 is the right/bottom edge. x/y place that anchor, not
       // necessarily the object's corner.
-      objects.push(this.add.text(labelX, rowY(index), label, {
+      contentObjects.push(this.add.text(labelX, rowY(index), label, {
         fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx('body36'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff1d2'
       }).setOrigin(0, 0.5).setDepth(depth + 2));
     };
 
     const addButton = (x, y, label, color, stroke, action, textColor = '#ffffff', controlWidth = buttonWidth) => {
-
-      // This gives the display object an input hit area. Visible artwork alone does not
-      // make an object respond to a tap. The condition before ? chooses the first value
-      // when true and the value after : when false.
-      const button = addRegionPanel(this, x, y, controlWidth, 74, depth + 2, label === 'RESET' ? 'danger' : label === 'ON' ? 'selected' : 'normal')
-        .setInteractive({ useHandCursor: true });
-
-      // Depth is drawing order, not distance or size. Higher-depth objects draw on top of
-      // lower-depth objects. Origin is the anchor within the object: 0 is the left/top
-      // edge, 0.5 is the center and 1 is the right/bottom edge. x/y place that anchor, not
-      // necessarily the object's corner.
-      const caption = this.add.text(x, y, label, {
-        fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx('body32'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff1d2'
-      }).setOrigin(0.5).setDepth(depth + 3);
-
-      // on registers a callback for later events; it does not call that callback now.
-      // Long-lived emitters need matching listener cleanup.
-      if (caption.width > controlWidth - 28) caption.setScale((controlWidth - 28) / caption.width);
-      bindButtonPress(this, button, [caption], action);
-      const cancelDrag = pointer => {
-        if (pointer.isDown && Math.hypot(pointer.x - pointer.downX, pointer.y - pointer.downY) > 24) button.emit('pointerout');
-      };
-      this.input.on('pointermove', cancelDrag);
-      button.once('destroy', () => this.input.off('pointermove', cancelDrag));
-      objects.push(button, caption);
-      return { button, caption };
+      const control = addRegionButton(this, x, y, controlWidth, 84, label, action, {
+        depth: depth + 3, restrained: devSettings, haptic: false,
+        state: label === 'RESET' ? 'danger' : label === 'ON' ? 'selected' : 'normal'
+      });
+      (y === closeY ? objects : contentObjects).push(...control.objects);
+      return { button: control.panel, caption: control.text };
     };
 
     // This helper removes all objects belonging to this development dialog.
@@ -186,11 +173,23 @@ export default class TitleScene extends Phaser.Scene {
     // once registers a callback that removes itself after the first matching event.
     this.events?.once('shutdown', destroy);
 
+    // The header and Close stay fixed. The established scroll helper masks both
+    // drawing and hit areas if a smaller logical canvas needs more vertical room.
+    const finishLayout = () => {
+      const bounds = { x: panelLeft + 72, y: panelTop + 132, width: panelWidth - 144, height: panelHeight - 278 };
+      const contentHeight = Math.max(...contentObjects.map(object => object.getBounds().bottom)) - bounds.y + 16;
+      const scroll = hallScroll(this, bounds, contentObjects, contentHeight, 0, () => {},
+        (owner, x, y, w, h, variant) => serviceScrollSurface(owner, x, y, w, h, variant).setDepth(depth + 3),
+        () => this.selectionDetailsClose !== destroy);
+      scroll.container.setDepth(depth + 2).setScrollFactor(0);
+      objects.push(scroll.container);
+    };
+
     if (devSettings) {
 
       // These grants use the same caps and rewards as normal progression. No unlock
       // is saved for the window itself; only changes deliberately made here persist.
-      objects.push(this.add.text(firstX + 180, rowY(0), 'Combat logs', {
+      contentObjects.push(this.add.text(firstX + 180, rowY(0), 'Combat logs', {
         fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body32'), color: '#fff1d2'
       }).setOrigin(0, 0.5).setDepth(depth + 3));
       const diagnosticsToggle = addButton(firstX + 700, rowY(0), diagnosticSettings().level, 0, 0, () => {
@@ -201,7 +200,7 @@ export default class TitleScene extends Phaser.Scene {
         diagnosticsToggle.caption.setText(level);
         this.showToast('Diagnostic level applies to the next encounter.');
       }, '#ffffff', 380);
-      objects.push(this.add.text(firstX + 180, rowY(1), 'Inactivity', {
+      contentObjects.push(this.add.text(firstX + 180, rowY(1), 'Inactivity', {
         fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body32'), color: '#fff1d2'
       }).setOrigin(0, 0.5).setDepth(depth + 3));
       const inactivityToggle = addButton(firstX + 700, rowY(1), `${diagnosticSettings().inactivityMs / 1000}s`, 0, 0, () => {
@@ -295,17 +294,18 @@ export default class TitleScene extends Phaser.Scene {
         selector.caption.setText(choice ? `#${choice} - ${hero?.name ?? 'Party'} - Wave ${run.resolvedWave}` : 'ALL EXPEDITIONS');
       }, '#ffffff', 820);
       for (const [index, wave] of [10, 20, 30, 40, 50, 60, 'Complete'].entries()) {
-        addButton(panelLeft + 150 + index * 235, rowY(7), String(wave), 0, 0, () => {
+        addButton(panelLeft + 196 + index * 235, rowY(7), String(wave), 0, 0, () => {
           HapticsService.confirm();
           const count = setDevelopmentExpeditionWave(wave, choices[choice]);
           this.showToast(count ? `${count} expedition(s): ${wave === 'Complete' ? 'complete; claim earned chests in Everdeep.' : `wave ${wave}.`}` : 'No expeditions to update.');
         }, '#ffffff', 210);
       }
 
-      addButton(width / 2, panelTop + panelHeight - 52, 'CLOSE', 0x334155, 0x94a3b8, () => {
+      addButton(width / 2, closeY, 'CLOSE', 0x334155, 0x94a3b8, () => {
         HapticsService.tap();
         this.showDevelopmentTools();
       });
+      finishLayout();
       return;
     }
     
@@ -346,7 +346,7 @@ export default class TitleScene extends Phaser.Scene {
           loggingToggle.button.setInteractive({ useHandCursor: true });
         }
       }
-    }, '#ffffff', 360);
+    }, '#ffffff', 420);
 
     setRegionPanelState(this, loggingToggle.button, isCombatLogging() ? 'selected' : 'normal');
 
@@ -374,7 +374,7 @@ export default class TitleScene extends Phaser.Scene {
       this.showResetConfirmation();
     });
 
-    addButton(width / 2, panelTop + panelHeight - 52, 'CLOSE', 0x334155, 0x94a3b8, () => {
+    addButton(width / 2, closeY, 'CLOSE', 0x334155, 0x94a3b8, () => {
       HapticsService.tap();
       destroy();
       if (this.mapAccessDirty) {
@@ -382,6 +382,7 @@ export default class TitleScene extends Phaser.Scene {
         this.scene.restart();
       }
     });
+    finishLayout();
   }
 
   // This helper asks the player to confirm before clearing saved progression.

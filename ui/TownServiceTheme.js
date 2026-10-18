@@ -28,10 +28,13 @@ export function serviceText(scene, x, y, value, slot = 'body34', options = {}) {
 
 // Scale the painted corners as a unit before stretching the dark center. Compact
 // controls keep smaller ornaments; large room panels retain the full gold carvings.
-export function serviceFrame(scene, x, y, width, height, kind = 'panel') {
+export function serviceFrame(scene, x, y, width, height, kind = 'panel', ornamentScale = 1) {
   const slices = { panel: [128, 128, 0.42], bar: [100, 42, 0.65],
     option: [90, 62, 0.52], selected: [50, 50, 0.62], capsule: [100, 35, 0.72] };
-  const [horizontal, vertical, scale] = slices[kind];
+  const [horizontal, vertical, baseScale] = slices[kind];
+
+  // Dense dialogs can reduce the painted ornaments without shrinking text or hit areas.
+  const scale = baseScale * ornamentScale;
   if (scene.game.renderer.type === Phaser.WEBGL) {
     const frame = scene.add.nineslice(x, y, `town-hub-${kind}`, undefined,
       width / scale, height / scale, horizontal, horizontal, vertical, vertical).setScale(scale);

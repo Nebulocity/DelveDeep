@@ -46,7 +46,7 @@ export default class EquipmentScene extends TownFeatureScene {
     const current = equippedItem(hero, this.slot);
     serviceButton(this, loadout.x + 280, b.bottom - 58, 490, 82, 'Unequip selected slot', () => this.commit(unequipItem(hero.id, this.slot)),
       { enabled: Boolean(current), compact: true, slot: 'body30' });
-    serviceText(this, storage.x + 28, b.y + 28, 'Compatible inventory', 'heading38', { wordWrap: { width: 510 } });
+    serviceText(this, storage.x + 28, b.y + 28, 'Swap Equipment', 'heading38', { wordWrap: { width: 510 } });
     const entries = ownedEquipment().filter(item => item.slot === this.slot && canEquipItem(hero, item));
     featureList(this, { x: storage.x + 24, y: b.y + 108, width: storage.width - 76, height: b.height - 142 }, entries,
       (item, x, y, width) => {

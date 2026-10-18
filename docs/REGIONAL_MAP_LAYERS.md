@@ -1,0 +1,55 @@
+# Regional map rendering and artwork handoff
+
+World Map 2.0 uses Town Hub's approved charcoal and gold frames, shared fantasy typography, and press feedback. It retains the existing close regional camera, 460-pixel destination rail, 116-pixel flush header, chosen character, and traced road movement. The footer is 118 logical pixels high. The canvas remains 2400 by 1080, scaled by Phaser and the existing application safe-area handling.
+
+Selecting a destination opens a dismissible 760 by 344 card within the map viewport. Travel invokes the existing router, including rerouting, gated roads, saved road progress, map testing, the Sunken Watch return waystone, and the original arrival screens. Details opens the existing scrollable inspection dialog. Holding a destination still opens that dialog directly. A locked destination disables Travel and explains its requirement. The contextual card does not pause travel or prevent dragging outside it. How to Play, Save Transfer and Find Party remain in the footer; Settings is the gear in the header. Gold is live. Aether displays an em dash, matching Town Hub because there is no implemented Aether balance.
+
+The Settings heading still opens the private developer dialog after exactly seven pointer releases. The tap counter resets with each new Settings window. There is no ordinary developer navigation entry. Map testing, arena border, Renown, character levels, gold, boosts, expedition controls, combat diagnostics, logging, recordings, reset confirmation, BGM and town-navigation preferences retain their existing handlers. Settings and developer buttons now activate on a valid release using the shared press helper.
+
+## Runtime layers
+
+`data/regionalMaps.js` defines the active region artwork without changing the gameplay graph in `data/illustratedWorldMap.js`. `ui/RegionalMapRenderer.js` creates six independent world-space containers. All containers inherit the map camera's pan and zoom; the full-screen UI camera remains separate.
+
+| Layer | Depth | Purpose |
+| --- | --- | --- |
+| terrain | 0 | Current complete Pineshire illustration; eventually approved base terrain |
+| routes | 10 | Future transparent painted roads and paths, aligned with traced routes |
+| landmarks | 30 | Future independent buildings and destination artwork |
+| environment | 80 | Existing localized ambience; future image and sprite effects |
+| foreground | 120 | Transparent near scenery, below location labels and the chosen character |
+| overlays | 140 | Noninteractive artwork overlays; gameplay markers remain at their existing depths |
+
+The existing labels, location hit targets and party remain in the current scene. Labels use depths 160 and above, the party uses 500, and landmark touch targets use 900. Fixed UI overlays use depths 999 and above. Decorative layers must not own touch targets, unlocks or travel state. Future scenery remains below characters to preserve their visibility.
+
+Each image record supplies `id`, texture `key`, `x`, `y`, and optionally `frame`, `width`, `height`, `alpha`, `originX`, `originY` and `animation`. Coordinates are logical image pixels. The default origin is the upper-left corner; a cropped asset must supply its original image-space offset. Records draw in array order within their layer. The existing texture key `world-pineshire-final` still uses `assets/world-map/illustrated-regions-v1/01-pineshire-reach-v4.png`, sized to 3840 by 2160 logical pixels.
+
+Optional region `assets` entries use `{ type, key, url, data, config }`. The loader accepts images, atlases (`data` is the atlas JSON URL or object) and spritesheets (`config` supplies frame dimensions). Use Vite-resolved local asset URLs. Already loaded textures are reused. An animated record provides `animation: { frames, frameRate, repeat }`, with explicit atlas frame names or spritesheet frame numbers. Frames use the record's texture key; defaults are 20 FPS and infinite repetition. Animation keys include region and artwork IDs. Set `frame` to the intended static frame for reduced-motion users. Ordinary Phaser sprite animations pause with the scene, and scene shutdown destroys layer objects. This pass adds no animated image assets or animation tooling.
+
+The existing procedural ambience is retained inside the environment container until approved replacements are ready. Future rivers, waterfalls, smoke, foliage and portals should use small localized sprites or cropped images with shared atlases. Replace each corresponding existing ambience entry when installing its approved sprite, avoiding duplicate effects. Keep frame counts and transparent margins modest, avoid full-region animated sheets, and share animation definitions across instances. Do not bake UI or party characters into artwork.
+
+## Geography authority and continuity
+
+No approved seamless master geography reference was found in the active map data or illustrated-region package. The package manifest explicitly describes later-region anchors as proposals. It contains a Highmere Crags illustration and proposed locations, but these are not a validated shared atlas. Runtime exports currently describe Pineshire only. This pass adds no Highmere runtime graph or invented geographic connections. The existing exit position, prerequisite and Highmere destination description remain authoritative for the outgoing sign.
+
+`atlasPlacement` is deliberately null. Before adding another playable region, approve a master geography reference containing:
+
+- A shared coordinate origin, units, north direction, terrain scale and regional image-to-world transforms.
+- Region coverage polygons, boundary overlaps, matching edge crops, and surveyed connection anchors on both sides.
+- Continuous road centerlines, widths and elevations; river centerlines, flow direction, watershed and bridge crossings; mountain ridges and terrain landmarks across boundaries.
+- Existing runtime IDs and progression requirements for the destination and source ends of each connection. Later-region manifest proposals must be reconciled explicitly against approved source data.
+- A shared perspective, lighting direction, time of day, palette, landmark scale and painterly style reference. Preserve detailed close-up geography while moving toward Town Hub's brighter finish.
+
+Do not infer global positions from the manifest's region order or Pineshire's `column: 0`, and do not change traced Pineshire coordinates to make separately painted maps meet. Adopt a common atlas only after geography is reviewed; image-local coordinates can remain stable through explicit transforms.
+
+## Artwork to create next
+
+1. Approve the master geography and style reference before producing replacement regions.
+2. Author a layered Pineshire source at the current extent: clean base terrain, transparent roads, landmarks and foreground scenery with matching image-space offsets. Keep the current complete illustration until the approved set can replace it coherently.
+3. Create tightly cropped river and waterfall loops, bridge-aware water segments, localized smoke and flame loops, subtle foliage, cloud/mist patches and a Void Portal sprite atlas. Give each a static frame and explicit origin, bounds, frame order and FPS.
+4. Produce Highmere only against the approved shared boundary reference. Its existing independent illustration remains reference material until routes, joins and gameplay data are approved.
+
+Use supplied artwork or original commercially usable artwork. No new map art, third-party assets, dependencies, ComfyUI tools, geography or migration code were introduced in this pass.
+
+## Review status
+
+Initial implementation received source review only. Subsequent user-requested screenshots captured the live map, destination card, Settings and hidden developer menu at 1920 by 864, plus map and destination views at 915 by 412. Seven real Settings-heading clicks opened the developer menu; the capture session reported no page errors. Images were visually inspected. The subsequently requested production build passed with a Vite large-chunk warning. No broader test suite, lint, simulation or Android packaging ran. Physical-device touch behavior, Canvas fallback and unrelated gameplay workflows remain unverified. The runtime foundation supports future layers, but actual independent regional artwork and cross-region gameplay await approval and implementation.

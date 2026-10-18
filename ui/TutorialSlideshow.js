@@ -33,7 +33,7 @@ export function showTutorialSlideshow(scene) {
     return object;
   };
   const text = (x, y, value, size, options = {}) => keep(scene.add.text(x, y, value, {
-    fontFamily: UI_FONT_FAMILIES.sans, fontSize: `${size}px`, color: '#f1f8ec', align: 'center', ...options
+    fontFamily: UI_FONT_FAMILIES.serif, fontSize: `${size}px`, color: '#fff1d2', align: 'center', ...options
   }).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 3));
   const close = () => {
     if (closed) return;
@@ -66,7 +66,7 @@ export function showTutorialSlideshow(scene) {
   const caption = text(cx, height - 236, '', UI_FONT_SIZES.body36, { wordWrap: { width: width - 330 }, fixedWidth: width - 330 }).setName('tutorial-caption');
   const status = text(cx, 472, 'Loading gameplay...', UI_FONT_SIZES.body34);
 
-  const count = text(cx, height - 66, '', UI_FONT_SIZES.support28, { color: '#b4c4af' });
+  const count = text(cx, height - 66, '', UI_FONT_SIZES.support28, { color: '#c6bdac' });
   const button = (x, label, action, buttonWidth = 310) => {
 
     // This gives the display object an input hit area. Visible artwork alone does not make

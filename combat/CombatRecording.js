@@ -400,14 +400,16 @@ export async function exportCombatRecording(id = current?.id) {
 export async function showCombatArchives(onCleared = () => {}) {
   await combatRecordingReady;
   const dialog = document.createElement('dialog');
-  dialog.style.cssText = 'width:85vw;max-height:80vh;overflow:auto;background:#292524;color:#fff1d2;padding:20px;font:18px sans-serif;';
-  const title = document.createElement('h2'); title.textContent = 'Combat recordings'; dialog.append(title);
+  dialog.className = 'combat-recordings-dialog';
+  dialog.style.cssText = 'width:85vw;max-height:80vh;overflow:auto;background:#13161b;color:#fff1d2;border:2px solid #c4a366;box-shadow:inset 0 0 0 5px #13161b,inset 0 0 0 6px #79603b;padding:24px;font:18px Arial,sans-serif;';
+  const title = document.createElement('h2'); title.textContent = 'Combat recordings';
+  title.style.cssText = 'font-family:Georgia,serif;color:#f2d79f;'; dialog.append(title);
   const note = document.createElement('p');
   note.textContent = 'Export logs to keep them, or Clear All Logs to discard every recording and stop logging. Player saves and settings are kept.';
   dialog.append(note);
   const add = (label, action) => {
     const button = document.createElement('button'); button.textContent = label;
-    button.style.cssText = 'min-height:44px;margin:6px;';
+    button.style.cssText = 'min-height:46px;margin:6px;padding:10px 16px;background:#202126;color:#fff1d2;border:1px solid #c4a366;border-radius:5px;font:bold 17px Georgia,serif;cursor:pointer;';
     button.onclick = async () => { button.disabled = true; try { await action(button); }
       catch (error) { storageWarning('archive-operation', `Combat archive operation failed. ${error?.message ?? 'Try exporting again.'} Your recording remains available in the app.`); }
       finally { if (button.isConnected) button.disabled = false; } };

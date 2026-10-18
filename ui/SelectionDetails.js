@@ -22,6 +22,7 @@ import { hallScroll } from './HallUI.js';
 import { showBattleCharacterDetails } from './BattleCharacterDetails.js';
 import { worldMapParty } from '../game/WorldMapCharacter.js';
 import { chooseWorldMapCharacter } from './WorldMapCharacterSelection.js';
+import { serviceScrollSurface } from './TownServiceTheme.js';
 
 export const DETAILS_HINT = 'Long-press or hold-click a selection for details.';
 
@@ -303,7 +304,9 @@ export function showSelectionDetails(scene, details) {
   if (body.height > bodyHeight) {
     const scroll = hallScroll(scene, { x: body.x - bodyWidth / 2, y: body.y, width: bodyWidth, height: bodyHeight },
       [body], body.height, 0, () => {},
-      (owner, x, y, w, h) => (stone ? addStonePanel : addWoodenPanel)(owner, x, y, w, h, depth + 2),
+      (owner, x, y, w, h, variant) => regionMap
+        ? serviceScrollSurface(owner, x, y, w, h, variant).setDepth(depth + 2)
+        : (stone ? addStonePanel : addWoodenPanel)(owner, x, y, w, h, depth + 2),
       () => false);
     scroll.container.setDepth(depth + 2);
     objects.push(scroll.container);
@@ -313,13 +316,13 @@ export function showSelectionDetails(scene, details) {
   if (town) objects.push(panelHit);
   objects.push(
     scene.add.text(details.titleAboveBody ? bodyCenter : centerX, top + 44, details.title, {
-      fontFamily: town || stone ? UI_FONT_FAMILIES.serif : UI_FONT_FAMILIES.sans, fontSize: fontPx('body36'), fontStyle: UI_FONT_WEIGHTS.bold,
+      fontFamily: town || stone || regionMap ? UI_FONT_FAMILIES.serif : UI_FONT_FAMILIES.sans, fontSize: fontPx('body36'), fontStyle: UI_FONT_WEIGHTS.bold,
       wordWrap: { width: details.titleAboveBody ? bodyWidth : panelWidth - 170 }, align: 'center',
       color: warm ? '#fff1d2' : '#bef264', stroke: town ? '#24170f' : undefined,
       strokeThickness: town ? 3 : 0
     }).setOrigin(0.5).setDepth(depth + 2),
     scene.add.text(centerX, button.y, stone ? '' : 'CLOSE', {
-      fontFamily: town ? UI_FONT_FAMILIES.serif : UI_FONT_FAMILIES.sans, fontSize: fontPx('body32'), color: warm ? '#fff1d2' : '#ffffff',
+      fontFamily: town || regionMap ? UI_FONT_FAMILIES.serif : UI_FONT_FAMILIES.sans, fontSize: fontPx('body32'), color: warm ? '#fff1d2' : '#ffffff',
       stroke: town ? '#24170f' : undefined, strokeThickness: town ? 2 : 0
     }).setOrigin(0.5).setDepth(depth + 4));
   const heading = objects.find(object => object.type === 'Text' && object.text === details.title);

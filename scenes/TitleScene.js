@@ -21,6 +21,11 @@ import { showConfirmation } from '../ui/ConfirmationDialog.js';
 import { resolveWorldMapCharacter } from '../game/WorldMapCharacter.js';
 import { CHARACTER_SPRITES } from '../data/characterSprites.js';
 import { townLayout, setTownLayout } from '../game/TownPreferences.js';
+import { preloadTownAssets } from '../ui/TownAssets.js';
+import { REGIONAL_MAPS } from '../data/regionalMaps.js';
+import { preloadRegionalMap } from '../ui/RegionalMapRenderer.js';
+import { bindButtonPress } from '../ui/ButtonPress.js';
+import { refreshRegionMapGold } from '../ui/RegionMapUI.js';
 
 export default class TitleScene extends Phaser.Scene {
 
@@ -32,6 +37,8 @@ export default class TitleScene extends Phaser.Scene {
 
   // Load only the chosen adventurer's map animations. The default sprite stays in Boot.
   preload() {
+    preloadTownAssets(this);
+    preloadRegionalMap(this, REGIONAL_MAPS['pineshire-reach']);
     const previousId = GameState.world.mapCharacterId;
     const hero = resolveWorldMapCharacter();
     if (previousId !== GameState.world.mapCharacterId) saveProfile();
@@ -106,7 +113,7 @@ export default class TitleScene extends Phaser.Scene {
     // and 1 is the right/bottom edge. x/y place that anchor, not necessarily the object's
     // corner.
     const heading = this.add.text(width / 2, panelTop + 72, devSettings ? 'DEV SETTINGS' : 'SETTINGS', {
-      fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('heading48'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#f8fafc'
+      fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx('heading48'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#f2d79f'
     }).setOrigin(0.5).setDepth(depth + 2);
     objects.push(heading);
 
@@ -131,7 +138,7 @@ export default class TitleScene extends Phaser.Scene {
       // edge, 0.5 is the center and 1 is the right/bottom edge. x/y place that anchor, not
       // necessarily the object's corner.
       objects.push(this.add.text(labelX, rowY(index), label, {
-        fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body36'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#e2e8f0'
+        fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx('body36'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff1d2'
       }).setOrigin(0, 0.5).setDepth(depth + 2));
     };
 
@@ -148,12 +155,18 @@ export default class TitleScene extends Phaser.Scene {
       // edge, 0.5 is the center and 1 is the right/bottom edge. x/y place that anchor, not
       // necessarily the object's corner.
       const caption = this.add.text(x, y, label, {
-        fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body32'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff1d2'
+        fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx('body32'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff1d2'
       }).setOrigin(0.5).setDepth(depth + 3);
 
       // on registers a callback for later events; it does not call that callback now.
       // Long-lived emitters need matching listener cleanup.
-      button.on('pointerdown', action);
+      if (caption.width > controlWidth - 28) caption.setScale((controlWidth - 28) / caption.width);
+      bindButtonPress(this, button, [caption], action);
+      const cancelDrag = pointer => {
+        if (pointer.isDown && Math.hypot(pointer.x - pointer.downX, pointer.y - pointer.downY) > 24) button.emit('pointerout');
+      };
+      this.input.on('pointermove', cancelDrag);
+      button.once('destroy', () => this.input.off('pointermove', cancelDrag));
       objects.push(button, caption);
       return { button, caption };
     };
@@ -238,7 +251,7 @@ export default class TitleScene extends Phaser.Scene {
           HapticsService.confirm();
           GameState.gold += amount;
           saveProfile();
-          this.currencyText.setText(`Gold: ${GameState.gold}`);
+          refreshRegionMapGold(this);
           this.showToast(`Added ${amount} Gold.`);
         });
       }
@@ -264,7 +277,7 @@ export default class TitleScene extends Phaser.Scene {
         addButton(firstX + index * 150, rowY(5), String(level), 0, 0, () => {
           HapticsService.confirm();
           const result = applyDevelopmentBoost(level);
-          this.currencyText.setText(`Gold: ${GameState.gold}`);
+          refreshRegionMapGold(this);
           this.mapAccessDirty = true;
           this.showToast(result.message);
         }, '#ffffff', 130);

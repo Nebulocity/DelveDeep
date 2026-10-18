@@ -3,7 +3,7 @@ name: Deploy game to GitHub Pages
 on:
   push:
     branches:
-      - 0.1.10
+      - 0.1.11
   workflow_dispatch:
 
 permissions:
@@ -15,6 +15,7 @@ concurrency:
 
 jobs:
   build:
+    if: github.ref == 'refs/heads/0.1.11'
     runs-on: ubuntu-latest
 
     steps:
@@ -42,6 +43,7 @@ jobs:
           path: dist
 
   deploy:
+    if: github.ref == 'refs/heads/0.1.11'
     needs: build
     runs-on: ubuntu-latest
 

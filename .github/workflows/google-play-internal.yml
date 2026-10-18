@@ -1,0 +1,142 @@
+name: Google Play internal release
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Build an artifact or publish to existing internal testers
+        required: true
+        default: Build only
+        type: choice
+        options:
+          - Build only
+          - Publish internal
+      release_notes:
+        description: English release notes (required for publishing, at most 500 characters)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+# All internal releases share the same Play package and version-code sequence.
+concurrency:
+  group: google-play-internal
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment: google-play-internal
+    defaults:
+      run:
+        shell: bash
+        working-directory: source
+    env:
+      SOURCE_BRANCH: main
+      RELEASE_MODE: ${{ inputs.mode }}
+      RELEASE_NOTES: ${{ inputs.release_notes }}
+      PLAY_VERSION_CODE_BASE: ${{ vars.PLAY_VERSION_CODE_BASE }}
+      PLAY_INTERNAL_TRACK: ${{ vars.PLAY_INTERNAL_TRACK }}
+
+    steps:
+      # Keep release tooling separate from the branch being packaged.
+      - name: Checkout release tooling
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: automation
+          persist-credentials: false
+
+      - name: Checkout main release commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: source
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: source/package-lock.json
+
+      - name: Prepare release metadata
+        id: metadata
+        run: node ../automation/.github/play-release.mjs prepare
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android API 36
+        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+
+      - name: Install game dependencies
+        run: npm ci
+
+      - name: Restore upload signing key
+        env:
+          DELVE_UPLOAD_KEYSTORE_BASE64: ${{ secrets.DELVE_UPLOAD_KEYSTORE_BASE64 }}
+        run: node ../automation/.github/play-release.mjs signing
+
+      - name: Check signing and build release bundle
+        env:
+          DELVE_UPLOAD_STORE_PASSWORD: ${{ secrets.DELVE_UPLOAD_STORE_PASSWORD }}
+          DELVE_UPLOAD_KEY_ALIAS: ${{ secrets.DELVE_UPLOAD_KEY_ALIAS }}
+          DELVE_UPLOAD_KEY_PASSWORD: ${{ secrets.DELVE_UPLOAD_KEY_PASSWORD }}
+        run: |
+          bash android/gradlew -p android --no-daemon -PAPP_VERSION_CODE="$APP_VERSION_CODE" :app:checkReleaseSigning
+          npm run build
+          npx cap sync android
+          bash android/gradlew -p android --no-daemon -PAPP_VERSION_CODE="$APP_VERSION_CODE" :app:bundleRelease
+
+      - name: Save signed bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: DelveDeep-${{ steps.metadata.outputs.version }}-${{ steps.metadata.outputs.code }}-${{ steps.metadata.outputs.commit }}
+          path: source/android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Check Google access and current internal version
+        if: inputs.mode == 'Publish internal'
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: node ../automation/.github/play-release.mjs play-preflight
+
+      - name: Publish to internal testing
+        id: publish
+        if: inputs.mode == 'Publish internal'
+        # upload-google-play v1, pinned to an immutable revision.
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.waywardkobold.app
+          releaseFiles: source/android/app/build/outputs/bundle/release/app-release.aab
+          tracks: ${{ vars.PLAY_INTERNAL_TRACK }}
+          status: completed
+          releaseName: ${{ steps.metadata.outputs.version }} (${{ steps.metadata.outputs.code }})
+          whatsNewDirectory: ${{ runner.temp }}/delve-play-notes
+          changesNotSentForReview: false
+
+      - name: Remove temporary signing key and release notes
+        if: always()
+        working-directory: automation
+        run: node .github/play-release.mjs cleanup
+
+      - name: Write release summary
+        if: always()
+        working-directory: automation
+        env:
+          RELEASE_JOB_STATUS: ${{ job.status }}
+          PUBLISH_OUTCOME: ${{ steps.publish.outcome }}
+        run: node .github/play-release.mjs summary

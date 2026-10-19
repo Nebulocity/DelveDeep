@@ -182,7 +182,8 @@ export default class CombatMovement {
       unit,
       clampedPoint.x,
       clampedPoint.y,
-      this.config.terrainFootRadius
+      this.config.terrainFootRadius,
+      edgePadding
     ) ?? clampedPoint;
   }
 
@@ -196,7 +197,8 @@ export default class CombatMovement {
       unit,
       unit.arenaX,
       unit.arenaY,
-      this.config.terrainFootRadius
+      this.config.terrainFootRadius,
+      this.config.edgePadding
     ) ?? this.scene.battlefield.clampPoint(unit.arenaX, unit.arenaY, this.config.edgePadding, this.config.edgePadding);
 
     // Placement repair runs only on spawn, before this actor starts combat. Never
@@ -344,15 +346,15 @@ export default class CombatMovement {
     return (first.bodyRadius ?? 0) + (second.bodyRadius ?? 0);
   }
 
-  // Forced displacement can leave feet legal but the center inside the larger edge
-  // margin. Allow voluntary steps back out of that margin, never through actual terrain.
+  // Forced displacement can leave legal feet with the center outside the walking
+  // boundary. Allow gradual steps toward a legal center, never through blocked feet.
   walkingFloorBlock(unit, point) {
     const blocked = this.rushFloorBlock(unit, point);
     if (!blocked || blocked.reason !== 'floor_edge') return blocked;
     const start = { x: unit.arenaX, y: unit.arenaY };
     if (this.rushFloorBlock(unit, start)?.reason !== 'floor_edge'
-      || !this.scene.battlefield.containsArenaPoint(start.x, start.y)
-      || !this.scene.battlefield.containsArenaPoint(point.x, point.y)
+      || (this.scene.battlefield.containsArenaPoint(start.x, start.y)
+        && !this.scene.battlefield.containsArenaPoint(point.x, point.y))
       || this.scene.terrain?.isUnitBlocked(unit, start.x, start.y, this.config.terrainFootRadius)
       || this.scene.terrain?.isUnitBlocked(unit, point.x, point.y, this.config.terrainFootRadius)) return blocked;
     const interior = this.getSafeArenaPoint(start.x, start.y, unit);

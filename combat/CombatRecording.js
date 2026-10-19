@@ -397,8 +397,11 @@ export async function exportCombatRecording(id = current?.id) {
   return delivered && !archiveReadFailed;
 }
 
-export async function showCombatArchives(onCleared = () => {}) {
+export async function showCombatArchives(onCleared = () => {}, scene = null,
+  report = event => scene?.game?.uiAudio?.request(event)) {
   await combatRecordingReady;
+  report('dialogOpen');
+  const runAction = action => scene?.game?.uiAudio ? scene.game.uiAudio.run(action) : action(() => {});
   const dialog = document.createElement('dialog');
   dialog.className = 'map-dialog combat-recordings-dialog';
   dialog.setAttribute('aria-labelledby', 'combat-recordings-title');
@@ -406,26 +409,33 @@ export async function showCombatArchives(onCleared = () => {}) {
   const title = document.createElement('h2'); title.textContent = 'Combat recordings';
   title.id = 'combat-recordings-title';
   const closeHeader = document.createElement('button'); closeHeader.textContent = 'Close';
-  closeHeader.onclick = () => dialog.close();
+  closeHeader.onclick = () => { scene?.game?.uiAudio?.request('dialogClose'); dialog.close(); };
+  dialog.addEventListener('cancel', () => scene?.game?.uiAudio?.request('dialogClose'));
   header.append(title, closeHeader); dialog.append(header);
   const note = document.createElement('p');
   note.textContent = 'Export logs to keep them, or Clear All Logs to discard every recording and stop logging. Player saves and settings are kept.';
   dialog.append(note);
   const add = (label, action) => {
     const button = document.createElement('button'); button.textContent = label;
-    button.onclick = async () => { button.disabled = true; try { await action(button); }
-      catch (error) { storageWarning('archive-operation', `Combat archive operation failed. ${error?.message ?? 'Try exporting again.'} Your recording remains available in the app.`); }
-      finally { if (button.isConnected) button.disabled = false; } };
+    button.onclick = () => runAction(async outcome => {
+      button.disabled = true;
+      try { await action(button, outcome); }
+      catch (error) {
+        outcome('failure');
+        storageWarning('archive-operation', `Combat archive operation failed. ${error?.message ?? 'Try exporting again.'} Your recording remains available in the app.`);
+      }
+      finally { if (button.isConnected) button.disabled = false; }
+    });
     dialog.append(button); return button;
   };
-  const clearButton = add('Clear All Logs', async () => {
+  const clearButton = add('Clear All Logs', async (_button, outcome) => {
     // Disable the old archive controls while clearing, then replace their stale rows.
     const buttons = [...dialog.querySelectorAll('button')];
     buttons.forEach(button => { button.disabled = true; });
     if (await clearAllCombatLogs()) {
       onCleared();
       dialog.close();
-      await showCombatArchives(onCleared);
+      await showCombatArchives(onCleared, scene, outcome);
     } else buttons.forEach(button => { button.disabled = false; });
   });
   clearButton.className = 'map-dialog-danger';
@@ -476,7 +486,7 @@ export async function showCombatArchives(onCleared = () => {}) {
     }
   }
   if (!sessions.size && dialog.querySelectorAll('p').length === 1) { const empty = document.createElement('p'); empty.textContent = 'No stored combat recordings.'; dialog.append(empty); }
-  add('Close', () => dialog.close()); dialog.onclose = () => dialog.remove();
+  add('Close', (_button, outcome) => { outcome('dialogClose'); dialog.close(); }); dialog.onclose = () => dialog.remove();
   document.body.append(dialog); dialog.showModal();
 }
 

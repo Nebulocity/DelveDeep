@@ -1,13 +1,8 @@
-// Garrick uses the rebuilt dragon-wing Gladiator artwork. The roster ID links
+// Garrick uses the compact veteran knight artwork. The roster ID links
 // his party choices, equipment and character sheets.
 import layout from '../assets/characters/garrick/sheets/layout.json' with { type: 'json' };
 
 const states = ['idle', 'walk', 'attack', 'block', 'hit', 'death', 'intervene'];
-const facing = {
-  south: 'south-east', 'south-east': 'south-east', east: 'south-east',
-  'south-west': 'south-west', west: 'south-west', north: 'north-east',
-  'north-east': 'north-east', 'north-west': 'north-west'
-};
 
 // These URLs point only to finished PNGs. Vite bundles them without PixelLab or any
 // authoring tools. Each 256-pixel cell contains one complete transparent drawing.
@@ -34,10 +29,8 @@ for (const state of states) {
     }))
   }]));
 
-  // Reuse authored diagonal poses for the other movement headings. Never mirror the
-  // drawing, because that would switch his sword and shield between hands.
-  clips[state] = Object.fromEntries(Object.entries(facing).map(([heading, direction]) =>
-    [heading, authored[direction]]));
+  // Every compass heading has its own artwork, preserving the sword and shield hands.
+  clips[state] = authored;
 }
 
 // Death plays once and then holds its last pose. The shared combat clock controls

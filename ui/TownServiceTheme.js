@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { UI_FONT_SIZES, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import { bindButtonPress } from './ButtonPress.js';
 import HapticsService from '../services/HapticsService.js';
+import { showFeatureToast } from './FeatureToast.js';
 
 export const SERVICE_STYLE = Object.freeze({ text: '#fff1d2', muted: '#c6bdac', gold: 0xd3a750, bright: 0xffdb86 });
 export const SERVICE_ICONS = Object.freeze({
@@ -117,19 +118,24 @@ export function serviceButton(scene, x, y, width, height, label, onTap, options 
   const visuals = [face, caption];
   if (icon) visuals.push(serviceIcon(scene, icon, x - width / 2 + 42, y, 58).setDepth(depth + 2));
   const hit = scene.add.rectangle(x, y, width - 4, height - 4, 0, 0).setDepth(depth + 1).setName(name ?? label);
-  if (enabled) {
-    hit.setInteractive({ useHandCursor: true });
-    hit.pressVisuals = visuals;
-    bindButtonPress(scene, hit, [], () => {
-      if (options.haptic !== false) HapticsService.tap();
-      onTap?.();
-    });
-    hit.on('pointerover', () => face.setAlpha(0.86)).on('pointerout', () => face.setAlpha(1));
-    const cancelDrag = pointer => {
-      if (pointer.isDown && Math.hypot(pointer.x - pointer.downX, pointer.y - pointer.downY) > 24) hit.emit('pointerout');
-    };
-    scene.input.on('pointermove', cancelDrag);
-    hit.once('destroy', () => scene.input.off('pointermove', cancelDrag));
-  }
+  hit.setInteractive({ useHandCursor: true });
+  hit.pressVisuals = visuals;
+  hit.uiSound = enabled ? options.sound ?? 'click' : 'failure';
+  bindButtonPress(scene, hit, [], () => {
+    if (!enabled) {
+      HapticsService.tap();
+      const reason = typeof options.disabledReason === 'function' ? options.disabledReason() : options.disabledReason;
+      showFeatureToast(scene, reason || `${label} is currently unavailable.`, { centered: true });
+      return;
+    }
+    if (options.haptic !== false) HapticsService.tap();
+    return onTap?.();
+  });
+  if (enabled) hit.on('pointerover', () => face.setAlpha(0.86)).on('pointerout', () => face.setAlpha(1));
+  const cancelDrag = pointer => {
+    if (pointer.isDown && Math.hypot(pointer.x - pointer.downX, pointer.y - pointer.downY) > 24) hit.emit('pointerout');
+  };
+  scene.input.on('pointermove', cancelDrag);
+  hit.once('destroy', () => scene.input.off('pointermove', cancelDrag));
   return { target: hit, face, caption, visuals };
 }

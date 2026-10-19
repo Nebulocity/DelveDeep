@@ -3,12 +3,13 @@ import { WORLD_WIDTH, WORLD_HEIGHT } from '../data/illustratedWorldMap.js';
 
 // Draw small cosmetic overlays over the still illustration. One shared Graphics object
 // keeps the object count low and sits below labels, the party and all touch targets.
-export function createWorldMapAmbience(scene) {
+export function createWorldMapAmbience(scene, { smoke = true, portal = true, excludeFires = [] } = {}) {
   const graphic = scene.add.graphics().setDepth(1);
   graphic.name = 'world-map-ambience';
   graphic.setScale(WORLD_WIDTH / art.width, WORLD_HEIGHT / art.height);
   let elapsed = 0;
   let lastFrame = -1;
+  const fires = art.fires.filter(([x, y]) => !excludeFires.some(([px, py]) => px === x && py === y));
 
   // Independent sine waves make each light flutter without consuming gameplay random
   // numbers. Seconds and source index determine its brightness, rather than saved state.
@@ -53,7 +54,7 @@ export function createWorldMapAmbience(scene) {
     lastFrame = frame;
     graphic.clear();
 
-    art.smoke.forEach(([x, y], source) => {
+    if (smoke) art.smoke.forEach(([x, y], source) => {
       for (let puff = 0; puff < 6; puff += 1) {
         const progress = (elapsed * 0.13 + puff / 6 + source * 0.21) % 1;
         const drift = progress * 14 + Math.sin(elapsed * 0.6 + puff) * progress * 5;
@@ -63,7 +64,7 @@ export function createWorldMapAmbience(scene) {
       }
     });
 
-    art.fires.forEach(([x, y, size], index) => {
+    fires.forEach(([x, y, size], index) => {
       flame(x, y, size, index);
       const rise = (elapsed * 0.45 + index * 0.31) % 1;
       graphic.fillStyle(0xffce76, Math.sin(rise * Math.PI) * 0.65);
@@ -97,6 +98,16 @@ export function createWorldMapAmbience(scene) {
       graphic.fillEllipse(x, y, 12, 20);
     });
 
+    if (portal) drawPortal();
+
+    art.water.forEach((points, source) => {
+      for (let index = 0; index < 9; index += 1) {
+        waterHighlight(points, (elapsed * 0.12 + index / 9 + source * 0.17) % 1, index);
+      }
+    });
+  }
+
+  function drawPortal() {
     const portal = art.portal;
 
     // Elliptical spirals follow the upright portal opening. Broken strokes retain the
@@ -122,12 +133,6 @@ export function createWorldMapAmbience(scene) {
       graphic.fillStyle(0xc58aff, 0.4 + Math.sin(elapsed * 2 + index) * 0.2);
       graphic.fillRect(x + Math.sin(elapsed + index) * 6, y - 12, 1, 2);
     }
-
-    art.water.forEach((points, source) => {
-      for (let index = 0; index < 9; index += 1) {
-        waterHighlight(points, (elapsed * 0.12 + index / 9 + source * 0.17) % 1, index);
-      }
-    });
   }
 
   update(0, 0);

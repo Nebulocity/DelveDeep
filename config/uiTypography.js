@@ -65,6 +65,7 @@ export const UI_FONT_SIZES = Object.freeze({
   delveDescription: 36, delveInfoHeading: 36, delveInfoLabel: 32,
   delveInfoDifficulty: 56, delveInfoBody: 34, delveInfoNext: 38,
   delveHint: 32, partyCount: 35,
+  bestiaryLabel: 28, bestiaryName: 30, bestiaryBossName: 36,
   partyClass: 31, partyLevel: 29, partyHint: 32,
   overviewName: 40, overviewDetails: 31, overviewTactic: 38,
   overviewHint: 32, battleWave: 35, battleResource: 30

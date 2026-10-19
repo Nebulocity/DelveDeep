@@ -17,7 +17,8 @@ export default class HeroesScene extends TownFeatureScene {
 
   render() {
     const bounds = this.frame('Heroes', 'heroes', { hint: 'Select an adventurer to view progression and current statistics.' });
-    characterSelector(this, { ...bounds, width: 440 }, () => { this.statsOffset = 0; this.render(); });
+    characterSelector(this, { ...bounds, width: 440 }, () => { this.statsOffset = 0; this.render(); },
+      { roleOrder: ['Tank', 'Healer', 'Melee DPS', 'Ranged DPS'] });
     const hero = selectedCharacter();
     if (!hero) return;
     const identity = { x: 520, y: bounds.y, width: 540, height: bounds.height };
@@ -25,7 +26,7 @@ export default class HeroesScene extends TownFeatureScene {
     featurePanel(this, identity);
     featurePanel(this, detail);
     serviceText(this, 790, bounds.y + 50, hero.name, 'heading48', { align: 'center', wordWrap: { width: 430 } }).setOrigin(0.5);
-    hallPortrait(this, hero, 790, bounds.y + 220, 260);
+    hallPortrait(this, hero, 790, bounds.y + 220, 260, 'townDetails');
     serviceText(this, 790, bounds.y + 402, `${hero.className}\n${hero.role}`, 'body34', {
       align: 'center', wordWrap: { width: 430 }
     }).setOrigin(0.5);

@@ -16,10 +16,13 @@ export function selectCharacter(id) {
   if (GameState.roster.some(hero => hero.id === id)) selectedId = id;
 }
 
-export function characterSelector(scene, bounds, onSelect) {
+export function characterSelector(scene, bounds, onSelect, { roleOrder } = {}) {
   featurePanel(scene, bounds);
   serviceText(scene, bounds.x + 28, bounds.y + 30, 'Adventurers', 'heading38');
-  const entries = [...GameState.roster].sort((a, b) => a.role.localeCompare(b.role) || a.name.localeCompare(b.name));
+  const entries = [...GameState.roster].sort((a, b) => (roleOrder
+    ? (roleOrder.indexOf(a.role) < 0 ? roleOrder.length : roleOrder.indexOf(a.role))
+      - (roleOrder.indexOf(b.role) < 0 ? roleOrder.length : roleOrder.indexOf(b.role))
+    : a.role.localeCompare(b.role)) || a.name.localeCompare(b.name));
   return featureList(scene, { x: bounds.x + 22, y: bounds.y + 90, width: bounds.width - 66, height: bounds.height - 122 }, entries,
     (hero, x, y, width) => {
       serviceCard(scene, x + width / 2, y + 80, width, 154, { selected: hero.id === selectedCharacter()?.id });

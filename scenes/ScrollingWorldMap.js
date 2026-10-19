@@ -9,6 +9,7 @@ import { REGION_RAIL_WIDTH, MAP_HEADER_HEIGHT, MAP_FOOTER_HEIGHT, createRegionLo
 import GameState from '../game/GameState.js';
 import garrickLayout from '../assets/characters/garrick/sheets/layout.json' with { type: 'json' };
 import { CHARACTER_SPRITES } from '../data/characterSprites.js';
+import { applyCharacterPose, characterDisplayMetrics } from '../ui/CharacterSpriteDisplay.js';
 import { resolveWorldMapCharacter } from '../game/WorldMapCharacter.js';
 import delves from '../data/delves.js';
 import { saveProfile } from '../game/GameStorage.js';
@@ -22,6 +23,7 @@ import { everdeepUnlocked, settleEverdeep } from '../game/Everdeep.js';
 import { REGIONAL_MAPS } from '../data/regionalMaps.js';
 import { RegionalMapRenderer } from '../ui/RegionalMapRenderer.js';
 import { UI_SAFE_RIGHT } from '../ui/Layout.js';
+import { playUiSound } from '../services/UiAudioService.js';
 
 // Object.fromEntries turns [key, value] pairs back into an object. A later pair with the
 // same key replaces the earlier value. map builds one output entry for each input entry,
@@ -147,12 +149,37 @@ function createParty(scene) {
   }
 
   scene.partyFacing = 'south-east';
+  refreshPartyCharacter(scene);
+
+  // Phaser changes textures per frame; retain each authored foot anchor as it does.
+  scene.party.on('animationupdate', (_animation, animationFrame) => {
+    const clip = scene.mapCharacterDefinition?.clips[scene.partyAnimationState]?.[scene.partyAnimationFacing];
+    const pose = clip?.frames[animationFrame.index - 1];
+    if (pose) applyCharacterPose(scene.party, pose);
+  });
+  playPartyAnimation(scene, savedEdge ? 'walk' : 'idle');
+  const changed = () => {
+    refreshPartyCharacter(scene);
+    playPartyAnimation(scene, scene.activeEdge && scene.edgeTarget ? 'walk' : 'idle');
+  };
+  scene.events.on('world-map-character-changed', changed);
+  scene.events.once('shutdown', () => scene.events.off('world-map-character-changed', changed));
+}
+
+// Replace only the party's visual definition. Road position, facing, route and
+// camera follow stay on the same sprite when Settings changes the representative.
+function refreshPartyCharacter(scene) {
+  scene.party.stop();
   const hero = resolveWorldMapCharacter();
   scene.mapCharacterDefinition = CHARACTER_SPRITES[hero?.id] ?? null;
+  scene.mapCharacterMetrics = null;
+  scene.partyAnimationState = null;
+  scene.partyAnimationFacing = null;
   scene.mapCharacterAnimationPrefix = scene.mapCharacterDefinition ? `world-character-${hero.id}` : 'world-party';
   if (scene.mapCharacterDefinition) {
     for (const state of ['idle', 'walk']) {
       for (const [facing, clip] of Object.entries(scene.mapCharacterDefinition.clips[state])) {
+        for (const pose of clip.frames) scene.textures.get(pose.key).setFilter(1);
         const key = `${scene.mapCharacterAnimationPrefix}-${state}-${facing}`;
         if (!scene.anims.exists(key)) scene.anims.create({ key,
           frames: clip.frames.map(frame => ({ key: frame.key, frame: frame.frame })),
@@ -160,22 +187,25 @@ function createParty(scene) {
       }
     }
   }
-  playPartyAnimation(scene, savedEdge ? 'walk' : 'idle');
 }
 
-// Keep the existing map size and foot position while using each adventurer's anchors.
+// Use one stable body scale for idle and travel while preserving authored foot anchors.
 function playPartyAnimation(scene, state) {
   const clips = scene.mapCharacterDefinition?.clips[state];
   const facing = clips && !clips[scene.partyFacing] ? 'south' : scene.partyFacing;
   const frame = clips?.[facing]?.frames[0];
+  const changed = scene.partyAnimationState !== state || scene.partyAnimationFacing !== facing;
+  scene.partyAnimationState = state;
+  scene.partyAnimationFacing = facing;
   scene.party.play(`${scene.mapCharacterAnimationPrefix}-${state}-${facing}`, true);
-  if (frame) scene.party.setOrigin(frame.originX ?? 0.5, frame.originY ?? 1).setFlipX(frame.flipX === true);
+  if (frame && changed) applyCharacterPose(scene.party, frame);
 
-  // Native drawing height can differ between sheet sets. Keep the traveling
-  // character's visible size steady when its art supplies a size adjustment.
   const definition = scene.mapCharacterDefinition ?? CHARACTER_SPRITES.garrick;
-  const size = 271.5 * (definition.worldMapScale ?? 1);
-  scene.party.setDisplaySize(size, size);
+  const source = scene.mapCharacterDefinition ? definition.clips.idle.south : {
+    ...definition.clips.idle['south-east'].frames[0], key: 'world-party-idle', frame: 0
+  };
+  if (!scene.mapCharacterMetrics) scene.mapCharacterMetrics = characterDisplayMetrics(scene, definition, 'worldMap', { source });
+  if (scene.mapCharacterMetrics) scene.party.setScale(scene.mapCharacterMetrics.scale);
 }
 
 // Refresh visible world destinations from their authored nodes and current saved access.
@@ -198,7 +228,7 @@ function renderPois(scene) {
     const nameplate = scene.add.text(0, 0, poi.name, {
       fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx('mapLabel'), fontStyle: UI_FONT_WEIGHTS.bold, color: unlocked ? '#fff1d1' : '#bcc4bb',
       stroke: '#111318', strokeThickness: 2, wordWrap: { width: 360 }, align: 'center'
-    }).setOrigin(0.5, 0).setDepth(170).setInteractive({ useHandCursor: true });
+    }).setOrigin(0.5, 0).setDepth(170);
     const status = scene.add.text(0, nameplate.height + 8, 'Current location', {
       fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body34'), color: '#dcc38b'
     }).setOrigin(0.5, 0).setDepth(170);
@@ -220,11 +250,44 @@ function renderPois(scene) {
     connector.lineBetween(x, y + h - 14, point.x, point.y - 100);
     connector.fillStyle(unlocked ? color : 0x807b70, 0.9).fillCircle(point.x, point.y - 100, 8);
     scene.mapLabels.push({ poi, panel, nameplate, status, plaque, connector, x, y, w, h, unlocked });
-    const hit = scene.add.circle(point.x, point.y - 100, 145, 0xffffff, 0.001).setDepth(900);
+
+    // Landmark hit areas sit below plaques so their generous radius cannot steal
+    // input from a visible card. Fixed controls and modal blockers remain above both.
+    const hit = scene.add.circle(point.x, point.y - 100, 145, 0xffffff, 0.001).setDepth(168);
     const details = () => locationDetails(poi);
     bindSelectionDetails(scene, hit, details, () => inspectDestination(scene, poi), undefined, { allowSceneInput: true });
 
-    bindSelectionDetails(scene, nameplate, details, () => inspectDestination(scene, poi), undefined, { allowSceneInput: true });
+    // The existing rectangle covers the complete painted card in container space.
+    // One binding owns title, status, border and blank-space taps at every camera zoom.
+    bindSelectionDetails(scene, panel, details, () => inspectDestination(scene, poi), undefined, { allowSceneInput: true });
+    let hovered = false;
+    let pressed = null;
+    const feedback = () => plaque.setAlpha(pressed !== null ? 0.82 : hovered ? 0.94 : 1);
+    const reset = () => { hovered = false; pressed = null; feedback(); };
+    const release = pointer => {
+      if (pressed === pointer.id) { pressed = null; feedback(); }
+    };
+    const move = pointer => {
+      if (pressed === pointer.id && Math.hypot(pointer.x - pointer.downX, pointer.y - pointer.downY) > 24) reset();
+    };
+    panel.on('pointerover', pointer => { hovered = !pointer.wasTouch; feedback(); });
+    panel.on('pointerdown', pointer => { pressed = pointer.id; feedback(); });
+    panel.on('pointerout', reset);
+    scene.input.on('pointerup', release);
+    scene.input.on('pointerupoutside', release);
+    scene.input.on('pointermove', move);
+    scene.input.on('gameout', reset);
+    scene.game.events.on('blur', reset);
+    const cleanup = () => {
+      scene.input.off('pointerup', release);
+      scene.input.off('pointerupoutside', release);
+      scene.input.off('pointermove', move);
+      scene.input.off('gameout', reset);
+      scene.game.events.off('blur', reset);
+      scene.events.off('shutdown', cleanup);
+    };
+    panel.once('destroy', cleanup);
+    scene.events.once('shutdown', cleanup);
   }
   refreshMapLabels(scene);
 }
@@ -240,7 +303,9 @@ function refreshMapLabels(scene) {
       && y - 14 >= view.y + inset && y + h - 14 <= view.bottom - inset;
     plaque.setVisible(visible);
     connector.setVisible(visible);
-    nameplate.input.enabled = visible;
+    const interactive = visible && !scene.selectionDetailsClose;
+    if (!interactive && panel.input.enabled) panel.emit('pointerout');
+    panel.input.enabled = interactive;
     const here = !scene.activeEdge && scene.partyNode === poi.node;
     const selected = scene.selectedMapPoi?.id === poi.id;
     const label = !unlocked ? 'Locked' : here ? 'Current location' : scene.destination?.id === poi.id ? 'Traveling here'
@@ -326,6 +391,7 @@ export function selectPoi(scene, poi) {
   }
   HapticsService.tap();
   if (!available(poi)) {
+    playUiSound(scene, 'failure');
 
     // find returns the first matching entry, or undefined when none matches. Check for
     // that missing result before using its fields.
@@ -359,6 +425,7 @@ export function selectPoi(scene, poi) {
     : routeBetween(scene.partyNode, poi.node, cleared);
 
   if (!path) {
+    playUiSound(scene, 'failure');
     scene.showToast('Clear the preceding Delve bosses to open the road.', 'map');
     return;
   }
@@ -450,7 +517,7 @@ export function createScrollingWorldMap(scene) {
   const { width, height } = scene.scale;
   scene.cameras.main.setBackgroundColor('#111318');
   drawWorld(scene);
-  scene.regionalMap.layers.environment.add(createWorldMapAmbience(scene));
+  scene.regionalMap.layers.environment.add(createWorldMapAmbience(scene, scene.regionalMap.definition.legacyAmbience));
   createParty(scene);
   renderPois(scene);
   const camera = scene.cameras.main;

@@ -9,10 +9,12 @@ import BackgroundProgress from './services/BackgroundProgress.js';
 import HapticsService from './services/HapticsService.js';
 import { settleEverdeep } from './game/Everdeep.js';
 import MusicService from './services/MusicService.js';
+import UiAudioService from './services/UiAudioService.js';
 
 void combatRecordingReady;
 const game = new Phaser.Game(gameConfig);
 game.music = new MusicService(game);
+game.uiAudio = new UiAudioService(game);
 
 // Expose the game to local UI inspection tools.
 if (import.meta.env.DEV) {
@@ -25,6 +27,7 @@ game.backgroundProgress = new BackgroundProgress(game, {
   onBackground: (background) => {
     HapticsService.background = background;
     game.music.setBackground(background);
+    game.uiAudio.setBackground(background);
   },
 
   // We handle on settle here, keeping this operation in one place for its callers.

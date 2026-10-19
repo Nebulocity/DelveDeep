@@ -5,9 +5,11 @@ import { categoryIcon, titleIcon, usableByIcons, abilityClasses } from './Identi
 
 import { GUILD, guildSurface, guildCrest, guildRule } from './GuildHallTheme.js';
 import { bindButtonPress } from './ButtonPress.js';
+import { playUiSound } from '../services/UiAudioService.js';
 import HapticsService from '../services/HapticsService.js';
 import GameState from '../game/GameState.js';
 import { CHARACTER_SPRITES } from '../data/characterSprites.js';
+import { displayCharacterPortrait } from './CharacterSpriteDisplay.js';
 import { UI_FONT_SIZES, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import { hallScroll } from './HallUI.js';
 
@@ -42,7 +44,7 @@ function button(scene, x, y, width, label, callback, depth) {
   hit.pressVisuals = [face];
   bindButtonPress(scene, hit, [caption], () => {
     HapticsService.tap();
-    callback();
+    return callback();
   });
   const move = (pointer) => {
 
@@ -152,9 +154,9 @@ export function showGuildDetails(scene, details) {
     const frame = CHARACTER_SPRITES[hero.id]?.portraitFrame ?? CHARACTER_SPRITES[hero.id]?.clips.idle.south.frames[0];
     guildSurface(scene, left + 235, top + 405, 290, 350, 'panel').setDepth(depth + 4);
 
-    // Registry artwork shares the roster's portrait correction, including Vaeloria.
-    const portraitSize = 256 * (CHARACTER_SPRITES[hero.id]?.portraitScale ?? 1);
-    if (frame && scene.textures.exists(frame.key)) scene.add.image(left + 235, top + 407, frame.key, frame.frame).setDisplaySize(portraitSize, portraitSize).setDepth(depth + 5);
+    if (frame && scene.textures.exists(frame.key)) displayCharacterPortrait(scene,
+      scene.add.image(left + 235, top + 407, frame.key, frame.frame),
+      CHARACTER_SPRITES[hero.id], frame, left + 235, top + 407, 256, 'guildRegistry').setDepth(depth + 5);
     const columnX = left + 970;
     const identity = text(scene, columnX, top + 237, `${hero.shortName ?? hero.className} · ${hero.role} · Level ${hero.level}`, UI_FONT_SIZES.body36, {
       wordWrap: { width: 970 }, align: 'center', fontStyle: UI_FONT_WEIGHTS.bold
@@ -219,7 +221,9 @@ export function showGuildDetails(scene, details) {
     bodyScroll.container.setName('guild-details-scroll');
   }
 
-  button(scene, x, top + height - 87, 380, 'CLOSE', modal.close, depth + 6);
+  button(scene, x, top + height - 87, 380, 'CLOSE', () => {
+    playUiSound(scene, 'dialogClose'); modal.close();
+  }, depth + 6);
   modal.finish(body, bodyScroll?.container);
   return modal.close;
 }
@@ -255,12 +259,13 @@ export function showGuildConfirmation(scene, { title, description, category, usa
     (owner, sx, sy, sw, sh, style) => guildSurface(owner, sx, sy, sw, sh, style).setDepth(depth + 5), () => false);
   scroll.container.setDepth(depth + 5);
   button(scene, x - width / 4, top + height - 87, width / 2 - 100, 'CANCEL', () => {
+    playUiSound(scene, 'dialogClose');
     modal.close();
     onCancel?.();
   }, depth + 6);
   button(scene, x + width / 4, top + height - 87, width / 2 - 100, confirmLabel, () => {
     modal.close();
-    onConfirm();
+    return onConfirm();
   }, depth + 6);
   modal.finish(scroll.container);
 

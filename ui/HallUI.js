@@ -6,6 +6,7 @@ import { bindSelectionDetails } from './SelectionDetails.js';
 import { bindButtonPress } from './ButtonPress.js';
 import { addCategoryIcon } from './CategoryIcons.js';
 import { CHARACTER_SPRITES } from '../data/characterSprites.js';
+import { displayCharacterPortrait } from './CharacterSpriteDisplay.js';
 
 import HapticsService from '../services/HapticsService.js';
 import { guildSurface } from './GuildHallTheme.js';
@@ -109,18 +110,14 @@ export function preloadHallPortraits(scene) {
 // Choose and crop the accepted sprite portrait while preserving its character identity.
 // scene is the Phaser screen that owns the objects, clock and input used here. hero is the
 // roster record, rather than the artwork that displays that character.
-export function hallPortrait(scene, hero, x, y, size) {
+export function hallPortrait(scene, hero, x, y, size, profile = 'townRoster') {
 
   // ?. only follows this link when the value exists; a missing optional value gives
   // undefined.
   const frame = CHARACTER_SPRITES[hero.id]?.portraitFrame ?? CHARACTER_SPRITES[hero.id]?.clips.idle.south.frames[0];
   if (!frame || !scene.textures.exists(frame.key)) return scene.add.circle(x, y, size / 3, hero.color);
-  scene.textures.get(frame.key).setFilter(1);
-
-
-  // Apply the same character-size correction used in party selection and combat.
-  const portraitSize = size * (CHARACTER_SPRITES[hero.id].portraitScale ?? 1);
-  return scene.add.image(x, y, frame.key, frame.frame).setDisplaySize(portraitSize, portraitSize).setFlipX(frame.flipX === true);
+  const image = scene.add.image(x, y, frame.key, frame.frame);
+  return displayCharacterPortrait(scene, image, CHARACTER_SPRITES[hero.id], frame, x, y, size, profile);
 }
 
 // Masks constrain drawing and hit tests; off-screen controls cannot receive taps.

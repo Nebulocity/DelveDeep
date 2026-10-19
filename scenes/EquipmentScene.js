@@ -44,8 +44,8 @@ export default class EquipmentScene extends TownFeatureScene {
       }, { name: `equipment-slot-${slot}`, visuals: [card] });
     });
     const current = equippedItem(hero, this.slot);
-    serviceButton(this, loadout.x + 280, b.bottom - 58, 490, 82, 'Unequip selected slot', () => this.commit(unequipItem(hero.id, this.slot)),
-      { enabled: Boolean(current), compact: true, slot: 'body30' });
+    serviceButton(this, loadout.x + 280, b.bottom - 58, 490, 82, 'Unequip selected slot', () => this.commit(unequipItem(hero.id, this.slot), 'equipment'),
+      { enabled: Boolean(current), disabledReason: 'This equipment slot is already empty.', compact: true, slot: 'body30' });
     serviceText(this, storage.x + 28, b.y + 28, 'Swap Equipment', 'heading38', { wordWrap: { width: 510 } });
     const entries = ownedEquipment().filter(item => item.slot === this.slot && canEquipItem(hero, item));
     featureList(this, { x: storage.x + 24, y: b.y + 108, width: storage.width - 76, height: b.height - 142 }, entries,
@@ -95,7 +95,8 @@ export default class EquipmentScene extends TownFeatureScene {
     const reason = same ? 'Already equipped.' : owner && owner.id !== hero.id ? `Unequip from ${owner.name} first.` : 'Direct item bonuses; character stats use the existing equipment rules.';
     serviceText(this, detail.x + detail.width / 2, b.bottom - 161, reason, 'body30', { align: 'center', wordWrap: { width: detail.width - 84 } }).setOrigin(0.5);
     serviceButton(this, detail.x + detail.width / 2, b.bottom - 66, detail.width - 80, 80, 'Equip this item',
-      () => this.commit(equipItem(hero.id, candidate.id)), { enabled: !same && (!owner || owner.id === hero.id) });
+      () => this.commit(equipItem(hero.id, candidate.id), 'equipment'),
+      { enabled: !same && (!owner || owner.id === hero.id), disabledReason: reason });
     serviceButton(this, detail.x + detail.width / 2, b.bottom - 250, detail.width - 80, 64, 'Full item details',
       () => showSelectionDetails(this, information), { compact: true, slot: 'body30' });
   }

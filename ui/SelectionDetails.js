@@ -1,3 +1,6 @@
+import { expeditionPanel as addStonePanel, expeditionButton as addStoneButton, isExpeditionScene } from './ExpeditionTheme.js';
+import { showExpeditionDetails } from './ExpeditionDetails.js';
+import { showDelveDetails } from './DelveDetails.js';
 import { classIcon, titleIcon } from '../ui/IdentityIcons.js';
 // Holding an inspectable object opens its details; a short valid release performs the
 // ordinary action. We track the pointer and cancellation paths so dragging or closing an
@@ -6,7 +9,7 @@ import { classIcon, titleIcon } from '../ui/IdentityIcons.js';
 import { delveDropNames } from '../game/DelveDrops.js';
 import HapticsService from '../services/HapticsService.js';
 import { addWoodenPanel, addWoodenNotice } from './WoodenPanel.js';
-import { addStonePanel, addStoneButton, addStoneOrnaments, stoneText, STONE } from './CarvedStone.js';
+import { addStoneOrnaments, stoneText, STONE } from './CarvedStone.js';
 import { preparationNotice } from './DelvePreparation.js';
 import { bindButtonPress } from './ButtonPress.js';
 import { addRegionPanel, addRegionButton, addRegionNotice, regionMessageBounds } from './RegionMapTheme.js';
@@ -21,8 +24,10 @@ import GameState from '../game/GameState.js';
 import { hallScroll } from './HallUI.js';
 import { showBattleCharacterDetails } from './BattleCharacterDetails.js';
 import { worldMapParty } from '../game/WorldMapCharacter.js';
+import { DESCRIPTION_ART_DISPLAY } from '../data/characterDisplayProfiles.js';
 import { chooseWorldMapCharacter } from './WorldMapCharacterSelection.js';
 import { serviceScrollSurface } from './TownServiceTheme.js';
+import { playUiSound, runUiAction } from '../services/UiAudioService.js';
 
 export const DETAILS_HINT = 'Long-press or hold-click a selection for details.';
 
@@ -147,8 +152,13 @@ export function delveDetails(delve) {
   // exists; a missing optional value gives undefined.
   return {
     title: delve.name,
+    delve,
+    sections: [
+      { title: 'DESCRIPTION', body: `${delve.subtitle}\n${delve.difficulty} · Starting level ${delve.recommendedLevel} · ${delve.rooms} waves` },
+      { title: 'PREPARATION & PROGRESSION', body: `${entryAdvice}${bossAdvice}`.trim() },
+      { title: 'POSSIBLE DROPS', body: delveDropNames(delve).map(name => `• ${name}`).join('\n') }
+    ],
     description: `${delve.subtitle}\n\n${delve.difficulty} | Starting level ${delve.recommendedLevel} | ${delve.rooms} waves${entryAdvice}${bossAdvice}\n\nPossible Drops:\n${delveDropNames(delve).map(name => `• ${name}`).join('\n')}`,
-    image: delve.visuals?.environment?.layers[0]?.key,
     align: 'left',
     titleAboveBody: true,
     panelWidth: 1600
@@ -157,6 +167,9 @@ export function delveDetails(delve) {
 
 // Modal details block underlying controls while gameplay and timers continue.
 export function showSelectionDetails(scene, details) {
+  playUiSound(scene, 'dialogOpen');
+  if (details.delve) return showDelveDetails(scene, details);
+  if (isExpeditionScene(scene) && details.sections) return showExpeditionDetails(scene, details);
   if (scene.scene?.key === 'BattleScene' && details.battleCharacter) {
     return showBattleCharacterDetails(scene, details.battleCharacter);
   }
@@ -242,7 +255,8 @@ export function showSelectionDetails(scene, details) {
       .setDepth(depth + 2)
     : null;
 
-  if (conceptImage) conceptImage.setScale(Math.min(270 / conceptImage.width, conceptHeight / conceptImage.height));
+  if (conceptImage) conceptImage.setScale(Math.min(270 / conceptImage.width, conceptHeight / conceptImage.height)
+    * DESCRIPTION_ART_DISPLAY.general.sizeMultiplier);
   const panelHit = town
     ? scene.add.rectangle(centerX, height / 2, panelWidth, panelHeight, 0x000000, 0)
       .setDepth(depth + 1).setInteractive()
@@ -253,6 +267,7 @@ export function showSelectionDetails(scene, details) {
   panelHit.on('pointerdown', (pointer, x, y, event) => event.stopPropagation());
   const dismiss = (pointer, x, y, event) => {
     event.stopPropagation();
+    playUiSound(scene, 'dialogClose');
     HapticsService.tap();
     close();
   };
@@ -277,6 +292,7 @@ export function showSelectionDetails(scene, details) {
   const closeX = hasMapSelection ? centerX + 305 : centerX;
   const regionClose = regionMap ? addRegionButton(scene, closeX, buttonY, 300, 88, 'CLOSE', close, { depth: depth + 3 }) : null;
   const button = regionClose?.panel ?? (stone ? addStoneButton : addWoodenPanel)(scene, closeX, buttonY, 300, 72, depth + 3).setInteractive({ useHandCursor: true });
+  button.uiSound = 'dialogClose';
   if (regionClose) objects.push(regionClose.text);
   if (hasMapSelection) {
     const party = details.mapCharacterParty ?? worldMapParty();
@@ -398,7 +414,9 @@ export function bindSelectionDetails(scene, target, getDetails, onTap, onDetails
     // undefined.
     const tap = press?.id === pointer.id && !press.held;
     cancel();
-    if (tap && (!scene.selectionDetailsClose || allowWhileModal)) taps.forEach((callback) => callback.apply(target, args));
+    if (tap && (!scene.selectionDetailsClose || allowWhileModal)) {
+      runUiAction(scene, () => taps.forEach(callback => callback.apply(target, args)));
+    }
   });
 
   target.on('pointerout', cancel);

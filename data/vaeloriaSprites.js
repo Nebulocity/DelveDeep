@@ -1,4 +1,4 @@
-import layout from '../assets/characters/elyra/sheets/layout.json' with { type: 'json' };
+import layout from '../assets/characters/vaeloria/sheets/layout.json' with { type: 'json' };
 
 const states = ['idle', 'walk', 'attack', 'block', 'hit', 'death'];
 const directions = layout.directions;
@@ -15,7 +15,7 @@ const facing = {
 const textures = states.map(state => ({
   character: 'elyra',
   key: `elyra-reference-v2-${state}`,
-  url: new URL(`../assets/characters/elyra/sheets/${state}.png`, import.meta.url).href
+  url: new URL(`../assets/characters/vaeloria/sheets/${state}.png`, import.meta.url).href
 }));
 const clips = {};
 

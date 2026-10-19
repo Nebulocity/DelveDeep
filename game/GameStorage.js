@@ -7,8 +7,10 @@
 import { compactCombatLog, initializeDiagnosticStorage, storageWarning, clearStorageWarning } from '../combat/DiagnosticStorage.js';
 import { rebuildCharacterStats } from './CharacterStats.js';
 import GameState from './GameState.js';
+import { COMBAT_PACE_OPTIONS } from '../config/combatSpeed.js';
 import { restoreEverdeep } from './EverdeepState.js';
 import { restoreEquipment } from './Equipment.js';
+import { learnInventoryRecipes } from './RecipeKnowledge.js';
 import { grantStartingEquipment } from './StartingEquipment.js';
 import { restoreAdventurerAbilities } from './AdventurerAbilities.js';
 import { CRAFTING_MATERIALS, CRAFTING_RECIPES, MATERIAL_ID_ALIASES } from '../data/items.js';
@@ -63,7 +65,14 @@ export function loadProfile(baseRoster) {
   // Older shop prices could leave fractional Gold. Preserve the nearest whole balance.
   GameState.gold = Number.isFinite(saved?.gold) ? Math.round(saved.gold) : 0;
   GameState.preferences = {
-    townNavigation: saved?.preferences?.townNavigation === 'side-rails' ? 'side-rails' : 'compact-bar'
+    combatPace: COMBAT_PACE_OPTIONS.some(option => option.id === saved?.preferences?.combatPace)
+      ? saved.preferences.combatPace : 'default',
+    delveRadialBehavior: ['clear', 'slowly-fade', 'sticky', 'memory'].includes(saved?.preferences?.delveRadialBehavior)
+      ? saved.preferences.delveRadialBehavior : 'slowly-fade',
+    townNavigation: saved?.preferences?.townNavigation === 'side-rails' ? 'side-rails' : 'compact-bar',
+    sfxMuted: saved?.preferences?.sfxMuted === true,
+    sfxVolume: Number.isFinite(saved?.preferences?.sfxVolume)
+      ? Math.max(0, Math.min(1, saved.preferences.sfxVolume)) : 0.7
   };
 
   // ?? uses the fallback only for null or undefined. A real zero or false stays intact. ?.
@@ -181,6 +190,7 @@ export function loadProfile(baseRoster) {
 
   restoreEquipment(saved?.inventory, savedRoster);
   grantStartingEquipment(savedRoster);
+  learnInventoryRecipes(GameState);
 
   // Discard saved party IDs that no longer exist in the current roster.
   GameState.lastPartyIds = GameState.lastPartyIds.filter((id) => GameState.roster.some((adventurer) => adventurer.id === id));

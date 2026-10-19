@@ -2,6 +2,7 @@ import { UI_FONT_SIZES, UI_FONT_FAMILIES } from '../config/uiTypography.js';
 import { serviceFrame, serviceCard } from './TownServiceTheme.js';
 import { bindButtonPress } from './ButtonPress.js';
 import HapticsService from '../services/HapticsService.js';
+import { showFeatureToast } from './FeatureToast.js';
 
 export function regionMessageBounds(scene, scope = 'ui') {
   const camera = scope === 'map' && scene.mapUiCamera ? scene.cameras.main : null;
@@ -68,7 +69,7 @@ export function setRegionPanelState(scene, panel, state = 'normal', alpha = 1) {
   art.setAlpha(alpha);
 }
 
-export function addRegionButton(scene, x, y, width, height, label, action, { depth = 1002, enabled = true, state = 'normal', icon, restrained = false, haptic = true } = {}) {
+export function addRegionButton(scene, x, y, width, height, label, action, { depth = 1002, enabled = true, disabledReason, state = 'normal', icon, restrained = false, haptic = true } = {}) {
   const panel = addRegionPanel(scene, x, y, width, height, depth, state, true,
     restrained || width < 240 ? 'control' : state === 'selected' ? 'selected' : 'option');
   const text = scene.add.text(x, y, label, {
@@ -85,9 +86,18 @@ export function addRegionButton(scene, x, y, width, height, label, action, { dep
     panel.pressVisuals.push(image);
     panel.once('destroy', () => image.destroy());
   }
-  if (enabled) {
+  {
     panel.setInteractive({ useHandCursor: true });
-    bindButtonPress(scene, panel, [text], () => { if (haptic) HapticsService.tap(); action(); });
+    panel.uiSound = enabled ? 'click' : 'failure';
+    bindButtonPress(scene, panel, [text], () => {
+      if (!enabled) {
+        HapticsService.tap();
+        showFeatureToast(scene, disabledReason || `${label} is currently unavailable.`, { centered: true });
+        return;
+      }
+      if (haptic) HapticsService.tap();
+      return action();
+    });
     const cancelDrag = pointer => {
       if (pointer.isDown && Math.hypot(pointer.x - pointer.downX, pointer.y - pointer.downY) > 24) panel.emit('pointerout');
     };

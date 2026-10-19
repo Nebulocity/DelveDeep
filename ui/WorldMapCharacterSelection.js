@@ -2,10 +2,12 @@ import { selectWorldMapCharacter } from '../game/WorldMapCharacter.js';
 import { saveProfile } from '../game/GameStorage.js';
 import { preparationNotice } from './DelvePreparation.js';
 import HapticsService from '../services/HapticsService.js';
+import { playUiSound } from '../services/UiAudioService.js';
 
 export function chooseWorldMapCharacter(scene, id, party) {
   const hero = selectWorldMapCharacter(id, party);
   if (!hero) return;
+  playUiSound(scene, 'success');
   saveProfile();
   HapticsService.tap();
   scene.events.emit('world-map-character-changed');

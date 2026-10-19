@@ -28,7 +28,7 @@ export function shopItemPresentation(scene, row, choice) {
   if (!equipment || row.description !== definition?.description) lines.push(row.detailsDescription ?? row.description);
   if (equipment?.usableBy?.length) lines.push(`Usable by: ${equipment.usableBy.join(', ')}`);
   lines.push(`Owned: ${count}${owner ? `\nEquipped by ${owner.name}` : ''}`);
-  const ingredients = recipe?.ingredients ?? (choice.id === 'inscribe' ? definition?.ingredients : null);
+  const ingredients = recipe?.ingredients ?? (choice.id === 'inscribe' ? ENCHANTMENT_BY_ID[itemId]?.ingredients : null);
   if (ingredients) {
     lines.push('Materials required (owned / required):');
     for (const [id, required] of Object.entries(ingredients)) {
@@ -38,10 +38,12 @@ export function shopItemPresentation(scene, row, choice) {
   let unavailable = '';
   if (!row.enabled) {
     if (recipe && ['craft', 'brew'].includes(choice.id)) unavailable = canCraft(recipe.id).message;
-    else if (choice.id === 'buy') unavailable = 'Not enough Gold.';
+    else if (choice.id === 'buy') unavailable = `You need ${definition?.price ?? 0} Gold. You have ${state.gold} Gold.`;
     else if (choice.id === 'inscribe') {
-      unavailable = row.action === 'LEARN' ? 'Buy this scroll to learn its inscription recipe.'
-        : state.gold < (definition?.craftingFee ?? 0) ? 'Not enough Gold for inscription.' : 'Missing required materials.';
+      const fee = ENCHANTMENT_BY_ID[itemId]?.craftingFee ?? 0;
+      const missing = Object.entries(ingredients ?? {}).filter(([id, required]) => (state.inventory.materials[id] ?? 0) < required);
+      unavailable = state.gold < fee ? `You need ${fee} Gold for inscription. You have ${state.gold} Gold.`
+        : `Need ${missing.map(([id, required]) => `${required - (state.inventory.materials[id] ?? 0)} ${getMaterialDefinition(id)?.name ?? id}`).join(', ')}.`;
     } else unavailable = 'This action is currently unavailable.';
   }
   const potion = row.category === 'potion' ? getPotionDefinition(itemId) : null;

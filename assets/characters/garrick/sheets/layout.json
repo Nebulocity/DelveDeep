@@ -4,45 +4,69 @@
   "frameHeight": 256,
   "directions": [
     "south-east",
+    "south",
     "south-west",
+    "west",
+    "north-west",
+    "north",
     "north-east",
-    "north-west"
+    "east"
   ],
   "anchors": {
     "south-east": {
       "originX": 0.5,
-      "originY": 0.80078125
+      "originY": 0.73046875
+    },
+    "south": {
+      "originX": 0.5,
+      "originY": 0.73046875
     },
     "south-west": {
       "originX": 0.5,
-      "originY": 0.80078125
+      "originY": 0.73046875
     },
-    "north-east": {
+    "west": {
       "originX": 0.5,
-      "originY": 0.79296875
+      "originY": 0.73046875
     },
     "north-west": {
       "originX": 0.5,
-      "originY": 0.79296875
+      "originY": 0.7265625
+    },
+    "north": {
+      "originX": 0.5,
+      "originY": 0.72265625
+    },
+    "north-east": {
+      "originX": 0.5,
+      "originY": 0.7265625
+    },
+    "east": {
+      "originX": 0.5,
+      "originY": 0.73046875
     }
   },
   "display": {
-    "nativeHeight": 152.0,
-    "scale": 1.0710526315789475,
-    "portraitScale": 1.4605263157894737,
-    "worldMapScale": 1.2171052631578947,
+    "nativeHeight": 102.5,
+    "scale": 1.5882926829268293,
+    "portraitScale": 2.1658536585365855,
+    "worldMapScale": 1.8048780487804879,
     "footY": 30
   },
   "states": {
     "idle": {
-      "columns": 16,
+      "columns": 9,
       "counts": {
-        "south-east": 16,
-        "south-west": 16,
-        "north-east": 16,
-        "north-west": 16
+        "south-east": 9,
+        "south": 9,
+        "south-west": 9,
+        "west": 9,
+        "north-west": 9,
+        "north": 9,
+        "north-east": 9,
+        "east": 9
       },
-      "frameMs": 100.0,
+      "frameMs": 177.77777777777777,
       "durationMs": 1600,
       "loop": true
     },
@@ -50,23 +74,31 @@
       "columns": 16,
       "counts": {
         "south-east": 16,
+        "south": 8,
         "south-west": 16,
+        "west": 16,
+        "north-west": 16,
+        "north": 8,
         "north-east": 16,
-        "north-west": 16
+        "east": 16
       },
       "frameMs": 50.0,
       "durationMs": 800,
       "loop": true
     },
     "attack": {
-      "columns": 25,
+      "columns": 17,
       "counts": {
-        "south-east": 25,
-        "south-west": 9,
-        "north-east": 9,
-        "north-west": 25
+        "south-east": 17,
+        "south": 17,
+        "south-west": 17,
+        "west": 17,
+        "north-west": 17,
+        "north": 17,
+        "north-east": 17,
+        "east": 17
       },
-      "frameMs": 32.4,
+      "frameMs": 47.64705882352941,
       "durationMs": 810,
       "loop": false
     },
@@ -74,35 +106,47 @@
       "columns": 13,
       "counts": {
         "south-east": 13,
+        "south": 13,
         "south-west": 13,
+        "west": 13,
+        "north-west": 13,
+        "north": 13,
         "north-east": 13,
-        "north-west": 13
+        "east": 13
       },
       "frameMs": 38.46153846153846,
       "durationMs": 500,
       "loop": false
     },
     "hit": {
-      "columns": 13,
+      "columns": 9,
       "counts": {
-        "south-east": 13,
-        "south-west": 13,
-        "north-east": 13,
-        "north-west": 13
+        "south-east": 9,
+        "south": 9,
+        "south-west": 9,
+        "west": 9,
+        "north-west": 9,
+        "north": 9,
+        "north-east": 9,
+        "east": 9
       },
-      "frameMs": 34.61538461538461,
+      "frameMs": 50.0,
       "durationMs": 450,
       "loop": false
     },
     "death": {
-      "columns": 25,
+      "columns": 21,
       "counts": {
-        "south-east": 25,
-        "south-west": 25,
-        "north-east": 25,
-        "north-west": 25
+        "south-east": 21,
+        "south": 21,
+        "south-west": 21,
+        "west": 21,
+        "north-west": 17,
+        "north": 17,
+        "north-east": 17,
+        "east": 21
       },
-      "frameMs": 57.8,
+      "frameMs": 68.80952380952381,
       "durationMs": 1445,
       "loop": false
     },
@@ -110,31 +154,17 @@
       "columns": 16,
       "counts": {
         "south-east": 16,
+        "south": 16,
         "south-west": 16,
+        "west": 16,
+        "north-west": 16,
+        "north": 16,
         "north-east": 16,
-        "north-west": 16
+        "east": 16
       },
       "frameMs": 50.0,
       "durationMs": 800,
-      "loop": true,
-      "anchors": {
-        "south-east": {
-          "originX": 0.5,
-          "originY": 0.77734375
-        },
-        "south-west": {
-          "originX": 0.5,
-          "originY": 0.77734375
-        },
-        "north-east": {
-          "originX": 0.5,
-          "originY": 0.79296875
-        },
-        "north-west": {
-          "originX": 0.5,
-          "originY": 0.79296875
-        }
-      }
+      "loop": true
     }
   }
 }

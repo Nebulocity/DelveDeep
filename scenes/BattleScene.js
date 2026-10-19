@@ -1,3 +1,5 @@
+import LeaderOrderPlan from '../combat/LeaderOrderPlan.js';
+import { createTacticalPlanOverlay } from '../ui/TacticalPlanOverlay.js';
 // This screen ties the battle together: units, waves, party orders, rewards and the HUD.
 // Gameplay positions use the logical arena; HUD positions use our 2400 by 1080 canvas.
 // Phaser's time.now and timer delays are milliseconds. Frame delta is also milliseconds,
@@ -15,6 +17,7 @@ import { createLevelUpEffect, updateLevelUpEffects, clearLevelUpEffects, LEVEL_U
 import { leaderAbilityDescription } from '../game/AbilityDescriptions.js';
 import { showConfirmation } from '../ui/ConfirmationDialog.js';
 import { bindButtonPress } from '../ui/ButtonPress.js';
+import { showFeatureToast } from '../ui/FeatureToast.js';
 import { hallScroll } from '../ui/HallUI.js';
 import { preloadCarvedStone, addStonePanel, addStoneButton, addStoneOrnaments, stoneText, stoneIcon, campStoneIcon, delveStoneTheme, STONE } from '../ui/CarvedStone.js';
 import { preloadSlimeSprites } from '../data/slimeSprites.js';
@@ -34,7 +37,10 @@ import { preloadVoidSprites } from '../data/voidSprites.js';
 import { preloadSunkenWatchSprites } from '../data/sunkenWatchSprites.js';
 import { preloadQuarrySprites } from '../data/quarrySprites.js';
 import GameState from '../game/GameState.js';
-import { addBgmToggle } from '../ui/BgmToggle.js';
+import { preloadCombatHud, combatPanel, combatButton, combatText, combatHudLayout } from '../ui/CombatHudTheme.js';
+import { createCombatPartyRoster } from '../ui/CombatPartyRoster.js';
+import CombatRadials from '../ui/CombatRadials.js';
+import { createCombatPauseMenu } from '../ui/CombatPauseMenu.js';
 
 import { getEquippedAdventurer, equippedItem, consumePotionCharge } from '../game/Equipment.js';
 import { getPotionDefinition, getMaterialDefinition } from '../data/items.js';
@@ -58,7 +64,6 @@ import { preloadAbilityEffects } from '../data/abilityEffects.js';
 import { createAbilityEffect, updateAbilityEffects, createAbilityTelegraph, clearAbilityTelegraph } from '../combat/AbilityEffect.js';
 import { startTravelingEffect, finishTravelingEffect } from '../combat/TravelingEffects.js';
 import { rangedTravelProfile } from '../data/rangedTravelEffects.js';
-import { CLASS_ABILITY_RULES, CLASS_CATALOG_NAMES } from '../data/replacementAbilities.js';
 import combatSpacing from '../config/combatSpacing.js';
 import CombatLog from '../combat/CombatLog.js';
 
@@ -69,6 +74,7 @@ import { awardOrdinaryWave, getDelveCheckpoint, isOrdinaryDelve, delveCampWaves,
 import { equipmentPerkBonus } from '../game/EquipmentPerks.js';
 import { awardEquipmentLoot, mergeEquipmentLoot } from '../game/EquipmentLoot.js';
 import { getBattleLayout } from '../ui/Layout.js';
+import { createCombatEncounterPanel } from '../ui/CombatEncounterPanel.js';
 import { preloadEnvironment, createEnvironment, getDelveArena } from '../combat/LayeredEnvironment.js';
 import { trackLoading, hideLoadingScreenAfterRender } from '../ui/LoadingScreen.js';
 
@@ -95,6 +101,7 @@ export default class BattleScene extends Phaser.Scene {
   preload() {
     trackLoading(this);
     preloadCarvedStone(this);
+    preloadCombatHud(this);
     preloadCharacterSprites(this);
     preloadEnemySprites(this);
     preloadAbilityEffects(this);
@@ -183,11 +190,15 @@ export default class BattleScene extends Phaser.Scene {
 
     this.commandMode = null;
     this.focusTargetId = null;
+    this.inspectedEnemyId = null;
+    this.interruptCooldownRemainingMs = 0;
     this.leaderAbilityCooldowns = new Map();
     this.assaultUntil = 0;
     this.braceUntil = 0;
     this.usedLeaderAbilities = new Set();
     this.pendingPausedTactics = [];
+    this.pendingLeaderOrders = [];
+    this.leaderOrderSerial = 0;
 
     this.awaitingRevive = false;
     this.idleSummary = null;
@@ -254,6 +265,7 @@ export default class BattleScene extends Phaser.Scene {
     this.combatLog.onEntry = entry => recordIdleEvent(this, entry);
     this.createArenaInteraction();
     this.createTacticsMenus(width, height);
+    this.encounterPanel = createCombatEncounterPanel(this);
     this.createLeaderLoadoutBar(width);
 
     this.createHud(width, height);
@@ -348,20 +360,18 @@ export default class BattleScene extends Phaser.Scene {
 
   // This helper shows the delve title, tactical guidance, and encounter status.
   createHeader(width) {
-    addStonePanel(this, width / 2, 48, width, 96, 4500);
+    combatPanel(this, width / 2, 48, width, 96, 4500);
 
-    // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
-    // ?. only follows this link when the value exists; a missing optional value gives
-    // undefined.
-    // The left counter replaces the Delve title. Tactics share the remaining banner space.
-    this.encounterStatusText = stoneText(this, 170, 34, '', UI_FONT_SIZES.battleWave, 4501);
-    this.encounterTimerText = stoneText(this, 170, 70, '', UI_FONT_SIZES.battleTimer, 4501, { color: STONE.muted });
-    this.battleMessageText = stoneText(this, width / 2, this.battleLayout.messageY, '', UI_FONT_SIZES.body34, 5000,
-      { wordWrap: { width: 1430 }, align: 'center' });
+    this.encounterStatusText = combatText(this, 174, 32, '', 30, 4501);
+    this.encounterTimerText = combatText(this, 174, 68, '', 28, 4501, { color: STONE.muted });
+    this.delveTitleText = combatText(this, width / 2, 30, GameState.currentDelve?.name ?? 'The Delve', 36, 4501);
+    if (this.delveTitleText.width > width - 1400) this.delveTitleText.setScale((width - 1400) / this.delveTitleText.width);
+    this.waveTitleText = combatText(this, width / 2, 68, '', 27, 4501, { color: STONE.muted });
+    const hintWidth = width - 800;
+    this.battleMessageText = combatText(this, width / 2, this.battleLayout.messageY, '', 28, 5000,
+      { wordWrap: { width: hintWidth - 48 }, align: 'center' });
+    this.battleMessagePlaque = combatPanel(this, width / 2, this.battleLayout.messageY, hintWidth, 64, 4999).setVisible(false);
 
-    this.battleMessagePlaque = addStonePanel(this, width / 2, this.battleLayout.messageY, 1500, 74, 4999).setVisible(false);
-
-    // A reused scene starts without a warning fade from its previous encounter.
     this.battleMessageFade = null;
 
     // Keep recent player actions together in one readable place above the battlefield.
@@ -371,20 +381,27 @@ export default class BattleScene extends Phaser.Scene {
   // This helper creates the compact combat feed in the upper-right arena corner.
   createCombatAnnounceLog(width) {
 
-    // The right command rail is centered 155 pixels from the edge and is 304 pixels wide.
-    // Stop the log before that rail, with a small gap so neither panel touches its buttons.
-    const panelWidth = 590;
-    const panelHeight = 246;
-    const commandRailLeft = width - 155 - 304 / 2;
-    const x = commandRailLeft - panelWidth / 2 - 16;
-    const y = 222;
     this.combatAnnounceEntries = [];
-    this.lastCombatAnnounceAt = this.time.now;
+    this.lastCombatAnnounceAt = -Infinity;
+    this.combatAnnouncePanel = null;
+
+    // Temporarily hide the on-screen feed while retaining the combat recording system.
+    const showCombatFeed = false;
+    if (!showCombatFeed) return;
+
+    // Keep the transient action feed clear of the encounter panel and tactics row.
+    const panelWidth = 590;
+    const panelHeight = 130;
+    const commandRailLeft = width - 356;
+    const x = commandRailLeft - panelWidth / 2 - 16;
+    const y = 270;
+    this.combatAnnounceEntries = [];
+    this.lastCombatAnnounceAt = -Infinity;
     this.combatAnnouncePanel = this.add.rectangle(x, y, panelWidth, panelHeight, 0x080d18, 0.78)
       .setStrokeStyle(2, 0x748093, 0.7).setDepth(4450);
   }
 
-  // This helper adds an announce and keeps the newest five entries at the top.
+  // This helper adds an announce and keeps the newest three entries at the top.
   addCombatAnnounce(text, color = '#fbbf24', styledText = null) {
 
     // Replay has no live presentation, and can process many past events at once.
@@ -392,7 +409,7 @@ export default class BattleScene extends Phaser.Scene {
 
     // Phaser Text accepts plain strings, so separate text objects supply the colored
     // parts. One container keeps their positions, opacity and cleanup together.
-    const label = this.add.container(this.combatAnnouncePanel.x - 270, 132).setDepth(4451);
+    const label = this.add.container(this.combatAnnouncePanel.x - 270, 230).setDepth(4451);
     const parts = styledText ?? [{ text, style: { color } }];
     const spans = parts.map(part => {
       const span = this.add.text(0, 0, part.text, {
@@ -432,10 +449,10 @@ export default class BattleScene extends Phaser.Scene {
     const entry = { label, createdAt: this.time.now, fadeStartedAt: null };
     this.combatAnnounceEntries.unshift(entry);
 
-    // Discard the oldest row so this small display never grows beyond five entries.
-    if (this.combatAnnounceEntries.length > 5) this.combatAnnounceEntries.pop().label.destroy();
+    // Discard the oldest row so this small display never grows beyond three entries.
+    if (this.combatAnnounceEntries.length > 3) this.combatAnnounceEntries.pop().label.destroy();
 
-    this.combatAnnounceEntries.forEach((current, index) => current.label.setY(132 + index * 43));
+    this.combatAnnounceEntries.forEach((current, index) => current.label.setY(230 + index * 35));
   }
 
   // This helper expires announces on combat time, which stops while the battle is paused.
@@ -446,7 +463,7 @@ export default class BattleScene extends Phaser.Scene {
     this.combatAnnouncePanel?.setAlpha(quietAlpha);
     for (let index = (this.combatAnnounceEntries?.length ?? 0) - 1; index >= 0; index -= 1) {
       const entry = this.combatAnnounceEntries[index];
-      if (entry.fadeStartedAt === null && time - entry.createdAt >= 6000) {
+      if (entry.fadeStartedAt === null && time - entry.createdAt >= 3000) {
         entry.fadeStartedAt = time;
       }
 
@@ -463,7 +480,7 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     // Remove entries from the end first so deleting one never skips its neighbor.
-    this.combatAnnounceEntries?.forEach((entry, index) => entry.label.setY(132 + index * 43));
+    this.combatAnnounceEntries?.forEach((entry, index) => entry.label.setY(230 + index * 35));
   }
 
   // This helper quickly fades the whole combat feed when a wave ends.
@@ -572,92 +589,26 @@ export default class BattleScene extends Phaser.Scene {
     this.healer = this.partyUnits.find((unit) => unit.role === 'Healer');
   }
 
-  // This helper builds the bottom party panels with names, classes, health, and mana for
-  // mana users. It stores references to the changing labels and bars so updateHud can
-  // refresh them during combat.
-  createHud(width, height) {
-    const hudTop = height * 0.78;
-    const cardHeight = height - hudTop - 14;
-    const sectionWidth = (width - 44) / 5;
-    this.partyHud = [];
-    addStonePanel(this, width / 2, hudTop + cardHeight / 2, width, cardHeight + 24, 4500);
+  // Compact left-side cards retain portrait details, resource updates and potion access.
+  createHud() {
+    createCombatPartyRoster(this);
+  }
 
-    // Keep portrait slots aligned with the starting formation throughout combat.
-    const lineup = [...this.partyUnits].sort((a, b) => {
-      const left = this.waveReturnPositions.get(a.id);
-      const right = this.waveReturnPositions.get(b.id);
-      return this.battlefield.arenaToScreen(left.x, left.y).x - this.battlefield.arenaToScreen(right.x, right.y).x;
-    });
-    lineup.forEach((unit, index) => {
-      const left = 22 + index * sectionWidth;
-      const center = left + sectionWidth / 2;
-      const panel = addStonePanel(this, center, hudTop + cardHeight / 2, sectionWidth - 8, cardHeight, 4501);
-
-      // Depth is drawing order, not distance or size. Higher-depth objects draw on top of
-      // lower-depth objects.
-      const statusHitZone = this.add.rectangle(center, hudTop + cardHeight / 2, sectionWidth - 14, cardHeight - 10, 0, 0.001).setDepth(4504);
-      bindSelectionDetails(this, statusHitZone, () => characterDetails(unit), () => this.toggleUnitSelection(unit));
-      addStonePanel(this, left + 78, hudTop + 89, 132, 150, 4502);
-      const cardHighlight = this.add.rectangle(center, hudTop + cardHeight / 2, sectionWidth - 14, cardHeight - 10, 0, 0)
-        .setStrokeStyle(4, STONE.gold).setDepth(4503.5).setVisible(false);
-
-      // ?. only follows this link when the value exists; a missing optional value gives
-      // undefined.
-      const frame = unit.spriteVisual?.definition?.portraitFrame ?? unit.spriteVisual?.definition?.clips.idle?.south?.frames[0];
-      if (frame) {
-
-        // Match the portrait size adjustment used by the Hall and preparation cards.
-        const portraitSize = 143 * (unit.spriteVisual.definition.portraitScale ?? 1);
-        this.add.image(left + 78, hudTop + 83, frame.key, frame.frame).setDisplaySize(portraitSize, portraitSize).setDepth(4503);
-      } else {
-        stoneText(this, left + 78, hudTop + 83, unit.name.slice(0, 1), UI_FONT_SIZES.display62, 4503);
-      }
-      const textX = left + 159;
-
-      const textWidth = sectionWidth - 185;
-
-      // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the center
-      // and 1 is the right/bottom edge. x/y place that anchor, not necessarily the
-      // object's corner.
-      const nameText = stoneText(this, textX, hudTop + 38, unit.name, UI_FONT_SIZES.heading39, 4503).setOrigin(0, 0.5);
-      const levelText = stoneText(this, left + sectionWidth - 22, hudTop + 38, `Lv ${unit.level}`, UI_FONT_SIZES.compact24, 4503,
-        { color: '#ffd166' }).setOrigin(1, 0.5);
-
-      // Leave room for the level at the card's upper-right edge, then shrink only long names.
-      const nameWidth = textWidth - levelText.width - 10;
-      if (nameText.width > nameWidth) nameText.setScale(nameWidth / nameText.width);
-
-      // ?? uses the fallback only for null or undefined. A real zero or false stays
-      // intact.
-      const classText = stoneText(this, textX, hudTop + 73, unit.shortName ?? unit.className, UI_FONT_SIZES.support29, 4503,
-        { color: STONE.muted }).setOrigin(0, 0.5);
-      if (classText.width > textWidth) classText.setScale(textWidth / classText.width);
-      const hudBarWidth = textWidth;
-      const hudBarX = textX;
-      const hpY = hudTop + 122;
-      const hpGlow = this.add.rectangle(hudBarX - 3, hpY, hudBarWidth + 6, 38, 0, 0).setOrigin(0, 0.5).setDepth(4502);
-
-      this.add.rectangle(hudBarX, hpY, hudBarWidth, 36, 0x080f1b).setOrigin(0, 0.5).setStrokeStyle(2, STONE.edge).setDepth(4502);
-      const hpFill = this.add.rectangle(hudBarX, hpY, hudBarWidth, 32, 0xc93837).setOrigin(0, 0.5).setDepth(4503);
-      const hpText = stoneText(this, hudBarX + hudBarWidth / 2, hpY, '', UI_FONT_SIZES.battleResource, 4504)
-        .setStroke('#10151f', 4);
-      const manaY = hudTop + 174;
-      const manaBack = this.add.rectangle(hudBarX, manaY, hudBarWidth, 36, 0x080f1b).setOrigin(0, 0.5).setStrokeStyle(2, STONE.edge).setDepth(4502);
-      const manaFill = this.add.rectangle(hudBarX, manaY, hudBarWidth, 32, 0x367ed6).setOrigin(0, 0.5).setDepth(4503);
-
-      const manaText = stoneText(this, hudBarX + hudBarWidth / 2, manaY, '', UI_FONT_SIZES.battleResource, 4504)
-        .setStroke('#10151f', 4);
-      const threatText = stoneText(this, hudBarX, hudTop + 204, '', UI_FONT_SIZES.compact24, 4503).setVisible(false);
-      const potionButton = addStoneButton(this, left + 78, hudTop + 187, 132, 72, 4505);
-      const potionLabel = stoneText(this, left + 78, hudTop + 187, 'POTION', UI_FONT_SIZES.compact25, 4506, { align: 'center' });
-      bindSelectionDetails(this, potionButton, () => this.potionDetails(unit), () => this.usePotion(unit));
-      bindButtonPress(this, potionButton, [potionLabel]);
-
-      this.partyHud.push({ panel, cardHighlight, statusHitZone, potionButton, potionLabel, unit, nameText, levelText,
-        hpText, manaText, threatText, hpFill, hpGlow, manaBack, manaFill, hudBarWidth });
-    });
-
-    this.updateHud();
+  // Card taps change selection only; battlefield ally taps retain their assist orders.
+  selectRosterUnit(unit) {
+    if (this.commandMode === 'REVIVE') {
+      this.toggleUnitSelection(unit);
+      return;
+    }
+    if (!unit.alive || this.battleOver) return;
+    if (this.selectedUnitIds.has(unit.id)) this.selectedUnitIds.delete(unit.id);
+    else this.selectedUnitIds = new Set([unit.id]);
+    this.commandMode = null;
+    this.setTargetingInputState(false);
+    this.radialHud?.selectionChanged();
+    this.refreshTacticsMenus();
+    this.clearBattleMessage();
+    HapticsService.tap();
   }
 
   // Battlefield taps retain their exact position rather than snapping to cells.
@@ -672,86 +623,35 @@ export default class BattleScene extends Phaser.Scene {
     // on registers a callback for later events; it does not call that callback now.
     // Long-lived emitters need matching listener cleanup.
     hit.on('pointerdown', pointer => {
-      if (this.battleOver || this.waveTransitioning) return;
+      if (this.battleOver || (this.waveTransitioning && !this.combatPaused)) return;
+      if (this.radialHud?.openMenu) {
+        this.radialHud.close();
+        return;
+      }
       const point = this.battlefield.screenToArena(pointer.worldX, pointer.worldY);
       if (point && !this.terrain.isBlocked(point.x, point.y)) this.handleArenaTap(point);
     });
   }
 
-  // This helper places role selection and tactical orders beside the battlefield.
+  // Floating thumb controls leave the battlefield visible between individual buttons.
   createTacticsMenus(width, height) {
-    const left = [['ALL', 'All'], ['MELEE', 'Melee'], ['RANGED', 'Ranged'], ['HEALERS', 'Healer'], ['TANKS', 'Tank']];
-    const right = ['MOVE', 'HOLD', 'SPREAD', 'STACK', 'ATTACK', 'INTERRUPT'];
     this.roleButtons = [];
     this.commandButtons = [];
-    const gap = 104;
-    const firstY = 236;
-    addStonePanel(this, 155, 460, 304, 594, 4599);
-
-    addStonePanel(this, width - 155, 492, 304, 714, 4599);
-    left.forEach(([label, role], index) => {
-      const y = firstY + index * gap;
-      const box = addStoneButton(this, 155, y, 280, 94);
-      const icon = stoneIcon(this, 54, y, label, 40);
-      const text = stoneText(this, 177, y, label, UI_FONT_SIZES.body33);
-
-      // on registers a callback for later events; it does not call that callback now.
-      // Long-lived emitters need matching listener cleanup.
-      box.on('pointerdown', () => this.selectRole(role));
-
-      // The condition before ? chooses the first value when true and the value after :
-      // when false.
-      bindSelectionDetails(this, box, { title: label, description: role === 'All'
-        ? 'Select every living party member, then issue an order.'
-        : `Select all living ${role} adventurers, then issue an order.` });
-      bindButtonPress(this, box, [text, icon]);
-      this.roleButtons.push({ box, text, role });
-    });
-
-    // Keep BGM beside Pause in the upper-right header, clear of the command rail.
-    this.bgmToggle = addBgmToggle(this, width - 470, 48, { width: 220, height: 84, depth: 4600 });
-    this.pauseButton = addStoneButton(this, width - 178, 48, 324, 84, 4600);
-    const pauseIcon = stoneIcon(this, width - 293, 48, 'PAUSE', 36);
-    this.pauseButtonText = stoneText(this, width - 150, 48, 'PAUSE', UI_FONT_SIZES.body34);
+    this.leaderOrderPlan = new LeaderOrderPlan(this);
+    this.radialHud = new CombatRadials(this);
+    this.tacticalPlanOverlay = createTacticalPlanOverlay(this);
+    this.pauseMenu = createCombatPauseMenu(this);
+    this.pauseButton = combatButton(this, width - 142, 48, 260, 84, 9000);
+    const pauseIcon = stoneIcon(this, width - 234, 48, 'PAUSE', 32, 9002);
+    this.pauseButtonText = combatText(this, width - 118, 48, 'PAUSE', 30, 9002);
     bindButtonPress(this, this.pauseButton, [this.pauseButtonText, pauseIcon], () => this.togglePause());
-    const fleeButton = addStoneButton(this, width - 155, 796, 280, 78, 4600, 0x3f1d1d);
-    const fleeText = stoneText(this, width - 135, 796, 'RETREAT', UI_FONT_SIZES.body30, 4602, { color: '#ffd5be' });
-    const fleeIcon = stoneIcon(this, width - 254, 796, 'RETREAT', 36);
-
-    bindButtonPress(this, fleeButton, [fleeText, fleeIcon], () => this.confirmRetreat());
-    const descriptions = {
-      MOVE: 'Choose a destination for selected allies. They move there and hold.',
-      HOLD: 'Selected allies stay at their positions while acting within range.',
-      SPREAD: 'Spread selected allies ten paces apart as the floor allows. Tap a character to spread the party around them.',
-      STACK: 'Selected allies gather tightly around the chosen point.',
-      ATTACK: 'Choose an enemy for selected allies to pursue and attack. Explicitly ordered healers attack until the target dies or the order changes.',
-      INTERRUPT: 'Choose a casting enemy to stop its current cast. No adventurer selection is needed.'
-    };
-
-    right.forEach((label, index) => {
-      const y = 174 + index * gap;
-      const box = addStoneButton(this, width - 155, y, 280, 94);
-      const icon = stoneIcon(this, width - 256, y, label, 38);
-
-      // The condition before ? chooses the first value when true and the value after :
-      // when false.
-      const text = stoneText(this, width - 131, y, label, label === 'INTERRUPT' ? 28 : 32);
-
-      // on registers a callback for later events; it does not call that callback now.
-      // Long-lived emitters need matching listener cleanup.
-      box.on('pointerdown', () => this.armCommand(label));
-      bindSelectionDetails(this, box, { title: label, description: descriptions[label] });
-      bindButtonPress(this, box, [text, icon]);
-      this.commandButtons.push({ box, text, label });
-    });
-
     this.refreshTacticsMenus();
   }
 
   // Cancellation queues a return to camp without ending or resetting the current fight.
   createFarmControls() {
-    this.farmCancelButton = addStoneButton(this, 155, 750, 280, 96, 4600, 0x50432e);
-    this.farmCancelText = stoneText(this, 155, 750, '', UI_FONT_SIZES.support28, 4602, { align: 'center' });
+    this.farmCancelButton = combatButton(this, 500, 48, 310, 84, 4600, 0x50432e);
+    this.farmCancelText = combatText(this, 500, 48, '', UI_FONT_SIZES.support28, 4602, { align: 'center' });
     bindButtonPress(this, this.farmCancelButton, [this.farmCancelText], () => this.confirmFarmStop());
     this.refreshFarmControls();
   }
@@ -770,7 +670,7 @@ export default class BattleScene extends Phaser.Scene {
   confirmFarmStop() {
     if (!isOrdinaryDelve() || GameState.run.entry !== 'farm' || this.battleOver || this.farmStopRequested) return;
     showConfirmation(this, {
-      title: 'Cancel Farm?',
+      title: 'Stop Farm?',
       description: 'Finish the current combat, collect its rewards, and return to camp?',
       confirmLabel: 'STOP FARMING',
 
@@ -808,7 +708,7 @@ export default class BattleScene extends Phaser.Scene {
     // The condition before ? chooses the first value when true and the value after : when
     // false.
     this.farmCancelText?.setVisible(farming).setText(this.farmStopRequested
-      ? 'STOPPING\nAFTER COMBAT' : 'CANCEL FARM\nAfter this combat');
+      ? 'STOPPING FARM\nAfter this wave' : 'STOP FARM\nAfter this wave');
     if (this.farmCancelButton?.input) this.farmCancelButton.input.enabled = farming && !this.farmStopRequested;
     this.terrainEditorButton?.setVisible(!farming);
     this.terrainEditorButtonLabel?.setVisible(!farming);
@@ -821,15 +721,21 @@ export default class BattleScene extends Phaser.Scene {
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
     const equipped = (GameState.leader?.battleLoadout ?? []).slice(0, 5);
-    const layout = getBattleLayout(width, this.scale.height, equipped.length);
+    const hud = combatHudLayout(this);
+    const count = Math.max(1, equipped.length);
+    const buttonWidth = Math.min(290, (hud.right - hud.left - 12 * (count - 1)) / count);
+    const total = count * buttonWidth + 12 * (count - 1);
+    const layout = { buttonY: hud.tacticsY, buttonHeight: hud.tacticsHeight, buttonWidth,
+      positions: Array.from({ length: count }, (_, index) =>
+        (hud.left + hud.right - total) / 2 + buttonWidth / 2 + index * (buttonWidth + 12)) };
     this.leaderButtons = [];
 
     // Depth is drawing order, not distance or size. Higher-depth objects draw on top of
     // lower-depth objects. Origin is the anchor within the object: 0 is the left/top edge,
     // 0.5 is the center and 1 is the right/bottom edge. x/y place that anchor, not
     // necessarily the object's corner.
-    // Each button has a name row and a separate cooldown or usage row. Center the entire
-    // group, including loadouts with fewer than five slots.
+    // Keep one centered line inside the carved border. Reserve a separate right
+    // slot for readiness or cooldown so status text cannot crowd the ability name.
     equipped.forEach((id, index) => {
 
       // find returns the first matching entry, or undefined when none matches. Check for
@@ -837,24 +743,31 @@ export default class BattleScene extends Phaser.Scene {
       const ability = leaderAbilities.find((entry) => entry.id === id);
       if (!ability) return;
       const x = layout.positions[index];
-      const box = addStoneButton(this, x, layout.buttonY, layout.buttonWidth, layout.buttonHeight, 4700);
+      const box = combatButton(this, x, layout.buttonY, layout.buttonWidth, layout.buttonHeight, 4700);
 
       // Depth is drawing order, not distance or size. Higher-depth objects draw on top of
       // lower-depth objects. Origin is the anchor within the object: 0 is the left/top
       // edge, 0.5 is the center and 1 is the right/bottom edge. x/y place that anchor, not
       // necessarily the object's corner.
-      const name = this.add.text(x, layout.buttonY - 17, ability.shortName, {
-        fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body32'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#bef264'
-      }).setOrigin(0.5).setDepth(4701);
-      if (name.width > layout.buttonWidth - 26) name.setScale((layout.buttonWidth - 26) / name.width);
-      const status = this.add.text(x, layout.buttonY + 20, '', {
+      const inset = 32;
+      const statusWidth = 66;
+      const statusX = x + layout.buttonWidth / 2 - inset - statusWidth / 2;
+      const nameWidth = layout.buttonWidth - inset * 2 - statusWidth - 12;
+      const name = this.add.text(x - layout.buttonWidth / 2 + inset, layout.buttonY, ability.shortName, {
+        fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx('body32'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#ffda8b'
+      }).setOrigin(0, 0.5).setDepth(4701);
+      name.setScale(Math.min(1, nameWidth / name.width, (layout.buttonHeight - 40) / name.height));
+      const status = this.add.text(statusX, layout.buttonY, '', {
         fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('compact25'), color: '#d6d3d1'
       }).setOrigin(0.5).setDepth(4701);
+      const readyIcon = this.add.graphics().setPosition(statusX, layout.buttonY).setDepth(4701);
+      readyIcon.lineStyle(2, 0xe8bf70, 0.85).strokeCircle(0, 0, 13);
+      readyIcon.lineStyle(3, 0xbfe0a4, 1).beginPath().moveTo(-7, 0).lineTo(-2, 5).lineTo(8, -6).strokePath();
       bindSelectionDetails(this, box, () => ({ title: ability.name,
         description: leaderAbilityDescription(ability, this.partyUnits) }), () => this.useLeaderAbility(id));
 
-      bindButtonPress(this, box, [name, status]);
-      this.leaderButtons.push({ ability, box, status });
+      bindButtonPress(this, box, [name, status, readyIcon]);
+      this.leaderButtons.push({ ability, box, status, readyIcon, statusWidth });
     });
 
     this.updateLeaderLoadoutBar();
@@ -866,7 +779,7 @@ export default class BattleScene extends Phaser.Scene {
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
-    this.leaderButtons?.forEach(({ ability, box, status }) => {
+    this.leaderButtons?.forEach(({ ability, box, status, readyIcon, statusWidth }) => {
 
       const used = ability.oncePerEncounter && this.usedLeaderAbilities.has(ability.id);
 
@@ -882,13 +795,21 @@ export default class BattleScene extends Phaser.Scene {
       // The condition before ? chooses the first value when true and the value after :
       // when false. Math.ceil rounds upward to the next integer, including when the value
       // has a fractional part.
-      status.setText(queued ? 'QUEUED' : used ? 'USED' : remaining > 0 ? Math.ceil(remaining / 1000) + 's' : ability.oncePerEncounter ? 'ONCE / ENCOUNTER' : 'READY');
+      const ready = !queued && !used && remaining <= 0;
+      readyIcon.setVisible(ready);
+      status.setVisible(!ready).setText(queued ? 'QUEUED' : used ? 'USED' : remaining > 0 ? Math.ceil(remaining / 1000) + 's' : '').setScale(1);
+      if (status.width > statusWidth) status.setScale(statusWidth / status.width);
       box.setFillStyle(queued || used || remaining > 0 ? 0x1c1917 : 0x292524);
     });
   }
 
   // This helper selects a tapped adventurer or deselects it on a second tap.
   toggleUnitSelection(unit) {
+    if (this.combatPaused && this.commandMode !== 'REVIVE') {
+      this.selectRosterUnit(unit);
+      return;
+    }
+
 
     // A character tap anchors the whole party's Spread around that ally.
     if (unit?.alive && this.commandMode === 'SPREAD') {
@@ -964,6 +885,8 @@ export default class BattleScene extends Phaser.Scene {
 
     // filter keeps entries whose callback returns true. It builds a new list and leaves
     // the original list in place.
+    if (this.combatPaused) return this.leaderOrderPlan.prepare('ASSIST', { target });
+
     const movers = selected.filter((unit) => unit !== target);
     const positions = this.movement.getFormationPositions(movers, { x: target.arenaX, y: target.arenaY });
 
@@ -994,7 +917,6 @@ export default class BattleScene extends Phaser.Scene {
       }
     });
 
-    this.selectedUnitIds.clear();
     this.commandMode = null;
     this.setTargetingInputState(false);
     this.refreshTacticsMenus();
@@ -1003,6 +925,7 @@ export default class BattleScene extends Phaser.Scene {
     // false. some stops with true as soon as one entry passes the check; an empty list
     // gives false.
     this.showBattleMessage(`Move to ${target.name}${movers.some(unit => unit.role === 'Healer') ? ' / heal if injured' : ''}`, '#86efac', true);
+    this.completePartyCommand('ASSIST');
     HapticsService.confirm();
     return true;
   }
@@ -1036,39 +959,13 @@ export default class BattleScene extends Phaser.Scene {
     const matching = this.partyUnits.filter((unit) => unit.alive
       && (role === 'All' || unit.role === role || unit.role === `${role} DPS`));
 
-    // The condition before ? chooses the first value when true and the value after : when
-    // false.
-    const groupName = role === 'All' ? 'All adventurers' : role;
-
-    // every requires all entries to pass the check; an empty list gives true.
-    const alreadySelected = matching.length > 0
-      && matching.length === this.getSelectedUnits().length
-      && matching.every((unit) => this.selectedUnitIds.has(unit.id));
-
-    if (alreadySelected) {
-      matching.forEach((unit) => this.attackTargets.delete(unit.id));
-      this.selectedUnitIds.clear();
-      this.commandMode = null;
-      this.setTargetingInputState(false);
-      this.refreshTacticsMenus();
-      this.showBattleMessage(`${groupName} deselected`, '#a8a29e');
-      HapticsService.tap();
-
-      return;
-    }
-
-    // A Set keeps each value once. has checks membership without searching a list for
-    // duplicate entries. map builds one output entry for each input entry, in the same
-    // order. The callback's return value becomes that output entry.
     this.selectedUnitIds = new Set(matching.map((unit) => unit.id));
     this.commandMode = null;
     this.setTargetingInputState(false);
 
-    this.showBattleMessage(
-      matching.length > 0 ? `${groupName} - tap ground to move, an ally to assist, or an enemy to attack` : role === 'All' ? 'No living adventurers' : `No living ${role}`,
-      matching.length > 0 ? '#93c5fd' : '#fca5a5',
-      matching.length > 0
-    );
+    this.radialHud?.selectionChanged(role === 'Healer' ? 'Healers' : role);
+    if (!matching.length) this.showBattleMessage(`No living ${role}`, '#fca5a5');
+    else this.clearBattleMessage();
 
     this.refreshTacticsMenus();
     HapticsService.tap();
@@ -1082,6 +979,14 @@ export default class BattleScene extends Phaser.Scene {
     return this.partyUnits.filter((unit) => unit.alive && this.selectedUnitIds.has(unit.id));
   }
 
+  // Release the recipients only after an order has been accepted, including pause plans.
+  completePartyCommand(action) {
+    this.selectedUnitIds = new Set();
+    this.radialHud?.selectionChanged();
+    this.radialHud?.completed(action);
+    this.refreshPartySelection();
+  }
+
   // This helper checks whether a player order should prevent automatic repositioning.
   isPositionLocked(unit) {
 
@@ -1091,8 +996,14 @@ export default class BattleScene extends Phaser.Scene {
   // This helper prepares an order for targeting or applies Hold to the current selection.
   armCommand(label) {
 
+    if (label === 'INTERRUPT' && this.interruptCooldownRemainingMs > 0) {
+      this.showInterruptCooldown();
+      return;
+    }
+
     const selected = this.getSelectedUnits();
-    const needsSelection = ['MOVE', 'HOLD', 'STACK', 'ATTACK'].includes(label);
+    if (this.battleOver) return;
+    const needsSelection = ['MOVE', 'HOLD', 'SPREAD', 'STACK', 'ATTACK'].includes(label);
 
     // A second press cancels a target-selection mode before it can affect the party. This
     // is particularly useful for an accidentally armed Attack.
@@ -1109,6 +1020,21 @@ export default class BattleScene extends Phaser.Scene {
     // Reject movement and formation commands until the player chooses units or a role.
     if (needsSelection && selected.length === 0) {
       this.showBattleMessage('SELECT AN ADVENTURER OR ROLE FIRST', '#fca5a5', true);
+      HapticsService.tap();
+      return;
+    }
+
+    // Between waves the party still returns to its home positions. Arm Hold now, then
+    // use the normal command path when the next wave begins so the return stays intact.
+    if (label === 'HOLD' && this.combatPaused) {
+      this.leaderOrderPlan.prepare('HOLD');
+      return;
+    }
+    if (label === 'HOLD' && this.waveTransitioning) {
+      this.commandMode = 'HOLD';
+      this.setTargetingInputState(false);
+      this.refreshTacticsMenus();
+      this.showBattleMessage('HOLD READY - applies when the next wave starts', '#93c5fd', true);
       HapticsService.tap();
       return;
     }
@@ -1133,6 +1059,7 @@ export default class BattleScene extends Phaser.Scene {
 
       this.refreshTacticsMenus();
       this.showBattleMessage('HOLD ORDER SET', '#93c5fd');
+      this.completePartyCommand('HOLD');
       this.setTargetingInputState(false);
       HapticsService.tap();
 
@@ -1141,7 +1068,7 @@ export default class BattleScene extends Phaser.Scene {
 
     // Attack is a persistent order after an enemy is chosen. Pressing it again with that
     // same group selected releases a mistaken attack target.
-    if (label === 'ATTACK' && selected.some((unit) => this.attackTargets.has(unit.id))) {
+    if (!this.combatPaused && label === 'ATTACK' && selected.some((unit) => this.attackTargets.has(unit.id))) {
       selected.forEach((unit) => this.attackTargets.delete(unit.id));
       this.commandMode = null;
       this.setTargetingInputState(false);
@@ -1158,7 +1085,9 @@ export default class BattleScene extends Phaser.Scene {
 
     // The condition before ? chooses the first value when true and the value after : when
     // false.
-    const prompt = label === 'ATTACK' ? 'ATTACK - tap an enemy for the selected adventurers'
+    const prompt = this.waveTransitioning
+      ? `${label} READY - choose a target when the next wave starts`
+      : label === 'ATTACK' ? 'FOCUS - tap an enemy for selected adventurers'
       : label === 'INTERRUPT' ? 'INTERRUPT - tap the enemy you want to interrupt'
         : `${label} - tap a destination`;
     this.showBattleMessage(prompt, '#fbbf24', true);
@@ -1217,7 +1146,27 @@ export default class BattleScene extends Phaser.Scene {
       box.setFillStyle(active?0x3b321d:0x1f2937).setStrokeStyle(3,active?STONE.gold:STONE.edge);
     });
 
+    this.roleSummaryText?.setText(this.getSelectedUnits().length
+      ? `${this.getSelectedUnits().length} SELECTED  ›` : 'SELECT UNITS  ›');
+    this.refreshInterruptControl();
     this.refreshPartySelection();
+  }
+
+  showInterruptCooldown() {
+    playUiSound(this, 'failure');
+    HapticsService.tap();
+    showFeatureToast(this, `Interrupt is ready in ${Math.ceil(this.interruptCooldownRemainingMs / 1000)} seconds.`, { centered: true });
+  }
+
+  // Keep the full caption readable; the countdown shares the icon row inside the button.
+  refreshInterruptControl() {
+    const control = this.commandButtons?.find(entry => entry.label === 'INTERRUPT');
+    if (!control) return;
+    const cooling = this.interruptCooldownRemainingMs > 0;
+    for (const visual of [...control.box.pressVisuals, control.text, control.icon]) visual.setAlpha(cooling ? 0.45 : 1);
+    control.icon.x = control.text.x - (cooling ? 22 : 0);
+    control.cooldownText.setVisible(cooling).setText(cooling ? `${Math.ceil(this.interruptCooldownRemainingMs / 1000)}s` : '');
+    control.box.uiSound = cooling ? 'failure' : 'click';
   }
 
   // Refresh card selection, including fallen allies.
@@ -1232,8 +1181,29 @@ export default class BattleScene extends Phaser.Scene {
     ));
     this.partyHud?.forEach(({ unit, cardHighlight }) => {
       const selected = unit.alive && this.selectedUnitIds.has(unit.id);
-      cardHighlight.setVisible(selected);
+      const prompted = unit.alive && this.time.now < (this.radialHud?.promptUntil ?? 0);
+      cardHighlight.setVisible(selected || prompted).setAlpha(selected ? 1 : 0.6);
     });
+  }
+
+  // A slow opacity pulse marks player selections without hiding their names. Advance
+  // only during visible combat so pauses and historical catch-up cannot run the pulse.
+  updateSelectedNames(delta) {
+    for (const unit of [...(this.partyUnits ?? []), ...(this.enemies ?? [])]) {
+      if (!unit.label?.active) continue;
+      const selected = unit.alive && !unit.landing && (unit.isEnemy
+        ? unit.id === this.inspectedEnemyId : this.selectedUnitIds.has(unit.id));
+      if (!selected) {
+        unit.selectionNameElapsed = 0;
+        unit.label.setAlpha(1);
+        continue;
+      }
+      unit.selectionNameElapsed ??= 0;
+      if (!this.combatPaused && !this.battleOver) unit.selectionNameElapsed += Math.max(0, delta);
+
+      // One cycle takes 1.4 combat seconds; opacity stays between 70% and 100%.
+      unit.label.setAlpha(0.85 + 0.15 * Math.cos(unit.selectionNameElapsed * Math.PI * 2 / 1400));
+    }
   }
 
   // This helper interprets a battlefield tap using the current command. It locates targets
@@ -1272,17 +1242,22 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    if (this.commandMode === 'SPREAD' && this.getSelectedUnits().length === 0) {
-
-      // Spread without a selection applies to the living party.
-      this.selectedUnitIds = new Set(this.partyUnits.filter(unit => unit.alive).map(unit => unit.id));
-    }
     const units = this.getSelectedUnits();
     if (units.length === 0) {
       this.commandMode = null;
       this.refreshTacticsMenus();
       this.showBattleMessage('SELECT AN ADVENTURER OR ROLE FIRST', '#fca5a5');
 
+      return;
+    }
+
+    // A pending non-movement command must never fall through to Move.
+    if (!['MOVE', 'SPREAD', 'STACK'].includes(this.commandMode)) {
+      this.showBattleMessage('Choose a valid command target', '#fca5a5');
+      return;
+    }
+    if (this.combatPaused) {
+      this.leaderOrderPlan.prepare(this.commandMode, { point: center, anchorId: anchor?.id });
       return;
     }
 
@@ -1306,6 +1281,7 @@ export default class BattleScene extends Phaser.Scene {
       });
 
       this.showBattleMessage(`${formationMode} FORMATION SET`, '#93c5fd');
+      this.completePartyCommand(formationMode);
       this.commandMode = null;
       this.setTargetingInputState(false);
       this.refreshTacticsMenus();
@@ -1340,6 +1316,7 @@ export default class BattleScene extends Phaser.Scene {
     });
 
     this.showBattleMessage('MOVE + HOLD ORDER', '#93c5fd');
+    this.completePartyCommand('MOVE');
     this.commandMode = null;
     this.setTargetingInputState(false);
     this.refreshTacticsMenus();
@@ -1352,7 +1329,13 @@ export default class BattleScene extends Phaser.Scene {
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
-    if (!enemy?.alive) return;
+    if (!enemy?.alive || enemy.landing || this.battleOver || this.waveTransitioning) return;
+    if (this.commandMode === 'INTERRUPT' && this.interruptCooldownRemainingMs > 0) {
+      this.showInterruptCooldown();
+      return;
+    }
+    this.inspectedEnemyId = enemy.id;
+    if (!this.commandMode && !this.getSelectedUnits().length) return;
 
     // Choose each tactic's target now, so several paused tactics can retain different targets.
     const tacticId = { FOCUS: 'focusFire', COORDINATED_ATTACK: 'coordinatedAttack',
@@ -1372,9 +1355,14 @@ export default class BattleScene extends Phaser.Scene {
 
     if (['MOVE', 'SPREAD', 'STACK'].includes(this.commandMode)) {
       this.handleArenaTap({ x: enemy.arenaX, y: enemy.arenaY });
-      this.selectedUnitIds.clear();
       this.refreshTacticsMenus();
 
+      return;
+    }
+
+    if (this.combatPaused) {
+      const type = this.commandMode ?? 'ATTACK';
+      this.leaderOrderPlan.prepare(type, { target: enemy });
       return;
     }
 
@@ -1395,6 +1383,7 @@ export default class BattleScene extends Phaser.Scene {
       });
 
       this.showBattleMessage(`ATTACK: ${enemy.name}`, '#fb923c');
+      this.completePartyCommand('ATTACK');
       HapticsService.tap();
     } else if (this.commandMode === 'FOCUS') {
       this.focusTargetId = enemy.id;
@@ -1430,7 +1419,8 @@ export default class BattleScene extends Phaser.Scene {
       this.showBattleMessage(`COORDINATED ATTACK - ${enemy.name} rooted`, '#bef264');
     } else if (this.commandMode === 'LUNAR_ASSAULT') {
       const mages = this.partyUnits.filter(unit => unit.alive && unit.className?.startsWith('Mage of the'));
-      const targets = this.getLivingEnemies().filter(target => Math.hypot(target.arenaX - enemy.arenaX, target.arenaY - enemy.arenaY) <= 400);
+      const radius = leaderAbilities.find(ability => ability.id === 'lunarAssault').radius;
+      const targets = this.getLivingEnemies().filter(target => Math.hypot(target.arenaX - enemy.arenaX, target.arenaY - enemy.arenaY) <= radius);
       if (mages.length && targets.length) {
         mages.forEach(unit => {
           this.manualTargets.delete(unit.id);
@@ -1452,17 +1442,20 @@ export default class BattleScene extends Phaser.Scene {
       if (enemy.pendingAction) {
         enemy.finishAction('interrupted', 'explicit_interrupt', 'Party Leader interrupt command', { cause: { actorId: 'party_leader', ability: 'INTERRUPT' } });
 
+        // Spend the command cooldown only when an active cast was actually interrupted.
+        this.interruptCooldownRemainingMs = 15000;
+
         // Remove canceled area warnings immediately so the floor shows current danger.
         // The delayed hit also checks the canceled action before doing any damage.
         this.activeTelegraphs.filter(telegraph => telegraph.attacker === enemy)
           .forEach(telegraph => this.removeTelegraph(telegraph));
         this.showBattleMessage(`INTERRUPTED: ${enemy.name}`, '#fde68a');
+        this.completePartyCommand('INTERRUPT');
       } else {
         this.showBattleMessage(`${enemy.name} is not casting`, '#a8a29e');
       }
     }
 
-    this.selectedUnitIds.clear();
     this.commandMode = null;
     this.setTargetingInputState(false);
     this.refreshTacticsMenus();
@@ -1671,7 +1664,7 @@ export default class BattleScene extends Phaser.Scene {
 
   // Spend a targeted tactic only when its selected recipient can receive the effect.
   commitTargetedTactic(id) {
-    if (this.battleOver || this.waveTransitioning || !this.isLeaderAbilityReady(id)) return false;
+    if (this.combatPaused || this.battleOver || this.waveTransitioning || !this.isLeaderAbilityReady(id)) return false;
     const living = this.partyUnits.filter(unit => unit.alive);
     if (id === 'focusFire' && living.length === 0) return false;
     if (id === 'coordinatedAttack' && !living.some(unit => unit.role === 'Melee DPS')) return false;
@@ -1686,9 +1679,7 @@ export default class BattleScene extends Phaser.Scene {
     return true;
   }
 
-  // This helper records a legal tactic press while paused. Commands already update player
-  // order state while paused; tactics need an explicit queue because their effects would
-  // otherwise be committed immediately.
+  // Commands and tactics share planning metadata while execution stays in existing paths.
   queuePausedTactic(id, targetId = null) {
 
     // find returns the first matching entry, or undefined when none matches. Check for
@@ -1716,53 +1707,12 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    // ??= fills a missing value once. It leaves an existing value, including zero or
-    // false, alone.
-    this.pendingPausedTactics ??= [];
-    if (this.pendingPausedTactics.some(entry => (entry.id ?? entry) === id)) {
-      this.showBattleMessage(`${ability.name} is already queued`, '#a8a29e');
-      return;
-    }
-    this.pendingPausedTactics.push({ id, targetId });
-    this.showBattleMessage(`${ability.name} queued`, '#bef264', true);
-
-    HapticsService.tap();
-    this.updateLeaderLoadoutBar();
+    this.leaderOrderPlan.prepareTactic(id, targetId);
   }
 
-  // This helper runs queued tactic presses synchronously before the first resumed combat
-  // update, preserving the player's paused decision order.
+  // Resume submits every prepared order through its existing validated execution path.
   flushPausedTactics() {
-
-    // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
-    const queued = this.pendingPausedTactics ?? [];
-    this.pendingPausedTactics = [];
-    const armedCommand = this.commandMode;
-    let legacyTargetMode = null;
-    queued.forEach((entry) => {
-      const id = entry.id ?? entry;
-      const target = entry.targetId == null ? null
-        : [...this.partyUnits, ...this.enemies].find(unit => unit.id === entry.targetId);
-
-      // A vanished or invalid target does not consume the tactic or its cooldown.
-      if (entry.targetId != null && (!target || (id === 'revive' ? target.alive : !target.alive))) return;
-      if (!this.isLeaderAbilityReady(id)) return;
-      this.useLeaderAbility(id);
-      if (target) {
-        const mode = { focusFire: 'FOCUS', coordinatedAttack: 'COORDINATED_ATTACK',
-          lunarAssault: 'LUNAR_ASSAULT', revive: 'REVIVE' }[id];
-        if (this.commandMode === mode) {
-          if (id === 'revive') this.toggleUnitSelection(target);
-          else this.handleEnemyTap(target);
-        }
-      } else if (typeof entry === 'string' && ['FOCUS', 'COORDINATED_ATTACK', 'LUNAR_ASSAULT', 'REVIVE'].includes(this.commandMode)) {
-
-        // Older saves queued only the tactic name. Preserve their post-Resume target prompt.
-        legacyTargetMode = this.commandMode;
-      }
-    });
-    this.commandMode = armedCommand ?? legacyTargetMode;
-    this.setTargetingInputState(['ATTACK', 'FOCUS', 'INTERRUPT', 'COORDINATED_ATTACK', 'LUNAR_ASSAULT'].includes(this.commandMode));
+    this.leaderOrderPlan.flush();
   }
 
   // This helper validates the equipped tactic, its unlock, and encounter usage before
@@ -1908,29 +1858,31 @@ export default class BattleScene extends Phaser.Scene {
     // copying the whole source object.
     const { width, height } = this.scale;
     const centerX = width / 2;
-    const centerY = height / 2;
+
+    // Keep the compact countdown below the tactics row and above the party's heads.
+    const centerY = height * 0.28;
 
     // Math.min chooses the smallest value; pairing it with Math.max can keep a result
     // inside both a lower and an upper bound.
-    const panelWidth = Math.min(1160, width - 660);
-    const backdrop = addStonePanel(this, 0, 0, panelWidth, 248);
+    const panelWidth = Math.min(880, width - 660);
+    const backdrop = combatPanel(this, 0, 0, panelWidth, 180);
 
     // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the center
     // and 1 is the right/bottom edge. x/y place that anchor, not necessarily the object's
     // corner. The condition before ? chooses the first value when true and the value after
     // : when false.
-    const labelText = this.add.text(0, -76, isBoss ? 'BOSS WAVE' : '', {
-      fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body31'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#d8b761'
+    const labelText = this.add.text(0, -56, isBoss ? 'BOSS WAVE' : '', {
+      fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('compact24'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#d8b761'
     }).setOrigin(0.5);
-    const titleText = this.add.text(0, isBoss ? -12 : -29, title, {
-      fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('display70'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff1cc',
+    const titleText = this.add.text(0, isBoss ? -9 : -22, title, {
+      fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('display51'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#fff1cc',
       stroke: '#211606', strokeThickness: 2, align: 'center'
     }).setOrigin(0.5);
 
     titleText.setScale(Math.min(1, (panelWidth - 96) / titleText.width));
-    const divider = this.add.rectangle(0, 48, panelWidth - 140, 2, 0x9c7c39, 0.65);
-    this.waveCountdownText = this.add.text(0, 85, '', {
-      fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body36'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#e6d9b8'
+    const divider = this.add.rectangle(0, 31, panelWidth - 100, 2, 0x9c7c39, 0.65);
+    this.waveCountdownText = this.add.text(0, 59, '', {
+      fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('support28'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#e6d9b8'
     }).setOrigin(0.5);
 
     // Depth is drawing order, not distance or size. Higher-depth objects draw on top of
@@ -1995,6 +1947,11 @@ export default class BattleScene extends Phaser.Scene {
     this.attackTargets.clear();
     this.setTargetingInputState(['ATTACK', 'FOCUS', 'INTERRUPT'].includes(this.commandMode));
     this.waveTransitioning = false;
+    if (this.commandMode === 'HOLD') {
+      this.commandMode = null;
+      this.armCommand('HOLD');
+    }
+    this.leaderOrderPlan.flush();
   }
 
   // This helper builds an enemy from its definition and registers its combat targeting.
@@ -2043,16 +2000,12 @@ export default class BattleScene extends Phaser.Scene {
   bindEnemyInput(enemy) {
     enemy.hitZone.disableInteractive();
 
-    // on registers a callback for later events; it does not call that callback now.
-    // Long-lived emitters need matching listener cleanup.
-    enemy.hitZone.on('pointerdown', (pointer, localX, localY, event) => {
-
-      // ?. only follows this link when the value exists; a missing optional value gives
-      // undefined.
-      event?.stopPropagation?.();
-      this.handleEnemyTap(enemy);
-    });
-    bindSelectionDetails(this, enemy.hitZone, () => characterDetails(enemy));
+    bindSelectionDetails(this, enemy.hitZone, () => characterDetails(enemy),
+      () => this.handleEnemyTap(enemy), () => {
+        if (!enemy.alive || enemy.landing) return;
+        this.inspectedEnemyId = enemy.id;
+        showSelectionDetails(this, characterDetails(enemy));
+      });
   }
 
   // Combat rolls use saved state, independently of presentation or other scenes.
@@ -2221,15 +2174,23 @@ export default class BattleScene extends Phaser.Scene {
     time = this.time.now;
     if (this.restoringBattle || this.idleSummaryOpen) return;
 
+    // Remaining combat milliseconds persist with the battle and freeze during Pause.
+    if (!this.combatPaused && !this.battleOver) {
+      this.interruptCooldownRemainingMs = Math.max(0, (this.interruptCooldownRemainingMs ?? 0) - Math.max(0, delta));
+    }
+    if (!this.game.backgroundProgress?.isReplaying) this.refreshInterruptControl();
+
     // Refresh mode-dependent stats before this frame's AI and damage use them.
     this.syncActiveCombatBalance();
 
     // Refresh before transition returns so the header timer keeps ticking between waves.
     this.updateEncounterStatus();
+    if (!this.game.backgroundProgress?.isReplaying) this.encounterPanel?.update();
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
     const replaying = this.game.backgroundProgress?.isReplaying === true;
+    if (!replaying) this.updateSelectedNames(delta);
     this.updateBattleMessageFade(time, replaying);
     if (!replaying && !this.combatPaused) this.updateCombatAnnounceLog(time);
 
@@ -2870,6 +2831,7 @@ export default class BattleScene extends Phaser.Scene {
       warning,
       inner,
       attacker,
+      action: attacker.pendingAction,
       ability,
       duration
     };
@@ -2983,6 +2945,8 @@ export default class BattleScene extends Phaser.Scene {
   // This helper retires a ground warning from both the display and hazard tracking.
   removeTelegraph(telegraph) {
     if (!telegraph) return;
+
+    this.tweens.killTweensOf(telegraph.inner);
 
     // filter keeps entries whose callback returns true. It builds a new list and leaves
     // the original list in place.
@@ -3613,7 +3577,7 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
 
-  // This helper puts player abilities in the fixed combat feed and keeps enemy casts floating.
+  // Ability names float above the caster for both adventurers and enemies.
   announceAbility(unit, name, color = '#f8fafc') {
 
     // ?. only follows this link when the value exists; a missing optional value gives
@@ -3627,31 +3591,15 @@ export default class BattleScene extends Phaser.Scene {
       const blue = colorNumber & 0xff;
       const brightness = red * 0.299 + green * 0.587 + blue * 0.114;
 
-      // Keep the class hue while brightening very dark colors for the dark log panel.
+      // Keep dark class colors readable against the battlefield.
       const brighten = Math.min(255, Math.max(1, 150 / Math.max(1, brightness)));
       const classColor = `#${[red, green, blue]
         .map(channel => Math.min(255, Math.round(channel * brighten)).toString(16).padStart(2, '0'))
         .join('')}`;
-      // Catalog classes classify buffs as well as attacks, including generic abilities
-      // that have no damage type. Older saved magical attacks retain their own wording.
-      const ability = Object.values(unit.abilities ?? {}).find(entry => entry.name === name);
-      const abilityClass = ability?.className ?? unit.className;
-      const catalogClass = CLASS_CATALOG_NAMES[abilityClass] ?? abilityClass;
-      const magical = catalogClass === 'Generic (Magical)'
-        || CLASS_ABILITY_RULES[catalogClass]?.[0] === 'Magical'
-        || (!ability?.replacement && ['spell', 'holy', 'force', 'necrotic', 'radiant'].includes(ability?.damageType));
-      const verb = magical ? 'casts' : 'uses';
-      const styledText = [
-        { text: unit.name, style: { color: classColor }, abbreviate: true },
-        { text: ` ${verb} `, style: { color: '#f3ead5' } },
-        { text: name, style: { color: classColor }, abbreviate: true }
-      ];
-
-      this.addCombatAnnounce(`${unit.name} ${verb} ${name}`, '#f3ead5', styledText);
-      return;
+      color = classColor;
     }
 
-    this.createFloatingText(unit.x, Math.max(unit.y - 122, this.battlefield.topY + 12), name.toUpperCase(), color, false, 'ability');
+    this.createFloatingText(unit.x, unit.y - 120, name, color, false, 'ability');
   }
 
   // This helper highlights a fallen party member in the combat feed.
@@ -3693,7 +3641,7 @@ export default class BattleScene extends Phaser.Scene {
     // true and the value after : when false.
     const label = this.add.text(x, y, text, {
       fontFamily: UI_FONT_FAMILIES.sans,
-      fontSize: critical ? fontPx('display78') : fontPx('display51'),
+      fontSize: kind === 'ability' ? fontPx('body30') : critical ? fontPx('display78') : fontPx('display51'),
       fontStyle: UI_FONT_WEIGHTS.bold,
       color,
       stroke: '#000000',
@@ -3704,12 +3652,34 @@ export default class BattleScene extends Phaser.Scene {
       label.setScale(1.18);
     }
 
+    if (kind === 'ability') {
+      // Only combat milliseconds advance these labels; UI press tweens remain usable.
+      let elapsed = 0;
+      const update = (time, delta) => {
+        if (this.game.backgroundProgress?.isReplaying) return label.destroy();
+        if (this.combatPaused || this.time.paused) return;
+        elapsed += Math.max(0, delta) * this.time.timeScale;
+        const progress = Math.min(1, elapsed / 2280);
+        const eased = 1 - (1 - progress) ** 3;
+        label.setY(y - 60 * eased).setAlpha(1 - eased).setScale(1 - 0.04 * eased);
+        if (progress >= 1) label.destroy();
+      };
+      const cleanup = () => {
+        this.events.off('update', update);
+        this.events.off('shutdown', cleanup);
+      };
+      this.events.on('update', update);
+      this.events.once('shutdown', cleanup);
+      label.once('destroy', cleanup);
+      return;
+    }
+
     this.tweens.add({
       targets: label,
       y: y - (critical ? 86 : 60),
       scale: critical ? 1 : 0.96,
       alpha: 0,
-      duration: (critical ? 1050 : 760) * (kind === 'ability' ? 3 : 1),
+      duration: critical ? 1050 : 760,
       ease: 'Cubic.Out',
 
       // Finish this animation's remaining work when the tween reaches its end.
@@ -3733,10 +3703,10 @@ export default class BattleScene extends Phaser.Scene {
 
       // Math.min chooses the smallest value; pairing it with Math.max can keep a result
       // inside both a lower and an upper bound.
-      const panelWidth = Math.min(this.scale.width - 80, Math.max(500, this.battleMessageText.width + 70));
-      const panelHeight = Math.max(74, this.battleMessageText.height + 30);
+      const panelWidth = Math.min(this.scale.width - 800, Math.max(500, this.battleMessageText.width + 48));
+      const panelHeight = Math.max(60, this.battleMessageText.height + 22);
       this.battleMessagePlaque.destroy();
-      this.battleMessagePlaque = addStonePanel(this, this.scale.width / 2, this.battleLayout.messageY, panelWidth, panelHeight, 4999);
+      this.battleMessagePlaque = combatPanel(this, this.scale.width / 2, this.battleLayout.messageY, panelWidth, panelHeight, 4999);
       const messageY = Math.max(this.battleLayout.messageY, 100 + panelHeight / 2);
       this.battleMessageText.setY(messageY);
       this.battleMessagePlaque.setY(messageY);
@@ -4125,20 +4095,20 @@ export default class BattleScene extends Phaser.Scene {
 
     // Keep the top at y=222 and extend the lower frame to y=822. The extra 32 pixels leave
     // room below the four reward lines while staying above the party HUD.
-    overlay.push(addStonePanel(this, width / 2, 522, 1700, 600, 12000));
-    const headingWindow = addStonePanel(this, width / 2, 312, 1558, 156, 12001);
+    overlay.push(combatPanel(this, width / 2, 522, 1700, 600, 12000));
+    const headingWindow = combatPanel(this, width / 2, 312, 1558, 156, 12001);
     headingWindow.name = 'delve-camp-heading-window';
     overlay.push(headingWindow);
     overlay.push(addStoneOrnaments(this, width / 2, 274, 1630, this.stoneTheme, 12002));
 
-    overlay.push(stoneText(this, width / 2, 282, 'DELVE CAMP', UI_FONT_SIZES.display62, 12002));
+    overlay.push(combatText(this, width / 2, 282, 'DELVE CAMP', UI_FONT_SIZES.display62, 12002));
     const eligibility = delveRewardEligibility(delve);
     const rewardNotice = eligibility.cappedCount === eligibility.partyCount
       ? `Party at level ${eligibility.cap} cap: materials only. No XP, Gold or Happiness.`
       : eligibility.cappedCount > 0
         ? `${eligibility.cappedCount}/${eligibility.partyCount} at level ${eligibility.cap} cap: reduced Gold; capped members earn no XP/Happiness.`
         : `Rewards saved. XP, Gold and Happiness stop at level ${eligibility.cap} cap.`;
-    overlay.push(stoneText(this, width / 2, 346, rewardNotice, UI_FONT_SIZES.body32, 12002,
+    overlay.push(combatText(this, width / 2, 346, rewardNotice, UI_FONT_SIZES.body32, 12002,
       { color: STONE.muted }));
 
     // Build one of the three camp choices. index selects its column and icon. The action
@@ -4154,7 +4124,7 @@ export default class BattleScene extends Phaser.Scene {
       // The card is centered at y=599 with height 386, so its top is 406 and bottom is
       // 792. This preserves its top while making room below the four reward lines. Depth
       // 12001 puts it above the outer panel; color chooses the action tint.
-      const button = addStoneButton(this, x, 599, 502, 386, 12001, color);
+      const button = combatButton(this, x, 599, 502, 386, 12001, color);
 
       // The icon sits in the upper part of the card at y=482. index crops the matching
       // town/farm/boss icon from the shared sheet. Depth 12003 draws it over the card
@@ -4164,7 +4134,7 @@ export default class BattleScene extends Phaser.Scene {
       // The title shares the card's center x and sits at y=601 below the icon. body36 is
       // the central 36-pixel logical text size. The description uses the title's measured
       // bottom, so extra reward lines cannot grow into it.
-      const titleText = stoneText(this, x, 601, title, UI_FONT_SIZES.body36, 12003);
+      const titleText = combatText(this, x, 601, title, UI_FONT_SIZES.body36, 12003);
 
       // The button runs from y=406 to y=792 in our 2400 x 1080 game canvas. stoneText
       // normally centers a whole paragraph around y, so extra lines grow upward. Start the
@@ -4177,16 +4147,19 @@ export default class BattleScene extends Phaser.Scene {
       // and 1 is the right/bottom edge. x/y place that anchor, not necessarily the
       // object's corner. The condition before ? chooses the first value when true and the
       // value after : when false.
-      const detailText = stoneText(this, x, detailTop, detail, UI_FONT_SIZES.support29, 12003,
+      const detailText = combatText(this, x, detailTop, detail, UI_FONT_SIZES.support29, 12003,
         { align: 'center', color: index === 1 ? '#f5d788' : STONE.muted, wordWrap: { width: 422 } })
         .setOrigin(0.5, 0);
       overlay.push(button, symbol, titleText, detailText);
 
-      // Keep a defeated boss visible as a dimmed card, with no press handlers or
-      // touch input. The room and the two remaining camp choices stay readable.
+      // A defeated boss stays dimmed; tapping explains why it cannot be challenged.
       if (!enabled) {
-        button.disableInteractive();
         [...button.pressVisuals, symbol, titleText, detailText].forEach(object => object.setAlpha(0.45));
+        button.uiSound = 'failure';
+        bindButtonPress(this, button, [symbol, titleText, detailText], () => {
+          HapticsService.tap();
+          showFeatureToast(this, 'This boss has already been defeated.', { centered: true });
+        });
         return;
       }
       bindButtonPress(this, button, [symbol, titleText, detailText], () => {
@@ -4435,7 +4408,7 @@ export default class BattleScene extends Phaser.Scene {
     // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the center
     // and 1 is the right/bottom edge. x/y place that anchor, not necessarily the object's
     // corner. Both text objects use their left edges so the bullets line up with the W.
-    const title = stoneText(this, 0, 0, 'While you were away:', UI_FONT_SIZES.heading46, 13002)
+    const title = combatText(this, 0, 0, 'While you were away:', UI_FONT_SIZES.heading46, 13002)
       .setOrigin(0, 0).setName('idle-summary-title');
     const text = this.add.text(0, 0, lines.join('\n'), {
       fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body30'), color: '#f5f5dc',
@@ -4472,14 +4445,14 @@ export default class BattleScene extends Phaser.Scene {
     // on registers a callback for later events; it does not call that callback now.
     // Long-lived emitters need matching listener cleanup.
     blocker.on('pointerdown', (pointer, x, y, event) => event?.stopPropagation?.());
-    const panel = addStonePanel(this, width / 2, centerY, panelWidth, panelHeight, 13001)
+    const panel = combatPanel(this, width / 2, centerY, panelWidth, panelHeight, 13001)
       .setName('idle-summary-panel');
     const bodyHeight = panelHeight - reservedHeight;
     let bodyScroll = null;
     if (text.height > bodyHeight) {
       bodyScroll = hallScroll(this, { x: contentLeft, y: text.y, width: contentWidth, height: bodyHeight },
         [text], text.height, 0, () => {},
-        (scene, x, y, w, h) => addStonePanel(scene, x, y, w, h, 13002),
+        (scene, x, y, w, h) => combatPanel(scene, x, y, w, h, 13002),
         () => Boolean(this.selectionDetailsClose));
       bodyScroll.container.setDepth(13002);
     }
@@ -4487,16 +4460,16 @@ export default class BattleScene extends Phaser.Scene {
     // Center the compact button row inside the panel, including space for death details.
     const buttonY = top + panelHeight - 32 - buttonHeight / 2;
     const continueX = casualtyLines.length ? (width - buttonsWidth + continueWidth) / 2 : width / 2;
-    const button = addStoneButton(this, continueX, buttonY, continueWidth, buttonHeight, 13002)
+    const button = combatButton(this, continueX, buttonY, continueWidth, buttonHeight, 13002)
       .setName('idle-summary-continue');
 
-    const label = stoneText(this, continueX, buttonY, 'CONTINUE', UI_FONT_SIZES.heading38, 13003);
+    const label = combatText(this, continueX, buttonY, 'CONTINUE', UI_FONT_SIZES.heading38, 13003);
     const deathViews = [];
     if (casualtyLines.length) {
       const deathX = continueX + continueWidth / 2 + buttonGap + deathWidth / 2;
-      const deathButton = addStoneButton(this, deathX, buttonY, deathWidth, buttonHeight, 13002)
+      const deathButton = combatButton(this, deathX, buttonY, deathWidth, buttonHeight, 13002)
         .setName('idle-summary-death-details');
-      const deathLabel = stoneText(this, deathX, buttonY, 'DEATH DETAILS', UI_FONT_SIZES.heading38, 13003);
+      const deathLabel = combatText(this, deathX, buttonY, 'DEATH DETAILS', UI_FONT_SIZES.heading38, 13003);
       deathViews.push(deathButton, deathLabel);
       bindButtonPress(this, deathButton, [deathLabel], () => showSelectionDetails(this, {
         title: 'Death details', description: casualtyLines.join('\n'), align: 'left',
@@ -4538,41 +4511,13 @@ export default class BattleScene extends Phaser.Scene {
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
-    this.partyHud?.forEach(({ unit, levelText, hpText, manaText, threatText, hpFill, hpGlow, manaBack, manaFill, hudBarWidth }) => {
+    this.partyHud?.forEach(entry => {
+      const { unit, levelText } = entry;
 
-      // Wave XP updates the saved roster while the unit keeps its encounter-start stats.
-      // Read the roster level here, just like held details, including after save restoration.
+      // Wave rewards can change the roster level without replacing the battle unit.
       const level = GameState.roster.find(hero => hero.id === unit.id)?.level ?? unit.level;
-      levelText?.setText(`Lv ${level}`);
-
-      // The condition before ? chooses the first value when true and the value after :
-      // when false. Clamp keeps the first argument between the lower bound (second
-      // argument) and upper bound (third argument).
-      const ratio = unit.maxHp > 0 ? Phaser.Math.Clamp(unit.hp / unit.maxHp, 0, 1) : 0;
-      const manaRatio = unit.maxMana > 0 ? Phaser.Math.Clamp(unit.mana / unit.maxMana, 0, 1) : 0;
-      const healthColor = this.getHealthBarColor(ratio);
-
-      // Math.ceil rounds upward to the next integer, including when the value has a
-      // fractional part.
-      hpText.setText(unit.alive ? `${Math.ceil(unit.hp)} / ${unit.maxHp}` : 'DOWN');
-      threatText.setText(unit.alive ? `Threat ${Math.round(this.getCombinedThreat(unit))}` : '');
-      hpFill.setDisplaySize(hudBarWidth * ratio, 32);
-      hpFill.setFillStyle(healthColor);
-      hpFill.setVisible(unit.alive && ratio > 0);
-      hpGlow.setStrokeStyle(5, healthColor, 0);
-
-      if (unit.maxMana > 0) {
-        manaBack.setVisible(true);
-        manaFill.setVisible(unit.alive && manaRatio > 0);
-        manaFill.setDisplaySize(hudBarWidth * manaRatio, 32);
-
-        // Math.floor rounds toward the smaller whole number, so 3.8 becomes 3.
-        manaText.setVisible(true).setText(unit.alive ? `${Math.floor(unit.mana)} / ${unit.maxMana}` : '');
-      } else {
-        manaBack.setVisible(false);
-        manaFill.setVisible(false);
-        manaText.setVisible(false);
-      }
+      levelText.setText(`Lv ${level}`);
+      entry.updateResources();
     });
 
     this.updateEncounterStatus();
@@ -4606,7 +4551,10 @@ export default class BattleScene extends Phaser.Scene {
     // The condition before ? chooses the first value when true and the value after : when
     // false.
     this.encounterStatusText.setText(camp ? 'CAMP CHECKPOINT' : `WAVE ${this.currentWaveIndex + 1} / ${this.waves.length}`);
-    this.encounterTimerText.setText(`${elapsed}${!camp && wave?.boss ? ' • BOSS' : ''}`);
+    this.encounterTimerText.setText(elapsed);
+    this.delveTitleText?.setColor(!camp && wave?.boss ? '#ffd166' : STONE.text);
+    this.waveTitleText?.setText(camp ? 'CAMP CHECKPOINT' : wave?.boss ? 'BOSS ENCOUNTER' : `Wave ${this.currentWaveIndex + 1}`)
+      .setColor(!camp && wave?.boss ? '#fca5a5' : STONE.muted);
   }
 
   // This helper draws attention to the party member taking enemy damage.
@@ -4734,8 +4682,9 @@ export default class BattleScene extends Phaser.Scene {
     // undefined. The condition before ? chooses the first value when true and the value
     // after : when false.
     this.pauseButtonText?.setText(this.combatPaused ? 'RESUME' : 'PAUSE');
+    this.pauseMenu?.sync();
     this.pauseButton?.setFillStyle(this.combatPaused ? 0x3b321d : 0x1f2937);
-    this.showBattleMessage(this.combatPaused ? 'PAUSED' : 'RESUMED', this.combatPaused ? '#fbbf24' : '#bef264');
+    this.showBattleMessage(this.combatPaused ? 'TACTICAL PAUSE' : 'RESUMED', this.combatPaused ? '#fbbf24' : '#bef264');
 
     if (!this.combatPaused) this.flushPausedTactics();
     HapticsService.tap();

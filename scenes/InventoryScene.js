@@ -85,7 +85,7 @@ export default class InventoryScene extends TownFeatureScene {
         this.scene.start('EquipmentScene', { slot: item.slot, itemId: item.id });
       });
       if (owner) serviceButton(this, detail.x + detail.width / 2, b.bottom - 175, detail.width - 100, 76, `Unequip from ${owner.name}`,
-        () => this.commit(unequipItem(owner.id, item.slot)), { compact: true, slot: 'body30' });
+        () => this.commit(unequipItem(owner.id, item.slot), 'equipment'), { compact: true, slot: 'body30' });
     } else serviceText(this, detail.x + detail.width / 2, b.bottom - 102, 'Materials are used by merchants for crafting and inscription.', 'body32',
       { align: 'center', wordWrap: { width: detail.width - 100 } }).setOrigin(0.5);
   }

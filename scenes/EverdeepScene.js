@@ -9,6 +9,7 @@ import HapticsService from '../services/HapticsService.js';
 import { CRAFTING_MATERIALS, EQUIPMENT_BY_ID } from '../data/items.js';
 import { addStoneButton, addStonePanel, addStoneOrnaments, preloadCarvedStone } from '../ui/CarvedStone.js';
 import { bindButtonPress } from '../ui/ButtonPress.js';
+import { showFeatureToast } from '../ui/FeatureToast.js';
 
 import {
   everdeepWritCost, everdeepUnavailableIds, claimEverdeepChest, everdeepChestPreview, everdeepRuns, everdeepTimers,
@@ -107,9 +108,14 @@ export default class EverdeepScene extends Phaser.Scene {
     this.content.add([...face.pressVisuals, face]);
     const text = this.text(x, y, label, options.size ?? UI_FONT_SIZES.body34, '#f5ecdf', width - 32);
     if (options.disabled) {
-      face.disableInteractive().setAlpha(0.5);
+      face.setAlpha(0.5);
       face.pressVisuals.forEach(visual => visual.setAlpha(0.5));
       text.setAlpha(0.55);
+      face.uiSound = 'failure';
+      bindButtonPress(this, face, [text], () => {
+        HapticsService.tap();
+        showFeatureToast(this, options.disabledReason || `${label} is currently unavailable.`, { centered: true });
+      });
     } else {
       bindButtonPress(this, face, [text], () => {
         HapticsService.tap();
@@ -179,18 +185,18 @@ export default class EverdeepScene extends Phaser.Scene {
       this.button(leftX - 190, 876, 160, 'Previous', () => {
         this.runPage--;
         this.render();
-      }, { size: UI_FONT_SIZES.support28, height: 70, disabled: this.runPage === 0 });
+      }, { size: UI_FONT_SIZES.support28, height: 70, disabled: this.runPage === 0, disabledReason: 'You are on the first expedition page.' });
       this.text(leftX, 876, `${this.runPage + 1}/${pageCount}`, UI_FONT_SIZES.support28);
       this.button(leftX + 190, 876, 160, 'Next', () => {
         this.runPage++;
         this.render();
-      }, { size: UI_FONT_SIZES.support28, height: 70, disabled: this.runPage + 1 >= pageCount });
+      }, { size: UI_FONT_SIZES.support28, height: 70, disabled: this.runPage + 1 >= pageCount, disabledReason: 'You are on the last expedition page.' });
     }
     this.button(leftX, 955, leftW - 64, '+ New Expedition', () => {
       this.selectedRunId = null;
       this.selectedIds.clear();
       this.render();
-    }, { disabled: !everdeepUnlocked() });
+    }, { disabled: !everdeepUnlocked(), disabledReason: 'Defeat the boss of The Sunken Watch to open The Everdeep.' });
 
     if (!everdeepUnlocked()) {
       this.text(this.detailX, 530, 'Defeat the boss of The Sunken Watch\nto open The Everdeep.', UI_FONT_SIZES.heading42, '#d4c5e1', this.detailW - 100);
@@ -241,19 +247,20 @@ export default class EverdeepScene extends Phaser.Scene {
         else if (this.selectedIds.size < 5 && this.roleAllowed(hero)) this.selectedIds.add(hero.id);
         else this.toast('Choose up to five adventurers within the role limits.');
         this.render();
-      }, { height: 122, size: UI_FONT_SIZES.body32, selected: this.selectedIds.has(hero.id), disabled: unavailable.has(hero.id) });
+      }, { height: 122, size: UI_FONT_SIZES.body32, selected: this.selectedIds.has(hero.id), disabled: unavailable.has(hero.id),
+        disabledReason: `${hero.name} is already on an Everdeep expedition. Recall the party to bring them home.` });
     });
 
     if (pages > 1) {
       this.button(x - 270, 832, 290, 'Previous Adventurers', () => {
         this.rosterPage--;
         this.render();
-      }, { size: UI_FONT_SIZES.support28, height: 72, disabled: this.rosterPage === 0 });
+      }, { size: UI_FONT_SIZES.support28, height: 72, disabled: this.rosterPage === 0, disabledReason: 'You are on the first adventurer page.' });
       this.text(x, 832, `${this.rosterPage + 1}/${pages}`, UI_FONT_SIZES.body30);
       this.button(x + 270, 832, 290, 'More Adventurers', () => {
         this.rosterPage++;
         this.render();
-      }, { size: UI_FONT_SIZES.support28, height: 72, disabled: this.rosterPage + 1 >= pages });
+      }, { size: UI_FONT_SIZES.support28, height: 72, disabled: this.rosterPage + 1 >= pages, disabledReason: 'You are on the last adventurer page.' });
     }
     this.button(x, 944, w - 130, `Purchase Writ & Begin  /  ${writCost} Gold`, () => {
 
@@ -268,7 +275,8 @@ export default class EverdeepScene extends Phaser.Scene {
       // Math.floor rounds toward the smaller whole number, so 3.8 becomes 3.
       this.runPage = Math.floor((everdeepRuns().length - 1) / 4);
       this.render();
-    }, { color: 0x513267, disabled: this.selectedIds.size !== 5 || GameState.gold < writCost });
+    }, { color: 0x513267, disabled: this.selectedIds.size !== 5 || GameState.gold < writCost,
+      disabledReason: this.selectedIds.size !== 5 ? 'Choose five adventurers before beginning an expedition.' : `You need ${writCost} Gold to purchase a Writ.` });
   }
 
   // Check whether adding this character would respect the selected party's role limits.
@@ -350,7 +358,7 @@ export default class EverdeepScene extends Phaser.Scene {
         this.recallPending = run.id;
         this.renderRecall(run);
       }
-    }, { disabled: stopped && ready > 0, color: stopped ? 0x30213f : 0x442735 });
+    }, { disabled: stopped && ready > 0, disabledReason: 'Claim all earned chests before dismissing this expedition.', color: stopped ? 0x30213f : 0x442735 });
   }
 
   // Add a rectangle to this screen's tracked display objects for later refresh and

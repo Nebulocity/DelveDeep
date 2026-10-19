@@ -39,13 +39,13 @@ const textures=[
 ...ALHANNA_SPRITES.textures,
 ...ALDREN_SPRITES.textures,
 ...GARRICK_SPRITES.textures,
-{character:"elyra",key:"elyra-reference-v2-idle",url:new URL("../assets/characters/elyra/sheets/idle.png",import.meta.url).href},
-{character:"elyra",key:"elyra-reference-v2-walk",url:new URL("../assets/characters/elyra/sheets/walk.png",import.meta.url).href},
-{character:"elyra",key:"elyra-reference-v2-attack",url:new URL("../assets/characters/elyra/sheets/attack.png",import.meta.url).href},
-{character:"elyra",key:"elyra-reference-v2-block",url:new URL("../assets/characters/elyra/sheets/block.png",import.meta.url).href},
+{character:"elyra",key:"elyra-reference-v2-idle",url:new URL("../assets/characters/vaeloria/sheets/idle.png",import.meta.url).href},
+{character:"elyra",key:"elyra-reference-v2-walk",url:new URL("../assets/characters/vaeloria/sheets/walk.png",import.meta.url).href},
+{character:"elyra",key:"elyra-reference-v2-attack",url:new URL("../assets/characters/vaeloria/sheets/attack.png",import.meta.url).href},
+{character:"elyra",key:"elyra-reference-v2-block",url:new URL("../assets/characters/vaeloria/sheets/block.png",import.meta.url).href},
 
-{character:"elyra",key:"elyra-reference-v2-hit",url:new URL("../assets/characters/elyra/sheets/hit.png",import.meta.url).href},
-{character:"elyra",key:"elyra-reference-v2-death",url:new URL("../assets/characters/elyra/sheets/death.png",import.meta.url).href},
+{character:"elyra",key:"elyra-reference-v2-hit",url:new URL("../assets/characters/vaeloria/sheets/hit.png",import.meta.url).href},
+{character:"elyra",key:"elyra-reference-v2-death",url:new URL("../assets/characters/vaeloria/sheets/death.png",import.meta.url).href},
 
 
 {character:"orwen",key:"orwen-reference-v2-idle",url:new URL("../assets/characters/orwen/sheets/idle.png",import.meta.url).href},

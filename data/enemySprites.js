@@ -58,6 +58,15 @@ const sheets = {
     new URL('../assets/enemies/dolmark-den/denProtector/sheets/death.png', import.meta.url).href
   ],
 
+  denColossus: [
+    new URL('../assets/enemies/dolmark-den/denColossus/sheets/idle.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/denColossus/sheets/walk.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/denColossus/sheets/attack.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/denColossus/sheets/block.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/denColossus/sheets/hit.png', import.meta.url).href,
+    new URL('../assets/enemies/dolmark-den/denColossus/sheets/death.png', import.meta.url).href
+  ],
+
   silvanarkTheForestLord: [
     new URL('../assets/enemies/dolmark-den/silvanarkTheForestLord/sheets/idle.png', import.meta.url).href,
     new URL('../assets/enemies/dolmark-den/silvanarkTheForestLord/sheets/walk.png', import.meta.url).href,
@@ -83,7 +92,7 @@ function createSprite(id, urls) {
 
   // The condition before ? chooses the first value when true and the value after : when
   // false.
-  const stateColumns = ['denWarden', 'denProtector', 'silvanarkTheForestLord'].includes(id)
+  const stateColumns = ['denWarden', 'denProtector', 'denColossus', 'silvanarkTheForestLord'].includes(id)
     ? dolmarkColumns : columns;
 
   // map builds one output entry for each input entry, in the same order. The callback's
@@ -115,12 +124,12 @@ function createSprite(id, urls) {
     direction, { frameMs: 1000, frames: [clip.frames.at(-1)] }
   ]));
   const baseScale = id === 'rongarTheCrusher' ? 1.17 : id === 'silvanarkTheForestLord' ? 0.78
-    : id === 'denProtector' ? 1.2 : id === 'denWarden' ? 1.05 : 0.66;
+    : id === 'denColossus' ? 1.35 : id === 'denProtector' ? 1.2 : id === 'denWarden' ? 1.05 : 0.66;
 
   // Dolmark's ordinary monsters use 1.5 times their accepted artwork sizes, and
   // its boss uses 2 times. Thornbriar's roster keeps its original display sizes.
   const multiplier = id === 'silvanarkTheForestLord' ? 2
-    : ['denWarden', 'denProtector'].includes(id) ? 1.5 : 1;
+    : ['denWarden', 'denProtector', 'denColossus'].includes(id) ? 1.5 : 1;
   const scale = baseScale * multiplier;
 
   return { textures, clips, scale, footY: 0 };

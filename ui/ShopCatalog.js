@@ -130,9 +130,11 @@ function renderItemDetails(scene, choice, row, bounds) {
     scene.transact(action);
   };
   serviceButton(scene, row.runAll ? center + actionWidth / 2 + 10 : center, actionY, actionWidth, 88,
-    row.action, () => run(row.run), { enabled: Boolean(row.enabled), name: `shop-action-${row.id}`, slot: 'body32', haptic: false });
+    row.action, () => run(row.run), { enabled: Boolean(row.enabled), disabledReason: () => shopItemPresentation(scene, row, choice).unavailable,
+      name: `shop-action-${row.id}`, slot: 'body32', haptic: false });
   if (row.runAll) serviceButton(scene, center - actionWidth / 2 - 10, actionY, actionWidth, 88,
-    row.allAction, () => run(row.runAll), { enabled: Boolean(row.enabled), name: `shop-sell-all-${row.id}`, slot: 'body30', haptic: false });
+    row.allAction, () => run(row.runAll), { enabled: Boolean(row.enabled), disabledReason: item.unavailable,
+      name: `shop-sell-all-${row.id}`, slot: 'body30', haptic: false });
   const inspect = scene.add.rectangle(bounds.x + 104, bounds.y + 140, 144, 144, 0, 0);
   bindSelectionDetails(scene, inspect, item.details, () => showShopDetails(scene, item.details));
 }

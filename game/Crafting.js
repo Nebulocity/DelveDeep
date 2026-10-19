@@ -4,7 +4,8 @@
 // obtained from shops and rewards.
 
 import GameState from './GameState.js';
-import { CRAFTING_RECIPES, CRAFTING_RECIPE_BY_ID, getEquipmentDefinition, getMaterialDefinition, getPotionDefinition } from '../data/items.js';
+import { DEFAULT_RECIPE_IDS } from './RecipeKnowledge.js';
+import { CRAFTING_RECIPE_BY_ID, getEquipmentDefinition, getMaterialDefinition, getPotionDefinition } from '../data/items.js';
 import { grantEquipment, grantEnchantmentScroll, grantMaterial, grantPotionPack } from './Equipment.js';
 
 // Format required materials from the same recipe data used by crafting.
@@ -22,13 +23,9 @@ export function canCraft(recipeId, state = GameState) {
   const recipe = CRAFTING_RECIPE_BY_ID[recipeId];
   if (!recipe) return { ok: false, message: 'That recipe is unavailable.' };
 
-  // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
-  // map builds one output entry for each input entry, in the same order. The callback's
-  // return value becomes that output entry. filter keeps entries whose callback returns
-  // true. It builds a new list and leaves the original list in place.
-  const knownRecipes = state.inventory.knownRecipes
-    ?? CRAFTING_RECIPES.filter(entry => entry.knownAtStart).map(entry => entry.id);
-  if (!knownRecipes.includes(recipeId)) return { ok: false, message: 'Learn this recipe before crafting it.' };
+  if (!DEFAULT_RECIPE_IDS.includes(recipeId) && !state.inventory.knownRecipes?.includes(recipeId)) {
+    return { ok: false, message: 'Learn this recipe before crafting it.' };
+  }
 
   if ((state.gold ?? 0) < (recipe.fee ?? 0)) return { ok: false, message: `Need ${recipe.fee} Gold for the crafting fee.` };
 

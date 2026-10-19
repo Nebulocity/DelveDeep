@@ -1,10 +1,11 @@
+import { expeditionButton as addStoneButton } from './ExpeditionTheme.js';
 // Shared stone controls use the same saved BGM preference as the world map Dev Tools.
 
 import GameState from '../game/GameState.js';
 import { saveProfile } from '../game/GameStorage.js';
 import HapticsService from '../services/HapticsService.js';
 import { UI_FONT_SIZES } from '../config/uiTypography.js';
-import { addStoneButton, stoneText, STONE } from './CarvedStone.js';
+import { stoneText, STONE } from './CarvedStone.js';
 import { bindButtonPress } from './ButtonPress.js';
 
 // Coordinates and sizes are logical canvas pixels, before phone display scaling.

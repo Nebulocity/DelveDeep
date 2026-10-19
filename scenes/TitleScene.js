@@ -18,15 +18,19 @@ import { hideLoadingScreenAfterRender } from '../ui/LoadingScreen.js';
 import { createScrollingWorldMap, updateScrollingWorldMap } from './ScrollingWorldMap.js';
 import { addRegionPanel, addRegionButton, addRegionNotice, setRegionPanelState, regionMessageBounds } from '../ui/RegionMapTheme.js';
 import { showConfirmation } from '../ui/ConfirmationDialog.js';
-import { resolveWorldMapCharacter } from '../game/WorldMapCharacter.js';
+import { resolveWorldMapCharacter, worldMapParty } from '../game/WorldMapCharacter.js';
+import { addMapCharacterPreview, showWorldMapCharacterGallery } from '../ui/WorldMapCharacterGallery.js';
 import { CHARACTER_SPRITES } from '../data/characterSprites.js';
 import { townLayout, setTownLayout } from '../game/TownPreferences.js';
 import { preloadTownAssets } from '../ui/TownAssets.js';
+import delves from '../data/delves.js';
+import { preloadDelveBestiary } from '../ui/DelveBestiary.js';
 import { REGIONAL_MAPS } from '../data/regionalMaps.js';
 import { preloadRegionalMap } from '../ui/RegionalMapRenderer.js';
 import { refreshRegionMapGold } from '../ui/RegionMapUI.js';
 import { hallScroll } from '../ui/HallUI.js';
 import { serviceScrollSurface } from '../ui/TownServiceTheme.js';
+import { playUiSound, runUiAction } from '../services/UiAudioService.js';
 
 export default class TitleScene extends Phaser.Scene {
 
@@ -36,20 +40,30 @@ export default class TitleScene extends Phaser.Scene {
     super('TitleScene');
   }
 
-  // Load only the chosen adventurer's map animations. The default sprite stays in Boot.
+  // Settings can switch representatives without leaving the map. Preload the
+  // eligible party's idle and walk clips; other combat sheets stay unloaded.
   preload() {
     preloadTownAssets(this);
     preloadRegionalMap(this, REGIONAL_MAPS['pineshire-reach']);
+
+    // Details can inspect any destination before the party travels there. Load only
+    // its idle sheets, sharing a queue because several destinations reuse monsters.
+    const bestiaryTextures = new Set();
+    for (const delve of delves) preloadDelveBestiary(this, delve, bestiaryTextures);
     const previousId = GameState.world.mapCharacterId;
-    const hero = resolveWorldMapCharacter();
+    resolveWorldMapCharacter();
     if (previousId !== GameState.world.mapCharacterId) saveProfile();
-    const definition = CHARACTER_SPRITES[hero?.id];
-    if (!definition) return;
-    const keys = new Set(['idle', 'walk'].flatMap(state =>
-      Object.values(definition.clips[state]).flatMap(clip => clip.frames.map(frame => frame.key))));
-    for (const texture of definition.textures) {
-      if (keys.has(texture.key) && !this.textures.exists(texture.key)) {
-        this.load.spritesheet(texture.key, texture.url, { frameWidth: 256, frameHeight: 256 });
+    const queued = new Set();
+    for (const hero of worldMapParty()) {
+      const definition = CHARACTER_SPRITES[hero.id];
+      if (!definition) continue;
+      const keys = new Set(['idle', 'walk'].flatMap(state =>
+        Object.values(definition.clips[state]).flatMap(clip => clip.frames.map(frame => frame.key))));
+      for (const texture of definition.textures) {
+        if (keys.has(texture.key) && !queued.has(texture.key) && !this.textures.exists(texture.key)) {
+          queued.add(texture.key);
+          this.load.spritesheet(texture.key, texture.url, { frameWidth: 256, frameHeight: 256 });
+        }
       }
     }
   }
@@ -76,6 +90,7 @@ export default class TitleScene extends Phaser.Scene {
   // Normal Settings keeps its existing controls. Seven taps on its heading open the
   // separate testing window in every build during the friends playtest.
   async showDevelopmentTools(devSettings = false) {
+    playUiSound(this, 'dialogOpen');
     await combatRecordingReady;
     if (!this.sys.isActive()) return;
     this.mapLocationClose?.();
@@ -102,7 +117,7 @@ export default class TitleScene extends Phaser.Scene {
     const panelHeight = Math.min(devSettings ? 1000 : 900, height - (devSettings ? 80 : 96));
     const panelTop = (height - panelHeight) / 2;
     const panelLeft = (width - panelWidth) / 2;
-    const rowY = (index) => panelTop + (devSettings ? 166 : 186) + index * (devSettings ? 90 : 114);
+    const rowY = (index) => panelTop + (devSettings ? 166 : 300) + index * (devSettings ? 90 : 114);
     const labelX = panelLeft + 100;
     const firstX = panelLeft + (devSettings ? 650 : 720);
 
@@ -154,6 +169,7 @@ export default class TitleScene extends Phaser.Scene {
         depth: depth + 3, restrained: devSettings, haptic: false,
         state: label === 'RESET' ? 'danger' : label === 'ON' ? 'selected' : 'normal'
       });
+      if (y === closeY) control.panel.uiSound = 'dialogClose';
       (y === closeY ? objects : contentObjects).push(...control.objects);
       return { button: control.panel, caption: control.text };
     };
@@ -309,6 +325,19 @@ export default class TitleScene extends Phaser.Scene {
       return;
     }
     
+    addLabel(-1, 'World Map Character');
+    const mapHero = resolveWorldMapCharacter();
+    const characterName = this.add.text(firstX - 70, rowY(-1), mapHero?.name ?? 'No party', {
+      fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx('body36'), color: '#ffdb86'
+    }).setOrigin(0.5).setDepth(depth + 2);
+    if (characterName.width > 240) characterName.setScale(240 / characterName.width);
+    contentObjects.push(characterName);
+    const characterPreview = addMapCharacterPreview(this, mapHero, firstX + 130, rowY(-1), 96, depth + 2);
+    if (characterPreview) contentObjects.push(characterPreview);
+    addButton(firstX + 350, rowY(-1), 'CHANGE', 0, 0, () => {
+      showWorldMapCharacterGallery(this, () => this.showDevelopmentTools());
+    });
+
     addLabel(0, 'BGM');
     const musicEnabled = GameState.development.musicEnabled === true;
     const musicToggle = addButton(firstX, rowY(0), musicEnabled ? 'ON' : 'OFF',
@@ -325,6 +354,25 @@ export default class TitleScene extends Phaser.Scene {
       });
 
     addLabel(2, 'Combat logging');
+
+    addLabel(5, 'Sound effects');
+    const sfxToggle = addButton(firstX, rowY(5), GameState.preferences.sfxMuted ? 'OFF' : 'ON', 0, 0, () => {
+      this.game.uiAudio.setMuted(!GameState.preferences.sfxMuted);
+      sfxToggle.caption.setText(GameState.preferences.sfxMuted ? 'OFF' : 'ON');
+      setRegionPanelState(this, sfxToggle.button, GameState.preferences.sfxMuted ? 'normal' : 'selected');
+    });
+    setRegionPanelState(this, sfxToggle.button, GameState.preferences.sfxMuted ? 'normal' : 'selected');
+    addLabel(6, 'SFX volume');
+    const volumeLabel = this.add.text(firstX, rowY(6), `${Math.round(GameState.preferences.sfxVolume * 100)}%`, {
+      fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx('body36'), color: '#fff1d2'
+    }).setOrigin(0.5).setDepth(depth + 2);
+    contentObjects.push(volumeLabel);
+    const changeVolume = amount => {
+      this.game.uiAudio.setVolume(Math.round((GameState.preferences.sfxVolume + amount) * 100) / 100);
+      volumeLabel.setText(`${Math.round(GameState.preferences.sfxVolume * 100)}%`);
+    };
+    addButton(firstX - 160, rowY(6), '−', 0, 0, () => changeVolume(-0.1), '#ffffff', 100);
+    addButton(firstX + 160, rowY(6), '+', 0, 0, () => changeVolume(0.1), '#ffffff', 100);
 
     const loggingToggle = addButton(firstX, rowY(2), isCombatLogging() ? 'STOP LOGGING' : 'START LOGGING', 0, 0, async () => {
       HapticsService.confirm();
@@ -353,11 +401,11 @@ export default class TitleScene extends Phaser.Scene {
     addLabel(3, 'Recorded fights');
     addButton(firstX, rowY(3), 'EXPORT LOG', 0, 0, () => {
       HapticsService.tap();
-      void showCombatArchives(() => {
+      return runUiAction(this, report => showCombatArchives(() => {
         if (!loggingToggle.button.active) return;
         loggingToggle.caption.setText('START LOGGING');
         setRegionPanelState(this, loggingToggle.button, 'normal');
-      });
+      }, this, report));
     }, '#ffffff', 360);
 
     addLabel(4, 'Town navigation');

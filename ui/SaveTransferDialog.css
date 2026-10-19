@@ -19,6 +19,7 @@
 .save-transfer-panel label { display: block; margin: 12px 0; }
 .save-transfer-panel input[type=password] { display: block; width: 100%; box-sizing: border-box; font: inherit; padding: 10px; min-height: 46px; background: #0e1116; color: #fff1d2; border: 1px solid #967c4e; border-radius: 5px; }
 .save-transfer-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.save-transfer-undo { margin-top: 20px; padding-top: 6px; border-top: 1px solid #967c4e; }
 .save-transfer-status { color: #ffe3a5; }
 .save-transfer-preview { border-top: 1px solid #967c4e; padding-top: 6px; }
 .save-transfer-panel .save-transfer-check { display: flex; gap: 12px; align-items: center; }

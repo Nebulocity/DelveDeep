@@ -7,6 +7,9 @@ import { TOWN_NAVIGATION, createTownAnimations } from './TownAssets.js';
 import { getTownLayout } from './TownLayout.js';
 import { bindButtonPress } from './ButtonPress.js';
 import { UI_SAFE_LEFT, UI_SAFE_RIGHT } from './Layout.js';
+import { playUiSound } from '../services/UiAudioService.js';
+import { animateSettingsCog } from './AnimatedSettingsCog.js';
+import { addCloseEmblem } from './OrnateCloseButton.js';
 
 export default class TownHub {
   constructor(scene) {
@@ -143,6 +146,7 @@ export default class TownHub {
       if (this.modal === 'settings') this.closeModal();
       else this.showModal('settings');
     }, 107).setName('town-settings');
+    animateSettingsCog(this.scene, settingsIcon, this.settingsControl, () => this.modal === 'settings');
     const aetherX = settingsX - 228 * u;
     const goldX = aetherX - 300 * u;
     this.frame(goldX, y, 290 * u, 96 * u, 'capsule');
@@ -175,12 +179,14 @@ export default class TownHub {
 
   navigate(scene, data) {
     if (this.opening) return;
+    playUiSound(this.scene, 'navigation');
     this.opening = true;
     this.hits.forEach(hit => hit.disableInteractive());
     this.transition = this.scene.time.delayedCall(this.reducedMotion ? 0 : 180, () => this.scene.scene.start(scene, data));
   }
 
   showModal(mode) {
+    if (!this.modal) playUiSound(this.scene, 'dialogOpen');
     this.closeModal();
     this.modal = mode;
     this.hits.forEach(hit => { if (hit !== this.settingsControl) hit.disableInteractive(); });
@@ -196,8 +202,11 @@ export default class TownHub {
     this.frame(x, y, w, h, 'panel', 101, true);
     const heading = 'Settings';
     this.text(x, top + 65 * u, heading, 'heading48', 103, true);
-    const close = this.text(x + w / 2 - 66 * u, top + 64 * u, '×', 'display62', 103, true);
-    this.control(close.x, close.y, 90 * u, 90 * u, [close], () => this.closeModal(), 105, true).setName('town-modal-close');
+    const close = this.remember(addCloseEmblem(this.scene, x + w / 2 - 66 * u, top + 64 * u, 90 * u, 103), true);
+    const closeControl = this.control(close.x, close.y, 90 * u, 90 * u, [close], () => {
+      playUiSound(this.scene, 'dialogClose'); this.closeModal();
+    }, 105, true).setName('town-modal-close');
+    closeControl.uiSound = 'dialogClose';
     if (mode === 'settings') {
       this.text(x, top + 136 * u, 'Town Navigation Style', 'body36', 103, true);
       TOWN_LAYOUTS.forEach((option, index) => {
@@ -226,7 +235,7 @@ export default class TownHub {
   }
 
   back() {
-    if (this.modal) { this.closeModal(); return; }
+    if (this.modal) { playUiSound(this.scene, 'dialogClose'); this.closeModal(); return; }
     this.navigate('TitleScene');
   }
 

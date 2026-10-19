@@ -3,6 +3,8 @@
 // fires on a valid release. Leaving the target, losing focus or opening held details
 // cancels that tap, and cleanup removes the handlers when the target is destroyed. Bind
 // after selection-details handlers so visual feedback is not captured as a tap action.
+import { runUiAction } from '../services/UiAudioService.js';
+
 export function bindButtonPress(scene, target, labels = [], onClick) {
 
   // Remember each moving object and its starting y. The stored number is our return
@@ -102,7 +104,7 @@ export function bindButtonPress(scene, target, labels = [], onClick) {
     if (pointer?.id !== pointerId || pointerId === null) return;
     event?.stopPropagation?.();
     cancel();
-    onClick?.();
+    if (onClick) runUiAction(scene, () => onClick(), target.uiSound ?? 'click');
   };
 
   const released = (pointer) => {

@@ -6,10 +6,12 @@ import { UI_FONT_SIZES, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTy
 import { tutorialSlides } from '../data/tutorial.js';
 import { addRegionPanel, addRegionButton, setRegionPanelState } from './RegionMapTheme.js';
 import { syncRegionMapCameras } from './RegionMapUI.js';
+import { playUiSound } from '../services/UiAudioService.js';
 
 // Open the video tutorial with slide navigation, playback controls and complete cleanup.
 // scene is the Phaser screen that owns the objects, clock and input used here.
 export function showTutorialSlideshow(scene) {
+  playUiSound(scene, 'dialogOpen');
 
   // ?. only follows this link when the value exists; a missing optional value gives
   // undefined.
@@ -107,6 +109,7 @@ export function showTutorialSlideshow(scene) {
 
   const next = button(cx + step * 1.5, 'NEXT', () => show(index + 1));
   const closeControl = addRegionButton(scene, width - 264, 116, 272, 88, 'CLOSE', close, { depth: depth + 4 });
+  closeControl.panel.uiSound = 'dialogClose';
   keep(closeControl.panel).setName('tutorial-close');
   keep(closeControl.text);
   const enable = (control, enabled) => {

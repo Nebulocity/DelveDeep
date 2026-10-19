@@ -17,18 +17,20 @@
     <!-- This splash is ordinary HTML so it appears before the game bundle has finished loading. -->
     <div id="loading-screen" class="loading-screen" role="status" aria-live="polite">
       <div class="loading-content">
-        <img class="loading-art" src="./assets/screens/splashscreen.png" alt="" aria-hidden="true" fetchpriority="high" />
-        <div class="loading-vignette"></div>
+        <div class="loading-art-frame">
+          <img class="loading-art" alt="" aria-hidden="true" fetchpriority="high" />
+          <div class="loading-vignette"></div>
 
-        <!-- The quadratic path bends the title: M starts it and Q gives its control point and end. -->
-        <svg class="loading-title" viewBox="0 0 1200 230" role="img" aria-label="Delve Deep!">
-          <defs>
-            <path id="loading-title-arc" d="M 110 170 Q 600 15 1090 170" />
-          </defs>
-          <text>
-            <textPath href="#loading-title-arc" startOffset="50%" text-anchor="middle">Delve Deep!</textPath>
-          </text>
-        </svg>
+          <!-- The quadratic path bends the title: M starts it and Q gives its control point and end. -->
+          <svg class="loading-title" viewBox="0 0 1200 230" role="img" aria-label="Delve Deep!">
+            <defs>
+              <path id="loading-title-arc" d="M 110 170 Q 600 15 1090 170" />
+            </defs>
+            <text>
+              <textPath href="#loading-title-arc" startOffset="50%" text-anchor="middle">Delve Deep!</textPath>
+            </text>
+          </svg>
+        </div>
 
         <!-- Vite replaces the build label. LoadingScreen updates the fill and accessible progress. -->
         <div class="loading-footer">
@@ -37,6 +39,9 @@
         </div>
       </div>
     </div>
+
+    <!-- Choose splash art through a small module before the game bundle is ready. -->
+    <script type="module" src="./ui/LoadingArtwork.js"></script>
 
     <!-- Start the JavaScript module graph; imported modules supply scenes, state and services. -->
     <script type="module" src="./main.js"></script>

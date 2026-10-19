@@ -6,6 +6,7 @@
 import { unifiedSpellBonuses } from './SpellPower.js';
 import { ATTRIBUTE_STATS, CHANCE_STATS } from '../config/characterProgression.js';
 import GameState from './GameState.js';
+import { learnItemRecipes } from './RecipeKnowledge.js';
 import { characterStats, rebuildCharacterStats } from './CharacterStats.js';
 import { ENCHANTMENT_BY_ID, LEGACY_ENCHANTMENT_IDS } from '../data/enchantments.js';
 import { getEquipmentDefinition, getMaterialDefinition, getPotionDefinition, itemMinimumLevel } from '../data/items.js';
@@ -63,6 +64,7 @@ export function grantEquipment(itemId, state = GameState) {
   };
 
   state.inventory.equipment.push(instance);
+  learnItemRecipes('equipment', itemId, state);
   return instance;
 }
 
@@ -82,6 +84,7 @@ export function grantPotionPack(itemId, state = GameState) {
   };
 
   state.inventory.equipment.push(instance);
+  learnItemRecipes('potion', itemId, state);
   return instance;
 }
 
@@ -102,6 +105,7 @@ export function grantEnchantmentScroll(itemId, state = GameState) {
   };
 
   state.inventory.equipment.push(instance);
+  learnItemRecipes('scroll', itemId, state);
   return instance;
 }
 
@@ -156,6 +160,7 @@ export function grantMaterial(materialId, amount = 1, state = GameState) {
   // alone.
   state.inventory.materials ??= {};
   state.inventory.materials[materialId] = current + amount;
+  learnItemRecipes('material', materialId, state);
   return true;
 }
 

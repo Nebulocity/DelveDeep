@@ -163,6 +163,15 @@ export default class BackgroundProgress {
     const previousDebt = this.pendingMs;
     this.account();
 
+    // Waiting battles consume no missed gameplay. Still run their foreground scene
+    // lifecycle so sustained slow frames cannot starve new modal input and UI tweens.
+    const waitingForPlayer = this.game.scene.getScenes?.(true).some(scene => scene.isWaitingForPlayer?.());
+    if (!this.hidden && waitingForPlayer && !this.replayDirty) {
+      this.pendingMs = 0;
+      this.step(delta, false);
+      return;
+    }
+
     // Ordinary frames retain Phaser's smooth delta; a long gap uses elapsed real time.
     if (previousDebt < BACKGROUND_STEP_MS && this.pendingMs < 250) {
       this.pendingMs = 0;
@@ -170,6 +179,12 @@ export default class BackgroundProgress {
       return;
     }
     this.drain();
+
+    // Settled catch-up advances combat outside Phaser's scene step. Register newly
+    // created controls without taking another combat step or advancing its clock.
+    if (!this.hidden && this.pendingMs < BACKGROUND_STEP_MS) {
+      for (const scene of this.game.scene.getScenes?.(true) ?? []) scene.input?.preUpdate?.();
+    }
   }
 
   // Check elapsed time outside normal visible frames and process queued background work.

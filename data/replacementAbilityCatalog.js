@@ -983,7 +983,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "castRange": "Self",
     "shape": "Circle",
     "anchor": "Caster",
-    "radius": 240,
+    "radius": 480,
     "width": 0,
     "maxTargets": "All",
     "handler": "healingAura",

@@ -40,4 +40,6 @@ clips.dead = Object.fromEntries(Object.entries(clips.death).map(([heading, clip]
 
 // Enlarge Delve combat artwork by 10% over its measured base size. Portrait and
 // world-map sizing use their separate display values; the boot anchors stay fixed.
-export const GARRICK_SPRITES = { textures, clips, ...layout.display, scale: layout.display.scale * 1.1 };
+// Every opaque pose starts at row 64 or below in its 256-pixel cell. Exclude that
+// transparent margin from nameplate placement while clearing the highest raised pose.
+export const GARRICK_SPRITES = { textures, clips, ...layout.display, topFrameY: 64, scale: layout.display.scale * 1.1 };

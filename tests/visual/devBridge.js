@@ -8,12 +8,6 @@ import { getDelveById } from '../../data/delves.js';
 
 // A Set keeps each value once. has checks membership without searching a list for
 // duplicate entries.
-const SCENES = new Set([
-  'TitleScene', 'TownScene', 'AdventurersHallScene', 'BlacksmithScene',
-  'FacilityScene', 'ItemsScene', 'RosterScene', 'PartyLeaderScene',
-  'DelveSelectScene', 'PartySelectScene', 'DungeonScene',
-  'BattleScene', 'RewardScene', 'EncounterSummaryScene'
-]);
 
 // Objects inside containers need a recursive walk. A Set prevents duplicate entries.
 function collectDisplayObjects(scene) {
@@ -53,12 +47,55 @@ function finiteBounds(object) {
 // Expose controlled scene activation and inspection only in a requested development QA
 // session.
 export function installVisualQaBridge(game) {
+  // Read the actual registration so new destinations cannot silently miss discovery.
+  const SCENES = new Set(Object.keys(game.scene.keys).filter(key => key !== 'BootScene'));
   window.__DELVE_DEEP_VISUAL_QA__ = {
     game,
 
     // We handle state here, keeping this operation in one place for its callers.
     get state() { return GameState; },
     scenes: [...SCENES],
+
+    // Include disabled and masked controls, then ask Phaser which of five sample points
+    // really hits each surface. A bounding rectangle alone cannot prove reachability.
+    audit(sceneName) {
+      const scene = game.scene.getScene(sceneName);
+      const entries = collectDisplayObjects(scene);
+      const controls = entries.filter(entry => entry.object.input);
+      const canvas = game.canvas.getBoundingClientRect();
+      const sx = canvas.width / game.scale.width;
+      const sy = canvas.height / game.scale.height;
+      const enabled = this.discover(sceneName).objects;
+      const objects = controls.map(({ object, visible, alpha, path }) => {
+        const camera = [...scene.cameras.cameras].reverse().find(candidate => object.willRender(candidate)) ?? scene.cameras.main;
+        const bounds = finiteBounds(object);
+        const found = enabled.find(item => item.id === `${sceneName}:${path}`);
+        const logical = found?.logicalBounds;
+        const points = logical ? [[0.5, 0.5], [0.15, 0.5], [0.85, 0.5], [0.5, 0.15], [0.5, 0.85]].map(([x, y]) => {
+          const pointer = { x: logical.x + logical.width * x, y: logical.y + logical.height * y };
+          const hits = scene.input.manager.hitTest(pointer, scene.input._list, camera, []);
+          scene.input.sortGameObjects(hits, { camera });
+          return { x: canvas.x + pointer.x * sx, y: canvas.y + pointer.y * sy,
+            hitsSelf: hits.includes(object), topmost: hits[0] === object };
+        }) : [];
+        return { ...found, id: `${sceneName}:${path}`, name: object.name, type: object.type,
+          label: found?.label ?? object.name ?? object.text ?? object.type,
+          visible, effectiveAlpha: alpha, enabled: object.input.enabled, worldBounds: bounds,
+          registeredForInput: scene.input._list.includes(object),
+          events: object.eventNames().filter(name => String(name).startsWith('pointer')),
+          hitArea: object.input.hitArea ? { x: object.input.hitArea.x, y: object.input.hitArea.y,
+            width: object.input.hitArea.width, height: object.input.hitArea.height, radius: object.input.hitArea.radius } : null,
+          probes: points };
+      });
+      return { scene: sceneName, active: scene.sys.isActive(), objects,
+        texts: entries.filter(e => e.visible && e.alpha > 0 && e.object.type === 'Text')
+          .map(e => ({ text: e.object.text, bounds: finiteBounds(e.object), masked: !!(e.object.mask || e.object.parentContainer?.mask) })),
+        lifecycle: { objects: entries.length, tweens: scene.tweens.getTweens().length,
+          inputListeners: Object.fromEntries(scene.input.eventNames().map(name => [name, scene.input.listenerCount(name)])) },
+        inspection: this.inspect(sceneName), canvas: { x: canvas.x, y: canvas.y, width: canvas.width, height: canvas.height },
+        viewport: { width: innerWidth, height: innerHeight, dpr: devicePixelRatio },
+        domOverflow: document.documentElement.scrollWidth > innerWidth || document.documentElement.scrollHeight > innerHeight };
+    },
 
     // We handle activate here, keeping this operation in one place for its callers.
     activate(sceneName, options = {}) {
@@ -74,7 +111,12 @@ export function installVisualQaBridge(game) {
 
         // map builds one output entry for each input entry, in the same order. The
         // callback's return value becomes that output entry.
-        GameState.activeParty = GameState.roster.slice(0, 5).map((member) => ({ ...member }));
+        // Match Party Select's role limits and include a healer in representative HUDs.
+        const party = [GameState.roster.find(hero => hero.role === 'Tank'),
+          GameState.roster.find(hero => hero.role === 'Healer'),
+          ...GameState.roster.filter(hero => ['Melee DPS', 'Ranged DPS'].includes(hero.role)).slice(0, 3)].filter(Boolean);
+        if (party.length !== 5) throw new Error('QA requires a tank, healer and three damage dealers');
+        GameState.activeParty = party.map(member => ({ ...member }));
       }
 
       // Give the outcome capture a representative retreat instead of an empty fallback.
@@ -114,11 +156,7 @@ export function installVisualQaBridge(game) {
       current.selectionDetailsClose?.();
       if (sceneName === 'TitleScene') current.selectionDetailsClose ??= null;
 
-      const targetScene = sceneName === 'AdventurersHallScene'
-        ? 'RosterScene'
-        : sceneName;
-
-      current.scene.start(targetScene, data);
+      current.scene.start(sceneName, options.data ?? data);
     },
 
     // Discover rendered interactive objects without clicking or changing game state.
@@ -126,7 +164,6 @@ export function installVisualQaBridge(game) {
     discover(sceneName) {
       const scene = game.scene.getScene(sceneName);
       const active = scene.sys.isActive();
-      const camera = scene.cameras.main;
       const canvas = game.canvas;
       const canvasRect = canvas.getBoundingClientRect();
       const logicalWidth = game.scale.gameSize.width;
@@ -142,19 +179,21 @@ export function installVisualQaBridge(game) {
 
       const objects = all.filter(({ object, visible, alpha }) =>
         visible && alpha > 0 && object.input?.enabled).map(({ object, path }) => {
+        const camera = [...scene.cameras.cameras].reverse().find(candidate => object.willRender(candidate)) ?? scene.cameras.main;
         const world = finiteBounds(object);
         const fixed = object.scrollFactorX === 0 && object.scrollFactorY === 0;
-        const zoom = Number.isFinite(camera.zoom) ? camera.zoom : 1;
         const scrollFactorX = Number.isFinite(object.scrollFactorX) ? object.scrollFactorX : 1;
         const scrollFactorY = Number.isFinite(object.scrollFactorY) ? object.scrollFactorY : 1;
 
         // For unrotated cameras this converts Phaser world bounds into screen pixels.
         // Rotated cameras, custom transforms, and unusual hit areas need review.
+        const corners = world ? [[world.x, world.y], [world.x + world.width, world.y],
+          [world.x, world.y + world.height], [world.x + world.width, world.y + world.height]]
+          .map(([x, y]) => camera.matrix.transformPoint(x - camera.scrollX * scrollFactorX, y - camera.scrollY * scrollFactorY)) : [];
         const logical = world ? {
-          x: (world.x - camera.scrollX * scrollFactorX) * zoom + camera.x,
-          y: (world.y - camera.scrollY * scrollFactorY) * zoom + camera.y,
-          width: world.width * zoom,
-          height: world.height * zoom
+          x: Math.min(...corners.map(point => point.x)), y: Math.min(...corners.map(point => point.y)),
+          width: Math.max(...corners.map(point => point.x)) - Math.min(...corners.map(point => point.x)),
+          height: Math.max(...corners.map(point => point.y)) - Math.min(...corners.map(point => point.y))
         } : null;
         const viewport = logical ? {
           x: canvasRect.x + logical.x * scaleX,
@@ -163,16 +202,17 @@ export function installVisualQaBridge(game) {
           height: logical.height * scaleY
         } : null;
 
-        let label = typeof object.name === 'string' && object.name.trim() ? object.name.trim() : '';
+        const semanticName = ['carved-stone-button', 'region-map-panel'].includes(object.name) ? '' : object.name?.trim();
+        let label = object.regionButtonText?.text?.trim() || semanticName || '';
         if (!label && object.type === 'Text' && typeof object.text === 'string') label = object.text.trim();
         if (!label && world) {
           const centerX = world.x + world.width / 2;
           const centerY = world.y + world.height / 2;
-          const nearby = labels.find(({ object: text }) => {
+          const nearby = labels.filter(({ object: text }) => {
             const bounds = finiteBounds(text);
             return bounds && centerX >= bounds.x - 4 && centerX <= bounds.x + bounds.width + 4
               && centerY >= bounds.y - 4 && centerY <= bounds.y + bounds.height + 4;
-          });
+          }).sort((a, b) => b.object.depth - a.object.depth)[0];
           if (nearby) label = nearby.object.text.trim();
         }
         if (!label) label = object.texture?.key || object.type || 'Unnamed control';

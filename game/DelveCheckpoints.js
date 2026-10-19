@@ -1,7 +1,8 @@
 // Ordinary waves bank their rewards before the boss. The saved nextWave is zero-based,
 // while the player sees wave numbers starting at one. Farming repeats the latest camp
-// wave and only gives XP and Happiness to living uncapped adventurers. Gold and materials are
-// shared. The checkpoint guard prevents paying an ordinary first-clear reward twice.
+// wave. Normal and farm wave XP goes only to living uncapped adventurers; farm
+// Happiness follows the same eligibility. Gold and materials are shared. The
+// checkpoint guard prevents paying an ordinary first-clear reward twice.
 
 import { delveMaterialIds } from './DelveDrops.js';
 import { FARM_MATERIAL_CHANCES } from '../config/farmMaterialDrops.js';
@@ -24,14 +25,19 @@ export const WAVE_REWARDS = {
 
 export const FARM_REWARDS = {
   Easy: { gold: 1, xp: 1, happiness: 1 },
-  Difficult: { gold: 2, xp: 1, happiness: 2 },
-  Tough: { gold: 3, xp: 1, happiness: 3 },
-  'Very Tough': { gold: 4, xp: 1, happiness: 4 },
+  Difficult: { gold: 2, xp: 2, happiness: 2 },
+  Tough: { gold: 3, xp: 3, happiness: 3 },
+  'Very Tough': { gold: 4, xp: 4, happiness: 4 },
 
-  'Incredibly Tough': { gold: 5, xp: 1, happiness: 5 },
-  Impossible: { gold: 6, xp: 1, happiness: 6 }
+  'Incredibly Tough': { gold: 5, xp: 5, happiness: 5 },
+  Impossible: { gold: 6, xp: 6, happiness: 6 }
 };
 
+// The table XP is the difficulty modifier. Each survivor earns this full amount;
+// living capped allies still count toward the multiplier, but cannot receive XP.
+export function delveWaveXp(delve, livingCount) {
+  return (WAVE_REWARDS[delve?.difficulty] ?? WAVE_REWARDS.Easy).xp * livingCount;
+}
 
 // Check whether this encounter uses ordinary wave banking and camp instead of the portal
 // flow.
@@ -123,11 +129,13 @@ export function awardOrdinaryWave(delve, waveIndex, bossIndex, farming = false, 
   // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
   const values = table[delve.difficulty] ?? table.Easy;
 
-  // Every clear pays fixed difficulty Gold. Normal XP equals that Gold amount; farm XP
-  // is always one for each survivor. goldStep stays zero for older table consumers.
+  // Both rewards scale with survivors before their existing cap reductions.
+  // Gold is one shared payout; each survivor receives the full per-character XP.
   const eligibility = delveRewardEligibility(delve);
-  const gold = cappedDelveGold(values.gold, eligibility);
-  const xp = values.xp;
+  const selectedIds = new Set(GameState.activeParty.map(hero => hero.id));
+  const partyIds = new Set(partyUnits.filter(unit => unit.alive && selectedIds.has(unit.id)).map(unit => unit.id));
+  const gold = cappedDelveGold(values.gold * partyIds.size, eligibility);
+  const xp = delveWaveXp(delve, partyIds.size);
   const pool = delveMaterialIds(delve);
   const materials = {};
 
@@ -163,10 +171,7 @@ export function awardOrdinaryWave(delve, waveIndex, bossIndex, farming = false, 
   // them.
   Object.entries(materials).forEach(([id, count]) => grantMaterial(id, count));
 
-  // Farm recipients are the living battle units. Ordinary first clears use the selected
-  // party. The Set lets us match those IDs against the persistent roster, where XP
-  // actually lives, without depending on party list order.
-  const partyIds = new Set((farming ? partyUnits.filter(unit => unit.alive) : GameState.activeParty).map(hero => hero.id));
+  // Match survivors to the persistent roster, where XP actually lives.
   const xpByHero = {};
   const previousRenown = GameState.leader?.level ?? 1;
   const previousPoints = GameState.leader?.renownPoints ?? 0;

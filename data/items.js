@@ -1580,7 +1580,7 @@ const workbookCraftingRecipes = [
     },
     "fee": 25,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
 
@@ -1601,7 +1601,7 @@ const workbookCraftingRecipes = [
     },
     "fee": 75,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
 
@@ -1622,7 +1622,7 @@ const workbookCraftingRecipes = [
     },
     "fee": 225,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
 
@@ -1662,7 +1662,7 @@ const workbookCraftingRecipes = [
     },
     "fee": 25,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
 
@@ -1683,7 +1683,7 @@ const workbookCraftingRecipes = [
     },
     "fee": 75,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
 
@@ -1704,7 +1704,7 @@ const workbookCraftingRecipes = [
     },
     "fee": 225,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
 
@@ -1744,7 +1744,7 @@ const workbookCraftingRecipes = [
     },
     "fee": 25,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
 
@@ -1765,7 +1765,7 @@ const workbookCraftingRecipes = [
     },
     "fee": 75,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
 
@@ -1786,7 +1786,7 @@ const workbookCraftingRecipes = [
     },
     "fee": 225,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
 
@@ -1826,7 +1826,7 @@ const workbookCraftingRecipes = [
     },
     "fee": 25,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
 
@@ -1847,7 +1847,7 @@ const workbookCraftingRecipes = [
     },
     "fee": 75,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
 
@@ -1868,7 +1868,7 @@ const workbookCraftingRecipes = [
     },
     "fee": 225,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
 
@@ -1908,7 +1908,7 @@ const workbookCraftingRecipes = [
     },
     "fee": 25,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
 
@@ -1929,7 +1929,7 @@ const workbookCraftingRecipes = [
     },
     "fee": 75,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
 
@@ -1950,7 +1950,7 @@ const workbookCraftingRecipes = [
     },
     "fee": 225,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
 
@@ -2053,7 +2053,7 @@ const workbookCraftingRecipes = [
     },
     "fee": 900,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
 
@@ -2074,7 +2074,7 @@ const workbookCraftingRecipes = [
     },
     "fee": 2700,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
 
@@ -2136,7 +2136,7 @@ const workbookCraftingRecipes = [
     },
     "fee": 900,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
 
@@ -2157,7 +2157,7 @@ const workbookCraftingRecipes = [
     },
     "fee": 2700,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
 
@@ -2219,7 +2219,7 @@ const workbookCraftingRecipes = [
     },
     "fee": 900,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
 
@@ -2240,7 +2240,7 @@ const workbookCraftingRecipes = [
     },
     "fee": 2700,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
 
@@ -2344,7 +2344,7 @@ const workbookCraftingRecipes = [
     "fee": 150,
     "knownAtStart": false,
 
-    "learnedFrom": "Sold scroll or recipe",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Enchanter"
   },
 
@@ -2367,7 +2367,7 @@ const workbookCraftingRecipes = [
     "fee": 150,
     "knownAtStart": false,
 
-    "learnedFrom": "Sold scroll or recipe",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Enchanter"
   },
 
@@ -2390,7 +2390,7 @@ const workbookCraftingRecipes = [
     "fee": 150,
     "knownAtStart": false,
 
-    "learnedFrom": "Sold scroll or recipe",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Enchanter"
   },
 
@@ -2413,7 +2413,7 @@ const workbookCraftingRecipes = [
     "fee": 150,
     "knownAtStart": false,
 
-    "learnedFrom": "Sold scroll or recipe",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Enchanter"
   },
 
@@ -2436,7 +2436,7 @@ const workbookCraftingRecipes = [
     "fee": 150,
     "knownAtStart": false,
 
-    "learnedFrom": "Sold scroll or recipe",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Enchanter"
   }
 ];

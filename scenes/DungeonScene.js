@@ -1,3 +1,4 @@
+import { preloadCombatHud, combatPanel as addStonePanel, combatButton as addStoneButton, combatText as stoneText } from '../ui/CombatHudTheme.js';
 import { ENCHANTMENT_BY_ID } from '../data/enchantments.js';
 import { titleIcon } from '../ui/IdentityIcons.js';
 import { classIcon } from '../ui/IdentityIcons.js';
@@ -16,9 +17,10 @@ import { beginExpedition } from '../game/ExpeditionProgression.js';
 
 import { leaderAbilities } from '../game/LeaderProgression.js';
 import { showLoadingScreen } from '../ui/LoadingScreen.js';
-import { preloadCarvedStone, addStonePanel, addStoneButton, stoneText, STONE } from '../ui/CarvedStone.js';
+import { preloadCarvedStone, STONE } from '../ui/CarvedStone.js';
 import { preparationFrame, preparationButton, preparationNotice } from '../ui/DelvePreparation.js';
 import { CHARACTER_SPRITES } from '../data/characterSprites.js';
+import { displayCharacterPortrait } from '../ui/CharacterSpriteDisplay.js';
 import { preloadEnvironment } from '../combat/LayeredEnvironment.js';
 import { bindButtonPress } from '../ui/ButtonPress.js';
 import { stoneIcon } from '../ui/CarvedStone.js';
@@ -46,6 +48,7 @@ export default class DungeonScene extends Phaser.Scene {
   // calling create, so later code can look up the assets by their keys.
   preload() {
     preloadCarvedStone(this);
+    preloadCombatHud(this);
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
@@ -91,10 +94,8 @@ export default class DungeonScene extends Phaser.Scene {
     resolveWorldMapCharacter();
     if (previousMapCharacterId !== GameState.world.mapCharacterId) saveProfile();
     const mapMarkers = [];
-    const refreshMapMarkers = () => mapMarkers.forEach(({ id, button, icon, selectedIcon }) => {
+    const refreshMapMarkers = () => mapMarkers.forEach(({ id, icon, selectedIcon }) => {
       const selected = GameState.world.mapCharacterId === id;
-      button.setFillStyle(selected ? 0x3b321d : 0x1f2937);
-      button.setStrokeStyle(2, selected ? STONE.gold : STONE.edge);
       icon.setVisible(!selected);
       selectedIcon.setVisible(selected);
     });
@@ -114,13 +115,12 @@ export default class DungeonScene extends Phaser.Scene {
       const frame = sprite?.portraitFrame ?? sprite?.clips.idle.south.frames[0];
       const x = width * 0.28 - 390;
 
-      // Match the character's combat size adjustment while preserving the card layout.
-      const portraitSize = 100 * (sprite?.portraitScale ?? 1);
       if (frame && this.textures.exists(frame.key)) {
 
         // Depth is drawing order, not distance or size. Higher-depth objects draw on top
         // of lower-depth objects.
-        this.add.image(x, y, frame.key, frame.frame).setDisplaySize(portraitSize, portraitSize).setFlipX(frame.flipX === true).setDepth(4);
+        displayCharacterPortrait(this, this.add.image(x, y, frame.key, frame.frame),
+          sprite, frame, x, y, 100, 'delveParty').setDepth(4);
       } else stoneText(this, x, y, adventurer.name.slice(0, 1), UI_FONT_SIZES.heading48, 4);
 
       // Origin is the anchor within the object: 0 is the left/top edge, 0.5 is the center
@@ -137,7 +137,10 @@ export default class DungeonScene extends Phaser.Scene {
 
       // The separate 104-pixel target consumes taps and holds before the row receives them.
       const markerX = width * 0.28 + 396;
-      const marker = addStoneButton(this, markerX, y, 104, 104, 5);
+      const marker = this.add.rectangle(markerX, y, 104, 104, 0, 0)
+        .setDepth(5).setInteractive({ useHandCursor: true });
+      marker.hidePressShadow = true;
+      marker.pressVisuals = [marker];
       const icon = stoneIcon(this, markerX, y, 'MAP', 42, 6, 0xbdc9d4).setAlpha(0.65);
       const selectedIcon = stoneIcon(this, markerX, y, 'MAP', 42, 6, STONE.gold);
       mapMarkers.push({ id: adventurer.id, button: marker, icon, selectedIcon });

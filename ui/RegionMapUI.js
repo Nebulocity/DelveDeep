@@ -8,6 +8,9 @@ import { addRegionPanel, addRegionButton, setRegionPanelState } from './RegionMa
 import { UI_SAFE_LEFT, UI_SAFE_RIGHT } from './Layout.js';
 import GameState from '../game/GameState.js';
 import { nodePoint } from '../data/worldMap.js';
+import { playUiSound } from '../services/UiAudioService.js';
+import { animateSettingsCog } from './AnimatedSettingsCog.js';
+import { addOrnateCloseButton } from './OrnateCloseButton.js';
 
 export const REGION_RAIL_WIDTH = 460;
 export const MAP_HEADER_HEIGHT = 116;
@@ -197,6 +200,8 @@ export function createRegionMapHeader(scene, onSettings) {
   }).setOrigin(0.5));
   const settings = addRegionButton(scene, settingsX, 58, 96, 96, '', onSettings, { icon: 'town-hub-settings' });
   settings.panel.setName('world-map-settings');
+  animateSettingsCog(scene, settings.panel.pressVisuals[1], settings.panel,
+    () => Boolean(scene.selectionDetailsClose));
 }
 
 export function refreshRegionMapGold(scene) {
@@ -208,6 +213,7 @@ export function refreshRegionMapGold(scene) {
 
 // Measured text keeps the nonmodal card compact without shrinking the reading size.
 export function showRegionDestination(scene, poi, { open, completed, details, travel, inspect }) {
+  playUiSound(scene, 'navigation');
   scene.mapLocationClose?.();
   scene.selectedMapPoi = poi;
   const camera = scene.cameras.main;
@@ -250,12 +256,14 @@ export function showRegionDestination(scene, poi, { open, completed, details, tr
     const button = addRegionButton(scene, px, py, bw, 88, label, action, { depth: depth + 3, ...options });
     objects.push(...button.objects);
   };
-  addAction(w / 2 - 78, 76, 96, '×', close, { restrained: true });
+  const closeControl = addOrnateCloseButton(scene, w / 2 - 78, 76, 96, 88, close, { depth: depth + 3 });
+  objects.push(...closeControl.objects);
   const buttonWidth = (w - 100) / 2;
   addAction(-(buttonWidth + 24) / 2, h - 80, buttonWidth, waystone ? 'Return' : here ? 'Enter' : 'Travel', () => {
     close();
+    playUiSound(scene, 'navigation');
     travel();
-  }, { enabled: open, state: 'selected' });
+  }, { enabled: open, disabledReason: summary, state: 'selected' });
   addAction((buttonWidth + 24) / 2, h - 80, buttonWidth, 'Details', () => { close(); inspect(details); });
   container.add(objects.sort((a, b) => a.depth - b.depth));
 

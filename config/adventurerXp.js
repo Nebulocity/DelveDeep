@@ -1,37 +1,18 @@
-// Farming awards one XP per living adventurer per clear. These budgets therefore mean
-// approximate hours, rather than a wall-clock lock: gear and tactics can shorten fights.
-// cycleSeconds includes combat, the return rest and the next wave's countdown. Pineshire
-// estimates use the prepared five-person party; later regions use a provisional 40 s.
 export const PLANNED_ADVENTURER_LEVEL = 50;
-export const FARM_HOURS_BY_DIFFICULTY = {
-  Easy: 4, Difficult: 8, Tough: 16, 'Very Tough': 32, 'Incredibly Tough': 64, Impossible: 128
-};
 
+// Each cost advances one level, starting at the band's first level. From level 25,
+// every successive cost increases by 300 XP without resetting at bracket boundaries.
 export const ADVENTURER_XP_BANDS = [
-  { start: 1, cap: 5, difficulty: 'Easy', cycleSeconds: 24 },
-  { start: 5, cap: 10, difficulty: 'Difficult', cycleSeconds: 45 },
-  { start: 10, cap: 15, difficulty: 'Tough', cycleSeconds: 34 },
-  { start: 15, cap: 20, difficulty: 'Very Tough', cycleSeconds: 57 },
-  { start: 20, cap: 25, difficulty: 'Very Tough', cycleSeconds: 37 },
-  { start: 25, cap: 30, difficulty: 'Incredibly Tough', cycleSeconds: 51 },
-  { start: 30, cap: 35, difficulty: 'Impossible', cycleSeconds: 40 },
-  { start: 35, cap: 40, difficulty: 'Impossible', cycleSeconds: 40 },
-  { start: 40, cap: 45, difficulty: 'Impossible', cycleSeconds: 40 },
-  { start: 45, cap: 50, difficulty: 'Impossible', cycleSeconds: 40 }
+  { start: 1, cap: 5, costs: [100, 125, 150, 200] },
+  { start: 5, cap: 10, costs: [250, 300, 350, 400, 450] },
+  { start: 10, cap: 15, costs: [525, 600, 675, 750, 825] },
+  { start: 15, cap: 20, costs: [925, 1025, 1125, 1225, 1325] },
+  { start: 20, cap: 25, costs: [1525, 1725, 1925, 2125, 2325] },
+  { start: 25, cap: 30, costs: [2625, 2925, 3225, 3525, 3825] },
+  { start: 30, cap: 35, costs: [4125, 4425, 4725, 5025, 5325] },
+  { start: 35, cap: 40, costs: [5625, 5925, 6225, 6525, 6825] },
+  { start: 40, cap: 45, costs: [7125, 7425, 7725, 8025, 8325] },
+  { start: 45, cap: 50, costs: [8625, 8925, 9225, 9525, 9825] }
 ];
 
-// Divide each band budget among its level steps, with modestly growing costs inside
-// that band. The last step takes the integer remainder so rounding cannot change the
-// total. New-region costs may reset because fight speed, not difficulty labels, sets XP.
-export const ADVENTURER_XP_COSTS = ADVENTURER_XP_BANDS.flatMap(band => {
-  const steps = band.cap - band.start;
-  const total = Math.round(FARM_HOURS_BY_DIFFICULTY[band.difficulty] * 3600 / band.cycleSeconds);
-  const weights = Array.from({ length: steps }, (_, index) => 8 + index);
-  const weightTotal = weights.reduce((sum, weight) => sum + weight, 0);
-  let assigned = 0;
-  return weights.map((weight, index) => {
-    const cost = index === steps - 1 ? total - assigned : Math.floor(total * weight / weightTotal);
-    assigned += cost;
-    return cost;
-  });
-});
+export const ADVENTURER_XP_COSTS = ADVENTURER_XP_BANDS.flatMap(band => band.costs);

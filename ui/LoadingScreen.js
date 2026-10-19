@@ -3,6 +3,7 @@
 // as CSS variables so browser text uses the same central typography choices.
 
 import { UI_DOM_FONTS, UI_FONT_FAMILIES } from '../config/uiTypography.js';
+import { selectLoadingArtwork } from './LoadingArtwork.js';
 
 document.documentElement.style.setProperty('--ui-sans-family', UI_FONT_FAMILIES.sans);
 
@@ -55,6 +56,7 @@ export function showLoadingScreen() {
   updateLoadingProgress(0);
   element.classList.remove('is-art-ready');
   element.classList.remove('is-hidden');
+  selectLoadingArtwork();
   revealTextAfterImage();
 }
 

@@ -7,12 +7,14 @@ import { renderShopCatalog } from '../ui/ShopCatalog.js';
 import { FACILITIES, renderFacilityMenu } from '../ui/FacilityMenu.js';
 import GameState from '../game/GameState.js';
 import { saveProfile } from '../game/GameStorage.js';
+import { playUiSound } from '../services/UiAudioService.js';
 import { buyPotionPack, equipmentOwner, equipmentStatsText } from '../game/Equipment.js';
 import { POTION_ITEMS, CRAFTING_RECIPES, getEquipmentDefinition } from '../data/items.js';
 
 import { ACTIVE_ENCHANTMENTS, ENCHANTMENT_BY_ID } from '../data/enchantments.js';
 import HapticsService from '../services/HapticsService.js';
 import { canCraft, craftItem, recipeIngredientText } from '../game/Crafting.js';
+import { learnInventoryRecipes } from '../game/RecipeKnowledge.js';
 
 import { GEAR_STOCK, saleRows, sellOwnedItem, sellAllOwnedItem, buyGear, inscribeEnchantment, applyEnchantment, disenchantItem } from '../game/ShopServices.js';
 
@@ -48,7 +50,7 @@ export default class FacilityScene extends Phaser.Scene {
   // objects belong to this scene and are removed when the scene shuts down.
   create() {
     const back = () => {
-      if (this.selectionDetailsClose) this.selectionDetailsClose();
+      if (this.selectionDetailsClose) { playUiSound(this, 'dialogClose'); this.selectionDetailsClose(); }
       else this.returnToTown();
     };
     const resize = () => this.render();
@@ -65,6 +67,7 @@ export default class FacilityScene extends Phaser.Scene {
   returnToTown() {
     if (this.leaving) return;
     this.leaving = true;
+    playUiSound(this, 'navigation');
     this.scene.start(this.returnScene);
   }
 
@@ -90,6 +93,8 @@ export default class FacilityScene extends Phaser.Scene {
   transact(action) {
     HapticsService.tap();
     const result = action();
+    const completedSound = ['buy', 'sell', 'inscribe'].includes(this.selection) ? 'purchase' : 'success';
+    playUiSound(this, result.ok ? completedSound : 'failure');
     this.message = result.message;
 
     if (result.ok) {
@@ -103,20 +108,19 @@ export default class FacilityScene extends Phaser.Scene {
   // Build the item rows for this facility's selected action and category.
   rowsFor(choice) {
     const state = GameState;
+    learnInventoryRecipes(state);
     if (choice.id === 'sell') return saleRows(state, this.facility.name).map(row => ({
       ...row, action: `SELL: ${row.value}g`, run: () => sellOwnedItem(row.id, state, this.facility.name),
       allAction: `SELL ALL: ${row.allValue}g`, runAll: () => sellAllOwnedItem(row.id, state, this.facility.name)
     }));
-    if (choice.id === 'craft' || choice.id === 'brew') return CRAFTING_RECIPES.filter(recipe => choice.id === 'brew'
-      ? recipe.category === 'alchemy' : ['equipment', 'material'].includes(recipe.category)).map(recipe => ({
+    if (choice.id === 'craft' || choice.id === 'brew') return CRAFTING_RECIPES.filter(recipe =>
+      recipe.crafter === this.facility.name && state.inventory.knownRecipes.includes(recipe.id)
+      && (choice.id === 'brew' ? recipe.category === 'alchemy' : ['equipment', 'material'].includes(recipe.category))).map(recipe => ({
       id: recipe.id,
       category: recipe.output.type === 'potion' ? 'potion' : recipe.output.type === 'material' ? 'material'
         : recipe.output.type === 'scroll' ? 'scroll' : getEquipmentDefinition(recipe.output.itemId)?.slot,
       name: recipe.name,
-      description: recipe.learnedFrom === 'Sold to Blacksmith' && !state.inventory.knownRecipes?.includes(recipe.id)
-        ? 'Sell this weapon to the Blacksmith to learn its recipe.'
-        : `Crafted with: ${recipeIngredientText(recipe).replaceAll('  •  ', ' + ')}\n${recipe.fee ?? 0} Gold fee`,
-      detailsDescription: `Crafted with: ${recipeIngredientText(recipe).replaceAll('  •  ', ' + ')}\n${recipe.fee ?? 0} Gold fee${recipe.learnedFrom === 'Sold to Blacksmith' ? '\nLearned by selling this weapon to the Blacksmith.' : ''}`,
+      description: `Crafted with: ${recipeIngredientText(recipe).replaceAll('  •  ', ' + ')}\n${recipe.fee ?? 0} Gold fee`,
       enabled: canCraft(recipe.id).ok, action: choice.id === 'brew' ? 'BREW' : 'CRAFT', run: () => craftItem(recipe.id)
     }));
 
@@ -125,15 +129,16 @@ export default class FacilityScene extends Phaser.Scene {
       enabled: state.gold >= item.price, action: `BUY ${item.price}g`, run: () => item.slot === 'potion' ? buyPotionPack(item.id) : buyGear(item.id)
     }));
 
-    if (choice.id === 'buy' || choice.id === 'inscribe') return ACTIVE_ENCHANTMENTS.map(definition => ({
+    if (choice.id === 'buy' || choice.id === 'inscribe') return ACTIVE_ENCHANTMENTS.filter(definition => choice.id === 'buy'
+      || CRAFTING_RECIPES.some(recipe => recipe.output.type === 'scroll' && recipe.output.itemId === definition.id
+        && state.inventory.knownRecipes.includes(recipe.id))).map(definition => ({
       id: definition.id, category: 'scroll', name: definition.name,
       description: `${enchantmentText(definition)}\n${choice.id === 'inscribe' ? `Crafted with: ${recipeIngredientText(definition).replaceAll('  •  ', ' + ')}\n${definition.craftingFee ?? 0} Gold fee` : 'Consume at Enchant to improve gear.'}`,
       enabled: choice.id === 'buy' ? state.gold >= definition.price
         : state.inventory.knownRecipes?.includes(CRAFTING_RECIPES.find(recipe => recipe.output.itemId === definition.id)?.id)
           && state.gold >= definition.craftingFee
           && Object.entries(definition.ingredients).every(([id, count]) => (state.inventory.materials[id] ?? 0) >= count),
-      action: choice.id === 'buy' ? `BUY ${definition.price}g`
-        : state.inventory.knownRecipes?.includes(CRAFTING_RECIPES.find(recipe => recipe.output.itemId === definition.id)?.id) ? 'INSCRIBE' : 'LEARN',
+      action: choice.id === 'buy' ? `BUY ${definition.price}g` : 'INSCRIBE',
 
       // Run the chosen action after the surrounding interaction accepts it.
       run: () => inscribeEnchantment(definition.id, state, choice.id === 'buy')

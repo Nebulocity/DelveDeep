@@ -36,6 +36,8 @@ export const leaderAbilities = [
 
   {
     id: 'lunarAssault',
+    // Arena units: four paces, shared by execution and Tactical Pause preview.
+    radius: 400,
     category: 'Assault',
     name: 'Lunar Assault!',
     shortName: 'LUNAR',

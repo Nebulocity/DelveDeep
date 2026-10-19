@@ -178,7 +178,10 @@ export function finishOfflineFarm(scene) {
     return enemy;
   });
   scene.combatMembershipRevision = (scene.combatMembershipRevision ?? 0) + 1;
-  scene.movement.separateUnits(0.05);
+
+  // This is a newly staged fight. Repair its placements once using the current
+  // floor and body-clearance rules, without restoring mid-combat repulsion.
+  for (const unit of [...living, ...scene.enemies]) scene.movement.validateUnitPosition(unit);
   scene.combatLog?.add('offline-farm', `${farm.waves} farm waves estimated while away`, {
     wave: scene.currentWaveIndex + 1, waves: farm.waves, durationMs: farm.elapsedMs, cycleMs: farm.cycleMs
   });

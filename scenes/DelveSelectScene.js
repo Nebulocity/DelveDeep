@@ -1,3 +1,4 @@
+import { preloadCombatHud, combatPanel as addStonePanel, combatButton as addStoneButton, combatText as stoneText } from '../ui/CombatHudTheme.js';
 // We show the selected Delve's real environment, difficulty, rewards and entry rules.
 // Catalog data describes the encounter; saved world progress determines access.
 
@@ -10,9 +11,10 @@ import HapticsService from '../services/HapticsService.js';
 import { getDelveCheckpoint } from '../game/DelveCheckpoints.js';
 import { bindSelectionDetails, addDetailsHint, delveDetails } from '../ui/SelectionDetails.js';
 
-import { preloadCarvedStone, addStonePanel, addStoneOrnaments, stoneText, STONE } from '../ui/CarvedStone.js';
+import { preloadCarvedStone, addStoneOrnaments, STONE } from '../ui/CarvedStone.js';
 import { preparationFrame, preparationButton } from '../ui/DelvePreparation.js';
 import { hallScroll } from '../ui/HallUI.js';
+import { preloadDelveBestiary, addDelveBestiary } from '../ui/DelveBestiary.js';
 
 export default class DelveSelectScene extends Phaser.Scene {
 
@@ -26,6 +28,8 @@ export default class DelveSelectScene extends Phaser.Scene {
   // calling create, so later code can look up the assets by their keys.
   preload() {
     preloadCarvedStone(this);
+    preloadCombatHud(this);
+    preloadDelveBestiary(this, GameState.currentDelve ?? {});
   }
 
   // We build this screen and connect its input after the queued assets are ready. Display
@@ -47,35 +51,20 @@ export default class DelveSelectScene extends Phaser.Scene {
       fontFamily: UI_FONT_FAMILIES.sans, fontStyle: UI_FONT_WEIGHTS.normal, color: STONE.muted, align: 'center', wordWrap: { width: width - 180 }
     });
 
-    const left = width * 0.27;
-    const right = width * 0.755;
+    const left = width * 0.30;
+    const right = width * 0.80;
     const panelY = height * 0.51;
-    const panelHeight = height * 0.49;
-    addStonePanel(this, left, panelY, width * 0.49, panelHeight, 0);
+    const panelHeight = height * 0.52;
+    addStonePanel(this, left, panelY, width * 0.56, panelHeight, 0);
 
-    // ?. only follows this link when the value exists; a missing optional value gives
-    // undefined.
-    const preview = delve.visuals?.environment?.layers[0]?.key;
-    if (preview && this.textures.exists(preview)) {
+    addDelveBestiary(this, delve, left, panelY, width * 0.56, panelHeight);
 
-      // Depth is drawing order, not distance or size. Higher-depth objects draw on top of
-      // lower-depth objects.
-      const art = this.add.image(left, panelY - 22, preview).setDepth(1);
-
-      // Math.min chooses the smallest value; pairing it with Math.max can keep a result
-      // inside both a lower and an upper bound.
-      art.setScale(Math.min((width * 0.49 - 60) / art.width, (panelHeight - 110) / art.height));
-    }
-
-    const imageHit = this.add.rectangle(left, panelY, width * 0.49, panelHeight, 0, 0).setDepth(3);
-    bindSelectionDetails(this, imageHit, () => delveDetails(delve));
-
-    const detailsPanel = addStonePanel(this, right, panelY, width * 0.43, panelHeight, 0);
+    const detailsPanel = addStonePanel(this, right, panelY, width * 0.36, panelHeight, 0);
     bindSelectionDetails(this, detailsPanel, () => delveDetails(delve));
-    addStoneOrnaments(this, right, panelY - panelHeight / 2 + 48, width * 0.41, this.stoneTheme, 2);
+    addStoneOrnaments(this, right, panelY - panelHeight / 2 + 48, width * 0.34, this.stoneTheme, 2);
     stoneText(this, right, panelY - 205, 'DELVE INFO', UI_FONT_SIZES.delveInfoHeading, 3);
-    const difficultyX = right - width * 0.105;
-    const dropsX = right + width * 0.10;
+    const difficultyX = right - width * 0.09;
+    const dropsX = right + width * 0.075;
     stoneText(this, difficultyX, panelY - 120, 'DIFFICULTY', UI_FONT_SIZES.delveInfoLabel, 3, { color: STONE.muted });
 
     stoneText(this, difficultyX, panelY - 65, delve.difficulty, UI_FONT_SIZES.delveInfoDifficulty, 3);
@@ -91,10 +80,10 @@ export default class DelveSelectScene extends Phaser.Scene {
     // and 1 is the right/bottom edge. x/y place that anchor, not necessarily the object's
     // corner. map builds one output entry for each input entry, in the same order. The
     // callback's return value becomes that output entry.
-    const dropText = stoneText(this, dropsX - width * 0.082, panelY - 75, delveDropNames(delve).map(name => `• ${name}`).join('\n'), UI_FONT_SIZES.delveInfoBody, 3, {
-      fontFamily: UI_FONT_FAMILIES.sans, color: '#e8b75c', lineSpacing: 12, align: 'left', wordWrap: { width: width * 0.185 }
+    const dropText = stoneText(this, dropsX - width * 0.070, panelY - 75, delveDropNames(delve).map(name => `• ${name}`).join('\n'), UI_FONT_SIZES.delveInfoBody, 3, {
+      fontFamily: UI_FONT_FAMILIES.sans, color: '#e8b75c', lineSpacing: 12, align: 'left', wordWrap: { width: width * 0.15 }
     }).setOrigin(0, 0);
-    const dropsScroll = hallScroll(this, { x: dropText.x, y: dropText.y, width: width * 0.185, height: 220 },
+    const dropsScroll = hallScroll(this, { x: dropText.x, y: dropText.y, width: width * 0.15, height: 220 },
       [dropText], dropText.height, 0, () => {},
       (scene, x, y, w, h) => addStonePanel(scene, x, y, w, h, 4));
     dropsScroll.container.setDepth(3);

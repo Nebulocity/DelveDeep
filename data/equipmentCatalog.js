@@ -3801,7 +3801,7 @@ export const AUTHORED_EQUIPMENT_RECIPES = [
     },
     "fee": 2482,
     "knownAtStart": false,
-    "learnedFrom": "Sold to Blacksmith",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
   {
@@ -3822,7 +3822,7 @@ export const AUTHORED_EQUIPMENT_RECIPES = [
     },
     "fee": 3053,
     "knownAtStart": false,
-    "learnedFrom": "Sold to Blacksmith",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
   {
@@ -3843,7 +3843,7 @@ export const AUTHORED_EQUIPMENT_RECIPES = [
     },
     "fee": 3053,
     "knownAtStart": false,
-    "learnedFrom": "Sold to Blacksmith",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
   {
@@ -3864,7 +3864,7 @@ export const AUTHORED_EQUIPMENT_RECIPES = [
     },
     "fee": 3053,
     "knownAtStart": false,
-    "learnedFrom": "Sold to Blacksmith",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
   {
@@ -3885,7 +3885,7 @@ export const AUTHORED_EQUIPMENT_RECIPES = [
     },
     "fee": 4014,
     "knownAtStart": false,
-    "learnedFrom": "Sold to Blacksmith",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
   {
@@ -3906,7 +3906,7 @@ export const AUTHORED_EQUIPMENT_RECIPES = [
     },
     "fee": 4042,
     "knownAtStart": false,
-    "learnedFrom": "Sold to Blacksmith",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
   {
@@ -3927,7 +3927,7 @@ export const AUTHORED_EQUIPMENT_RECIPES = [
     },
     "fee": 4972,
     "knownAtStart": false,
-    "learnedFrom": "Sold to Blacksmith",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
   {
@@ -3948,7 +3948,7 @@ export const AUTHORED_EQUIPMENT_RECIPES = [
     },
     "fee": 4972,
     "knownAtStart": false,
-    "learnedFrom": "Sold to Blacksmith",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
   {
@@ -3969,7 +3969,7 @@ export const AUTHORED_EQUIPMENT_RECIPES = [
     },
     "fee": 4972,
     "knownAtStart": false,
-    "learnedFrom": "Sold to Blacksmith",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
   {
@@ -3990,7 +3990,7 @@ export const AUTHORED_EQUIPMENT_RECIPES = [
     },
     "fee": 6539,
     "knownAtStart": false,
-    "learnedFrom": "Sold to Blacksmith",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
   {
@@ -4009,7 +4009,7 @@ export const AUTHORED_EQUIPMENT_RECIPES = [
     },
     "fee": 900,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
   {
@@ -4064,7 +4064,7 @@ export const AUTHORED_EQUIPMENT_RECIPES = [
     },
     "fee": 2700,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
   {
@@ -4120,7 +4120,7 @@ export const AUTHORED_EQUIPMENT_RECIPES = [
     },
     "fee": 2700,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
   {
@@ -4195,7 +4195,7 @@ export const AUTHORED_EQUIPMENT_RECIPES = [
     },
     "fee": 900,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
   {
@@ -4214,7 +4214,7 @@ export const AUTHORED_EQUIPMENT_RECIPES = [
     },
     "fee": 2700,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
   {
@@ -4252,7 +4252,7 @@ export const AUTHORED_EQUIPMENT_RECIPES = [
     },
     "fee": 900,
     "knownAtStart": false,
-    "learnedFrom": "Sold item or recipe",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
   {
@@ -4346,7 +4346,7 @@ export const AUTHORED_EQUIPMENT_RECIPES = [
     },
     "fee": 3053,
     "knownAtStart": false,
-    "learnedFrom": "Sold to Blacksmith",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
   {
@@ -4368,7 +4368,7 @@ export const AUTHORED_EQUIPMENT_RECIPES = [
     },
     "fee": 3053,
     "knownAtStart": false,
-    "learnedFrom": "Sold to Blacksmith",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
   {
@@ -4390,7 +4390,7 @@ export const AUTHORED_EQUIPMENT_RECIPES = [
     },
     "fee": 3053,
     "knownAtStart": false,
-    "learnedFrom": "Sold to Blacksmith",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
   {
@@ -4411,7 +4411,7 @@ export const AUTHORED_EQUIPMENT_RECIPES = [
     },
     "fee": 4972,
     "knownAtStart": false,
-    "learnedFrom": "Sold to Blacksmith",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
   {
@@ -4433,7 +4433,7 @@ export const AUTHORED_EQUIPMENT_RECIPES = [
     },
     "fee": 4972,
     "knownAtStart": false,
-    "learnedFrom": "Sold to Blacksmith",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   },
   {
@@ -4455,7 +4455,7 @@ export const AUTHORED_EQUIPMENT_RECIPES = [
     },
     "fee": 4972,
     "knownAtStart": false,
-    "learnedFrom": "Sold to Blacksmith",
+    "learnedFrom": "Discovered in inventory",
     "crafter": "Blacksmith"
   }
 ];

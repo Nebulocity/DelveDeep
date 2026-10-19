@@ -69,36 +69,60 @@ body {
 /* Hidden means invisible and unable to intercept input, allowing touches into the game below. */
 .loading-screen.is-hidden { opacity: 0; pointer-events: none; visibility: hidden; }
 
-/* Keep the 1672-by-941 splash proportions. 177.68% of height is the matching artwork width. */
-/* dvh uses viewport height; cqw/cqh use the containing splash box and override when supported. */
+/* Reserve height for the separate progress panel before fitting the full artwork. */
+/* The remaining width includes both carved edges around the 1672-by-941 image. */
 .loading-content {
+  --loading-trim: clamp(14px, 2.6cqh, 30px);
+  --loading-gap: clamp(6px, 1.6cqh, 18px);
+  --loading-margin: clamp(6px, 2cqh, 22px);
+  --loading-footer-height: clamp(74px, 16cqh, 130px);
   position: relative;
-  width: min(100%, 177.68dvh);
-  width: min(100cqw, 177.68cqh);
-  aspect-ratio: 1672 / 941;
+  width: min(calc(100cqw - 2 * var(--loading-margin)),
+    calc((100cqh - 2 * var(--loading-margin) - var(--loading-footer-height) - var(--loading-gap) - 2 * var(--loading-trim)) * 1.7768 + 2 * var(--loading-trim)));
+  display: flex;
+  flex-direction: column;
+  gap: var(--loading-gap);
   container-type: inline-size;
-  overflow: hidden;
 }
 
+/* Keep the existing frame footprint while extending artwork beneath its trim. */
+.loading-art-frame {
+  position: relative;
+  aspect-ratio: 1672 / 941;
+  border: var(--loading-trim) solid transparent;
+  isolation: isolate;
+  filter: drop-shadow(0 4px 8px #02070d);
+}
 
-/* The artwork and dark overlay cover the same local box; neither changes its layout size. */
-.loading-art,
-
-/* Darken the top and bottom for text contrast while leaving the center artwork unobscured. */
-.loading-vignette {
+/* Screen blending retains the gold filigree without its opaque charcoal mat. */
+.loading-art-frame::after {
+  content: '';
   position: absolute;
-  width: 100%;
-  height: 100%;
-  inset: 0;
+  inset: calc(-1 * var(--loading-trim));
+  border: var(--loading-trim) solid transparent;
+  border-image-source: url('./assets/ui/town-hub/panel.png');
+  border-image-slice: 128;
+  border-image-repeat: stretch;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  z-index: 2;
 }
 
 .loading-art {
+  position: absolute;
+  inset: calc(1px - var(--loading-trim));
   display: block;
-  object-fit: contain;
+  width: calc(100% + 2 * var(--loading-trim) - 2px);
+  height: calc(100% + 2 * var(--loading-trim) - 2px);
+  object-fit: cover;
+  background: #07182b;
 }
 
+/* Only the title needs contrast now that progress sits beneath the illustration. */
 .loading-vignette {
-  background: linear-gradient(180deg, rgba(7, 15, 25, .7), transparent 32%, transparent 64%, rgba(7, 15, 25, .88));
+  position: absolute;
+  inset: calc(1px - var(--loading-trim));
+  background: linear-gradient(180deg, rgba(7, 15, 25, .7), transparent 35%);
 }
 
 
@@ -127,8 +151,7 @@ body {
 /* Wait for the art-ready class before showing text over an image that has not loaded yet. */
 .loading-title,
 
-/* Anchor the footer to the same art box. max() leaves at least 18 pixels at the bottom. */
-/* clamp() keeps the text between readable bounds while its middle value follows box width. */
+/* Reveal the caption and progress together after the selected artwork is ready. */
 .loading-footer {
   visibility: hidden;
   opacity: 0;
@@ -141,33 +164,46 @@ body {
 }
 
 .loading-footer {
-  position: absolute;
-  bottom: max(7%, 18px);
-  left: 50%;
-  width: 66%;
-  transform: translateX(-50%);
+  box-sizing: border-box;
+  min-height: var(--loading-footer-height);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(4px, 1cqw, 10px) clamp(6px, 1.4cqw, 18px);
+
+  /* Match Town's compact bar slices and retain its charcoal face behind the fill. */
+  border-style: solid;
+  border-color: transparent;
+  border-width: clamp(10px, 2cqh, 20px) clamp(22px, 4cqh, 45px);
+  border-image-source: url('./assets/ui/town-hub/bar.png');
+  border-image-slice: 42 100 fill;
+  border-image-repeat: stretch;
   font-family: var(--loading-status-family, Arial), sans-serif;
-  font-size: var(--loading-status-size, clamp(18px, calc(2.2cqw + 2px), 34px));
+  font-size: min(var(--loading-status-size, 28px), clamp(16px, 2.4cqw, 28px));
   font-weight: var(--loading-status-weight, 700);
-  text-shadow: 0 2px 4px #10282e;
+  color: #fff1d2;
+  text-shadow: 0 2px 4px #07111f;
 }
 
 .loading-status {
   display: flex;
-  align-items: flex-end;
+  align-items: baseline;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 11px;
+  gap: 12px;
+  margin-bottom: clamp(5px, 1cqw, 10px);
 }
 
-/* Keep Loading intact; let the build label use the remaining width and wrap long branch names. */
+/* Keep branch metadata on one line so the separate panel fits short phone screens. */
 #loading-message { flex: 0 0 auto; white-space: nowrap; }
 #loading-build {
   min-width: 0;
   text-align: right;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #c6bdac;
   font-family: var(--loading-build-family, Arial), sans-serif;
-  font-size: var(--loading-build-size, clamp(18px, calc(1.5cqw + 2px), 26px));
+  font-size: min(var(--loading-build-size, 20px), clamp(12px, 1.7cqw, 20px));
   font-weight: var(--loading-build-weight, 700);
 }
 .loading-dots::after {
@@ -188,15 +224,18 @@ body {
 /* The track is the full capacity. JavaScript changes the inner fill width as assets load. */
 .loading-track {
   height: clamp(10px, 1.3cqw, 18px);
-  border: 3px solid #e7c98f;
-  background: #193439;
-  box-shadow: 0 3px 0 #10292f;
+  flex-shrink: 0;
+  border: 1px solid #d3a750;
+  border-radius: 3px;
+  overflow: hidden;
+  background: #07182b;
+  box-shadow: inset 0 2px 4px #02070d, 0 1px 0 #6c4e26;
 }
 
 .loading-progress {
   width: 0;
   height: 100%;
-  background: linear-gradient(90deg, #8ec9b0, #f5d58e);
+  background: linear-gradient(180deg, #ffe3a5, #d3a750 55%, #90602c);
   transition: width 100ms linear;
 }
 

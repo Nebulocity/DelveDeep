@@ -1,5 +1,6 @@
 import TownFeatureScene, { featurePanel, featureList, featureBody, featureSelect } from '../ui/TownFeatureUI.js';
 import { serviceText, serviceCard, serviceButton } from '../ui/TownServiceTheme.js';
+import { playUiSound } from '../services/UiAudioService.js';
 import { showSelectionDetails } from '../ui/SelectionDetails.js';
 import { showConfirmation } from '../ui/ConfirmationDialog.js';
 import GameState from '../game/GameState.js';
@@ -10,6 +11,7 @@ import { getEquippedAdventurer } from '../game/Equipment.js';
 import { ITEM_RARITIES } from '../data/items.js';
 
 const CATEGORIES = ['Assault', 'Protect', 'Restore', 'Prepare'];
+const RARITY_ORDER = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
 const tacticDescription = ability => {
   const partyIds = GameState.activeParty.length ? GameState.activeParty.map(hero => hero.id) : GameState.lastPartyIds;
   const party = GameState.roster.filter(hero => partyIds.includes(hero.id)).map(hero => getEquippedAdventurer(hero));
@@ -36,14 +38,16 @@ export default class TacticsScene extends TownFeatureScene {
       const ability = leaderAbilities.find(entry => entry.id === leader.battleLoadout[i]);
       serviceButton(this, loadout.x + 235, b.y + 145 + i * 128, 410, 110, ability?.name ?? `Empty tactic slot ${i + 1}`, () => {
         this.tacticId = ability.id; this.descriptionOffset = 0; this.render();
-      }, { enabled: Boolean(ability), compact: true, selected: this.tacticId === ability?.id, slot: 'body30' });
+      }, { enabled: Boolean(ability), disabledReason: 'This tactic slot is empty. Unlock and equip a tactic from the library.',
+        compact: true, selected: this.tacticId === ability?.id, slot: 'body30' });
     }
     this.category ??= 'Assault';
     CATEGORIES.forEach((category, index) => serviceButton(this, library.x + 30 + (index + 0.5) * 203,
       b.y + 65, 190, 70, category, () => { this.category = category; this.libraryOffset = 0; this.render(); },
       { selected: this.category === category, compact: true, slot: 'body30' }));
     const entries = leaderAbilities.filter(ability => ability.category === this.category)
-      .sort((a, z) => Number(leader.battleLoadout.includes(z.id)) - Number(leader.battleLoadout.includes(a.id)));
+      .sort((a, z) => RARITY_ORDER.indexOf(a.rarity ?? 'common') - RARITY_ORDER.indexOf(z.rarity ?? 'common')
+        || a.cost - z.cost || a.name.localeCompare(z.name));
     featureList(this, { x: library.x + 26, y: b.y + 130, width: library.width - 80, height: b.height - 164 }, entries,
       (ability, x, y, width) => {
         const unlocked = hasLeaderAbility(leader, ability.id), equipped = leader.battleLoadout.includes(ability.id);
@@ -73,7 +77,8 @@ export default class TacticsScene extends TownFeatureScene {
     serviceText(this, detail.x + detail.width / 2, b.bottom - 155, reason || (unlocked ? 'Available to change your party loadout.' : `Unlock for ${ability.cost} RP.`),
       'body32', { align: 'center', wordWrap: { width: detail.width - 100 }, color: '#dfcba8' }).setOrigin(0.5);
     serviceButton(this, detail.x + detail.width / 2, b.bottom - 65, detail.width - 90, 86,
-      unlocked ? equipped ? 'Unequip tactic' : 'Equip tactic' : `Unlock · ${ability.cost} RP`, () => this.choose(ability), { enabled: !reason });
+      unlocked ? equipped ? 'Unequip tactic' : 'Equip tactic' : `Unlock · ${ability.cost} RP`, () => this.choose(ability),
+      { enabled: !reason, disabledReason: reason });
   }
 
   // Apply the selected tactic's unlock or loadout action after checking its current state.
@@ -86,6 +91,7 @@ export default class TacticsScene extends TownFeatureScene {
         return;
       }
       if (leader.renownPoints < ability.cost) {
+        playUiSound(this, 'failure');
         showSelectionDetails(this, { title: 'Not enough RP', description: `${ability.name} costs ${ability.cost} RP.\nYou have ${leader.renownPoints} RP.` });
         return;
       }
@@ -95,12 +101,13 @@ export default class TacticsScene extends TownFeatureScene {
         // Run the committed action after the player confirms this decision.
         onConfirm: () => {
           if (purchaseLeaderAbility(leader, ability.id)) {
+            playUiSound(this, 'success');
             this.message = leader.battleLoadout.includes(ability.id)
               ? `${ability.name} unlocked and equipped.`
               : `${ability.name} unlocked. All five tactic slots are full; unequip one to make room.`;
             HapticsService.confirm();
           }
-          else this.message = 'This tactic could not be unlocked.';
+          else { playUiSound(this, 'failure'); this.message = 'This tactic could not be unlocked.'; }
           this.libraryOffset = 0;
           this.render();
         }
@@ -110,12 +117,13 @@ export default class TacticsScene extends TownFeatureScene {
     }
 
     if (toggleLeaderLoadoutAbility(leader, ability.id)) {
+      playUiSound(this, 'equipment');
 
       // The condition before ? chooses the first value when true and the value after :
       // when false.
       this.message = `${ability.name} ${leader.battleLoadout.includes(ability.id) ? 'equipped' : 'unequipped'}.`;
       HapticsService.confirm();
-    } else this.message = 'All five tactic slots are full. Unequip a tactic first.';
+    } else { playUiSound(this, 'failure'); this.message = 'All five tactic slots are full. Unequip a tactic first.'; }
     this.libraryOffset = 0;
     this.render();
   }

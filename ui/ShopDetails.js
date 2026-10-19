@@ -5,6 +5,7 @@ import { usableByIcons } from '../ui/IdentityIcons.js';
 
 import { serviceFrame, serviceScrollSurface } from './TownServiceTheme.js';
 import { bindButtonPress } from './ButtonPress.js';
+import { playUiSound } from '../services/UiAudioService.js';
 import { hallScroll } from './HallUI.js';
 import HapticsService from '../services/HapticsService.js';
 import { UI_FONT_SIZES, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
@@ -12,6 +13,7 @@ import { UI_FONT_SIZES, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTy
 // Open facility-themed item details with readable wrapping and scrolling for long content.
 // scene is the Phaser screen that owns the objects, clock and input used here.
 export function showShopDetails(scene, details) {
+  playUiSound(scene, 'dialogOpen');
 
   // ?. only follows this link when the value exists; a missing optional value gives
   // undefined.
@@ -111,6 +113,7 @@ export function showShopDetails(scene, details) {
     .setName('shop-details-close').setDepth(depth + 6).setInteractive({ useHandCursor: true });
 
   hit.pressVisuals = [button];
+  hit.uiSound = 'dialogClose';
   bindButtonPress(scene, hit, [label], () => {
     HapticsService.tap();
     close();

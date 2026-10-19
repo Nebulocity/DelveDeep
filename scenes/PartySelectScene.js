@@ -1,13 +1,15 @@
+import { preloadCombatHud, combatPanel as addStonePanel, combatButton as addStoneButton, combatText as stoneText } from '../ui/CombatHudTheme.js';
 import { classIcon } from '../ui/IdentityIcons.js';
 // The role lists hold selectable adventurers; the lineup holds the chosen party. The list
 // mask limits both visible rows and valid touches. Remembering IDs keeps selection stable
 // across sorting, scrolling and returning to this screen.
 
 import { UI_FONT_SIZES, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
-import { preloadCarvedStone, addStonePanel, addStoneButton, stoneText, stoneIcon, STONE } from '../ui/CarvedStone.js';
+import { preloadCarvedStone, stoneIcon, STONE } from '../ui/CarvedStone.js';
 import { preparationFrame, preparationButton, preparationNotice } from '../ui/DelvePreparation.js';
 import { bindButtonPress } from '../ui/ButtonPress.js';
 import { CHARACTER_SPRITES } from '../data/characterSprites.js';
+import { displayCharacterPortrait } from '../ui/CharacterSpriteDisplay.js';
 import { bindSelectionDetails, addDetailsHint, showSelectionDetails } from '../ui/SelectionDetails.js';
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
@@ -76,6 +78,7 @@ export default class PartySelectScene extends Phaser.Scene {
   // Load the shared battle surfaces and existing character portraits.
   preload() {
     preloadCarvedStone(this);
+    preloadCombatHud(this);
     for (const definition of Object.values(CHARACTER_SPRITES)) {
       const frame = definition.portraitFrame ?? definition.clips.idle.south.frames[0];
 
@@ -246,13 +249,11 @@ export default class PartySelectScene extends Phaser.Scene {
       const frame = sprite?.portraitFrame ?? sprite?.clips.idle.south.frames[0];
       const portraitX = contentCenterX - cardWidth / 2 + 62;
 
-      // Compensate for extra transparent padding using the character's portrait multiplier.
-      const portraitSize = 116 * (sprite?.portraitScale ?? 1);
-
       // The condition before ? chooses the first value when true and the value after :
       // when false.
       const portrait = frame && this.textures.exists(frame.key)
-        ? this.add.image(portraitX, cardY, frame.key, frame.frame).setDisplaySize(portraitSize, portraitSize).setFlipX(frame.flipX === true)
+        ? displayCharacterPortrait(this, this.add.image(portraitX, cardY, frame.key, frame.frame),
+          sprite, frame, portraitX, cardY, 116, 'partySelect')
         : stoneIcon(this, portraitX, cardY, definition.title, 56, 0, adventurer.color);
       const textX = contentCenterX - cardWidth / 2 + 120;
       const textWidth = cardWidth - 135;

@@ -1,3 +1,4 @@
+import { expeditionPanel as addStonePanel, expeditionButton as addStoneButton, isExpeditionScene } from './ExpeditionTheme.js';
 // A confirmation is a temporary group of UI objects above the current screen. Its blocker
 // catches input before the screen beneath it. Confirm and cancel both need to remove that
 // whole group and restore the caller's appropriate state.
@@ -10,13 +11,15 @@ import { hallScroll } from './HallUI.js';
 import { serviceScrollSurface } from './TownServiceTheme.js';
 import { isGuildHall } from './GuildHallTheme.js';
 import { showGuildConfirmation } from './GuildHallDialogs.js';
-import { addStonePanel, addStoneButton, STONE } from './CarvedStone.js';
+import { STONE } from './CarvedStone.js';
 
 import { bindButtonPress } from './ButtonPress.js';
+import { playUiSound, runUiAction } from '../services/UiAudioService.js';
 
 // Nothing is committed until a fresh press and release on CONFIRM. Reusing the modal lock
 // also prevents held selections behind the dialog from firing.
 export function showConfirmation(scene, { title, description, category, usableBy, confirmLabel = 'CONFIRM', onConfirm, onCancel }) {
+  playUiSound(scene, 'dialogOpen');
   if (isGuildHall(scene)) return showGuildConfirmation(scene, { title, description, category, usableBy, confirmLabel, onConfirm, onCancel });
 
   // ?. only follows this link when the value exists; a missing optional value gives
@@ -29,7 +32,7 @@ export function showConfirmation(scene, { title, description, category, usableBy
   const hall = true;
   const regionMap = scene.scene?.key === 'TitleScene';
   if (regionMap) scene.mapLocationClose?.();
-  const stone = scene.scene?.key === 'BattleScene';
+  const stone = isExpeditionScene(scene);
   const objects = [];
   const depth = 11000;
 
@@ -60,9 +63,12 @@ export function showConfirmation(scene, { title, description, category, usableBy
   // value after : when false.
   const body = add(scene.add.text(width / 2 - panelWidth / 2 + 52, 0, description, {
     fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body36'), color: stone ? STONE.text : hall ? '#f1dfca' : '#e2e8f0', wordWrap: { width: panelWidth - 104 },
-    align: stone ? 'center' : 'left', fixedWidth: stone ? panelWidth - 104 : undefined
+    align: stone ? 'center' : 'left', fixedWidth: stone ? panelWidth - 104 : 0
   }).setDepth(depth + 2));
-  const panelHeight = regionMap ? Math.min(height - 140, Math.max(480, body.height + 300)) : Math.max(420, body.height + 240);
+  // Keep an invalid text measurement from producing a zero-height canvas and leaving
+  // only the dark input blocker visible. Normal text measurements keep the same layout.
+  const bodyHeight = Number.isFinite(body.height) ? Math.max(0, body.height) : 180;
+  const panelHeight = regionMap ? Math.min(height - 140, Math.max(480, bodyHeight + 300)) : Math.max(420, bodyHeight + 240);
   const top = (height - panelHeight) / 2;
   body.setY(top + (regionMap ? 132 : 110));
   if (regionMap && body.height > panelHeight - 280) {
@@ -100,8 +106,8 @@ export function showConfirmation(scene, { title, description, category, usableBy
       const control = addRegionButton(scene, x, y, (panelWidth - 156) / 2, 88, label, () => {
         if (closed) return;
         close();
-        if (accept) onConfirm();
-        else onCancel?.();
+        if (accept) return onConfirm();
+        else { playUiSound(scene, 'dialogClose'); onCancel?.(); }
       }, { depth: depth + 2, state: accept ? 'danger' : 'normal' });
       objects.push(control.panel, control.text);
       return;
@@ -123,8 +129,8 @@ export function showConfirmation(scene, { title, description, category, usableBy
         close();
         HapticsService.tap();
 
-        if (accept) onConfirm();
-        else onCancel?.();
+        if (accept) return onConfirm();
+        else { playUiSound(scene, 'dialogClose'); onCancel?.(); }
       });
 
       return;
@@ -178,8 +184,11 @@ export function showConfirmation(scene, { title, description, category, usableBy
       close();
       HapticsService.tap();
 
-      if (accept) onConfirm();
-      else onCancel?.();
+      runUiAction(scene, () => {
+        if (accept) return onConfirm();
+        playUiSound(scene, 'dialogClose');
+        return onCancel?.();
+      });
     });
   };
 

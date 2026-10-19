@@ -104,10 +104,12 @@ export default class BattlefieldTerrain {
     return this.isBlocked(foot.x, foot.y, footRadius);
   }
 
-  // Return a safe center position while testing the unit's feet against terrain.
-  nearestSafeUnitPoint(unit, x, y, footRadius = 0) {
-    const base = this.battlefield.clampPoint(x, y);
-    if (!this.isUnitBlocked(unit, base.x, base.y, footRadius)) return base;
+  // A destination must fit both the center's walking margin and the projected feet.
+  nearestSafeUnitPoint(unit, x, y, footRadius = 0, centerPadding = 0) {
+    const base = this.battlefield.clampPoint(x, y, centerPadding, centerPadding);
+    const isSafe = point => this.battlefield.containsArenaPoint(point.x, point.y, centerPadding)
+      && !this.isUnitBlocked(unit, point.x, point.y, footRadius);
+    if (isSafe(base)) return base;
 
     const step = 24;
     for (let radius = step; radius <= 420; radius += step) {
@@ -124,10 +126,11 @@ export default class BattlefieldTerrain {
         // offsets.
         const candidate = this.battlefield.clampPoint(
           base.x + Math.cos(angle) * radius,
-          base.y + Math.sin(angle) * radius
+          base.y + Math.sin(angle) * radius,
+          centerPadding, centerPadding
         );
 
-        if (!this.isUnitBlocked(unit, candidate.x, candidate.y, footRadius)) return candidate;
+        if (isSafe(candidate)) return candidate;
       }
     }
 

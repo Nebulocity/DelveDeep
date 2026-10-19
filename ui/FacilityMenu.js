@@ -55,7 +55,7 @@ export const FACILITIES = {
   Enchanter: {
     name: 'Enchanter', title: 'ENCHANTER', background: 'enchanter', subtitle: 'Arcane improvements and magical wares.',
     choices: [
-      { id: 'buy', label: 'BUY', icon: 'scroll', subtitle: 'Attribute scrolls', description: 'Buy attribute scrolls. Buying a scroll teaches its inscription recipe.' },
+      { id: 'buy', label: 'BUY', icon: 'scroll', subtitle: 'Attribute scrolls', description: 'Buy attribute scrolls. Stocked scroll recipes are already known.' },
       { id: 'sell', label: 'SELL', icon: 'satchel', subtitle: 'Sell any item', description: 'Sell unequipped gear, potions, materials, and scrolls.' },
       { id: 'inscribe', label: 'INSCRIBE', icon: 'scroll', subtitle: 'Craft scrolls', description: 'Inscribe learned attribute scroll recipes from materials and Gold.' },
       { id: 'enchant', label: 'ENCHANT', icon: 'rune', subtitle: 'Improve gear', description: 'Consume a scroll to apply one minor enchantment to compatible gear.' },

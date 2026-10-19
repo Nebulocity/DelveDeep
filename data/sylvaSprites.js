@@ -48,4 +48,7 @@ clips.dead = Object.fromEntries(Object.entries(clips.death).map(([heading, clip]
 // Portraits use the same correction against the original 0.66 display convention.
 // footY retains the shared 30-unit offset used to place adventurers on the floor.
 const scale = layout.scale;
-export const SYLVA_SPRITES = { textures, clips, scale, portraitScale: scale / 0.66, footY: 30 };
+
+// Idle cells leave about 70 source pixels above her hair. Keep the name and bars
+// just above the painted character rather than above that transparent padding.
+export const SYLVA_SPRITES = { textures, clips, scale, portraitScale: scale / 0.66, footY: 30, topFrameY: 68 };

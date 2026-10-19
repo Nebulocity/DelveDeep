@@ -8,6 +8,7 @@ import { UI_FONT_FAMILIES } from '../config/uiTypography.js';
 import { clearFeatureToast } from './FeatureToast.js';
 import HapticsService from '../services/HapticsService.js';
 import { bindButtonPress } from './ButtonPress.js';
+import { playUiSound } from '../services/UiAudioService.js';
 
 export function featurePanel(scene, bounds) {
   return serviceFrame(scene, bounds.x + bounds.width / 2, bounds.y + bounds.height / 2, bounds.width, bounds.height);
@@ -59,7 +60,7 @@ export default class TownFeatureScene extends Phaser.Scene {
     this.leaving = false;
     const resize = () => this.render();
     const back = () => {
-      if (this.selectionDetailsClose) this.selectionDetailsClose();
+      if (this.selectionDetailsClose) { playUiSound(this, 'dialogClose'); this.selectionDetailsClose(); }
       else this.backToTown();
     };
     this.scale.on('resize', resize);
@@ -76,6 +77,7 @@ export default class TownFeatureScene extends Phaser.Scene {
   backToTown() {
     if (this.leaving) return;
     this.leaving = true;
+    playUiSound(this, 'navigation');
     this.scene.start('TownScene');
   }
 
@@ -99,8 +101,9 @@ export default class TownFeatureScene extends Phaser.Scene {
     return { x: 52, y: 164, width: width - 104, height: height - 300, bottom: height - 136 };
   }
 
-  commit(result) {
+  commit(result, sound = 'success') {
     this.message = result.message;
+    playUiSound(this, result.ok ? sound : 'failure');
     if (result.ok) { saveProfile(); HapticsService.confirm(); }
     this.render();
   }

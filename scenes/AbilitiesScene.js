@@ -18,7 +18,7 @@ export default class AbilitiesScene extends TownFeatureScene {
       hint: 'Select a skill to read its full effect, train a rank, or change battle abilities.' });
     characterSelector(this, { ...b, width: 440 }, () => {
       this.abilityKey = null; this.bookOffset = 0; this.descriptionOffset = 0; this.render();
-    });
+    }, { roleOrder: ['Tank', 'Healer', 'Melee DPS', 'Ranged DPS'] });
     if (!hero) return;
     const loadout = hero.abilityLoadout ?? [];
     const rightX = 520, rightWidth = b.width - 468;
@@ -29,7 +29,8 @@ export default class AbilitiesScene extends TownFeatureScene {
       const key = loadout[i], ability = hero.abilities[key];
       serviceButton(this, rightX + 45 + slotWidth * (i + 0.5), b.y + 112, slotWidth - 14, 88,
         ability?.name ?? `Empty slot ${i + 1}`, () => { this.abilityKey = key; this.descriptionOffset = 0; this.render(); },
-        { compact: true, enabled: Boolean(key), selected: this.abilityKey === key, slot: 'body30', name: `ability-slot-${i}` });
+        { compact: true, enabled: Boolean(key), disabledReason: 'This battle slot is empty. Learn an ability and equip it from the skill book.',
+          selected: this.abilityKey === key, slot: 'body30', name: `ability-slot-${i}` });
     }
     const top = b.y + 198, height = b.height - 198;
     const library = { x: rightX, y: top, width: 870, height };
@@ -73,13 +74,14 @@ export default class AbilitiesScene extends TownFeatureScene {
       { align: 'center', wordWrap: { width: detail.width - 90 }, color: '#dfcba8' }).setOrigin(0.5);
     const actionWidth = (detail.width - 100) / 2;
     serviceButton(this, detail.x + 36 + actionWidth / 2, top + height - 65, actionWidth, 84,
-      base.innate ? 'Always equipped' : loadout.includes(key) ? 'Unequip' : 'Equip', () => this.commit(toggleAdventurerAbility(hero.id, key)),
-      { enabled: rank > 0 && !base.innate, compact: true, slot: 'body30' });
+      base.innate ? 'Always equipped' : loadout.includes(key) ? 'Unequip' : 'Equip', () => this.commit(toggleAdventurerAbility(hero.id, key), 'equipment'),
+      { enabled: rank > 0 && !base.innate, disabledReason: base.innate ? 'Innate abilities are always equipped.' : 'Learn this ability before equipping it.',
+        compact: true, slot: 'body30' });
     serviceButton(this, detail.x + detail.width - 36 - actionWidth / 2, top + height - 65, actionWidth, 84,
       rank ? 'Train rank' : 'Learn', () => showConfirmation(this, {
         title: `${rank ? 'Train' : 'Learn'} ${base.name}`, category: base.category,
         description: `${hero.name} · Rank ${rank} → ${next}\n\n${trainingComparison(hero, base, rank, next)}\n\nSpend ${points} skill points and ${gold} Gold?\nRequires level ${level}. Price includes ${hero.happiness ?? 70}% happiness.`,
-        onConfirm: () => this.commit(purchaseAdventurerAbility(hero.id, key))
-      }), { enabled: !reason, slot: 'body30' });
+        onConfirm: () => this.commit(purchaseAdventurerAbility(hero.id, key), 'training')
+      }), { enabled: !reason, disabledReason: reason, slot: 'body30' });
   }
 }

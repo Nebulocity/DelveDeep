@@ -10,12 +10,14 @@ import { perimeterOwner, maintainedHold, PERIMETER_REDUCTION, PERIMETER_THREAT_F
   BLOCK_THREAT_FRACTION, reactiveTankThreat, HOLD_THE_LINE } from './TankMechanics.js';
 import { armorReduction } from '../config/characterProgression.js';
 import { characterStats } from '../game/CharacterStats.js';
+import { combatPacingFor } from '../config/combatSpeed.js';
+import GameState from '../game/GameState.js';
 import UnitSprite from './UnitSprite.js';
 import { monsterDeathPose, criticalHitDirection, criticalHitPose, CRITICAL_RECOIL_MS } from './SpritePresentation.js';
 import HapticsService from '../services/HapticsService.js';
 
 import { deferUnitPresentation, deferredSprite } from './DeferredPresentation.js';
-import { replacementMultiplier } from './ReplacementEffects.js';
+import { replacementMultiplier, refreshReplacementTiming } from './ReplacementEffects.js';
 
 export default class BattleUnit {
 
@@ -108,17 +110,18 @@ export default class BattleUnit {
     this.attackRange = config.attackRange > 180
       ? Math.hypot(this.battlefield.logicalWidth, this.battlefield.logicalHeight) : config.attackRange;
 
-    // Cooldown is the wait between attempts; windup is the delay before an action
-    // resolves. Both are milliseconds and both shorten with actionRate.
-    this.attackCooldown = config.attackCooldown / actionRate;
-    this.attackWindup = (config.attackWindup ?? 250) / actionRate;
+    // Pace actions in milliseconds without slowing the scene clock. Speed and temporary
+    // buffs still adjust these baselines; movement and effect lifetimes stay independent.
+    this.combatPacing = { ...combatPacingFor(GameState.preferences.combatPace) };
+    this.attackCooldown = config.attackCooldown * this.combatPacing.cooldown / actionRate;
+    this.attackWindup = (config.attackWindup ?? 250) * this.combatPacing.windup / actionRate;
     this.healPower = config.healPower ?? 0;
     this.healRange = config.healRange ?? 0;
     this.basicHealPower = config.basicHealPower ?? 0;
 
     this.basicHealRange = config.basicHealRange > 2 ? 1000 : config.basicHealRange ?? 0;
-    this.healCooldown = (config.healCooldown ?? 0) / actionRate;
-    this.healWindup = (config.healWindup ?? 400) / actionRate;
+    this.healCooldown = (config.healCooldown ?? 0) * this.combatPacing.cooldown / actionRate;
+    this.healWindup = (config.healWindup ?? 400) * this.combatPacing.windup / actionRate;
     this.threatMultiplier = config.threatMultiplier ?? 1;
     this.armor = config.armor ?? 0;
     this.damageTakenMultiplier = config.damageTakenMultiplier ?? 1;
@@ -135,9 +138,11 @@ export default class BattleUnit {
     // A fixed authored cost, such as Prism Shields' 20 Mana, takes priority over
     // percentage costs. The latter use this unit's gear-adjusted maximum Mana.
     this.abilities = Object.fromEntries(Object.entries(config.abilities ?? {}).map(([key, ability]) => [key, {
-      ...ability, cooldown: ability.cooldown / actionRate, windup: (ability.windup ?? 300) / actionRate,
+      ...ability,
+      cooldown: ability.cooldown * this.combatPacing.cooldown / actionRate,
+      windup: (ability.windup ?? 300) * this.combatPacing.windup / actionRate,
       manaCost: ability.replacement ? ability.manaCost ?? Math.round(this.maxMana * ability.manaFraction) : ability.manaCost,
-      telegraph: ability.telegraph === undefined ? undefined : ability.telegraph / actionRate
+      telegraph: ability.telegraph === undefined ? undefined : ability.telegraph * this.combatPacing.windup / actionRate
     }]));
 
     // A triggered skill can require a learned ability without taking another equipped
@@ -403,6 +408,14 @@ export default class BattleUnit {
   // This helper releases the current action and clears its cast display.
   finishAction(outcome = 'cancelled', reasonCode = 'unknown', explanation = 'Unclassified action release', details = {}) {
 
+    // Ground warnings belong to the cast, so death or interruption must retire them now.
+    const action = this.pendingAction;
+    if (action) {
+      this.scene.activeTelegraphs?.filter(telegraph => telegraph.attacker === this
+        && telegraph.action === action)
+        .forEach(telegraph => this.scene.removeTelegraph(telegraph));
+    }
+
     const rush = this.pendingAction?.intervene;
     if (rush && !rush.movementFinished) {
       const diagnostic = this.scene.combatLog?.diagnostics;
@@ -554,6 +567,36 @@ export default class BattleUnit {
     const moved = Math.hypot(point.x - this.arenaX, point.y - this.arenaY);
     this.setArenaPosition(point.x, point.y);
     if (moved > .001) this.spriteVisual?.recordMovement?.();
+  }
+
+  // Keep cooldown progress proportional when changing pace. Pending casts and their
+  // captured ability objects keep their original deadline, warning and hit timing.
+  setCombatPacing(pacing) {
+    const cooldownRatio = pacing.cooldown / this.combatPacing.cooldown;
+    const windupRatio = pacing.windup / this.combatPacing.windup;
+    const time = this.scene.time.now;
+    for (const name of ['attackCooldown', 'healCooldown', 'attackWindup', 'healWindup']) {
+      const ratio = name.endsWith('Windup') ? windupRatio : cooldownRatio;
+      this[name] *= ratio;
+      if (this.replacementTiming) this.replacementTiming[name] *= ratio;
+    }
+    for (const field of ['lastAttackAt', 'lastHealAt']) {
+      if (Number.isFinite(this[field])) this[field] = time - (time - this[field]) * cooldownRatio;
+    }
+    for (const key of Object.keys(this.lastAbilityAt)) {
+      if (Number.isFinite(this.lastAbilityAt[key])) {
+        this.lastAbilityAt[key] = time - (time - this.lastAbilityAt[key]) * cooldownRatio;
+      }
+    }
+    this.abilities = Object.fromEntries(Object.entries(this.abilities).map(([key, ability]) => {
+      const next = { ...ability, cooldown: ability.cooldown * cooldownRatio, windup: ability.windup * windupRatio };
+      if (ability.telegraph !== undefined) next.telegraph *= windupRatio;
+      if (ability.baseSpeedCooldown !== undefined) next.baseSpeedCooldown *= cooldownRatio;
+      if (ability.baseSpeedWindup !== undefined) next.baseSpeedWindup *= windupRatio;
+      return [key, next];
+    }));
+    this.combatPacing = { ...pacing };
+    refreshReplacementTiming(this, time);
   }
 
   // This helper checks whether the unit can begin another basic attack.
@@ -803,12 +846,13 @@ export default class BattleUnit {
     const step = pose.travel - recoil.travel;
     const desired = { x: this.arenaX + recoil.dx * step, y: this.arenaY + recoil.dy * step };
 
-    // Use the authored floor and terrain for every step. A wall shortens the push,
-    // while decorative foreground scenery continues to allow movement underneath it.
+    // Sweep the same center and foot boundaries as walking so recoil cannot strand
+    // a unit behind the rear edge. Forced displacement still ignores other bodies.
     const padding = this.scene.movement?.config.edgePadding ?? 0;
     const clamped = this.battlefield.clampPoint(desired.x, desired.y, padding, padding);
-    const safe = this.scene.terrain?.resolveStep(this, clamped.x, clamped.y,
-      this.scene.movement?.config.terrainFootRadius) ?? clamped;
+    const safe = this.scene.movement
+      ? this.scene.movement.getCollisionStep(this, clamped, [])
+      : this.scene.terrain?.resolveStep(this, clamped.x, clamped.y) ?? clamped;
     this.setArenaPosition(safe.x, safe.y);
     recoil.travel = pose.travel;
     if (!this.scene.idleSimulating && !this.spriteVisual) this.body.setPosition(0, pose.y);

@@ -1,13 +1,15 @@
-// Delve preparation screens reuse these environment previews and stone panels. The
+import { combatPanel as addStonePanel, combatButton as addStoneButton, combatText as stoneText } from './CombatHudTheme.js';
+// Delve preparation screens reuse environment previews and midnight expedition frames. The
 // selected encounter supplies the theme and artwork. Preview scaling preserves the image's
 // proportions so it stays recognizable across screens.
 
 import { UI_FONT_SIZES, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
-import { addStonePanel, addStoneButton, addStoneOrnaments, delveStoneTheme, stoneText, STONE } from './CarvedStone.js';
+import { addStoneOrnaments, delveStoneTheme, STONE } from './CarvedStone.js';
 import { bindButtonPress } from './ButtonPress.js';
 import HapticsService from '../services/HapticsService.js';
+import { serviceFrame } from './TownServiceTheme.js';
 
-// Build a shared Delve preparation control with the selected encounter's stone theme.
+// Build a shared Delve preparation control with fine gold framing.
 // scene is the Phaser screen that owns the objects, clock and input used here. width is
 // the available width in this coordinate space.
 export function preparationButton(scene, x, y, width, height, label, action, options = {}) {
@@ -49,10 +51,10 @@ export function preparationFrame(scene, delve, title, backLabel, backAction) {
 
     // Math.max chooses the largest value; pairing it with Math.min can keep a result
     // inside both a lower and an upper bound.
-    art.setScale(Math.max(width / art.width, height / art.height)).setAlpha(0.32);
+    art.setScale(Math.max(width / art.width, height / art.height)).setAlpha(0.48);
   }
 
-  scene.add.rectangle(width / 2, height / 2, width, height, 0x080e19, 0.4).setDepth(-19);
+  scene.add.rectangle(width / 2, height / 2, width, height, 0x080e19, 0.25).setDepth(-19);
   addStonePanel(scene, width / 2, 64, width, 128, 0);
   addStoneOrnaments(scene, width / 2, 62, width * 0.52, scene.stoneTheme, 2);
   stoneText(scene, width / 2, 36, title, UI_FONT_SIZES.support28, 3, { color: STONE.muted });
@@ -75,6 +77,9 @@ export function preparationNotice(scene, x, y, message, options = {}) {
 
   // Math.min chooses the smallest value; pairing it with Math.max can keep a result inside
   // both a lower and an upper bound.
-  const panel = addStonePanel(scene, x, y, Math.min(options.width ?? 1100, text.width + 80), text.height + 38, depth);
+  // The painted bar supplies its own dark face. A rectangle behind it shows through
+  // the transparent curved ends as a blue edge outside the gold trim.
+  const panel = serviceFrame(scene, x, y, Math.min(options.width ?? 1100, text.width + 80),
+    text.height + 38, 'bar', 0.65).setDepth(depth);
   return { panel, text };
 }

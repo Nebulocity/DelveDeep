@@ -5,7 +5,8 @@
 import GameState from './GameState.js';
 import { EQUIPMENT_ITEMS, EQUIPMENT_BY_ID, getPotionDefinition, getMaterialDefinition, getCatalogItemDefinition } from '../data/items.js';
 import { ENCHANTMENT_BY_ID } from '../data/enchantments.js';
-import { grantEquipment, equipmentOwner, sellMaterial, sellPotionPack } from './Equipment.js';
+import { grantEquipment, grantEnchantmentScroll, equipmentOwner, sellMaterial, sellPotionPack } from './Equipment.js';
+import { learnInventoryRecipes } from './RecipeKnowledge.js';
 import { CRAFTING_RECIPES } from '../data/items.js';
 
 export const GEAR_STOCK = EQUIPMENT_ITEMS.filter(item => Number.isFinite(item.price) && item.price > 0);
@@ -67,8 +68,7 @@ export function saleRows(state = GameState, facilityName = null) {
       id: item.id,
       category: item.slot,
       name: item.name,
-      description: item.slot === 'potion' ? `${item.charges}/3 uses remaining`
-        : saleRecipe(item, state, facilityName) ? 'Blacksmith learns this recipe when sold.' : 'One owned item',
+      description: item.slot === 'potion' ? `${item.charges}/3 uses remaining` : 'One owned item',
       value: saleValue(item),
 
       // reduce adds each matching copy's price to a running total that starts at zero.
@@ -105,22 +105,7 @@ export function sellOwnedItem(id, state = GameState, facilityName = null) {
   // original list in place.
   state.inventory.equipment = state.inventory.equipment.filter(entry => entry.id !== id);
   state.gold += value;
-  const recipe = saleRecipe(item, state, facilityName);
-  if (recipe) {
-    state.inventory.knownRecipes ??= [];
-    state.inventory.knownRecipes.push(recipe.id);
-  }
-  return { ok: true, message: `Sold ${item.name} for ${value} Gold.${recipe ? ` Blacksmith learned ${item.name}.` : ''}` };
-}
-
-// Only a successful sale to the named crafter teaches these drop recipes. Buying,
-// equipping or selling to another shop must not unlock them. Existing knowledge stays.
-function saleRecipe(item, state, facilityName) {
-  if (facilityName !== 'Blacksmith') return null;
-  return CRAFTING_RECIPES.find(recipe => recipe.output.type === 'equipment'
-    && recipe.output.itemId === item.itemId && recipe.crafter === facilityName
-    && recipe.learnedFrom === 'Sold to Blacksmith'
-    && !(state.inventory.knownRecipes ?? []).includes(recipe.id));
+  return { ok: true, message: `Sold ${item.name} for ${value} Gold.` };
 }
 
 // Recheck inventory when pressed, then sell the full material stack or matching copies.
@@ -135,7 +120,6 @@ export function sellAllOwnedItem(id, state = GameState, facilityName = null) {
   const copies = matchingSaleItems(item, state);
   let value = 0;
   let sold = 0;
-  const recipe = saleRecipe(item, state, facilityName);
   for (const copy of copies) {
     const copyValue = saleValue(copy);
     const result = sellOwnedItem(copy.id, state, facilityName);
@@ -145,7 +129,7 @@ export function sellAllOwnedItem(id, state = GameState, facilityName = null) {
     }
   }
 
-  return { ok: sold > 0, message: `Sold ${sold}x ${item.name} for ${value} Gold.${sold && recipe ? ` Blacksmith learned ${item.name}.` : ''}` };
+  return { ok: sold > 0, message: `Sold ${sold}x ${item.name} for ${value} Gold.` };
 }
 
 // Check the current Gold balance before creating an owned copy of the catalog gear. state
@@ -157,15 +141,6 @@ export function buyGear(id, state = GameState) {
   const stock = GEAR_STOCK.find(entry => entry.id === id);
   if (!stock || state.gold < stock.price) return { ok: false, message: 'Not enough Gold or item unavailable.' };
   const instance = grantEquipment(id, state);
-  const recipe = CRAFTING_RECIPES.find(entry => entry.output.itemId === id);
-
-  if (recipe) {
-
-    // ??= fills a missing value once. It leaves an existing value, including zero or
-    // false, alone.
-    state.inventory.knownRecipes ??= [];
-    if (!state.inventory.knownRecipes.includes(recipe.id)) state.inventory.knownRecipes.push(recipe.id);
-  }
   state.gold -= stock.price;
 
   return { ok: true, instance, message: `Bought ${stock.name}.` };
@@ -179,11 +154,12 @@ export function inscribeEnchantment(id, state = GameState, buy = false) {
 
   // find returns the first matching entry, or undefined when none matches. Check for that
   // missing result before using its fields.
-  const recipe = CRAFTING_RECIPES.find(entry => entry.output.itemId === id);
+  const recipe = CRAFTING_RECIPES.find(entry => entry.output.type === 'scroll' && entry.output.itemId === id);
+  learnInventoryRecipes(state);
 
   // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
-  if (!buy && recipe && !(state.inventory.knownRecipes ?? []).includes(recipe.id)) {
-    return { ok: false, message: 'Buy this scroll once to learn its inscription recipe.' };
+  if (!buy && (!recipe || !state.inventory.knownRecipes.includes(recipe.id))) {
+    return { ok: false, message: 'Discover this scroll to learn its inscription recipe.' };
   }
 
   // The condition before ? chooses the first value when true and the value after : when
@@ -204,21 +180,7 @@ export function inscribeEnchantment(id, state = GameState, buy = false) {
     }
   }
 
-  let next = state.inventory.nextEquipmentId ?? 1;
-  while (state.inventory.equipment.some(item => item.id === `gear-${next}`)) next++;
-  state.inventory.nextEquipmentId = next + 1;
-  const instance = { id: `gear-${next}`, itemId: id, enchantmentId: id, name: `${definition.name} Scroll`, slot: 'scroll', rarity: 'common', stats: {} };
-  state.inventory.equipment.push(instance);
-
-  if (buy) {
-    if (recipe) {
-
-      // ??= fills a missing value once. It leaves an existing value, including zero or
-      // false, alone.
-      state.inventory.knownRecipes ??= [];
-      if (!state.inventory.knownRecipes.includes(recipe.id)) state.inventory.knownRecipes.push(recipe.id);
-    }
-  }
+  const instance = grantEnchantmentScroll(id, state);
 
   return { ok: true, instance, message: `${buy ? 'Bought' : 'Inscribed'} ${instance.name}.` };
 }

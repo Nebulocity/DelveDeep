@@ -1,7 +1,7 @@
 // Estimate completed farm cycles and bank their rewards without resolving combat.
 // Reward totals still follow the same caps and per-wave material probabilities.
 import GameState from './GameState.js';
-import { FARM_REWARDS, cappedDelveGold, delveRewardEligibility, delveFarmWaveIndex, getDelveCheckpoint, isOrdinaryDelve } from './DelveCheckpoints.js';
+import { FARM_REWARDS, cappedDelveGold, delveRewardEligibility, delveFarmWaveIndex, delveWaveXp, getDelveCheckpoint, isOrdinaryDelve } from './DelveCheckpoints.js';
 import { grantAdventurerXp, adjustHappiness, xpRequired } from './AdventurerProgression.js';
 import { FARM_MATERIAL_CHANCES } from '../config/farmMaterialDrops.js';
 import { delveMaterialIds } from './DelveDrops.js';
@@ -18,8 +18,9 @@ export function awardOfflineFarmWaves(delve, waveIndex, bossIndex, waves, partyU
 
   const values = FARM_REWARDS[delve.difficulty] ?? FARM_REWARDS.Easy;
   const eligibility = delveRewardEligibility(delve);
-  const livingIds = new Set(partyUnits.filter(unit => unit.alive).map(unit => unit.id));
   const partyIds = new Set(GameState.activeParty.map(hero => hero.id));
+  const livingIds = new Set(partyUnits.filter(unit => unit.alive && partyIds.has(unit.id)).map(unit => unit.id));
+  const xp = delveWaveXp(delve, livingIds.size);
   const party = GameState.roster.filter(hero => partyIds.has(hero.id));
   const result = { waves, gold: 0, xp: 0, xpByHero: {}, levelsGainedByHero: {}, materials: {}, items: [] };
   if (waves === 0) return result;
@@ -39,7 +40,7 @@ export function awardOfflineFarmWaves(delve, waveIndex, bossIndex, waves, partyU
       // The clear that reaches the cap still earns Gold and Happiness. A previously
       // fallen ally earns no XP, so its existing share of Gold does not change here.
       eligibleWaves = livingIds.has(hero.id)
-        ? Math.min(waves, Math.max(1, Math.ceil(room / values.xp))) : waves;
+        ? Math.min(waves, Math.max(1, Math.ceil(room / xp))) : waves;
       if (eligibleWaves < waves) capWaves.push(eligibleWaves);
     }
 
@@ -47,7 +48,7 @@ export function awardOfflineFarmWaves(delve, waveIndex, bossIndex, waves, partyU
       result.xpByHero[hero.id] = 0;
       continue;
     }
-    const gained = grantAdventurerXp(hero, values.xp * waves, eligibility.cap);
+    const gained = grantAdventurerXp(hero, xp * waves, eligibility.cap);
     result.xpByHero[hero.id] = gained.xpGained;
     result.levelsGainedByHero[hero.id] = gained.levelsGained;
     result.xp = Math.max(result.xp, gained.xpGained);
@@ -61,7 +62,7 @@ export function awardOfflineFarmWaves(delve, waveIndex, bossIndex, waves, partyU
   let paidWaves = 0;
   let eligibleCount = eligibility.eligibleIds.size;
   for (const end of [...capWaves.sort((a, b) => a - b), waves]) {
-    result.gold += (end - paidWaves) * cappedDelveGold(values.gold, {
+    result.gold += (end - paidWaves) * cappedDelveGold(values.gold * livingIds.size, {
       partyCount: eligibility.partyCount, eligibleIds: { size: eligibleCount }
     });
     paidWaves = end;

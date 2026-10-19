@@ -41,6 +41,7 @@ import { trackLoading } from '../ui/LoadingScreen.js';
 import delves, { getDelveById } from '../data/delves.js';
 import pineshireMapUrl from '../assets/world-map/illustrated-regions-v1/01-pineshire-reach-v4.png?url';
 import { preloadMusic } from '../services/MusicService.js';
+import { preloadUiSounds } from '../data/uiSounds.js';
 
 export default class BootScene extends Phaser.Scene {
 
@@ -55,6 +56,7 @@ export default class BootScene extends Phaser.Scene {
 
     trackLoading(this);
     preloadMusic(this);
+    preloadUiSounds(this);
     preloadIdentityIcons(this);
     preloadTownAssets(this);
     preloadServiceAssets(this);

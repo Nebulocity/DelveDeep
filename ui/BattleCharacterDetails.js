@@ -1,3 +1,4 @@
+import { combatPanel as addStonePanel, combatButton as addStoneButton, combatText as stoneText } from './CombatHudTheme.js';
 import { classIcon, categoryIcon } from '../ui/IdentityIcons.js';
 // The held battle sheet shows live resources and the four equipped skill slots.
 // Drawing this modal does not pause combat; its shade only blocks underlying taps.
@@ -5,7 +6,7 @@ import GameState from '../game/GameState.js';
 import { MAX_CHARACTER_LEVEL } from '../config/renown.js';
 import { xpRequired } from '../game/AdventurerProgression.js';
 import { abilityCardDetails } from '../game/AbilityDescriptions.js';
-import { addStonePanel, addStoneButton, stoneText, STONE } from './CarvedStone.js';
+import { STONE } from './CarvedStone.js';
 import { bindButtonPress } from './ButtonPress.js';
 import { hallScroll } from './HallUI.js';
 import { UI_FONT_FAMILIES } from '../config/uiTypography.js';

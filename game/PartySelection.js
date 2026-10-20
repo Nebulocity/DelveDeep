@@ -20,6 +20,12 @@ export function partyCounts(party) {
 
 export function partyDepartureProblem(party = selectedParty()) {
   if (GameState.activeBattle) return 'An expedition is already in progress. Return to your active battle.';
+  if (GameState.tutorial.status === 'pending'
+    || GameState.tutorial.status === 'active' && (!GameState.recruitedIds.includes('garrick')
+      || !party.some(hero => hero.id === 'garrick'))) {
+    return 'Visit the Tavern to recruit Garrick and add him to your party, or skip the tutorial to receive him for free.';
+  }
+  if (party.some(hero => !GameState.recruitedIds.includes(hero.id))) return 'Recruit every selected adventurer at the Tavern first.';
   if (party.length !== MAX_PARTY_SIZE) return 'Choose exactly five adventurers to enter this Delve.';
   if (new Set(party.map(hero => hero.id)).size !== party.length) return 'Choose five different adventurers.';
   const counts = partyCounts(party);

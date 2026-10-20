@@ -18,8 +18,9 @@ import { addBgmToggle } from '../ui/BgmToggle.js';
 import { getEquippedAdventurer } from '../game/Equipment.js';
 import HapticsService from '../services/HapticsService.js';
 import { happinessLabel } from '../game/AdventurerProgression.js';
-import { saveProfile } from '../game/GameStorage.js';
+import { saveProfile, flushProfileSave } from '../game/GameStorage.js';
 import { resolveWorldMapCharacter } from '../game/WorldMapCharacter.js';
+import { recordTutorialParty } from '../game/RecruitmentTutorial.js';
 import { UI_SAFE_TOP, UI_SAFE_BOTTOM, UI_SAFE_LEFT, UI_SAFE_RIGHT } from '../ui/Layout.js';
 import { currentTownArtwork } from '../ui/TownFeatureUI.js';
 import { pois } from '../data/worldMap.js';
@@ -623,10 +624,23 @@ export default class PartySelectScene extends Phaser.Scene {
       return;
     }
     HapticsService.confirm();
+    const tutorialActive = GameState.tutorial.status === 'active';
+    const previous = { lastPartyIds: GameState.lastPartyIds, activeParty: GameState.activeParty,
+      tutorial: GameState.tutorial, mapCharacterId: GameState.world.mapCharacterId };
     GameState.lastPartyIds = [...this.selectedIds];
     GameState.activeParty = GameState.lastPartyIds.map(id => ({ ...GameState.roster.find(hero => hero.id === id) }));
     resolveWorldMapCharacter();
-    saveProfile();
+    recordTutorialParty();
+    if (tutorialActive) {
+      if (!flushProfileSave()) {
+        GameState.lastPartyIds = previous.lastPartyIds;
+        GameState.activeParty = previous.activeParty;
+        GameState.tutorial = previous.tutorial;
+        GameState.world.mapCharacterId = previous.mapCharacterId;
+        this.showToast('Your party could not be saved. Please try again.');
+        return;
+      }
+    } else saveProfile();
     this.scene.start(this.returnScene);
   }
 

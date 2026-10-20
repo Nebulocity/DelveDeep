@@ -535,9 +535,9 @@ export default class BattleScene extends Phaser.Scene {
 
     // The condition before ? chooses the first value when true and the value after : when
     // false.
-    const party = GameState.activeParty.length > 0
+    const party = (GameState.activeParty.length > 0
       ? GameState.activeParty
-      : GameState.roster.slice(0, 5);
+      : GameState.roster.slice(0, 5)).filter(hero => GameState.recruitedIds.includes(hero.id));
 
     // map builds one output entry for each input entry, in the same order. The callback's
     // return value becomes that output entry.

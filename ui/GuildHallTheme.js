@@ -6,7 +6,7 @@ import { serviceFrame, serviceCard, serviceIcon } from './TownServiceTheme.js';
 export const GUILD = { ink: '#fff1d2', paper: '#ebd7b4', brass: 0xd3a750, bright: 0xffdb86, oak: 0x191f26 };
 
 export function isGuildHall(scene) {
-  return ['HeroesScene', 'AbilitiesScene', 'EquipmentScene', 'InventoryScene', 'TacticsScene'].includes(scene.scene?.key);
+  return ['HeroesScene', 'AbilitiesScene', 'EquipmentScene', 'InventoryScene', 'TacticsScene', 'TavernScene'].includes(scene.scene?.key);
 }
 
 export function guildSurface(scene, x, y, width, height, variant = 'panel', selected = false) {

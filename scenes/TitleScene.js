@@ -32,6 +32,7 @@ import { refreshRegionMapGold } from '../ui/RegionMapUI.js';
 import { hallScroll } from '../ui/HallUI.js';
 import { serviceScrollSurface } from '../ui/TownServiceTheme.js';
 import { playUiSound, runUiAction } from '../services/UiAudioService.js';
+import { openRecruitmentTutorial } from '../ui/RecruitmentTutorial.js';
 
 export default class TitleScene extends Phaser.Scene {
 
@@ -75,6 +76,7 @@ export default class TitleScene extends Phaser.Scene {
     createScrollingWorldMap(this);
     hideLoadingScreenAfterRender(this);
     showAbilityUnlockNotice(this);
+    if (['pending', 'active'].includes(GameState.tutorial.status) && !GameState.activeBattle) openRecruitmentTutorial(this);
   }
 
   // Phaser calls this while the screen is running. time is its clock timestamp and delta

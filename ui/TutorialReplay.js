@@ -1,13 +1,7 @@
-import { showSelectionDetails } from './SelectionDetails.js';
-import { syncRegionMapCameras } from './RegionMapUI.js';
+import GameState from '../game/GameState.js';
+import { openRecruitmentTutorial } from './RecruitmentTutorial.js';
 
-// This is the map's replay entry point. Replace the notice when the shared interactive
-// tutorial is available; replay must preserve the player's saved and active game state.
+// Replay uses the same saved lesson as new-game onboarding and preserves ownership.
 export function openTutorialReplay(scene) {
-  showSelectionDetails(scene, {
-    title: 'Tutorial',
-    description: 'The tutorial is being prepared!\n\nYour next lesson in the arts of adventuring will be ready soon.',
-    panelWidth: 1100
-  });
-  syncRegionMapCameras(scene);
+  openRecruitmentTutorial(scene, ['complete', 'skipped'].includes(GameState.tutorial.status));
 }

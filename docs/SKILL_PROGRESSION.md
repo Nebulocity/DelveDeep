@@ -14,4 +14,9 @@ Arcanist's Lightweaving is Restore. Grovekeeper's Lifequake is Assault. Their ef
 
 Wave and boss XP carry the IDs learned in that payout. Visible combat shows `Learned a new ability!` in vibrant green below the existing level-up text. The message fades with that celebration and its labels are cleaned up on scene shutdown. Displayed events are acknowledged and saved, so the menu does not repeat them. Offline and historical replay still learn skills and retain pending notifications, then show a green `Learned a new ability!` message under `Level Up!` on the next supported menu screen. Existing saved higher ranks and battle slot choices are retained where still eligible.
 
-No tests, builds, linting, simulations, browser checks, screenshots or Android packaging were run for this change. Source review only; runtime presentation and device readability remain unverified.
+Focused rule coverage is in `tests/ability-unlocks.test.js`: current level boundaries,
+automatic free learning, manual rank training costs, unchanged battle slots, disabled
+skills, AI/reaction restrictions, and pending-notice save/reload behavior. Focused browser
+coverage in `tests/visual/audit/ability-unlocks.spec.js` checks hidden locked skills,
+newly learned skill rendering, and batched menu notices without repetition. Active-combat
+celebration timing and physical-device readability remain outside these focused checks.

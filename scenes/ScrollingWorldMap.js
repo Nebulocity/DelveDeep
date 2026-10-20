@@ -3,7 +3,7 @@
 // coordinates move with the camera; fixed menu coordinates belong to the screen.
 
 import { fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
-import { showTutorialSlideshow } from '../ui/TutorialSlideshow.js';
+import { openTutorialReplay } from '../ui/TutorialReplay.js';
 import { addRegionPanel, addRegionButton, setRegionPanelState } from '../ui/RegionMapTheme.js';
 import { REGION_RAIL_WIDTH, MAP_HEADER_HEIGHT, MAP_FOOTER_HEIGHT, createRegionLocationRail, updateRegionLocationRail, syncRegionMapCameras, createRegionMapHeader, refreshRegionMapGold, showRegionDestination } from '../ui/RegionMapUI.js';
 import GameState from '../game/GameState.js';
@@ -19,11 +19,14 @@ import { createWorldMapAmbience } from '../ui/WorldMapAmbience.js';
 import { privateTransfersEnabled, showSaveTransferDialog } from '../ui/SaveTransferDialog.js';
 import { bindSelectionDetails, showSelectionDetails, delveDetails } from '../ui/SelectionDetails.js';
 import { TILE, WORLD_COLUMNS, WORLD_ROWS, regions, nodes, roads, pois, nodePoint, roadPoint, mapPoint, branchLock, regionExit, routeBetween, routeFromEdge, nearestTown } from '../data/worldMap.js';
-import { everdeepUnlocked, settleEverdeep } from '../game/Everdeep.js';
+import { settleEverdeep } from '../game/Everdeep.js';
 import { REGIONAL_MAPS } from '../data/regionalMaps.js';
 import { RegionalMapRenderer } from '../ui/RegionalMapRenderer.js';
 import { UI_SAFE_RIGHT } from '../ui/Layout.js';
 import { playUiSound } from '../services/UiAudioService.js';
+import { available } from '../game/DelveAvailability.js';
+
+export { available };
 
 // Object.fromEntries turns [key, value] pairs back into an object. A later pair with the
 // same key replaces the earlier value. map builds one output entry for each input entry,
@@ -41,15 +44,6 @@ const SPEED = 560;
 
 const cleared = (id) => GameState.development.unlockAll || GameState.world.clearedDelves.includes(id)
   || (GameState.records[id]?.clears ?? 0) > 0;
-
-// Check saved discovery, prerequisites and development access for this destination.
-export function available(poi) {
-  if (!poi) return false;
-  if (GameState.development.unlockAll) return true;
-  if (poi.type === 'everdeep') return everdeepUnlocked();
-
-  return !poi.requiresClear || cleared(poi.requiresClear);
-}
 
 // Build the selected illustrated region, its traced roads and world display layers.
 function drawWorld(scene) {
@@ -588,7 +582,7 @@ export function createScrollingWorldMap(scene) {
     scene.mapLocationClose?.();
     action();
   });
-  utility(REGION_RAIL_WIDTH + 180, 'How to Play', () => showTutorialSlideshow(scene));
+  utility(REGION_RAIL_WIDTH + 180, 'Tutorial', () => openTutorialReplay(scene));
   if (privateTransfersEnabled) utility(REGION_RAIL_WIDTH + 510, 'Save Transfer', () => {
     persistTravel(scene);
     showSaveTransferDialog(scene);

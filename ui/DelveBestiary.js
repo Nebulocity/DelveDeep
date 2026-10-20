@@ -9,6 +9,7 @@ import { UI_FONT_SIZES } from '../config/uiTypography.js';
 import { combatPanel, combatText } from './CombatHudTheme.js';
 import { applyCharacterPose, characterArtworkBounds } from './CharacterSpriteDisplay.js';
 import { bindSelectionDetails } from './SelectionDetails.js';
+import { scrollbarSurface } from './Scrollbar.js';
 import { hallScroll } from './HallUI.js';
 import { DELVE_SPRITE_DISPLAY_PROFILES } from '../data/characterDisplayProfiles.js';
 
@@ -98,7 +99,16 @@ function fitComparison(entries, settings) {
     return Math.min(artArea.width / ((artwork.right - artwork.left) * nativeScale),
       artArea.height / ((artwork.bottom - artwork.top) * nativeScale));
   };
-  const multiplier = Math.min(...entries.filter(entry => entry.artwork).map(fit));
+  const boss = entries.find(entry => entry.featured && entry.artwork);
+  const denizens = entries.filter(entry => !entry.featured && entry.artwork);
+
+  // Cap the ordinary art against the boss's authored scale as well as its own slot.
+  // This preserves native proportions and prevents a lone mob filling a boss-sized card.
+  const nativeExtent = entry => Math.max(entry.artwork.right - entry.artwork.left,
+    entry.artwork.bottom - entry.artwork.top) * entry.nativeScale;
+  const bossExtent = boss ? nativeExtent(boss) * fit(boss) * settings.bossMultiplier : Infinity;
+  const multiplier = Math.min(...denizens.map(fit),
+    ...denizens.map(entry => bossExtent * 0.65 / nativeExtent(entry)));
   for (const entry of entries) {
     if (!entry.image) continue;
     const { artwork, artArea } = entry;
@@ -117,17 +127,18 @@ export function addDelveBestiary(scene, delve, x, y, width, height, options = {}
   const owned = [];
   const inspect = options.inspect !== false;
   const top = y - height / 2;
-  owned.push(combatText(scene, x, top + 45, 'BESTIARY', UI_FONT_SIZES.heading38, 3));
+  const headingHeight = options.heading === false ? 0 : 88;
+  if (headingHeight) owned.push(combatText(scene, x, top + 45, 'DENIZENS', UI_FONT_SIZES.heading38, 3));
   const entries = entriesFor(delve);
   if (!entries.length) {
     owned.push(combatText(scene, x, y, 'No enemies recorded.', UI_FONT_SIZES.body30, 3));
   }
-  const bounds = { x: x - width / 2 + 30, y: top + 88,
-    width: width - 60, height: height - 112 };
+  const bounds = { x: x - width / 2 + 30, y: top + headingHeight,
+    width: width - 60, height: height - headingHeight - 24 };
   const boss = entries.find(entry => entry.featured);
   const mobs = entries.filter(entry => !entry.featured);
   const gap = 24;
-  const bossWidth = boss ? (mobs.length ? bounds.width * 0.44 : bounds.width) : 0;
+  const bossWidth = boss ? (mobs.length ? bounds.width * 0.54 : bounds.width) : 0;
   const displays = [];
   if (boss) displays.push(addEntry(scene, boss,
     { ...bounds, width: bossWidth }, true, inspect));
@@ -136,7 +147,7 @@ export function addDelveBestiary(scene, delve, x, y, width, height, options = {}
   if (mobs.length) {
     const right = { x: bounds.x + (boss ? bossWidth + gap : 0), y: bounds.y + 42,
       width: bounds.width - (boss ? bossWidth + gap : 0) - 32, height: bounds.height - 42 };
-    owned.push(combatText(scene, right.x + right.width / 2, bounds.y + 15, 'DENIZENS',
+    owned.push(combatText(scene, right.x + right.width / 2, bounds.y + 15, 'OTHER DENIZENS',
       UI_FONT_SIZES.bestiaryLabel, 3, { color: '#c9ba9a' }));
     const columns = mobs.length <= 2 || right.width < 480 ? 1 : 2;
     const rows = Math.ceil(mobs.length / columns);
@@ -154,8 +165,8 @@ export function addDelveBestiary(scene, delve, x, y, width, height, options = {}
       objects.push(...display.objects);
     });
     const scroll = hallScroll(scene, right, objects, rows * (rowHeight + gap) - gap,
-      0, () => {}, (owner, px, py, w, h) => {
-        const surface = combatPanel(owner, px, py, w, h, (options.depth ?? 0) + 4);
+      0, () => {}, (owner, px, py, w, h, kind) => {
+        const surface = scrollbarSurface(owner, px, py, w, h, kind, (options.depth ?? 0) + 4);
         if (options.fixed) surface.setScrollFactor(0);
         return surface;
       },

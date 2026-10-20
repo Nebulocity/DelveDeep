@@ -8,6 +8,7 @@ import { bindButtonPress } from './ButtonPress.js';
 import { playUiSound } from '../services/UiAudioService.js';
 import HapticsService from '../services/HapticsService.js';
 import GameState from '../game/GameState.js';
+import { abilityMeetsLevel } from '../data/abilityUnlocks.js';
 import { CHARACTER_SPRITES } from '../data/characterSprites.js';
 import { displayCharacterPortrait } from './CharacterSpriteDisplay.js';
 import { UI_FONT_SIZES, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
@@ -131,7 +132,10 @@ export function showGuildDetails(scene, details) {
   // both a lower and an upper bound. The condition before ? chooses the first value when
   // true and the value after : when false.
   const width = Math.min(details.panelWidth ?? (hero ? 1560 : 1380), scene.scale.width - 120);
-  const body = !hero ? text(scene, 0, 0, details.description, UI_FONT_SIZES.detailBody, { align: details.align ?? 'center', fixedWidth: width - 180, wordWrap: { width: width - 180 }, lineSpacing: 12 }) : null;
+  const body = !hero ? text(scene, 0, 0, details.description, UI_FONT_SIZES.detailBody, {
+    align: details.align ?? 'center', fixedWidth: width - 180, wordWrap: { width: width - 180 }, lineSpacing: 12,
+    ...(details.descriptionColor ? { color: details.descriptionColor, stroke: '#082b15', strokeThickness: 3 } : {})
+  }) : null;
   const footerSpace = details.usableBy?.length ? (details.usableBy.length > 10 ? 156 : 88) : 0;
   const height = hero ? Math.min(970, scene.scale.height - 90) : Math.min(scene.scale.height - 90, Math.max(540, body.height + 430 + footerSpace));
   const modal = start(scene, details.title, width, height, hero ? 'GUILD REGISTRY' : 'GUILD HANDBOOK',
@@ -174,7 +178,7 @@ export function showGuildDetails(scene, details) {
     // Object.entries turns own fields into [key, value] pairs so we can visit or transform
     // them. ?? uses the fallback only for null or undefined. A real zero or false stays
     // intact.
-    const known = (hero.abilityLoadout ?? []).filter(key => hero.abilities?.[key] && hero.abilityRanks?.[key] > 0)
+    const known = (hero.abilityLoadout ?? []).filter(key => abilityMeetsLevel(hero, hero.abilities?.[key]) && hero.abilityRanks?.[key] > 0)
       .map(key => [key, hero.abilities[key]]);
     const knownStart = scene.children.list.length;
     known.forEach(([key, ability], index) => {

@@ -2,7 +2,7 @@
 // existing drawing remains for a 400 ms fade, which never enters a battle save.
 
 export function retireUmbralDecoy(scene, decoy) {
-  const umbral = ['Umbral Mage', 'Mage of the Umbral Veil'].includes(decoy.className);
+  const umbral = ['Umbramancer', 'Umbramancer'].includes(decoy.className);
   if (!umbral || scene.idleSimulating || scene.game?.backgroundProgress?.isReplaying) {
     decoy.container?.destroy();
     return;
@@ -19,13 +19,13 @@ export function retireUmbralDecoy(scene, decoy) {
 export function updateUmbralDecoyEffects(scene, delta) {
   if (scene.battleOver) {
     scene.abilityDecoys = (scene.abilityDecoys ?? []).filter(decoy => {
-      if (!['Umbral Mage', 'Mage of the Umbral Veil'].includes(decoy.className)) return true;
+      if (!['Umbramancer', 'Umbramancer'].includes(decoy.className)) return true;
       retireUmbralDecoy(scene, decoy);
       return false;
     });
   }
   for (const decoy of scene.abilityDecoys ?? []) {
-    if (['Umbral Mage', 'Mage of the Umbral Veil'].includes(decoy.className)) {
+    if (['Umbramancer', 'Umbramancer'].includes(decoy.className)) {
       decoy.container?.setAlpha(0.6);
       decoy.spriteVisual?.image?.setTint(0xb18ed9);
     }

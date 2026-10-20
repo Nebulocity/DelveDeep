@@ -1,6 +1,7 @@
 import { worldMapParty, resolveWorldMapCharacter } from '../game/WorldMapCharacter.js';
 import { CHARACTER_SPRITES } from '../data/characterSprites.js';
-import { applyCharacterPose, characterDisplayMetrics } from './CharacterSpriteDisplay.js';
+import { characterDisplayMetrics } from './CharacterSpriteDisplay.js';
+import { bindSelectedCharacterIdle } from './SelectedCharacterIdle.js';
 import { chooseWorldMapCharacter } from './WorldMapCharacterSelection.js';
 import { addRegionPanel, addRegionButton } from './RegionMapTheme.js';
 import { hallScroll } from './HallUI.js';
@@ -10,12 +11,12 @@ import { playUiSound } from '../services/UiAudioService.js';
 
 // Use the same idle clips, authored foot origins and display normalization as
 // other character UI. Measure once, then change poses only on frame boundaries.
-export function addMapCharacterPreview(scene, hero, x, y, size, depth) {
+export function addMapCharacterPreview(scene, hero, x, y, size, depth, selected = true) {
   const definition = CHARACTER_SPRITES[hero?.id];
   const clip = definition?.clips.idle.south;
   const first = clip?.frames[0];
   if (!first || !scene.textures.exists(first.key)) return null;
-  const image = scene.add.image(0, 0, first.key, first.frame).setDepth(depth).setScrollFactor(0);
+  const image = scene.add.image(0, 0, first.key, first.frame).setName(`selection-idle-${hero.id}`).setDepth(depth).setScrollFactor(0);
   const metrics = characterDisplayMetrics(scene, definition, 'townRoster',
     { source: clip, size, width: size, height: size });
   if (metrics) {
@@ -23,25 +24,7 @@ export function addMapCharacterPreview(scene, hero, x, y, size, depth) {
     image.setScale(scale).setPosition(x - (bounds.left + bounds.right) * scale / 2,
       y + size / 2 - bounds.bottom * scale);
   } else image.setPosition(x, y).setDisplaySize(size, size);
-  let elapsed = 0, index = -1;
-  const reducedMotion = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)');
-  const update = (_time, delta) => {
-    if (!reducedMotion?.matches) elapsed += delta;
-    const next = Math.floor(elapsed / clip.frameMs) % clip.frames.length;
-    if (next === index) return;
-    index = next;
-    applyCharacterPose(image, clip.frames[index]);
-  };
-  update(0, 0);
-  const cleanup = () => {
-    scene.events.off('update', update);
-    scene.events.off('shutdown', cleanup);
-    image.off('destroy', cleanup);
-  };
-  scene.events.on('update', update);
-  scene.events.once('shutdown', cleanup);
-  image.once('destroy', cleanup);
-  return image;
+  return bindSelectedCharacterIdle(scene, image, definition, selected);
 }
 
 export function showWorldMapCharacterGallery(scene, onBack) {
@@ -93,7 +76,7 @@ export function showWorldMapCharacterGallery(scene, onBack) {
     for (const label of [name, classLabel]) if (label.width > cardWidth - 160) label.setScale((cardWidth - 160) / label.width);
     cards.push(...card.objects, name, classLabel);
     if (current) cards.push(text(x + 54, y + 44, 'Selected', 'body30').setColor('#ffdb86'));
-    const preview = addMapCharacterPreview(scene, hero, x - cardWidth / 2 + 72, y - 6, 120, depth + 3);
+    const preview = addMapCharacterPreview(scene, hero, x - cardWidth / 2 + 72, y - 6, 120, depth + 3, current);
     if (preview) cards.push(preview);
   });
   if (!party.length) cards.push(text(width / 2, bounds.y + 60, 'Choose a party at a Delve first.'));

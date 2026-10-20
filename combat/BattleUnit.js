@@ -11,6 +11,7 @@ import { perimeterOwner, maintainedHold, PERIMETER_REDUCTION, PERIMETER_THREAT_F
 import { armorReduction } from '../config/characterProgression.js';
 import { characterStats } from '../game/CharacterStats.js';
 import { combatPacingFor } from '../config/combatSpeed.js';
+import { abilityMeetsLevel } from '../data/abilityUnlocks.js';
 import GameState from '../game/GameState.js';
 import UnitSprite from './UnitSprite.js';
 import { monsterDeathPose, criticalHitDirection, criticalHitPose, CRITICAL_RECOIL_MS } from './SpritePresentation.js';
@@ -35,6 +36,7 @@ export default class BattleUnit {
 
     // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
     this.className = config.className ?? '';
+    this.isEnemy = config.isEnemy ?? false;
     this.shortName = config.shortName;
     this.classAbilities = config.classAbilities === true;
 
@@ -137,7 +139,8 @@ export default class BattleUnit {
     // them.
     // A fixed authored cost, such as Prism Shields' 20 Mana, takes priority over
     // percentage costs. The latter use this unit's gear-adjusted maximum Mana.
-    this.abilities = Object.fromEntries(Object.entries(config.abilities ?? {}).map(([key, ability]) => [key, {
+    this.abilities = Object.fromEntries(Object.entries(config.abilities ?? {})
+      .filter(([, ability]) => abilityMeetsLevel(this, ability)).map(([key, ability]) => [key, {
       ...ability,
       cooldown: ability.cooldown * this.combatPacing.cooldown / actionRate,
       windup: (ability.windup ?? 300) * this.combatPacing.windup / actionRate,
@@ -180,7 +183,6 @@ export default class BattleUnit {
     this.lastTakenDamageAt = -Infinity;
 
     this.seekingRestealth = false;
-    this.isEnemy = config.isEnemy ?? false;
     this.alive = true;
     this.busyUntil = 0;
     this.pendingAction = null;
@@ -622,7 +624,7 @@ export default class BattleUnit {
   abilityReady(key, time) {
 
     const ability = this.abilities[key];
-    if (!ability || !this.canStartAction(time)) {
+    if (!abilityMeetsLevel(this, ability) || !this.canStartAction(time)) {
       return false;
     }
 
@@ -647,6 +649,7 @@ export default class BattleUnit {
   markAbilityUsed(key, time, manaCostOverride = null) {
 
     const ability = this.abilities[key];
+    if (!abilityMeetsLevel(this, ability)) return false;
     this.lastAbilityAt[key] = time;
 
     // A future-cooldown buff is captured when committing the skill. Letting it alter
@@ -813,7 +816,7 @@ export default class BattleUnit {
       return true;
     }
 
-    if (amount > 0) this.spriteVisual?.play(options.blocked ? 'block' : 'hit', options.attacker);
+    if (amount > 0 && !options.suppressHitReaction) this.spriteVisual?.play(options.blocked ? 'block' : 'hit', options.attacker);
     return false;
   }
 

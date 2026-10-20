@@ -6,8 +6,8 @@
 import { createAdventurer } from './classes.js';
 
 const adventurers = [
-  createAdventurer('zareth', 'Zareth', 'Mage of the Umbral Veil'),
-  createAdventurer('nadira', 'Nadira', 'Mage of the Luminous Archive'),
+  createAdventurer('zareth', 'Zareth', 'Umbramancer'),
+  createAdventurer('nadira', 'Nadira', 'Arcanist'),
   createAdventurer('garrick', 'Garrick', 'Gladiator', {
     maxHp: 168,
     attackPower: 15,
@@ -76,7 +76,7 @@ const adventurers = [
     happiness: 77
   }),
 
-  createAdventurer('valtheris', 'Valtheris', 'Mage of the Crimson Spire', {
+  createAdventurer('valtheris', 'Valtheris', 'Spellbinder', {
     maxHp: 72,
     attackPower: 19,
     moveSpeed: 124,
@@ -84,7 +84,7 @@ const adventurers = [
     happiness: 66
   }),
 
-  createAdventurer('sylva', 'Sylva', 'Cleric of the Verdant Covenant', {
+  createAdventurer('sylva', 'Sylva', 'Grovekeeper', {
     maxHp: 116,
     healPower: 18,
     moveSpeed: 150,
@@ -92,7 +92,7 @@ const adventurers = [
     happiness: 82
   }),
 
-  createAdventurer('selenne', 'Selenne', 'Cleric of the Everbright', {
+  createAdventurer('selenne', 'Selenne', 'Dawnpriest', {
     maxHp: 97,
     healPower: 24,
     moveSpeed: 132,
@@ -100,7 +100,7 @@ const adventurers = [
     happiness: 79
   }),
 
-  createAdventurer('malrek', 'Malrek', 'Cleric of the Sanguine Song', {
+  createAdventurer('malrek', 'Malrek', 'Sanguinist', {
     maxHp: 126,
     attackPower: 10,
     healPower: 26,

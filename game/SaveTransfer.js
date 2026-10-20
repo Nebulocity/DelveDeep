@@ -5,6 +5,7 @@ import { validBattleSnapshot } from './BattleSnapshot.js';
 import { restoreEverdeep } from './EverdeepState.js';
 import enemies from '../data/enemies.js';
 import { getDelveById } from '../data/delves.js';
+import { RECRUITMENT_COSTS } from '../data/recruitment.js';
 
 export const MAX_TRANSFER_BYTES = 12 * 1024 * 1024;
 const MAX_PAYLOAD_BYTES = 8 * 1024 * 1024;
@@ -66,6 +67,11 @@ export function validateSnapshot(snapshot) {
   require(object(profile.inventory) && Array.isArray(profile.inventory.equipment)
     && object(profile.inventory.materials) && Object.values(profile.inventory.materials).every(count)
     && strings(profile.inventory.knownRecipes ?? []) && count(profile.inventory.nextEquipmentId), 'Invalid inventory.');
+  require(strings(profile.recruitedIds) && new Set(profile.recruitedIds).size === profile.recruitedIds.length
+    && profile.recruitedIds.every(id => Object.hasOwn(RECRUITMENT_COSTS, id) && ids.has(id))
+    && [...ids].every(id => profile.recruitedIds.includes(id)), 'Invalid recruitment ownership.');
+  require(object(profile.tutorial) && ['pending', 'active', 'complete', 'skipped'].includes(profile.tutorial.status)
+    && ['recruit', 'party'].includes(profile.tutorial.step), 'Invalid tutorial progress.');
   const gearIds = new Set();
   for (const gear of profile.inventory.equipment) {
     require(object(gear) && typeof gear.id === 'string' && !gearIds.has(gear.id), 'Invalid owned equipment.');

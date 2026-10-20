@@ -55,8 +55,8 @@ export default class EncounterSummaryScene extends Phaser.Scene {
     if ((fled || defeated) && GameState.currentDelve) {
       resultsButton(this, leftX, actionY, columnWidth, 92, 'Try Again', () => {
         GameState.run.entry = checkpoint?.campUnlocked ? 'camp' : 'progress';
-        this.scene.start('PartySelectScene');
-      }, { primary: true });
+        this.scene.start('DelveSelectScene');
+      });
       resultsButton(this, rightX, actionY, columnWidth, 92, 'Return to World Map', returnToMap);
     } else {
       resultsButton(this, centerX, actionY, columnWidth, 92, 'Return to World Map', returnToMap);

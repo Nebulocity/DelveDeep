@@ -38,19 +38,19 @@ export function rangedTravelProfile(caster, ability = {}) {
 
   // Shadow Bolt flies straight. Draining spells extend a textured connection;
   // fields, echoes, healing and summoned images form locally at their recipients.
-  if (ability.id?.startsWith('ability_v2_umbral_mage_')) {
+  if (ability.id?.startsWith('ability_v2_umbramancer_')) {
     const sheets = { shadow_bolt: 'umbral-bolt', siphon: 'umbral-siphon', essence_drain: 'umbral-drain' };
-    const suffix = ability.id.slice('ability_v2_umbral_mage_'.length);
+    const suffix = ability.id.slice('ability_v2_umbramancer_'.length);
     return sheets[suffix] ? { type: suffix === 'shadow_bolt' ? 'bolt' : 'tether',
       color: 0xb18ed9, sheet: sheets[suffix] } : null;
   }
 
   // The bolt flies straight; the ray grows outward from the caster. Healing,
   // blessings and locally summoned holy fire keep their recipient delivery.
-  if (ability.id === 'ability_v2_everbright_cleric_radiant_bolt') {
+  if (ability.id === 'ability_v2_dawnpriest_radiant_bolt') {
     return { type: 'bolt', color: 0xffe6a0, sheet: 'everbright-bolt' };
   }
-  if (ability.id === 'ability_v2_everbright_cleric_judgement_ray') {
+  if (ability.id === 'ability_v2_dawnpriest_judgement_ray') {
     return { type: 'beam', color: 0xffe6a0, sheet: 'everbright-ray' };
   }
 

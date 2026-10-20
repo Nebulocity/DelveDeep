@@ -23,7 +23,7 @@ export function grantStartingEquipment(savedRoster, state = GameState) {
     const savedWeaponId = savedRoster.get(hero.id)?.equipment?.weapon;
     const formerWeapon = state.inventory.equipment.find(item => item.id === savedWeaponId);
     const changedStarter = hero.className === 'Barbarian' && formerWeapon?.itemId === 'BLS01'
-      || hero.className?.startsWith('Cleric of ') && formerWeapon?.itemId === 'PST01';
+      || hero.role === 'Healer' && formerWeapon?.itemId === 'PST01';
     if (hero.startingEquipmentGranted && !hero.equipment?.weapon && changedStarter && loadout) {
       const replacement = grantEquipment(loadout.weapon, state);
       if (replacement) equipItem(hero.id, replacement.id, state);

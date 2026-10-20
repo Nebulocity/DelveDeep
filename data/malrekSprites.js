@@ -1,4 +1,4 @@
-// Malrek's approved Sanguine-cleric artwork supplies every combat pose and portrait.
+// Malrek's approved Sanguinist artwork supplies every combat pose and portrait.
 // The layout records the painted frames, their timing and the measured boot positions.
 import layout from '../assets/characters/malrek/sheets/layout.json' with { type: 'json' };
 

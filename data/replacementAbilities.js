@@ -1,10 +1,11 @@
-// Role categories are permissions, including for generic abilities. Class aliases keep
-// existing roster and gear IDs while matching the names used in the approved catalog.
+// Role categories are permissions, including for generic abilities. The roster, gear
+// and ability catalog use the same current playable class identities.
 
 import { REPLACEMENT_ABILITY_ROWS } from './replacementAbilityCatalog.js';
 import { progressionProfile } from '../config/characterProgression.js';
 import { balancedHealingAbility } from '../config/healingBalance.js';
 import { withAbilityRankCurve } from './abilityRankCurves.js';
+import { abilityUnlockLevel, abilityEnabled } from './abilityUnlocks.js';
 
 export const ABILITY_CATALOG_VERSION = 2;
 export const CLASS_ABILITY_RULES = {
@@ -16,22 +17,13 @@ export const CLASS_ABILITY_RULES = {
   Scoundrel: ['Physical', 'Assault', 'Prepare', 'Protect'],
   Barmaid: ['Physical', 'Assault', 'Prepare', 'Protect'],
   Ranger: ['Physical', 'Assault', 'Prepare', 'Protect'],
-  'Umbral Mage': ['Magical', 'Assault', 'Prepare', 'Restore'],
-  'Crimson Mage': ['Magical', 'Assault', 'Prepare', 'Restore'],
-  'Luminous Mage': ['Magical', 'Assault', 'Prepare', 'Restore'],
-  'Everbright Cleric': ['Magical', 'Restore', 'Protect', 'Assault'],
-  'Verdant Cleric': ['Magical', 'Restore', 'Protect', 'Assault'],
-  'Sanguine Cleric': ['Magical', 'Restore', 'Protect', 'Assault']
+  'Umbramancer': ['Magical', 'Assault', 'Prepare', 'Restore'],
+  'Spellbinder': ['Magical', 'Assault', 'Prepare', 'Restore'],
+  'Arcanist': ['Magical', 'Assault', 'Prepare', 'Restore'],
+  'Dawnpriest': ['Magical', 'Restore', 'Protect', 'Assault'],
+  'Grovekeeper': ['Magical', 'Restore', 'Protect', 'Assault'],
+  'Sanguinist': ['Magical', 'Restore', 'Protect', 'Assault']
 };
-export const CLASS_CATALOG_NAMES = {
-  'Mage of the Umbral Veil': 'Umbral Mage',
-  'Mage of the Crimson Spire': 'Crimson Mage',
-  'Mage of the Luminous Archive': 'Luminous Mage',
-  'Cleric of the Everbright': 'Everbright Cleric',
-  'Cleric of the Verdant Covenant': 'Verdant Cleric',
-  'Cleric of the Sanguine Song': 'Sanguine Cleric'
-};
-
 // These identities override generic physical/magical pools, including Dawnwarden Interpose.
 export const CLASS_RESTRICTED_ABILITIES = {
   ability_v2_generic_physical_intervene: ['Gladiator', 'Oathwarden'],
@@ -41,7 +33,8 @@ export const CLASS_RESTRICTED_ABILITIES = {
 
 // Check this again when loading and equipping, rather than trusting a saved category.
 export function abilityAllowed(className, row) {
-  const name = CLASS_CATALOG_NAMES[className] ?? className;
+  if (!abilityEnabled(row)) return false;
+  const name = className;
   const rules = CLASS_ABILITY_RULES[name];
   const exclusive = CLASS_RESTRICTED_ABILITIES[row.id];
   if (exclusive) return exclusive.includes(name) && rules.slice(1).includes(row.category);
@@ -52,12 +45,9 @@ export function abilityAllowed(className, row) {
 // Distances in the workbook are logical arena units. The existing skill API measures
 // them in paces, so divide by 100 once here. Shapes retain their arena-unit sizes too.
 export function replacementAbilities(className, healingMultiplier) {
-  const name = CLASS_CATALOG_NAMES[className] ?? className;
+  const name = className;
 
-  // Callers may use the workbook's short class name. Resolve that alias back to its
-  // progression profile so the same class keeps the same healing tuning either way.
-  const profileName = Object.keys(CLASS_CATALOG_NAMES).find(key => CLASS_CATALOG_NAMES[key] === className) ?? className;
-  const multiplier = healingMultiplier ?? progressionProfile(profileName)?.base.healingMultiplier ?? 1;
+  const multiplier = healingMultiplier ?? progressionProfile(className)?.base.healingMultiplier ?? 1;
   const rows = REPLACEMENT_ABILITY_ROWS.filter(row => abilityAllowed(className, row)).map(row => balancedHealingAbility(row, multiplier)).map(withAbilityRankCurve);
   const order = row => row.starterFor.includes(name)
     ? row.className.startsWith('Generic') ? 2 : CLASS_ABILITY_RULES[name].slice(1).indexOf(row.category) : 3;
@@ -68,9 +58,9 @@ export function replacementAbilities(className, healingMultiplier) {
     const target = row.handler === 'intervene' ? 'dual' : row.targetLabel === 'Self' ? 'self' : row.targetLabel.includes('ally') || row.targetLabel === 'Allies' ? 'ally'
       : row.targetLabel === 'Ground position' ? 'ground' : 'enemy';
     return [row.id, {
-      ...row, replacement: true, effect: 'replacement', range, target,
+      ...row, minimumLevel: abilityUnlockLevel(row, name), replacement: true, effect: 'replacement', range, target,
       primary: { ...row.primary }, secondary: { ...row.secondary },
-      starter: row.starterFor.includes(name), origin: row.className.startsWith('Generic') ? 'Generic' : 'Class',
+      starter: abilityUnlockLevel(row) === 1, origin: row.className.startsWith('Generic') ? 'Generic' : 'Class',
       power: row.primary.potency * 100, powerUnit: row.primary.unit,
       description: row.primary.text + (row.secondary.text === 'None' ? '' : ' ' + row.secondary.text),
       zone: row.shape === 'Circle' && row.anchor !== 'Caster' ? row.radius / 100 : undefined,

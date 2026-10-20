@@ -13,6 +13,8 @@ AGENTS.md*
 /docs/*
 !/docs/REGIONAL_MAP_LAYERS.md
 !/docs/UI_AUDIO.md
+!/docs/INTERACTIVE_TUTORIAL.md
+!/docs/SKILL_PROGRESSION.md
 /changelog/
 /change_log/
 

@@ -1,8 +1,10 @@
+import { scrollbarSurface } from './Scrollbar.js';
 import { combatPanel as addStonePanel, combatButton as addStoneButton, combatText as stoneText } from './CombatHudTheme.js';
 import { classIcon, categoryIcon } from '../ui/IdentityIcons.js';
 // The held battle sheet shows live resources and the four equipped skill slots.
 // Drawing this modal does not pause combat; its shade only blocks underlying taps.
 import GameState from '../game/GameState.js';
+import { abilityMeetsLevel } from '../data/abilityUnlocks.js';
 import { MAX_CHARACTER_LEVEL } from '../config/renown.js';
 import { xpRequired } from '../game/AdventurerProgression.js';
 import { abilityCardDetails } from '../game/AbilityDescriptions.js';
@@ -60,7 +62,8 @@ export function showBattleCharacterDetails(scene, unit) {
     { fontFamily: UI_FONT_FAMILIES.sans }).setOrigin(0, 0.5));
 
   const skills = Object.entries(unit.abilities ?? {})
-    .filter(([key]) => !unit.abilityRanks || unit.abilityRanks[key] > 0).slice(0, 4);
+    .filter(([key, ability]) => abilityMeetsLevel(unit, ability)
+      && (!unit.abilityRanks || unit.abilityRanks[key] > 0)).slice(0, 4);
   const cardWidth = (panelWidth - 116) / 2;
   const cardHeight = (panelHeight - 332) / 2;
 
@@ -75,7 +78,7 @@ export function showBattleCharacterDetails(scene, unit) {
       return;
     }
     const scroll = hallScroll(scene, bounds, [body], body.height, 0, () => {},
-      (owner, x, y, w, h) => addStonePanel(owner, x, y, w, h, depth + 3), () => false, 28);
+      (owner, x, y, w, h, kind) => scrollbarSurface(owner, x, y, w, h, kind, depth + 3), () => false, 28);
     scroll.container.setDepth(depth + 3);
     objects.push(scroll.container);
   };

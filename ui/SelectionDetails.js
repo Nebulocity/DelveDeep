@@ -21,12 +21,13 @@ import { showShopDetails } from './ShopDetails.js';
 import { UI_FONT_SIZES, fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import { abilitySummary } from '../game/AbilityDescriptions.js';
 import GameState from '../game/GameState.js';
+import { abilityMeetsLevel } from '../data/abilityUnlocks.js';
 import { hallScroll } from './HallUI.js';
 import { showBattleCharacterDetails } from './BattleCharacterDetails.js';
 import { worldMapParty } from '../game/WorldMapCharacter.js';
 import { DESCRIPTION_ART_DISPLAY } from '../data/characterDisplayProfiles.js';
 import { chooseWorldMapCharacter } from './WorldMapCharacterSelection.js';
-import { serviceScrollSurface } from './TownServiceTheme.js';
+import { scrollbarSurface } from './Scrollbar.js';
 import { playUiSound, runUiAction } from '../services/UiAudioService.js';
 
 export const DETAILS_HINT = 'Long-press or hold-click a selection for details.';
@@ -49,7 +50,7 @@ function isDelvePreparation(scene) {
 
   // ?. only follows this link when the value exists; a missing optional value gives
   // undefined.
-  return ['DelveSelectScene', 'PartySelectScene', 'DungeonScene'].includes(scene.scene?.key);
+  return ['DelveSelectScene', 'PartySelectScene'].includes(scene.scene?.key);
 }
 
 // Choose Hall materials and dialogs for the supported roster and inventory screens.
@@ -116,7 +117,8 @@ export function characterDetails(unit) {
     align: 'left',
     description: [
       `${unit.className ?? 'Monster'} | ${unit.role ?? 'Enemy'}${level ? ` | Level ${level}` : ''}\nHP: ${Math.floor(unit.hp ?? unit.maxHp)}/${unit.maxHp}${(unit.maxMana ?? 0) > 0 ? ` | Mana: ${Math.floor(unit.mana ?? unit.maxMana)}/${unit.maxMana}` : ''}`,
-      Object.entries(unit.abilities ?? {}).filter(([key]) => !unit.abilityRanks || unit.abilityRanks[key] > 0)
+      Object.entries(unit.abilities ?? {}).filter(([key, ability]) => abilityMeetsLevel(unit, ability)
+        && (!unit.abilityRanks || unit.abilityRanks[key] > 0))
         .map(([, ability]) => abilitySummary(unit, ability)).join('\n\n') || 'No skills equipped.'
     ].filter(Boolean).join('\n\n')
   };
@@ -224,7 +226,7 @@ export function showSelectionDetails(scene, details) {
   // necessarily the object's corner.
   const bodyDescription = details.classHeader ? details.description.replace(/^[^\n]*\n/, '').trimStart() : details.description;
   const body = scene.add.text(bodyCenter, 0, bodyDescription, {
-    fontFamily: UI_FONT_FAMILIES.sans, fontSize: `${UI_FONT_SIZES.detailBody}px`, color: stone ? STONE.text : warm ? '#f1dfca' : '#e2e8f0',
+    fontFamily: UI_FONT_FAMILIES.sans, fontSize: `${UI_FONT_SIZES.detailBody}px`, color: details.descriptionColor ?? (stone ? STONE.text : warm ? '#f1dfca' : '#e2e8f0'),
     wordWrap: { width: bodyWidth }, fixedWidth: bodyWidth, align: details.align ?? 'center'
   }).setOrigin(0.5, 0).setDepth(depth + 2);
   const panelHeight = Math.min(height - 140, Math.max(hasImage ? 540 : regionMap ? 400 : 340,
@@ -324,9 +326,7 @@ export function showSelectionDetails(scene, details) {
   if (body.height > bodyHeight) {
     const scroll = hallScroll(scene, { x: body.x - bodyWidth / 2, y: body.y, width: bodyWidth, height: bodyHeight },
       [body], body.height, 0, () => {},
-      (owner, x, y, w, h, variant) => regionMap
-        ? serviceScrollSurface(owner, x, y, w, h, variant).setDepth(depth + 2)
-        : (stone ? addStonePanel : addWoodenPanel)(owner, x, y, w, h, depth + 2),
+      (owner, x, y, w, h, variant) => scrollbarSurface(owner, x, y, w, h, variant, depth + 2),
       () => false);
     scroll.container.setDepth(depth + 2);
     objects.push(scroll.container);

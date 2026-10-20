@@ -32,7 +32,7 @@ export function preparationButton(scene, x, y, width, height, label, action, opt
 
 // Build the selected encounter's shared preparation workspace frame. scene is the Phaser
 // screen that owns the objects, clock and input used here.
-export function preparationFrame(scene, delve, title, backLabel, backAction) {
+export function preparationFrame(scene, delve, title, backLabel, backAction, options = {}) {
 
   // The braces pull named fields into local variables. This reads those fields without
   // copying the whole source object.
@@ -42,7 +42,7 @@ export function preparationFrame(scene, delve, title, backLabel, backAction) {
 
   // ?. only follows this link when the value exists; a missing optional value gives
   // undefined.
-  const preview = delve?.visuals?.environment?.layers[0]?.key;
+  const preview = options.backgroundKey ?? delve?.visuals?.environment?.layers[0]?.key;
   if (preview && scene.textures.exists(preview)) {
 
     // Depth is drawing order, not distance or size. Higher-depth objects draw on top of
@@ -51,7 +51,7 @@ export function preparationFrame(scene, delve, title, backLabel, backAction) {
 
     // Math.max chooses the largest value; pairing it with Math.min can keep a result
     // inside both a lower and an upper bound.
-    art.setScale(Math.max(width / art.width, height / art.height)).setAlpha(0.48);
+    art.setScale(Math.max(width / art.width, height / art.height)).setAlpha(options.backgroundAlpha ?? 0.48);
   }
 
   scene.add.rectangle(width / 2, height / 2, width, height, 0x080e19, 0.25).setDepth(-19);
@@ -61,7 +61,8 @@ export function preparationFrame(scene, delve, title, backLabel, backAction) {
 
   // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
   stoneText(scene, width / 2, 84, delve?.name ?? 'The Delve', UI_FONT_SIZES.heading49, 3);
-  preparationButton(scene, 240, 64, 430, 94, backLabel, backAction, { size: UI_FONT_SIZES.body32 });
+  preparationButton(scene, 240, 64, 430, 94, backLabel, backAction, { size: UI_FONT_SIZES.body32 })
+    .button.setName('preparation-back');
 }
 
 // Place a readable stone message in the Delve preparation workspace. scene is the Phaser
@@ -80,6 +81,6 @@ export function preparationNotice(scene, x, y, message, options = {}) {
   // The painted bar supplies its own dark face. A rectangle behind it shows through
   // the transparent curved ends as a blue edge outside the gold trim.
   const panel = serviceFrame(scene, x, y, Math.min(options.width ?? 1100, text.width + 80),
-    text.height + 38, 'bar', 0.65).setDepth(depth);
+    text.height + (options.verticalPadding ?? 38), 'bar', 0.65).setDepth(depth);
   return { panel, text };
 }

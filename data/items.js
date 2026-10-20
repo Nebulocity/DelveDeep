@@ -328,12 +328,12 @@ const legacyCatalogItems = [
     "slot": "weapon",
     "rarity": "common",
     "usableBy": [
-      "Mage of the Umbral Veil",
-      "Mage of the Crimson Spire",
-      "Mage of the Luminous Archive",
-      "Cleric of the Everbright",
-      "Cleric of the Verdant Covenant",
-      "Cleric of the Sanguine Song"
+      "Umbramancer",
+      "Spellbinder",
+      "Arcanist",
+      "Dawnpriest",
+      "Grovekeeper",
+      "Sanguinist"
     ],
 
     "stats": {
@@ -358,12 +358,12 @@ const legacyCatalogItems = [
     "slot": "weapon",
     "rarity": "common",
     "usableBy": [
-      "Mage of the Umbral Veil",
-      "Mage of the Crimson Spire",
-      "Mage of the Luminous Archive",
-      "Cleric of the Everbright",
-      "Cleric of the Verdant Covenant",
-      "Cleric of the Sanguine Song"
+      "Umbramancer",
+      "Spellbinder",
+      "Arcanist",
+      "Dawnpriest",
+      "Grovekeeper",
+      "Sanguinist"
     ],
 
     "stats": {
@@ -388,12 +388,12 @@ const legacyCatalogItems = [
     "slot": "weapon",
     "rarity": "uncommon",
     "usableBy": [
-      "Mage of the Umbral Veil",
-      "Mage of the Crimson Spire",
-      "Mage of the Luminous Archive",
-      "Cleric of the Everbright",
-      "Cleric of the Verdant Covenant",
-      "Cleric of the Sanguine Song"
+      "Umbramancer",
+      "Spellbinder",
+      "Arcanist",
+      "Dawnpriest",
+      "Grovekeeper",
+      "Sanguinist"
     ],
 
     "stats": {
@@ -419,12 +419,12 @@ const legacyCatalogItems = [
     "slot": "weapon",
     "rarity": "uncommon",
     "usableBy": [
-      "Mage of the Umbral Veil",
-      "Mage of the Crimson Spire",
-      "Mage of the Luminous Archive",
-      "Cleric of the Everbright",
-      "Cleric of the Verdant Covenant",
-      "Cleric of the Sanguine Song"
+      "Umbramancer",
+      "Spellbinder",
+      "Arcanist",
+      "Dawnpriest",
+      "Grovekeeper",
+      "Sanguinist"
     ],
 
     "stats": {
@@ -839,12 +839,12 @@ const legacyCatalogItems = [
     "slot": "armor",
     "rarity": "common",
     "usableBy": [
-      "Mage of the Umbral Veil",
-      "Mage of the Crimson Spire",
-      "Mage of the Luminous Archive",
-      "Cleric of the Everbright",
-      "Cleric of the Verdant Covenant",
-      "Cleric of the Sanguine Song"
+      "Umbramancer",
+      "Spellbinder",
+      "Arcanist",
+      "Dawnpriest",
+      "Grovekeeper",
+      "Sanguinist"
     ],
 
     "stats": {
@@ -871,12 +871,12 @@ const legacyCatalogItems = [
     "slot": "armor",
     "rarity": "common",
     "usableBy": [
-      "Mage of the Umbral Veil",
-      "Mage of the Crimson Spire",
-      "Mage of the Luminous Archive",
-      "Cleric of the Everbright",
-      "Cleric of the Verdant Covenant",
-      "Cleric of the Sanguine Song"
+      "Umbramancer",
+      "Spellbinder",
+      "Arcanist",
+      "Dawnpriest",
+      "Grovekeeper",
+      "Sanguinist"
     ],
 
     "stats": {
@@ -903,12 +903,12 @@ const legacyCatalogItems = [
     "slot": "armor",
     "rarity": "uncommon",
     "usableBy": [
-      "Mage of the Umbral Veil",
-      "Mage of the Crimson Spire",
-      "Mage of the Luminous Archive",
-      "Cleric of the Everbright",
-      "Cleric of the Verdant Covenant",
-      "Cleric of the Sanguine Song"
+      "Umbramancer",
+      "Spellbinder",
+      "Arcanist",
+      "Dawnpriest",
+      "Grovekeeper",
+      "Sanguinist"
     ],
 
     "stats": {
@@ -935,12 +935,12 @@ const legacyCatalogItems = [
     "slot": "armor",
     "rarity": "uncommon",
     "usableBy": [
-      "Mage of the Umbral Veil",
-      "Mage of the Crimson Spire",
-      "Mage of the Luminous Archive",
-      "Cleric of the Everbright",
-      "Cleric of the Verdant Covenant",
-      "Cleric of the Sanguine Song"
+      "Umbramancer",
+      "Spellbinder",
+      "Arcanist",
+      "Dawnpriest",
+      "Grovekeeper",
+      "Sanguinist"
     ],
 
     "stats": {
@@ -967,12 +967,12 @@ const legacyCatalogItems = [
     "slot": "accessory",
     "rarity": "uncommon",
     "usableBy": [
-      "Mage of the Umbral Veil",
-      "Mage of the Crimson Spire",
-      "Mage of the Luminous Archive",
-      "Cleric of the Everbright",
-      "Cleric of the Verdant Covenant",
-      "Cleric of the Sanguine Song"
+      "Umbramancer",
+      "Spellbinder",
+      "Arcanist",
+      "Dawnpriest",
+      "Grovekeeper",
+      "Sanguinist"
     ],
 
     "stats": {
@@ -1120,9 +1120,9 @@ const legacyCatalogItems = [
     "slot": "armor",
     "rarity": "uncommon",
     "usableBy": [
-      "Mage of the Umbral Veil",
-      "Mage of the Crimson Spire",
-      "Mage of the Luminous Archive"
+      "Umbramancer",
+      "Spellbinder",
+      "Arcanist"
     ],
 
     "stats": {
@@ -1152,9 +1152,9 @@ const legacyCatalogItems = [
     "slot": "armor",
     "rarity": "uncommon",
     "usableBy": [
-      "Cleric of the Everbright",
-      "Cleric of the Verdant Covenant",
-      "Cleric of the Sanguine Song"
+      "Dawnpriest",
+      "Grovekeeper",
+      "Sanguinist"
     ],
 
     "stats": {

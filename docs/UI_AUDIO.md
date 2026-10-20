@@ -12,7 +12,7 @@ All files are **missing**. Each runtime filename below uses Ogg Vorbis `.ogg`, m
 
 | Filename | Target duration | Sound description | Intended semantic event |
 | --- | --- | --- | --- |
-| `ui-click.ogg` | 0.04-0.10 s | Soft dry wooden tick with restrained attack and no ringing tail | Ordinary selection, filter, toggle, tutorial playback controls |
+| `ui-click.ogg` | 0.04-0.10 s | Soft dry wooden tick with restrained attack and no ringing tail | Ordinary selection, filter and toggle controls |
 | `ui-navigation.ogg` | 0.12-0.22 s | Gentle leather/parchment movement with a quiet wooden accent | Enter a Town destination, return to Town/World Map, select a map destination or start travel |
 | `ui-dialog-open.ogg` | 0.10-0.18 s | Subtle parchment unfolding | Open Settings, details, confirmation, tutorial, Save Transfer or recording archive |
 | `ui-dialog-close.ogg` | 0.08-0.15 s | Short soft parchment settling, distinct from opening | Explicit dialog dismissal or cancellation |

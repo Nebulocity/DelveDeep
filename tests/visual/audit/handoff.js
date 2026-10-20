@@ -1,0 +1,25 @@
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import path from 'node:path';
+
+const escape = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+export function writeHandoff(root, execution, records) {
+  const findingsPath = path.join(root, 'findings.json');
+  const findings = existsSync(findingsPath) ? JSON.parse(readFileSync(findingsPath, 'utf8')) : { defects: [], remaining: ['Findings review is in progress.'] };
+  const statuses = Object.fromEntries(['passed', 'failed', 'timedOut', 'skipped', 'interrupted'].map(status => [status, execution.results.filter(r => r.status === status).length]));
+  const captures = records.flatMap(r => r.captures.map(c => ({ ...c, project: r.project })));
+  const counts = { scenes: new Set(captures.map(c => c.scene)).size,
+    capturedStates: new Set(captures.map(c => `${c.scene}/${c.state}`)).size,
+    stateViewportCaptures: captures.length,
+    interactiveInstances: captures.reduce((sum, c) => sum + c.data.objects.length, 0),
+    pointerAttempts: records.reduce((sum, r) => sum + (r.interactions?.length ?? 0), 0) };
+  let git = '';
+  try { git = execFileSync('git', ['status', '--short'], { encoding: 'utf8', windowsHide: true }); } catch { git = 'Git status unavailable'; }
+  const report = { ...execution, statuses, counts, findings, gitStatus: git,
+    supplementalVerification: existsSync(path.join(root, 'verification.json')) ? JSON.parse(readFileSync(path.join(root, 'verification.json'), 'utf8')) : null,
+    interpretation: 'Interactive instances are per-capture objects, including masked/disabled surfaces, not a count of unique proven actions. Captured states do not imply every source branch has been exercised.' };
+  writeFileSync(path.join(root, 'handoff.json'), JSON.stringify(report, null, 2));
+  const table = execution.results.map(r => `<tr><td>${escape(r.project)}</td><td>${escape(r.title)}</td><td>${escape(r.status)}</td></tr>`).join('');
+  const defects = findings.defects.map(d => `<li><strong>${escape(d.id)} ${escape(d.severity)}: ${escape(d.title)}</strong><p>${escape(d.description)}</p><p>${escape(d.resolution)}</p>${d.before ? `<div class="pair"><figure><figcaption>Before</figcaption><img src="${escape(d.before)}"></figure><figure><figcaption>After</figcaption><img src="${escape(d.after)}"></figure></div>` : ''}</li>`).join('');
+  writeFileSync(path.join(root, 'handoff.html'), `<!doctype html><meta charset="utf-8"><title>Delve Deep audit handoff</title><style>body{max-width:1200px;margin:32px auto;padding:20px;background:#14171c;color:#eee;font:17px/1.5 system-ui}a{color:#ffd580}table{border-collapse:collapse}td,th{padding:8px;border:1px solid #555}pre{white-space:pre-wrap}.pair{display:grid;grid-template-columns:1fr 1fr;gap:16px}figure{margin:0}img{width:100%}</style><h1>Delve Deep UI audit handoff</h1><p><a href="index.html">Visual gallery</a> · <a href="coverage.json">Coverage matrix</a> · <a href="source-inventory.json">Source state/navigation inventory</a> · <a href="handoff.json">Full machine-readable handoff</a></p><h2>1. Executive summary</h2><p>Playwright execution: ${escape(execution.status)}. ${statuses.passed} passed, ${statuses.failed + statuses.timedOut} failed, ${statuses.skipped} skipped, ${statuses.interrupted} interrupted. Human visual approval remains pending.</p><h2>2. Coverage</h2><pre>${escape(JSON.stringify(counts, null, 2))}</pre><p>${escape(report.interpretation)}</p><h2>3. Test modernization</h2><p>Runtime scene registry replaces retired Hall aliases. The maintained UI suite covers current destinations and observable actions, masked controls, five-point hit geometry, responsive landscape viewports, dialogs, shops, combat and lifecycle. Five obsolete catalog/discovery/explorer/capture scripts were replaced. Specialist combat/effect tests and their prior configuration were retained separately. No current human-approved pixel baselines exist.</p><h2>4. Defects and 5. Repairs</h2><ul>${defects || '<li>No final defect review recorded yet.</li>'}</ul><h2>6. Verification</h2><table><tr><th>Viewport</th><th>Scenario</th><th>Status</th></tr>${table}</table><p>Supplemental verification: <a href="verification.json">background progression rules and separate smoke results</a>.</p><h2>7. Visual evidence</h2><p>See the filterable <a href="index.html">scene/state gallery</a>. JSON alongside each image includes geometry, hit probes, rendered text and lifecycle counts. Test-result attachments preserve failed scenarios.</p><h2>8. Outstanding decisions and limitations</h2><ul>${(findings.remaining ?? []).map(s => `<li>${escape(s)}</li>`).join('')}</ul><h2>9. Tutorial readiness</h2><p>${escape(findings.tutorialReadiness ?? 'Pending completion of automated verification and human visual confirmation. No interactive tutorial was implemented.')}</p><h2>10. Git status</h2><pre>${escape(git)}</pre><p>No commits, pushes, merges or builds were performed. Any cloud copy of this evidence is a separate user-authorized delivery.</p>`);
+}

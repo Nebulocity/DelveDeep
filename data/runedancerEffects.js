@@ -11,6 +11,8 @@ const runeGemstones = {
 };
 
 // Placed and impact runes share arena sizing, independent of the recipient's body.
+// Keep the floating art compact without changing the rune's gameplay coverage.
+const RUNE_ARTWORK_SCALE = 0.6;
 const runeArtworkScales = { ruby: 1.2, amethyst: 1.2, sapphire: 1.2 };
 
 // Temporary gameplay range overlay. Disable this flag after reviewing rune coverage.
@@ -46,7 +48,7 @@ export const RUNEDANCER_EFFECTS = RUNEDANCER_ABILITIES.flatMap(ability => {
     // A 64-frame loop lasts about 2.13 seconds; combat time pauses every glow.
     fitTarget: false, opacity: impact ? 0.95 : 0.92,
     frames: 64, frameMs: 1000 / 30, holdMs: impact ? 800 : 1600, fadeMs: 400,
-    groundWidth: 112, artworkScale: runeArtworkScales[gemstone] ?? 1,
+    groundWidth: 112, artworkScale: RUNE_ARTWORK_SCALE * (runeArtworkScales[gemstone] ?? 1),
     clips: [{ name: gemstone, key: 'runedancer-' + gemstone + '-rune', width: 112, height: 112,
       frames: 64, start: 0, x: -56, y: impact ? -70 : -135, depth: 'front',
       loop: !impact, holdLastFrame: impact, url: sheet }]

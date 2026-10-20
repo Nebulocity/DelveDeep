@@ -1,4 +1,4 @@
-// Selenne's approved Everbright-cleric artwork supplies every combat pose and portrait.
+// Selenne's approved Dawnpriest artwork supplies every combat pose and portrait.
 // The layout records the painted frames, their timing and the measured boot positions.
 import layout from '../assets/characters/selenne/sheets/layout.json' with { type: 'json' };
 

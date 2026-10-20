@@ -1,3 +1,4 @@
+import { isMageClass } from '../config/characterProgression.js';
 // Planning stores IDs and input coordinates only. No actions, resources, AI targets or
 // cooldowns change here; Resume dispatches through BattleScene's existing command paths.
 import GameState from '../game/GameState.js';
@@ -22,7 +23,7 @@ export default class LeaderOrderPlan {
     return party.filter(unit => {
       if (!unit.alive) return false;
       if (id === 'coordinatedAttack') return unit.role === 'Melee DPS';
-      if (id === 'lunarAssault') return unit.className?.startsWith('Mage of the');
+      if (id === 'lunarAssault') return isMageClass(unit.className);
       if (id === 'shieldWall') return unit.role === 'Tank';
       if (id === 'manaVortex') return unit.maxMana > 0;
       if (id === 'supplies') {

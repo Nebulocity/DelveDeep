@@ -8,6 +8,7 @@ import { ADVENTURER_XP_COSTS } from '../config/adventurerXp.js';
 import { MAX_CHARACTER_LEVEL } from '../config/renown.js';
 import GameState from './GameState.js';
 import { recordCharacterMilestones } from './LeaderProgression.js';
+import { queueAbilityUnlocks } from './AbilityUnlockNotifications.js';
 
 // Read the authored XP needed to advance from this level to the next one.
 export function xpRequired(level) {
@@ -46,7 +47,8 @@ export function grantAdventurerLevels(adventurer, amount = 1) {
   }
 
   recordCharacterMilestones(GameState.leader, previousLevel, adventurer.level);
-  return { levelsGained: gained };
+  const abilitiesLearned = gained ? queueAbilityUnlocks(adventurer, previousLevel) : [];
+  return { levelsGained: gained, abilitiesLearned };
 }
 
 // This helper adds earned experience to an adventurer and processes every level gained
@@ -56,7 +58,7 @@ export function grantAdventurerXp(adventurer, amount, levelCap = Infinity) {
 
   // Delves can impose a lower cap, but no XP source can exceed the global cap.
   const cap = Math.min(levelCap, MAX_CHARACTER_LEVEL);
-  const result = { levelsGained: 0, xpGained: 0 };
+  const result = { levelsGained: 0, xpGained: 0, abilitiesLearned: [] };
   if (adventurer.level >= cap) return result;
 
   // Sum the remaining level costs, then remove XP already banked toward the next level.
@@ -76,7 +78,8 @@ export function grantAdventurerXp(adventurer, amount, levelCap = Infinity) {
   // each level cost in turn.
   while (adventurer.level < cap && adventurer.xp >= xpRequired(adventurer.level)) {
     adventurer.xp -= xpRequired(adventurer.level);
-    grantAdventurerLevels(adventurer, 1);
+    const gained = grantAdventurerLevels(adventurer, 1);
+    result.abilitiesLearned.push(...gained.abilitiesLearned);
     result.levelsGained += 1;
   }
 

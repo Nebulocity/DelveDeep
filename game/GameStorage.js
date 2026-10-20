@@ -18,6 +18,7 @@ import { CRAFTING_MATERIALS, CRAFTING_RECIPES, MATERIAL_ID_ALIASES } from '../da
 import { PROFILE_STORAGE_KEY } from './BuildSave.js';
 import { validBattleSnapshot } from './BattleSnapshot.js';
 import { roads, pois, nodes, WORLD_LAYOUT_ID } from '../data/worldMap.js';
+import { STARTER_IDS, RECRUITMENT_COSTS } from '../data/recruitment.js';
 
 const STORAGE_KEY = PROFILE_STORAGE_KEY;
 let battleSaveProvider = null;
@@ -59,6 +60,21 @@ export function loadProfile(baseRoster) {
   // Only matching current IDs restore progression; retired identities have no aliases.
   // Changing list order must not hand one character's progress to another.
   const savedRoster = new Map((saved?.roster ?? []).map((entry) => [entry.id, entry]));
+
+  // Keep the playable roster owned-only. A fresh profile reserves Garrick until the
+  // opt-in prompt is answered; replay never removes an existing ownership record.
+  GameState.recruitedIds = [...new Set(Array.isArray(saved?.recruitedIds) ? saved.recruitedIds
+    : STARTER_IDS.filter(id => saved || id !== 'garrick'))]
+    .filter(id => Object.hasOwn(RECRUITMENT_COSTS, id) && baseRoster.some(hero => hero.id === id));
+  GameState.tutorial = saved?.tutorial && ['pending', 'active', 'complete', 'skipped'].includes(saved.tutorial.status)
+    ? { status: saved.tutorial.status, step: saved.tutorial.step === 'party' ? 'party' : 'recruit' }
+    : { status: saved ? 'skipped' : 'pending', step: 'recruit' };
+  if (['skipped', 'complete'].includes(GameState.tutorial.status) && !GameState.recruitedIds.includes('garrick')) {
+    GameState.recruitedIds.push('garrick');
+  }
+  if (GameState.tutorial.status === 'active' && GameState.recruitedIds.includes('garrick')) {
+    GameState.tutorial.step = 'party';
+  }
 
   // Restore currencies, inventory, world state, and development options with defaults for
   // missing save fields.
@@ -155,7 +171,7 @@ export function loadProfile(baseRoster) {
 
   // Rebuild stats from current base values and saved levels. Reusing saved derived stats
   // here would apply level gains twice.
-  GameState.roster = baseRoster.map((base) => {
+  GameState.roster = baseRoster.filter(base => GameState.recruitedIds.includes(base.id)).map((base) => {
 
     // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
     const prior = savedRoster.get(base.id) ?? {};
@@ -172,6 +188,7 @@ export function loadProfile(baseRoster) {
     return restoreAdventurerAbilities(rebuildCharacterStats({
       ...base,
       level,
+      pendingAbilityUnlocks: Array.isArray(prior.pendingAbilityUnlocks) ? prior.pendingAbilityUnlocks.filter(key => typeof key === 'string') : [],
       xp: Math.max(0, prior.xp ?? 0),
       happiness: Math.min(100, Math.max(0, prior.happiness ?? base.happiness ?? 70)),
       delvesCompleted: Math.max(0, prior.delvesCompleted ?? 0),
@@ -253,6 +270,8 @@ function writeProfile() {
   }
   const profile = {
     gold: GameState.gold,
+    recruitedIds: GameState.recruitedIds,
+    tutorial: GameState.tutorial,
     preferences: GameState.preferences,
     inventory: GameState.inventory,
     records: GameState.records,
@@ -271,6 +290,7 @@ function writeProfile() {
       abilityRanks: adventurer.abilityRanks ?? {},
       abilityLoadout: adventurer.abilityLoadout ?? [],
       abilityCatalogVersion: adventurer.abilityCatalogVersion,
+      pendingAbilityUnlocks: adventurer.pendingAbilityUnlocks ?? [],
       abilityRespec: adventurer.abilityRespec,
       skillPoints: adventurer.skillPoints ?? adventurer.level,
       level: adventurer.level,

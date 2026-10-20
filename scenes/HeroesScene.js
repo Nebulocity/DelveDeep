@@ -1,12 +1,13 @@
 import TownFeatureScene, { featurePanel, featureBody } from '../ui/TownFeatureUI.js';
 import { characterSelector, selectedCharacter } from '../ui/CharacterSelection.js';
 import { serviceText, serviceButton } from '../ui/TownServiceTheme.js';
-import { hallPortrait } from '../ui/HallUI.js';
+import { selectionCharacterPortrait } from '../ui/SelectedCharacterIdle.js';
 import { getEquippedAdventurer } from '../game/Equipment.js';
 import { happinessLabel, xpRequired } from '../game/AdventurerProgression.js';
 import { MAX_CHARACTER_LEVEL } from '../config/renown.js';
 import { CLASS_DESCRIPTIONS } from '../data/classDescriptions.js';
 import { STAT_DESCRIPTIONS } from '../data/statDescriptions.js';
+import { selectedParty, partyCounts } from '../game/PartySelection.js';
 import { showSelectionDetails } from '../ui/SelectionDetails.js';
 
 const number = value => Number.isFinite(value) ? Math.round(value * 100) / 100 : 0;
@@ -17,6 +18,13 @@ export default class HeroesScene extends TownFeatureScene {
 
   render() {
     const bounds = this.frame('Heroes', 'heroes', { hint: 'Select an adventurer to view progression and current statistics.' });
+    const party = selectedParty();
+    const counts = partyCounts(party);
+    serviceButton(this, this.scale.width - 310, 68, 450, 88, `Manage Party ${party.length}/5`, () => {
+      this.scene.start('PartySelectScene', { origin: 'town', returnScene: 'HeroesScene' });
+    }, { name: 'town-manage-party', depth: 5 });
+    this.children.getByName('feature-feedback').setText(
+      `${party.map(hero => hero.name).join(' · ') || 'No party selected'} | Tank ${counts.Tank} · Healer ${counts.Healer} · DPS ${counts.DPS}`);
     characterSelector(this, { ...bounds, width: 440 }, () => { this.statsOffset = 0; this.render(); },
       { roleOrder: ['Tank', 'Healer', 'Melee DPS', 'Ranged DPS'] });
     const hero = selectedCharacter();
@@ -26,7 +34,7 @@ export default class HeroesScene extends TownFeatureScene {
     featurePanel(this, identity);
     featurePanel(this, detail);
     serviceText(this, 790, bounds.y + 50, hero.name, 'heading48', { align: 'center', wordWrap: { width: 430 } }).setOrigin(0.5);
-    hallPortrait(this, hero, 790, bounds.y + 220, 260, 'townDetails');
+    selectionCharacterPortrait(this, hero, 790, bounds.y + 220, 260, 'townDetails', true);
     serviceText(this, 790, bounds.y + 402, `${hero.className}\n${hero.role}`, 'body34', {
       align: 'center', wordWrap: { width: 430 }
     }).setOrigin(0.5);

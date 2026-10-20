@@ -12,12 +12,12 @@ import { DAWNWARDEN_ASSAULT_EFFECTS } from '../data/dawnwardenAssaultEffects.js'
 import { OATHWARDEN_PROTECT_EFFECTS } from '../data/oathwardenProtectEffects.js';
 import { GLADIATOR_PROTECT_EFFECTS } from '../data/gladiatorProtectEffects.js';
 import { GENERIC_RESTORE_EFFECTS } from '../data/genericRestoreEffects.js';
-import { VERDANT_CLERIC_EFFECTS } from '../data/verdantClericEffects.js';
+import { GROVEKEEPER_EFFECTS } from '../data/grovekeeperEffects.js';
 import { RANGER_ABILITY_EFFECTS } from '../data/rangerAbilityEffects.js';
 import { BARBARIAN_ABILITY_EFFECTS } from '../data/barbarianAbilityEffects.js';
 import { BARMAID_ABILITY_EFFECTS } from '../data/barmaidAbilityEffects.js';
-import { EVERBRIGHT_CLERIC_EFFECTS } from '../data/everbrightClericEffects.js';
-import { UMBRAL_MAGE_EFFECTS } from '../data/umbralMageEffects.js';
+import { DAWNPRIEST_EFFECTS } from '../data/dawnpriestEffects.js';
+import { UMBRAMANCER_EFFECTS } from '../data/umbramancerEffects.js';
 import { RUNEDANCER_EFFECTS } from '../data/runedancerEffects.js';
 import { updateUmbralDecoyEffects, clearUmbralDecoyEffects } from './UmbralDecoyEffects.js';
 import { createPhysicalAbilityEffect, updatePhysicalAbilityEffects, clearPhysicalAbilityEffects } from './PhysicalAbilityEffects.js';
@@ -505,8 +505,8 @@ function restorePersistentEffects(scene) {
     for (const definition of [...MAGICAL_PROTECTION_EFFECTS, ...MAGICAL_ASSAULT_EFFECTS,
       ...OATHWARDEN_ASSAULT_EFFECTS, ...GLADIATOR_ASSAULT_EFFECTS, ...DAWNWARDEN_ASSAULT_EFFECTS,
       ...OATHWARDEN_PROTECT_EFFECTS, ...GLADIATOR_PROTECT_EFFECTS, ...GENERIC_RESTORE_EFFECTS,
-      ...VERDANT_CLERIC_EFFECTS, ...RANGER_ABILITY_EFFECTS, ...EVERBRIGHT_CLERIC_EFFECTS,
-      ...BARBARIAN_ABILITY_EFFECTS, ...BARMAID_ABILITY_EFFECTS, ...UMBRAL_MAGE_EFFECTS, ...RUNEDANCER_EFFECTS]) {
+      ...GROVEKEEPER_EFFECTS, ...RANGER_ABILITY_EFFECTS, ...DAWNPRIEST_EFFECTS,
+      ...BARBARIAN_ABILITY_EFFECTS, ...BARMAID_ABILITY_EFFECTS, ...UMBRAMANCER_EFFECTS, ...RUNEDANCER_EFFECTS]) {
       if (definition.persistentStatus && definition.restoreFromStatus !== false
         && effectStatusActive(target, definition, now, scene.currentWaveIndex)) {
         requests.push([{ className: definition.className }, { id: definition.abilityId,

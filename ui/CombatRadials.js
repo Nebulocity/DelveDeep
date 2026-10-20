@@ -1,4 +1,5 @@
 import GameState from '../game/GameState.js';
+import { abilityMeetsLevel } from '../data/abilityUnlocks.js';
 import { combatHudLayout, combatText } from './CombatHudTheme.js';
 import { stoneIcon } from './CarvedStone.js';
 import { categoryIcon } from './IdentityIcons.js';
@@ -120,7 +121,8 @@ export default class CombatRadials {
       : kind === 'ACTION' ? ACTIONS.map(value => ({ name: value.charAt(0) + value.slice(1).toLowerCase(), value, symbol: value }))
         : Array.from({ length: 4 }, (_, index) => {
           const skill = Object.entries(selected[0].abilities ?? {})
-            .filter(([key]) => !selected[0].abilityRanks || selected[0].abilityRanks[key] > 0)[index];
+            .filter(([key, ability]) => abilityMeetsLevel(selected[0], ability)
+              && (!selected[0].abilityRanks || selected[0].abilityRanks[key] > 0))[index];
           return { name: skill?.[1].shortName ?? skill?.[1].name ?? 'Empty', value: skill?.[0], ability: skill?.[1], unit: selected[0] };
         });
     const center = this.centers[kind];

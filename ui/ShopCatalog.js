@@ -30,7 +30,8 @@ export function renderShopCatalog(scene, choice) {
       }, { selected: scene.category === key, compact: true, slot: 'body30', name: `shop-category-${key}` });
   });
   const listTop = catalog.y + 104 + Math.ceil(categories.length / columns) * 74;
-  const bounds = { x: catalog.x + 36, y: listTop, width: catalog.width - 92, height: catalog.y + catalog.height - listTop - 40 };
+  // Reserve a footer above the painted trim so the count and scrolling cards stay apart.
+  const bounds = { x: catalog.x + 36, y: listTop, width: catalog.width - 92, height: catalog.y + catalog.height - listTop - 90 };
   const stride = 172, gap = 16, cardWidth = (bounds.width - gap) / 2;
   scene.catalogCards = new Map();
   const retained = new Set(scene.children.list);
@@ -71,7 +72,7 @@ export function renderShopCatalog(scene, choice) {
       align: 'center', wordWrap: { width: bounds.width - 90 }, fontFamily: UI_FONT_FAMILIES.sans
     }).setOrigin(0.5);
   }
-  serviceText(scene, center, catalog.y + catalog.height - 20, `${rows.length} items`, 'support28', { color: '#c6bdac' }).setOrigin(0.5);
+  serviceText(scene, center, catalog.y + catalog.height - 54, `${rows.length} items`, 'support28', { color: '#c6bdac' }).setOrigin(0.5);
   const row = rows.find(entry => entry.id === scene.selectedItemId);
   rebuildDetails(scene, choice, row, details);
 }

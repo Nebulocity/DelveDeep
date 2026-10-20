@@ -134,26 +134,26 @@ export const CLASS_DEFINITIONS = {
     }
   },
 
-  'Mage of the Umbral Veil': mage('Umbral Mage', 0x292333, {
+  'Umbramancer': mage('Umbramancer', 0x292333, {
     grasp: spell('Umbral Grasp', 10, 1, 'damage', { power: 24, damageType: 'necrotic' }),
     nightbolt: spell('Nightbolt', 5, 5, 'damage', { power: 24, damageType: 'necrotic' }),
     gloom: spell('Gloomburst', 10, 4, 'damage', { power: 24, damageType: 'necrotic', zone: 2.4 }),
     veilstep: spell('Veilstep', 10, Infinity, 'teleport', { moveThreshold: 3 })
   }),
-  'Mage of the Crimson Spire': mage('Crimson Mage', 0xb91c1c, {
+  'Spellbinder': mage('Spellbinder', 0xb91c1c, {
     stabilization: spell('Arcane Stabilization', 10, 0, 'stabilize', { duration: 5000, reduction: 0.5, spellBoost: 0.25 }),
     lash: spell('Crimson Lash', 10, 1, 'damage', { power: 24, damageType: 'force', targets: 2 }),
     arcflare: spell('Arcflare', 5, 6, 'damage', { power: 12, damageType: 'force', splash: 1 }),
     spire: spell('Spireburst', 10, 5, 'damage', { power: 24, damageType: 'force', beam: true, friendlyFire: true })
   }),
 
-  'Mage of the Luminous Archive': mage('Luminous Mage', 0xf8fafc, {
+  'Arcanist': mage('Arcanist', 0xf8fafc, {
     refuge: spell('Scripted Refuge', 15, 0, 'refuge', { duration: 15000, interval: 3000, power: 15 }),
     touch: spell('Radiant Touch', 10, 1, 'damage', { power: 12, damageType: 'radiant', healRatio: 3, healScope: 'lowest' }),
     spear: spell('Lumenspear', 5, 6, 'damage', { power: 24, damageType: 'radiant', healRatio: 2, healScope: 'near' }),
     libram: spell('Libram of Knowledge', 15, 3, 'damage', { power: 40, damageType: 'radiant', zone: 2, healRatio: 2, healScope: 'all' })
   }),
-  'Cleric of the Everbright': cleric('Everbright Cleric', 0xffe58a, {
+  'Dawnpriest': cleric('Dawnpriest', 0xffe58a, {
     aegis: spell('Solar Aegis', 10, 0, 'aegis'),
     blessing: spell('Blessing of the Dawn', 5, 1, 'heal', { power: 42 }),
     ray: spell('Ray of Benediction', 3, 5, 'heal', { power: 24 }),
@@ -161,7 +161,7 @@ export const CLASS_DEFINITIONS = {
     judgement: spell('Judgement Spark', 8, 4, 'damage', { power: 8, highPower: 40, damageType: 'radiant', judgement: true })
   }),
 
-  'Cleric of the Verdant Covenant': cleric('Verdant Cleric', 0x22c55e, {
+  'Grovekeeper': cleric('Grovekeeper', 0x22c55e, {
     refuge: spell('Rootbound Refuge', 10, 0, 'armor', { armorMultiplier: 4, duration: 8000 }),
     touch: spell('Verdant Touch', 5, 1, 'heal', { power: 42 }),
     mend: spell('Bramble Mend', 5, 5, 'heal', { power: 24, retaliation: 24 }),
@@ -169,7 +169,7 @@ export const CLASS_DEFINITIONS = {
     thorn: spell('Thornlance', 6, 5, 'damage', { power: 12, damageType: 'nature', root: 4000 })
   }),
 
-  'Cleric of the Sanguine Song': cleric('Sanguine Cleric', 0x991b1b, {
+  'Sanguinist': cleric('Sanguinist', 0x991b1b, {
     ascendance: spell('Bloodsong Ascendance', 10, 0, 'ascendance', { duration: 8000, healingBoost: 0.25, teleportRange: 2 }),
     transfer: spell('Sanguine Transfer', 5, 1, 'heal', { power: 42, selfDamage: 12 }),
     beam: spell('Hemoflow Beam', 5, 6, 'heal', { power: 24, lowHealthPower: 42 }),

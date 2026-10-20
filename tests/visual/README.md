@@ -1,32 +1,38 @@
-# Delve Deep visual QA
+# Delve Deep UI QA
 
-Run `npm run test:visual` from the repository root for the maintained browser suite. Playwright starts Vite and launches Chromium at a 1920×1080 landscape viewport. The scene-capture check defaults to `TitleScene`; select only that check with `npm run test:visual -- scenes.spec.js`. Use `npm run test:visual:headed` to watch a run. Install Chromium once with `npx playwright install chromium` if Playwright reports that its browser is missing.
+Run checks only when explicitly requested. `npm run test:ui:audit` runs the maintained UI suite headlessly with a process watchdog and saved logs. `npm run test:visual` runs the same tests directly. Install matching Chromium once with `npx playwright install chromium` if needed. These commands do not build or package the game.
 
-The maintained `illustrated-map.spec.js` and `ui-corrections.spec.js` exercise desktop and phone-sized map travel, reload, holds/drags, visible Dev Tools, full wooden How to Play, actual battlefield previews, Enchanter BUY/SELL empty states and potion quantities. Use `--workers=1` when software-rendered Chromium causes slow gesture dispatch. Windows sandbox `spawn EPERM` can require authorized escalation for Vite/esbuild/Chromium.
+The suite uses JavaScript and the existing development-only bridge at `?visualQa=1`. Scene keys come from current runtime registration and are compared with `config/gameConfig.js`. Boot is exercised by each fresh page. Retired Hall scene names are not aliases for current destinations.
 
-`button-press.spec.js` checks mouse and touch holds, fixed edge hit regions, drag cancellation, release activation and camp boss controls. `carved-stone.spec.js` checks the live delve interface, held details, farming and each authored continuous floor boundary across Slime Cave, Thornbriar and Dolmark. Their review screenshots are saved under `output/qa/carved-stone/`.
+Every test uses an isolated, nonpersistent browser context. Three projects cover landscape browser viewports: Pixel 9 representative (976x440, DPR 2.625), smaller phone (740x360, DPR 2), and tablet (1280x800, DPR 1.5). These emulate browser geometry and touch availability, not native Android system bars or physical haptics. Screenshots use CSS resolution to limit disk use; DPR remains in metadata.
 
-Screenshots and matching JSON bounds reports are written to `output/qa/scenes/<SceneName>-<ViewportWidth>.png` and the matching `.json`. They are generated locally and ignored by Git. Open the PNG and inspect the whole scene. The screenshot is the deciding evidence; the JSON warnings are only leads for inspection. Playwright also attaches the PNG to its test result.
+Maintained files under `tests/visual/audit/`:
 
-Other suites put screenshots under `output/qa/screenshots/` or a feature folder under
-`output/qa/`. Traces and failure reports are under `output/qa/test-results/`. These
-generated reports and preserved archives are excluded from Vite's development watcher.
+- `inventory.spec.js`: all registered scenes, viewport/text geometry and runtime object inventory.
+- `navigation.spec.js`: nine town destinations, complete-card center/edge taps, return navigation, both layouts, modal blocking, unavailable feedback and seven-tap developer access.
+- `workspaces.spec.js`: roster/library scrolling and selection, held details, equipment routing, merchant catalogs and repeated scene lifecycle.
+- `transactions.spec.js`: isolated merchant transactions, insufficient funds, enchant/disenchant, categories and training confirmations.
+- `actions.spec.js`: equipment/ability/tactic loadout changes, unlock cancellation and crafting at all three merchants.
+- `combat.spec.js` and `encounter-controls.spec.js`: preparation, selection, Move/Focus, radials, pause, retreat/cancel, camp, ordinary/boss presentation and results.
+- `environments.spec.js`: each current battlefield's preview, bestiary and HUD.
+- `overlays.spec.js`: map destination states, native save transfer and the Tutorial preparation notice. No interactive tutorial implementation.
+- `stability.spec.js`: live texture/animation frames and optional approved screenshot regression.
 
-## Capture a scene
+Open `output/qa/overnight-ui-audit/index.html` for the gallery. JSON companions contain source/runtime inventories, geometry, actual pointer attempts, coverage and execution results. Per-test records survive interruption. Failures retain screenshots; videos, traces and test retries are disabled. Each test and the whole run have time limits. The supervisor permits one restart only for Vite startup failure, never for assertions. It saves previous execution summaries before each run. It does not delete existing output folders; Playwright manages its own `test-results` folder.
 
-In PowerShell:
+Examples:
 
 ```powershell
-$env:VISUAL_SCENES = 'PartySelectScene'
-npm run test:visual -- scenes.spec.js
+npm run test:ui:audit -- --project=pixel9
+npm run test:visual -- navigation.spec.js --project=small-phone
 ```
 
-Capture several scenes in one run with a comma-separated list, such as `TitleScene,DelveSelectScene,PartySelectScene`. Scene names must match the Phaser keys listed in `devBridge.js`. The bridge runs only on the Vite development server with `?visualQa=1`. It starts the requested scene after BootScene restores game state. Delve scenes use The Slime Cave by default. The bridge supplies a five-member party only for the battle and battle overview scenes. For a different delve, extend the test's `activate(name)` call to pass `{ delve: 'delve-id' }`.
+`DELVE_QA_PORT` selects Vite's local port. `DELVE_QA_REPORT_ROOT` selects a report directory for a reproduction pass. Use distinct ports/report roots for independent concurrent diagnostics.
 
-## Use after a scene or UI change
+The bridge's `discover(scene)` returns visible enabled controls. `audit(scene)` additionally includes disabled/masked controls, text, lifecycle counts and five real Phaser hit probes per surface. Geometry does not prove an action: tests must assert an observable navigation, selection, transaction, modal or command result. Masked rows are intentionally unreachable until scrolled. Transparent hit surfaces, modal blockers and edge-to-edge art are intentional.
 
-Run `npm run build`, then capture each affected scene with `VISUAL_SCENES`. Open each PNG and check text, panels, alignment, buttons, clipping, and the entire canvas. Read the JSON report for DOM overflow, viewport dimensions, Phaser text outside the logical game area, text exceeding interactive rectangle bounds, and nearly coincident interactive rectangles. World-map objects outside the camera are intentionally excluded from viewport warnings. Check any warning against the screenshot before treating it as a defect. Fix regressions, rerun, and inspect the new image. This browser check supplements Android device review.
+No current redesigned-UI baselines have human approval. The optional screenshot regression is explicitly skipped until `DELVE_QA_APPROVED_BASELINES` names a manually reviewed baseline directory. Store approved files as `<project>/town-hub.png`. Snapshot updates are disabled by default. Captures and geometry checks do not imply visual approval; never update baselines to conceal defects.
 
-## Add a scene
+The old coordinate catalog, global-guessing discovery, Hall-only explorer, read-only interaction inventory and redesign capture script were replaced. Existing specialist combat/effect/balance checks remain; their previous configuration is preserved as `specialist.config.js`, invoked with `npm run test:visual:specialist -- <file>`. They are outside the maintained UI audit. Several historical specialist/UI files still contain retired Hall selectors or superseded layout expectations and need individual migration before use; their presence is not a passing certification. No historical baseline was silently accepted or deleted.
 
-Add its key to `SCENES` in `devBridge.js`. If it requires context, set only the necessary `GameState` fields in `activate` and supply scene init data as the existing navigation does. Keep setup inside this development-only bridge. Then capture the scene and inspect the PNG and JSON. For phone landscape captures, set `$env:DELVE_QA_WIDTH = '915'` and `$env:DELVE_QA_HEIGHT = '412'`. Defaults are 1920 by 1080. Scene filenames include the viewport width to keep both reviews.
+Generated QA artifacts are ignored by Git and excluded from Vite's watcher. Keep them out of production assets/builds.

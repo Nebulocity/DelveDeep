@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { scrollbarSurface } from './Scrollbar.js';
 import { UI_FONT_SIZES, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import { bindButtonPress } from './ButtonPress.js';
 import HapticsService from '../services/HapticsService.js';
@@ -98,7 +99,7 @@ export function serviceCard(scene, x, y, width, height, { selected = false, rari
 }
 
 export function serviceScrollSurface(scene, x, y, width, height, variant) {
-  return serviceCard(scene, x, y, width, height, { track: variant === 'thumb' });
+  return scrollbarSurface(scene, x, y, width, height, variant);
 }
 
 export function serviceIcon(scene, key, x, y, size = 64) {

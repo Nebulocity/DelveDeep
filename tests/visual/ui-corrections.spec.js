@@ -70,16 +70,15 @@ test(`requested map, shop and wooden dialog corrections at ${viewport.width}`, a
   await page.evaluate(() => {
     const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('TitleScene');
     scene.selectionDetailsClose();
-
-    // find returns the first matching entry, or undefined when none matches. Check for
-    // that missing result before using its fields.
-    const caption = scene.children.list.find(object => object.text === 'HOW TO PLAY');
-    const button = scene.children.list.find(object => object.input?.enabled && object.x === caption.x && object.y === caption.y);
-    button.emit('pointerdown');
   });
+  const tutorialHit = await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.audit('TitleScene').objects
+    .find(object => object.label === 'Tutorial' && object.enabled && object.probes?.[0]?.topmost));
+  expect(tutorialHit).toBeTruthy();
+  await page.mouse.click(tutorialHit.probes[0].x, tutorialHit.probes[0].y, { delay: 70 });
 
   await capture('tutorial-help');
-  expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('TitleScene').children.list.some(object => object.name === 'tutorial-video'))).toBe(true);
+  expect(await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('TitleScene').children.list
+    .some(object => object.text?.includes('The tutorial is being prepared!')))).toBe(true);
   await page.evaluate(() => window.__DELVE_DEEP_VISUAL_QA__.activate('DelveSelectScene'));
   await page.waitForFunction(() => window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('DelveSelectScene').sys.isActive());
   await capture('slime-preview');

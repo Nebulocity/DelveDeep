@@ -7,6 +7,8 @@ const GameState = {
   gold: 0,
   preferences: { townNavigation: 'compact-bar', delveRadialBehavior: 'slowly-fade', combatPace: 'default', sfxMuted: false, sfxVolume: 0.7 },
   roster: [],
+  recruitedIds: [],
+  tutorial: { status: 'pending', step: 'recruit' },
   activeParty: [],
   activeBattle: null,
   lastPartyIds: [],

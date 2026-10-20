@@ -12,12 +12,12 @@ import { OATHWARDEN_PROTECT_EFFECTS } from './oathwardenProtectEffects.js';
 import { GLADIATOR_PROTECT_EFFECTS } from './gladiatorProtectEffects.js';
 import { GENERIC_RESTORE_EFFECTS } from './genericRestoreEffects.js';
 import { DAWNWARDEN_RESTORE_EFFECTS } from './dawnwardenRestoreEffects.js';
-import { VERDANT_CLERIC_EFFECTS } from './verdantClericEffects.js';
+import { GROVEKEEPER_EFFECTS } from './grovekeeperEffects.js';
 import { RANGER_ABILITY_EFFECTS } from './rangerAbilityEffects.js';
 import { BARBARIAN_ABILITY_EFFECTS } from './barbarianAbilityEffects.js';
 import { BARMAID_ABILITY_EFFECTS } from './barmaidAbilityEffects.js';
-import { EVERBRIGHT_CLERIC_EFFECTS } from './everbrightClericEffects.js';
-import { UMBRAL_MAGE_EFFECTS } from './umbralMageEffects.js';
+import { DAWNPRIEST_EFFECTS } from './dawnpriestEffects.js';
+import { UMBRAMANCER_EFFECTS } from './umbramancerEffects.js';
 import { RUNEDANCER_EFFECTS } from './runedancerEffects.js';
 import { preloadPhysicalAbilityEffects } from '../combat/PhysicalAbilityEffects.js';
 import { preloadPrepareAbilityEffects } from '../combat/PrepareAbilityEffects.js';
@@ -58,12 +58,12 @@ const bindings = {
   'hunter-s-mark': ['Ranger', "Hunter's Mark"],
   'explodingarrow-arrow': ['Ranger', 'Exploding Arrow'],
   'explodingarrow-explosion': ['Ranger', 'Exploding Arrow'],
-  nightbolt: ['Mage of the Umbral Veil', 'Nightbolt'],
-  gloomburst: ['Mage of the Umbral Veil', 'Gloomburst'],
-  'ground-sigil': ['Mage of the Umbral Veil', 'Eclipse Field'],
+  nightbolt: ['Umbramancer', 'Nightbolt'],
+  gloomburst: ['Umbramancer', 'Gloomburst'],
+  'ground-sigil': ['Umbramancer', 'Eclipse Field'],
   'sunlit-ward': ['Dawnwarden', 'Sunlit Ward'],
-  'morning-chorus': ['Cleric of the Everbright', 'Morning Chorus'],
-  'everbright-pulse': ['Cleric of the Everbright', 'Everbright Pulse']
+  'morning-chorus': ['Dawnpriest', 'Morning Chorus'],
+  'everbright-pulse': ['Dawnpriest', 'Everbright Pulse']
 };
 
 // These new packs use finished sheets. Their loop flags control
@@ -110,11 +110,11 @@ const presentation = {
 export const ABILITY_EFFECTS = [
   ...RUNEDANCER_EFFECTS,
   ...BARMAID_ABILITY_EFFECTS,
-  ...UMBRAL_MAGE_EFFECTS,
+  ...UMBRAMANCER_EFFECTS,
   ...BARBARIAN_ABILITY_EFFECTS,
-  ...EVERBRIGHT_CLERIC_EFFECTS,
+  ...DAWNPRIEST_EFFECTS,
   ...RANGER_ABILITY_EFFECTS,
-  ...VERDANT_CLERIC_EFFECTS,
+  ...GROVEKEEPER_EFFECTS,
   ...DAWNWARDEN_RESTORE_EFFECTS,
   ...GENERIC_RESTORE_EFFECTS,
   ...MAGICAL_ASSAULT_EFFECTS,
@@ -153,7 +153,7 @@ export function findAbilityEffect(caster, ability, projectile = false) {
 
   // Current IDs select separate impact, channel and recovery phases. Legacy
   // saved Nightbolt and Gloomburst definitions retain their supplied artwork.
-  const umbral = UMBRAL_MAGE_EFFECTS.find(effect => effect.abilityId === ability.id
+  const umbral = UMBRAMANCER_EFFECTS.find(effect => effect.abilityId === ability.id
     && effect.vfxPhase === ability.vfxPhase);
   if (umbral) return projectile ? undefined : umbral;
 
@@ -164,7 +164,7 @@ export function findAbilityEffect(caster, ability, projectile = false) {
   if (barbarian) return projectile ? undefined : barbarian;
 
   // Exact current IDs and cosmetic phases preserve art in legacy saved battles.
-  const everbright = EVERBRIGHT_CLERIC_EFFECTS.find(effect => effect.abilityId === ability.id
+  const everbright = DAWNPRIEST_EFFECTS.find(effect => effect.abilityId === ability.id
     && effect.vfxPhase === ability.vfxPhase);
   if (everbright) return projectile ? undefined : everbright;
 
@@ -178,20 +178,20 @@ export function findAbilityEffect(caster, ability, projectile = false) {
   const genericEffect = [...MAGICAL_PROTECTION_EFFECTS, ...MAGICAL_ASSAULT_EFFECTS,
     ...OATHWARDEN_ASSAULT_EFFECTS, ...GLADIATOR_ASSAULT_EFFECTS, ...DAWNWARDEN_ASSAULT_EFFECTS,
     ...OATHWARDEN_PROTECT_EFFECTS, ...GLADIATOR_PROTECT_EFFECTS, ...DAWNWARDEN_RESTORE_EFFECTS,
-    ...VERDANT_CLERIC_EFFECTS]
+    ...GROVEKEEPER_EFFECTS]
     .find(effect => effect.abilityId === ability.id);
   if (genericEffect) return projectile ? undefined : genericEffect;
   // Reuse finished local sheets for the new revival identities and self shield.
   // The shield renderer already follows absorption and fades on the combat clock.
   if (!projectile && ability.handler === 'shieldBurst') return ABILITY_EFFECTS.find(effect => effect.id === 'sunlit-ward');
-  if (!projectile && ability.handler === 'revive') return UMBRAL_MAGE_EFFECTS.find(effect => effect.abilityName === 'Soul Reclamation');
+  if (!projectile && ability.handler === 'revive') return UMBRAMANCER_EFFECTS.find(effect => effect.abilityName === 'Soul Reclamation');
   const aliases = {
-    'Shadow Bolt': ['Mage of the Umbral Veil', 'Nightbolt'],
+    'Shadow Bolt': ['Umbramancer', 'Nightbolt'],
     'Solar Strike': ['Dawnwarden', 'Sunbrand Strike'],
     'Sneak Attack': ['Scoundrel', 'Surprise Attack'],
     'Smoke Screen': ['Scoundrel', 'Smoke Bomb'],
-    'Spring Canopy': ['Cleric of the Everbright', 'Morning Chorus'],
-    'Divine Reprisal': ['Cleric of the Everbright', 'Everbright Pulse']
+    'Spring Canopy': ['Dawnpriest', 'Morning Chorus'],
+    'Divine Reprisal': ['Dawnpriest', 'Everbright Pulse']
   };
   const binding = ability.replacement && ability.name === 'Sunlit Ward'
     ? ['Dawnwarden', 'Sunlit Ward'] : ability.replacement && aliases[ability.name];
@@ -199,8 +199,8 @@ export function findAbilityEffect(caster, ability, projectile = false) {
   const name = binding?.[1] ?? ability.name;
   return ABILITY_EFFECTS.find(effect => effect.className === className
     && (!effect.abilityId?.startsWith('ability_v2_barmaid_') || effect.abilityId === ability.id)
-    && (!effect.abilityId?.startsWith('ability_v2_umbral_mage_') || effect.abilityId === ability.id)
-    && (!effect.abilityId?.startsWith('ability_v2_everbright_cleric_') || effect.abilityId === ability.id)
+    && (!effect.abilityId?.startsWith('ability_v2_umbramancer_') || effect.abilityId === ability.id)
+    && (!effect.abilityId?.startsWith('ability_v2_dawnpriest_') || effect.abilityId === ability.id)
     && (!effect.abilityId?.startsWith('ability_v2_ranger_') || effect.abilityId === ability.id)
     && (!effect.abilityId?.startsWith('ability_v2_barbarian_') || effect.abilityId === ability.id)
     && effect.abilityName === name && Boolean(effect.projectile) === projectile);

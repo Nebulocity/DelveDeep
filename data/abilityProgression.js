@@ -78,7 +78,7 @@ export const NEW_CLASS_ABILITIES = {
     A('Prepare','Scout’s Route','Self only','Gain movement speed and extend the next shot’s range.',18,'% movement speed',8,22)
   ],
 
-  'Mage of the Umbral Veil': [
+  'Umbramancer': [
     A('Assault','Void Needle','Single enemy','Deal necrotic damage and reduce target healing briefly.',22,'damage',4,8),
     A('Assault','Eclipse Field','Enemies near the target','Deal necrotic damage in a shadowed zone.',15,'damage',0,16),
     A('Protect','Veil Mantle','Self or single ally','Shield one ally and reduce their threat.',19,'shield HP',7,19),
@@ -87,7 +87,7 @@ export const NEW_CLASS_ABILITIES = {
     A('Prepare','Shrouded Steps','Self only','Gain movement speed and lower threat.',18,'% movement speed',8,21)
   ],
 
-  'Mage of the Crimson Spire': [
+  'Spellbinder': [
     A('Assault','Crimson Lance','Single enemy','Deal focused force damage.',23,'damage',0,8),
     A('Assault','Shatter Pattern','Enemies near the target','Explode a force sigil for area damage.',15,'damage',0,16),
     A('Protect','Rune Shell','Self or single ally','Grant a force shield to one ally.',20,'shield HP',7,19),
@@ -96,7 +96,7 @@ export const NEW_CLASS_ABILITIES = {
     A('Prepare','Measured Casting','Self only','Prepare your next spell to cast more quickly.',20,'% windup reduction',8,20)
   ],
 
-  'Mage of the Luminous Archive': [
+  'Arcanist': [
     A('Assault','Index of Light','Single enemy','Deal radiant damage; mark the target for allied focus.',21,'damage',6,9),
     A('Assault','Prism Script','Enemies near the target','Deal radiant damage across a scripted pattern.',15,'damage',0,16),
     A('Protect','Margin Ward','Self or single ally','Grant a radiant shield to one ally.',20,'shield HP',7,19),
@@ -105,7 +105,7 @@ export const NEW_CLASS_ABILITIES = {
     A('Prepare','Quick Reference','Self only','Reduce the next spell’s windup.',20,'% windup reduction',8,19)
   ],
 
-  'Cleric of the Everbright': [
+  'Dawnpriest': [
     A('Restore','Dawn Benediction','Single ally or self','Restore HP to one ally.',30,'healing',0,7),
     A('Restore','Morning Chorus','All allies near the target','Restore HP to allies in a small area.',15,'healing',0,16),
     A('Protect','Halo Ward','Single ally or self','Place a holy shield on one ally.',23,'shield HP',7,17),
@@ -114,7 +114,7 @@ export const NEW_CLASS_ABILITIES = {
     A('Prepare','Kindled Faith','Self only','Reduce the next protective spell’s windup.',20,'% windup reduction',8,21)
   ],
 
-  'Cleric of the Verdant Covenant': [
+  'Grovekeeper': [
     A('Restore','Seedling Mend','Single ally or self','Restore HP to one ally.',29,'healing',0,7),
     A('Restore','Spring Canopy','All allies near the target','Restore HP to allies in a small area.',15,'healing',0,16),
     A('Protect','Barkskin Oath','Single ally or self','Grant one ally temporary armor.',16,'% reduction',7,18),
@@ -123,7 +123,7 @@ export const NEW_CLASS_ABILITIES = {
     A('Prepare','Rooted Patience','Self only','Increase protection duration on the next cast.',20,'% duration bonus',8,21)
   ],
 
-  'Cleric of the Sanguine Song': [
+  'Sanguinist': [
     A('Restore','Pulse Exchange','Single ally or self','Restore health to an ally or yourself with a pulse of blood magic.',30,'healing',0,7),
     A('Restore','Red Refrain','All allies near the target','Restore HP to allies in a small area.',15,'healing',0,17),
     A('Protect','Vein Ward','Single ally or self','Grant one ally a blood shield.',23,'shield HP',7,18),
@@ -143,10 +143,10 @@ export const CATEGORY_OVERRIDES = {
 };
 
 export const CLASS_CATEGORY_OVERRIDES = {
-  'Mage of the Luminous Archive': { refuge:'Protect', touch:'Assault', spear:'Assault', libram:'Assault' },
-  'Cleric of the Everbright': { aegis:'Prepare', judgement:'Assault' },
-  'Cleric of the Verdant Covenant': { refuge:'Protect', thorn:'Assault' },
-  'Cleric of the Sanguine Song': { rend:'Assault', ascendance:'Prepare' }
+  'Arcanist': { refuge:'Protect', touch:'Assault', spear:'Assault', libram:'Assault' },
+  'Dawnpriest': { aegis:'Prepare', judgement:'Assault' },
+  'Grovekeeper': { refuge:'Protect', thorn:'Assault' },
+  'Sanguinist': { rend:'Assault', ascendance:'Prepare' }
 };
 
 const targetKind = (target) => target.includes('Self only') ? 'self'
@@ -216,28 +216,28 @@ const EXISTING_ABILITY_DESCRIPTIONS = {
     arrow: 'Fire an explosive arrow at an enemy.'
   },
 
-  'Mage of the Umbral Veil': {
+  'Umbramancer': {
     grasp: 'Seize a nearby enemy with necrotic magic.',
     nightbolt: 'Hurl a bolt of shadow at a distant enemy.',
     gloom: 'Unleash shadow magic across an area, damaging enemies within it.',
     veilstep: 'Step through shadow to reach a distant destination or escape danger.'
   },
 
-  'Mage of the Crimson Spire': {
+  'Spellbinder': {
     stabilization: 'Steady your magic, reducing incoming damage and empowering your next damaging spell.',
     lash: 'Lash out with force magic, striking up to two nearby enemies.',
     arcflare: 'Launch a force blast that splashes around its target.',
     spire: 'Fire a piercing beam of force. Allies caught in its path can be hurt too.'
   },
 
-  'Mage of the Luminous Archive': {
+  'Arcanist': {
     refuge: 'Create a refuge that heals you over time and shields you from one hit.',
     touch: 'Burn a nearby enemy with radiant magic and heal your most wounded ally.',
     spear: 'Pierce an enemy with radiant light and heal allies near the target.',
     libram: 'Strike enemies in an area with radiant light and heal your whole party.'
   },
 
-  'Cleric of the Everbright': {
+  'Dawnpriest': {
     aegis: 'Bless your next single-target heal so it restores both you and your chosen ally.',
     blessing: 'Call down a strong blessing to heal one ally or yourself.',
     ray: 'Send a healing ray to an ally or yourself from a distance.',
@@ -245,7 +245,7 @@ const EXISTING_ABILITY_DESCRIPTIONS = {
     judgement: 'Scorch an enemy with radiant light, striking harder when they are not focused on a tank.'
   },
 
-  'Cleric of the Verdant Covenant': {
+  'Grovekeeper': {
     refuge: 'Wrap yourself in living bark, greatly increasing your armor.',
     touch: 'Restore an ally or yourself with a touch of verdant magic.',
     mend: 'Heal an ally or yourself and punish attackers with brambles.',
@@ -253,7 +253,7 @@ const EXISTING_ABILITY_DESCRIPTIONS = {
     thorn: 'Pierce an enemy with a thorn and root them in place.'
   },
 
-  'Cleric of the Sanguine Song': {
+  'Sanguinist': {
     ascendance: 'Strengthen your healing and gain a short step through blood magic.',
     transfer: 'Give some of your own health to heal an ally.',
     beam: 'Heal an ally or yourself with a blood-red beam, restoring more to the gravely wounded.',
@@ -376,10 +376,10 @@ export function addAbilityProgression(classDefinitions) {
         cooldown: entry.cooldown * 1000,
         range: targetRange(definition.role, entry.target, entry.category),
         windup: 300,
-        damageType: className.includes('Umbral') ? 'necrotic'
-          : className.includes('Crimson') ? 'force'
-            : className.includes('Luminous') || className === 'Dawnwarden' || className.includes('Everbright') ? 'radiant'
-              : className.includes('Verdant') ? 'nature' : className.includes('Sanguine') ? 'blood/necrotic' : 'physical'
+        damageType: className === 'Umbramancer' ? 'necrotic'
+          : className === 'Spellbinder' ? 'force'
+            : className === 'Arcanist' || className === 'Dawnwarden' || className === 'Dawnpriest' ? 'radiant'
+              : className === 'Grovekeeper' ? 'nature' : className === 'Sanguinist' ? 'blood/necrotic' : 'physical'
       };
 
       // Object.assign writes these fields into its first argument. Later sources replace

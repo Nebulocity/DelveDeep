@@ -1,3 +1,4 @@
+import { isMageClass } from '../config/characterProgression.js';
 // Known skills, learned ranks and equipped battle slots are separate. Learning or training
 // changes the roster's progression; equipping chooses which known skills enter combat. We
 // build ranked ability values from the catalog so saved ranks stay compatible with the
@@ -6,6 +7,7 @@
 import { CLASS_DEFINITIONS, LEGACY_CLASS_DEFINITIONS } from '../data/classes.js';
 import { ABILITY_CATALOG_VERSION, abilityAllowed, rankedReplacementAbility } from '../data/replacementAbilities.js';
 import GameState from './GameState.js';
+import { abilityMeetsLevel } from '../data/abilityUnlocks.js';
 
 export const MAX_EQUIPPED_ABILITIES = 4;
 export const MAX_ABILITY_RANK = 10;
@@ -30,7 +32,7 @@ export function sortedAbilityEntries(hero) {
   // return value becomes that output entry. sort rearranges this array in place. A
   // negative comparator result puts a before b; positive puts it after; zero keeps them
   // tied.
-  return abilityEntries(hero).map((entry, index) => {
+  return abilityEntries(hero).filter(([, ability]) => abilityMeetsLevel(hero, ability)).map((entry, index) => {
 
     // The brackets unpack entries by position; their order matters.
     const [key] = entry;
@@ -65,16 +67,18 @@ export function abilityLevelRequired(hero, key, rank = 1) {
 
   // ?. only follows this link when the value exists; a missing optional value gives
   // undefined.
-  if (!CLASS_DEFINITIONS[hero.className]?.abilities?.[key] || rank < 1 || rank > MAX_ABILITY_RANK) return Infinity;
+  const ability = CLASS_DEFINITIONS[hero.className]?.abilities?.[key];
+  if (!ability || !abilityAllowed(hero.className, ability) || rank < 1 || rank > MAX_ABILITY_RANK) return Infinity;
 
-  // A spell's learning gate remains the minimum for every rank. Normal rank
-  // gates still rise by five levels, so revival cannot bypass later training.
+  // Unlocking sets the minimum for every rank; the existing five-level rank gates
+  // still apply independently and do not change the upgrade curve.
   const minimumLevel = CLASS_DEFINITIONS[hero.className].abilities[key].minimumLevel ?? 1;
   return Math.max(minimumLevel, rank === 1 ? 1 : (rank - 1) * 5);
 }
 
 // Calculate the SP needed for the requested next rank.
 export function abilitySkillPointCost(rank) {
+  if (rank === 1) return 0;
 
   // Math.max chooses the largest value; pairing it with Math.min can keep a result inside
   // both a lower and an upper bound. Math.floor rounds toward the smaller whole number, so
@@ -85,6 +89,7 @@ export function abilitySkillPointCost(rank) {
 // Calculate the Gold fee, including the character's Happiness adjustment. hero is the
 // roster record, rather than the artwork that displays that character.
 export function abilityGoldCost(hero, key, rank = 1) {
+  if (rank === 1) return 0;
 
   // ?. only follows this link when the value exists; a missing optional value gives
   // undefined.
@@ -131,7 +136,7 @@ export function restoreAdventurerAbilities(hero, saved, legacy = false) {
   const validKeys = new Set(entries.map(([key]) => key));
   if (!needsRespec) for (const [key, value] of Object.entries(previousRanks)) {
     if (validKeys.has(key) || !key.startsWith('ability_v2_') || !Number.isSafeInteger(value) || value < 1) continue;
-    const wasFree = key === 'ability_v2_generic_magical_life_anchor' && hero.className.startsWith('Mage of');
+    const wasFree = key === 'ability_v2_generic_magical_life_anchor' && isMageClass(hero.className);
     for (let trained = wasFree ? 2 : 1; trained <= Math.min(value, MAX_ABILITY_RANK); trained++) {
       refundedPoints += trained;
       const earliestLevel = trained === 1 ? 1 : (trained - 1) * 5;
@@ -147,13 +152,10 @@ export function restoreAdventurerAbilities(hero, saved, legacy = false) {
   // return value becomes that output entry.
   const keys = entries.map(([key]) => key);
 
-  // filter keeps entries whose callback returns true. It builds a new list and leaves the
-  // original list in place.
+  // Every level-1 ability is a free starting skill under the current unlock plan.
   const starterKeys = entries.filter(([, ability]) => ability.starter).map(([key]) => key);
 
-  // The condition before ? chooses the first value when true and the value after : when
-  // false.
-  const legacyKeys = legacy ? entries.filter(([, ability]) => ability.origin === 'Existing').map(([key]) => key) : [];
+  // Rebuild free learned skills from the current level while preserving trained ranks.
   const ranks = {};
   for (const key of keys) {
 
@@ -161,7 +163,7 @@ export function restoreAdventurerAbilities(hero, saved, legacy = false) {
     // undefined.
     const value = needsRespec ? 0 : saved?.abilityRanks?.[key];
     if (Number.isSafeInteger(value) && value >= 1) ranks[key] = Math.min(MAX_ABILITY_RANK, value);
-    else if (innateKeys.has(key) || starterKeys.includes(key) || legacyKeys.includes(key)) ranks[key] = 1;
+    else if (abilityMeetsLevel(hero, CLASS_DEFINITIONS[hero.className].abilities[key])) ranks[key] = 1;
   }
 
   // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
@@ -178,7 +180,8 @@ export function restoreAdventurerAbilities(hero, saved, legacy = false) {
   const mageStarter = entries.find(([, ability]) => ability.starter && ['Gloomburst', 'Celestial Flow', 'Ritual of Replenishment'].includes(ability.name))?.[0];
   const migratedDefaults = defaults.map(key => key === 'ability_v2_generic_magical_life_anchor' && mageStarter ? mageStarter : key);
   hero.abilityLoadout = [...new Set(migratedDefaults)]
-    .filter((key) => ranks[key] > 0 && keys.includes(key) && !innateKeys.has(key))
+    .filter((key) => ranks[key] > 0 && keys.includes(key) && !innateKeys.has(key)
+      && abilityMeetsLevel(hero, CLASS_DEFINITIONS[hero.className].abilities[key]))
     .slice(0, MAX_EQUIPPED_ABILITIES);
 
   // Math.max chooses the largest value; pairing it with Math.min can keep a result inside
@@ -243,6 +246,10 @@ export function toggleAdventurerAbility(heroId, key, state = GameState) {
     return { ok: false, message: 'Unlock this ability first.' };
   }
 
+  if (!abilityMeetsLevel(hero, CLASS_DEFINITIONS[hero.className].abilities[key])) {
+    return { ok: false, message: `Unlocks at Level ${abilityLevelRequired(hero, key)}.` };
+  }
+
   // ??= fills a missing value once. It leaves an existing value, including zero or false,
   // alone.
   hero.abilityLoadout ??= [];
@@ -276,7 +283,7 @@ export function battleAbilities(hero) {
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
     const rank = hero.abilityRanks?.[key] ?? (base.innate ? 1 : 0);
-    if ((!base.innate && !equipped.has(key)) || rank < 1) continue;
+    if ((!base.innate && !equipped.has(key)) || rank < 1 || !abilityMeetsLevel(hero, base)) continue;
     const ability = rankedAbility(base, rank);
     result[key] = ability;
   }

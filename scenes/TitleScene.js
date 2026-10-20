@@ -3,6 +3,7 @@
 
 import { fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import Phaser from 'phaser';
+import { showAbilityUnlockNotice } from '../ui/AbilityUnlockNotice.js';
 import { diagnosticSettings, setDiagnosticSettings, DIAGNOSTIC_LEVELS } from '../combat/CombatDiagnostics.js';
 import { isCombatLogging, startCombatLogging, stopCombatLogging, exportCombatRecording,
   showCombatArchives, combatRecordingReady } from '../combat/CombatRecording.js';
@@ -31,6 +32,7 @@ import { refreshRegionMapGold } from '../ui/RegionMapUI.js';
 import { hallScroll } from '../ui/HallUI.js';
 import { serviceScrollSurface } from '../ui/TownServiceTheme.js';
 import { playUiSound, runUiAction } from '../services/UiAudioService.js';
+import { openRecruitmentTutorial } from '../ui/RecruitmentTutorial.js';
 
 export default class TitleScene extends Phaser.Scene {
 
@@ -73,6 +75,8 @@ export default class TitleScene extends Phaser.Scene {
   create() {
     createScrollingWorldMap(this);
     hideLoadingScreenAfterRender(this);
+    showAbilityUnlockNotice(this);
+    if (['pending', 'active'].includes(GameState.tutorial.status) && !GameState.activeBattle) openRecruitmentTutorial(this);
   }
 
   // Phaser calls this while the screen is running. time is its clock timestamp and delta

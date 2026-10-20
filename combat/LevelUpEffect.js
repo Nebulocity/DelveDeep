@@ -5,22 +5,24 @@ import { visibleUnitBounds } from './AbilityEffect.js';
 export const LEVEL_UP_DURATION_MS = 4000;
 const FADE_MS = 800;
 
-// Release both drawings when playback ends, during catch-up, or on scene shutdown.
+// Release the labels and sparkles on expiry, catch-up or scene shutdown.
 export function clearLevelUpEffects(scene) {
   for (const effect of scene.levelUpEffects ?? []) {
     effect.label.destroy();
+    effect.learnedLabel.destroy();
     effect.sparkles.destroy();
   }
   scene.levelUpEffects = [];
 }
 
 // Keep one readable celebration per character, even if a reward grants several levels.
-export function createLevelUpEffect(scene, unit) {
+export function createLevelUpEffect(scene, unit, learnedAbility = false) {
   if (!unit || scene.idleSimulating || scene.game.backgroundProgress?.isReplaying) return false;
   scene.levelUpEffects ??= [];
   const existing = scene.levelUpEffects.find(effect => effect.unit === unit);
   if (existing) {
     existing.startedAt = scene.time.now;
+    if (learnedAbility) existing.learnedLabel.setVisible(true);
     return true;
   }
 
@@ -35,8 +37,15 @@ export function createLevelUpEffect(scene, unit) {
     strokeThickness: 6,
     shadow: { offsetX: 0, offsetY: 0, color: '#d88b16', blur: 10, fill: true }
   }).setOrigin(0.5).setDepth(4201).setName('level-up-text');
+  const learnedLabel = scene.add.text(0, 0, 'Learned a new ability!', {
+    fontFamily: UI_FONT_FAMILIES.sans,
+    fontSize: fontPx('body34'),
+    fontStyle: UI_FONT_WEIGHTS.bold,
+    color: '#39ff70', stroke: '#082b15', strokeThickness: 5,
+    shadow: { offsetX: 0, offsetY: 0, color: '#15b944', blur: 8, fill: true }
+  }).setOrigin(0.5).setDepth(4201).setVisible(learnedAbility).setName('learned-ability-text');
   const sparkles = scene.add.graphics().setDepth(4202).setName('level-up-sparkles');
-  scene.levelUpEffects.push({ unit, label, sparkles, startedAt: scene.time.now });
+  scene.levelUpEffects.push({ unit, label, learnedLabel, sparkles, startedAt: scene.time.now });
   updateLevelUpEffects(scene);
   return true;
 }
@@ -53,6 +62,7 @@ export function updateLevelUpEffects(scene) {
     const elapsed = Math.max(0, scene.time.now - effect.startedAt);
     if (elapsed >= LEVEL_UP_DURATION_MS || effect.unit.container?.active === false) {
       effect.label.destroy();
+      effect.learnedLabel.destroy();
       effect.sparkles.destroy();
       continue;
     }
@@ -61,7 +71,7 @@ export function updateLevelUpEffects(scene) {
     // The 36-pixel rise is deliberately small so the words stay close to their owner.
     const alpha = Math.min(1, (LEVEL_UP_DURATION_MS - elapsed) / FADE_MS);
     const bounds = visibleUnitBounds(scene, effect.unit);
-    const halfWidth = effect.label.width / 2 + 26;
+    const halfWidth = Math.max(effect.label.width, effect.learnedLabel.visible ? effect.learnedLabel.width : 0) / 2 + 26;
     const x = Math.max(halfWidth, Math.min(scene.scale.width - halfWidth, (bounds.left + bounds.right) / 2));
     // The walkable floor begins much lower than the usable screen. Leave room above
     // that floor for feedback, but keep stars below the centered tactics controls.
@@ -69,14 +79,16 @@ export function updateLevelUpEffects(scene) {
     let y = Math.max(minY, bounds.top - 42 - 36 * elapsed / LEVEL_UP_DURATION_MS);
 
     // Neighbors can level together in a tight formation. Raise overlapping labels
-    // into another 90-pixel row rather than shrinking the phone-readable lettering.
+    // into another 135-pixel row to leave room for the green learning message.
     let overlap;
     while ((overlap = remaining.find(other =>
-      Math.abs(x - other.label.x) < (effect.label.width + other.label.width) / 2 + 20
-      && Math.abs(y - other.label.y) < 90)) && overlap.label.y - 90 >= minY) {
-      y = overlap.label.y - 90;
+      Math.abs(x - other.label.x) < halfWidth
+        + Math.max(other.label.width, other.learnedLabel.visible ? other.learnedLabel.width : 0) / 2 + 20
+      && Math.abs(y - other.label.y) < 135)) && overlap.label.y - 135 >= minY) {
+      y = overlap.label.y - 135;
     }
     effect.label.setPosition(x, y).setAlpha(alpha);
+    effect.learnedLabel.setPosition(x, y + 50).setAlpha(alpha);
     effect.sparkles.clear().setAlpha(alpha);
 
     // Eight small four-point stars twinkle at staggered phases around the words.

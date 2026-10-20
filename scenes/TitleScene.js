@@ -3,6 +3,7 @@
 
 import { fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import Phaser from 'phaser';
+import { showAbilityUnlockNotice } from '../ui/AbilityUnlockNotice.js';
 import { diagnosticSettings, setDiagnosticSettings, DIAGNOSTIC_LEVELS } from '../combat/CombatDiagnostics.js';
 import { isCombatLogging, startCombatLogging, stopCombatLogging, exportCombatRecording,
   showCombatArchives, combatRecordingReady } from '../combat/CombatRecording.js';
@@ -73,6 +74,7 @@ export default class TitleScene extends Phaser.Scene {
   create() {
     createScrollingWorldMap(this);
     hideLoadingScreenAfterRender(this);
+    showAbilityUnlockNotice(this);
   }
 
   // Phaser calls this while the screen is running. time is its clock timestamp and delta

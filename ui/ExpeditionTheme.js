@@ -3,7 +3,7 @@ import { combatPanel, combatButton } from './CombatHudTheme.js';
 import { addStonePanel, addStoneButton } from './CarvedStone.js';
 
 export function isExpeditionScene(scene) {
-  return ['DelveSelectScene', 'PartySelectScene', 'DungeonScene', 'BattleScene'].includes(scene.scene?.key);
+  return ['DelveSelectScene', 'PartySelectScene', 'BattleScene'].includes(scene.scene?.key);
 }
 
 export function expeditionPanel(scene, ...args) {

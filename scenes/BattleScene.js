@@ -1,4 +1,8 @@
+import { scrollbarSurface } from '../ui/Scrollbar.js';
+import { isMageClass } from '../config/characterProgression.js';
 import LeaderOrderPlan from '../combat/LeaderOrderPlan.js';
+import PartyLeaderTapCombat from '../combat/PartyLeaderTapCombat.js';
+import { createPartyLeaderTapIcon } from '../ui/PartyLeaderTapIcon.js';
 import { createTacticalPlanOverlay } from '../ui/TacticalPlanOverlay.js';
 // This screen ties the battle together: units, waves, party orders, rewards and the HUD.
 // Gameplay positions use the logical arena; HUD positions use our 2400 by 1080 canvas.
@@ -14,12 +18,13 @@ import { installBattleClock } from '../combat/BattleClock.js';
 import { preloadTeleportEffects } from '../data/teleportEffects.js';
 import { startTeleportEffect, updateTeleportEffects } from '../combat/TeleportEffects.js';
 import { createLevelUpEffect, updateLevelUpEffects, clearLevelUpEffects, LEVEL_UP_DURATION_MS } from '../combat/LevelUpEffect.js';
+import { acknowledgeAbilityUnlockIds } from '../game/AbilityUnlockNotifications.js';
 import { leaderAbilityDescription } from '../game/AbilityDescriptions.js';
 import { showConfirmation } from '../ui/ConfirmationDialog.js';
 import { bindButtonPress } from '../ui/ButtonPress.js';
 import { showFeatureToast } from '../ui/FeatureToast.js';
 import { hallScroll } from '../ui/HallUI.js';
-import { preloadCarvedStone, addStonePanel, addStoneButton, addStoneOrnaments, stoneText, stoneIcon, campStoneIcon, delveStoneTheme, STONE } from '../ui/CarvedStone.js';
+import { preloadCarvedStone, addStoneOrnaments, stoneText, stoneIcon, campStoneIcon, delveStoneTheme, STONE } from '../ui/CarvedStone.js';
 import { preloadSlimeSprites } from '../data/slimeSprites.js';
 import { preloadSlimeAbilityEffects } from '../data/slimeAbilityEffects.js';
 import { preloadThornbriarAbilityEffects } from '../data/thornbriarAbilityEffects.js';
@@ -253,6 +258,7 @@ export default class BattleScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor('#09080a');
     this.createHeader(width);
     this.createArena(width, height);
+    this.partyLeaderTap = new PartyLeaderTapCombat(this);
     this.createParty();
 
     // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
@@ -576,10 +582,14 @@ export default class BattleScene extends Phaser.Scene {
         // ?. only follows this link when the value exists; a missing optional value gives
         // undefined.
         event?.stopPropagation?.();
-        this.toggleUnitSelection(unit);
+        // Temporarily reserve ally taps for explicit commands, so missed monster
+        // taps cannot select an adventurer or redirect a selected ally to assist.
+        if (this.commandMode) this.toggleUnitSelection(unit);
+        else this.partyLeaderTap.tap(pointer);
       });
 
       bindSelectionDetails(this, unit.hitZone, () => characterDetails(unit));
+      this.partyLeaderTap.bindSurface(unit.hitZone);
     });
 
     // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
@@ -619,6 +629,7 @@ export default class BattleScene extends Phaser.Scene {
     // Higher-depth objects draw on top of lower-depth objects.
     const hit = this.add.zone(this.scale.width / 2, this.scale.height / 2,
       this.scale.width, this.scale.height).setDepth(30).setInteractive();
+    this.partyLeaderTap.bindSurface(hit, true);
 
     // on registers a callback for later events; it does not call that callback now.
     // Long-lived emitters need matching listener cleanup.
@@ -626,8 +637,10 @@ export default class BattleScene extends Phaser.Scene {
       if (this.battleOver || (this.waveTransitioning && !this.combatPaused)) return;
       if (this.radialHud?.openMenu) {
         this.radialHud.close();
+        this.partyLeaderTap.cancel();
         return;
       }
+      if (!this.commandMode && !this.getSelectedUnits().length) return;
       const point = this.battlefield.screenToArena(pointer.worldX, pointer.worldY);
       if (point && !this.terrain.isBlocked(point.x, point.y)) this.handleArenaTap(point);
     });
@@ -1418,7 +1431,7 @@ export default class BattleScene extends Phaser.Scene {
 
       this.showBattleMessage(`COORDINATED ATTACK - ${enemy.name} rooted`, '#bef264');
     } else if (this.commandMode === 'LUNAR_ASSAULT') {
-      const mages = this.partyUnits.filter(unit => unit.alive && unit.className?.startsWith('Mage of the'));
+      const mages = this.partyUnits.filter(unit => unit.alive && isMageClass(unit.className));
       const radius = leaderAbilities.find(ability => ability.id === 'lunarAssault').radius;
       const targets = this.getLivingEnemies().filter(target => Math.hypot(target.arenaX - enemy.arenaX, target.arenaY - enemy.arenaY) <= radius);
       if (mages.length && targets.length) {
@@ -1557,7 +1570,7 @@ export default class BattleScene extends Phaser.Scene {
     if (id === 'shieldWall' && !living.some(unit => unit.role === 'Tank')) return;
     if (id === 'coordinatedAttack' && !living.some(unit => unit.role === 'Melee DPS')) return;
 
-    if (id === 'lunarAssault' && !living.some(unit => unit.className?.startsWith('Mage of the'))) return;
+    if (id === 'lunarAssault' && !living.some(unit => isMageClass(unit.className))) return;
     if (id === 'supplies' && !living.some(unit => {
 
       // find returns the first matching entry, or undefined when none matches. Check for
@@ -1668,7 +1681,7 @@ export default class BattleScene extends Phaser.Scene {
     const living = this.partyUnits.filter(unit => unit.alive);
     if (id === 'focusFire' && living.length === 0) return false;
     if (id === 'coordinatedAttack' && !living.some(unit => unit.role === 'Melee DPS')) return false;
-    if (id === 'lunarAssault' && !living.some(unit => unit.className?.startsWith('Mage of the'))) return false;
+    if (id === 'lunarAssault' && !living.some(unit => isMageClass(unit.className))) return false;
 
     // time.now uses the paused combat clock, so the full countdown begins at selection.
     const ability = leaderAbilities.find(entry => entry.id === id);
@@ -1735,6 +1748,7 @@ export default class BattleScene extends Phaser.Scene {
 
   // This helper announces the next enemy group before it enters the arena.
   startWave(index) {
+    this.partyLeaderTap?.reset();
 
     if (index >= this.waves.length) {
       this.finishVictory();
@@ -2001,11 +2015,18 @@ export default class BattleScene extends Phaser.Scene {
     enemy.hitZone.disableInteractive();
 
     bindSelectionDetails(this, enemy.hitZone, () => characterDetails(enemy),
-      () => this.handleEnemyTap(enemy), () => {
+      pointer => {
+        if (!this.commandMode && !this.getSelectedUnits().length && !this.combatPaused) {
+          this.partyLeaderTap.tap(pointer);
+          return;
+        }
+        this.handleEnemyTap(enemy);
+      }, () => {
         if (!enemy.alive || enemy.landing) return;
         this.inspectedEnemyId = enemy.id;
         showSelectionDetails(this, characterDetails(enemy));
       });
+    this.partyLeaderTap.bindSurface(enemy.hitZone);
   }
 
   // Combat rolls use saved state, independently of presentation or other scenes.
@@ -3086,8 +3107,8 @@ export default class BattleScene extends Phaser.Scene {
     else if (now < (attacker.status.exhaustedUntil ?? 0)) amount = Math.round(amount * attacker.status.exhaustedDamage);
     if (attackType !== 'reflection' && now < (attacker.status.honorDamageUntil ?? 0)) amount = Math.round(amount * (1 + attacker.status.honorDamageBoost));
 
-    if (attackType !== 'reflection' && !attacker.isEnemy && now < this.assaultUntil) amount = Math.round(amount * (1 + this.assaultBonus));
-    if (!attacker.isEnemy && attacker.role !== 'Healer' && target.id === this.focusDamageTargetId
+    if (!attacker.isPartyLeader && attackType !== 'reflection' && !attacker.isEnemy && now < this.assaultUntil) amount = Math.round(amount * (1 + this.assaultBonus));
+    if (!attacker.isPartyLeader && !attacker.isEnemy && attacker.role !== 'Healer' && target.id === this.focusDamageTargetId
       && now < (this.focusDamageUntil ?? 0)) {
       amount = Math.round(amount * 1.05);
     }
@@ -3131,6 +3152,7 @@ export default class BattleScene extends Phaser.Scene {
     if (contact) { contact.hit = true; contact.preMitigationDamage = amount; }
     target.takeDamage(amount, { time: now, ranged, attacker, physical, armorBlocked,
       periodic: contact?.periodic, reflection: attackType === 'reflection',
+      suppressHitReaction: contact?.suppressHitReaction,
       armorPiercing: contact?.armorPiercing, interceptReduction: contact?.interceptReduction,
       blocked: armorBlocked || (!target.isEnemy && now < this.braceUntil)
         || now < (target.status.shieldUntil ?? 0)
@@ -3174,7 +3196,7 @@ export default class BattleScene extends Phaser.Scene {
       this.flashPartyHudName(target);
     }
 
-    const flashColor = attackType === 'spell'
+    const flashColor = contact?.partyLeaderTap ? 0xfbbf24 : attackType === 'spell'
       ? 0x60a5fa
       : attackType === 'holy'
         ? 0xfde68a
@@ -3184,7 +3206,7 @@ export default class BattleScene extends Phaser.Scene {
 
     target.flash(flashColor);
 
-    if (!attacker.isEnemy) {
+    if (!attacker.isEnemy && !attacker.isPartyLeader) {
       const threatReduction = now < (attacker.status.threatReductionUntil ?? 0) ? 1 - (attacker.status.threatReduction ?? 0) : 1;
       const preparedThreat = attacker.status.nextThreatBonus ?? 1;
       const normalThreat = amount * threatMultiplier * threatReduction * preparedThreat;
@@ -3239,7 +3261,9 @@ export default class BattleScene extends Phaser.Scene {
     const prefix = critical ? 'CRIT ' : '';
 
     // Math.ceil rounds the displayed damage up to a whole number without changing combat calculations or logs.
-    this.createFloatingText(target.x, target.y - 82, `${prefix}${Math.ceil(amount)}`, '#ef4444', critical, 'damage');
+    this.createFloatingText(target.x, target.y - 82,
+      contact?.partyLeaderTap ? `${Math.ceil(actualDamage)}` : `${prefix}${Math.ceil(amount)}`,
+      contact?.partyLeaderTap ? '#fbbf24' : '#ef4444', critical, contact?.partyLeaderTap ? 'leaderTap' : 'damage');
 
     // Award a defeated enemy once and record the death after the damage event.
     if (!target.alive && target.isEnemy) {
@@ -3639,27 +3663,38 @@ export default class BattleScene extends Phaser.Scene {
     // 0.5 is the center and 1 is the right/bottom edge. x/y place that anchor, not
     // necessarily the object's corner. The condition before ? chooses the first value when
     // true and the value after : when false.
-    const label = this.add.text(x, y, text, {
+    let label = this.add.text(x, y, text, {
       fontFamily: UI_FONT_FAMILIES.sans,
-      fontSize: kind === 'ability' ? fontPx('body30') : critical ? fontPx('display78') : fontPx('display51'),
+      fontSize: kind === 'leaderTap' ? fontPx('display57')
+        : kind === 'ability' ? fontPx('body30') : critical ? fontPx('display78') : fontPx('display51'),
       fontStyle: UI_FONT_WEIGHTS.bold,
       color,
       stroke: '#000000',
       strokeThickness: critical ? 8 : 5
     }).setOrigin(0.5).setDepth(4200);
 
+    if (kind === 'leaderTap') {
+      const iconSize = 50, gap = 10;
+      const width = iconSize + gap + label.width;
+      const icon = createPartyLeaderTapIcon(this, -width / 2 + iconSize / 2, 0, iconSize);
+      label.setPosition(-width / 2 + iconSize + gap, 0).setOrigin(0, 0.5).setDepth(0);
+
+      // Fade and lift the icon and number together on the existing combat timeline.
+      label = this.add.container(x, y, [icon, label]).setDepth(4200);
+    }
+
     if (critical) {
       label.setScale(1.18);
     }
 
-    if (kind === 'ability') {
+    if (kind === 'ability' || kind === 'leaderTap') {
       // Only combat milliseconds advance these labels; UI press tweens remain usable.
       let elapsed = 0;
       const update = (time, delta) => {
         if (this.game.backgroundProgress?.isReplaying) return label.destroy();
         if (this.combatPaused || this.time.paused) return;
         elapsed += Math.max(0, delta) * this.time.timeScale;
-        const progress = Math.min(1, elapsed / 2280);
+        const progress = Math.min(1, elapsed / (kind === 'leaderTap' ? 650 : 2280));
         const eased = 1 - (1 - progress) ** 3;
         label.setY(y - 60 * eased).setAlpha(1 - eased).setScale(1 - 0.04 * eased);
         if (progress >= 1) label.destroy();
@@ -3802,8 +3837,15 @@ export default class BattleScene extends Phaser.Scene {
 
         // XP lives on the roster; reward results identify only new levels from this clear.
         for (const unit of this.partyUnits) {
-          if (waveReward.levelsGainedByHero[unit.id] > 0) createLevelUpEffect(this, unit);
+          if (waveReward.levelsGainedByHero[unit.id] > 0) {
+            const learned = waveReward.abilitiesLearnedByHero[unit.id] ?? [];
+            if (createLevelUpEffect(this, unit, learned.length > 0)) {
+              const hero = GameState.roster.find(member => member.id === unit.id);
+              if (hero) acknowledgeAbilityUnlockIds(hero, learned);
+            }
+          }
         }
+        saveProfile();
       }
     }
 
@@ -4452,7 +4494,7 @@ export default class BattleScene extends Phaser.Scene {
     if (text.height > bodyHeight) {
       bodyScroll = hallScroll(this, { x: contentLeft, y: text.y, width: contentWidth, height: bodyHeight },
         [text], text.height, 0, () => {},
-        (scene, x, y, w, h) => combatPanel(scene, x, y, w, h, 13002),
+        (scene, x, y, w, h, kind) => scrollbarSurface(scene, x, y, w, h, kind, 13002),
         () => Boolean(this.selectionDetailsClose));
       bodyScroll.container.setDepth(13002);
     }
@@ -4628,7 +4670,12 @@ export default class BattleScene extends Phaser.Scene {
     for (const hero of summary.adventurers) {
       if (hero.levelsGained > 0) {
         const unit = this.partyUnits.find(member => member.id === hero.id);
-        celebrating = createLevelUpEffect(this, unit) || celebrating;
+        const shown = createLevelUpEffect(this, unit, hero.abilitiesLearned.length > 0);
+        if (shown) {
+          const adventurer = GameState.roster.find(member => member.id === hero.id);
+          if (adventurer) acknowledgeAbilityUnlockIds(adventurer, hero.abilitiesLearned);
+        }
+        celebrating = shown || celebrating;
       }
     }
     if (this.idleSimulating) {
@@ -4728,7 +4775,7 @@ export default class BattleScene extends Phaser.Scene {
     // Long-lived emitters need matching listener cleanup.
     inputBlocker.on('pointerdown', (pointer, localX, localY, event) => event?.stopPropagation?.());
 
-    addStonePanel(this, width / 2, centerY, width * 0.78, 390, 12000);
+    combatPanel(this, width / 2, centerY, width * 0.78, 390, 12000);
 
     // Depth is drawing order, not distance or size. Higher-depth objects draw on top of
     // lower-depth objects. Origin is the anchor within the object: 0 is the left/top edge,
@@ -4736,7 +4783,7 @@ export default class BattleScene extends Phaser.Scene {
     // necessarily the object's corner. The condition before ? chooses the first value when
     // true and the value after : when false.
     this.add.text(width / 2, centerY - 95, title, {
-      fontFamily: UI_FONT_FAMILIES.sans,
+      fontFamily: UI_FONT_FAMILIES.serif,
       fontSize: fontPx('display78'),
       fontStyle: UI_FONT_WEIGHTS.bold,
       color: victory ? '#bef264' : '#ef4444'
@@ -4748,17 +4795,15 @@ export default class BattleScene extends Phaser.Scene {
       color: '#d6d3d1'
     }).setOrigin(0.5).setDepth(12001);
 
-    const button = addStoneButton(this, width / 2, centerY + 90, width * 0.58, 96, 12001);
+    const button = combatButton(this, width / 2, centerY + 90, width * 0.58, 96, 12001);
 
     const buttonText = this.add.text(width / 2, centerY + 90, buttonLabel, {
-      fontFamily: UI_FONT_FAMILIES.sans,
+      fontFamily: UI_FONT_FAMILIES.serif,
       fontSize: fontPx('heading38'),
       fontStyle: UI_FONT_WEIGHTS.bold,
-      color: '#ffffff'
+      color: STONE.text
     }).setOrigin(0.5).setDepth(12002);
 
     bindButtonPress(this, button, [buttonText], callback);
-    button.on('pointerover', () => button.setFillStyle(0x57534e));
-    button.on('pointerout', () => button.setFillStyle(0x44403c));
   }
 }

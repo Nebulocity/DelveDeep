@@ -292,9 +292,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "healthPayer": "None",
     "tickInterval": 0,
     "starterFor": [
-      "Verdant Cleric",
-      "Everbright Cleric",
-      "Sanguine Cleric"
+      "Grovekeeper",
+      "Dawnpriest",
+      "Sanguinist"
     ],
     "trigger": "When useful and ready; respects player orders.",
     "limits": "Same named status refreshes instead of stacking; beneficial amounts cap at missing resources; control respects immunity.",
@@ -949,9 +949,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "limits": "Does not prevent lethal damage; cannot resurrect.",
     "secondaryArea": "None",
     "excludedClasses": [
-      "Umbral Mage",
-      "Luminous Mage",
-      "Crimson Mage"
+      "Umbramancer",
+      "Arcanist",
+      "Spellbinder"
     ]
   },
   {
@@ -999,9 +999,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "limits": "Same named status refreshes instead of stacking; beneficial amounts cap at missing resources; control respects immunity.",
     "secondaryArea": "None",
     "excludedClasses": [
-      "Umbral Mage",
-      "Luminous Mage",
-      "Crimson Mage"
+      "Umbramancer",
+      "Arcanist",
+      "Spellbinder"
     ]
   },
   {
@@ -4233,6 +4233,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
   },
   {
     "id": "ability_v2_barmaid_tavern_brawl",
+    "disabled": true,
     "name": "Tavern Brawl",
     "className": "Barmaid",
     "category": "Assault",
@@ -5048,9 +5049,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {
-    "id": "ability_v2_umbral_mage_dark_meditation",
+    "id": "ability_v2_umbramancer_dark_meditation",
     "name": "Dark Meditation",
-    "className": "Umbral Mage",
+    "className": "Umbramancer",
     "category": "Prepare",
     "targetLabel": "Self",
     "primary": {
@@ -5061,7 +5062,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "cap": 0.35
     },
     "secondary": {
-      "text": "Restores [y] total Mana to the Umbral Mage during the channel.",
+      "text": "Restores [y] total Mana to the Umbramancer during the channel.",
       "potency": 0.15,
       "unit": "% of power basis",
       "basis": "Caster maximum Mana",
@@ -5088,20 +5089,20 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "healthPayer": "None",
     "tickInterval": 1000,
     "starterFor": [
-      "Umbral Mage"
+      "Umbramancer"
     ],
     "trigger": "When useful and ready; respects player orders.",
     "limits": "Cannot attack, cast, or move while channeling; damage interrupts. Channel duration is primary; secondary duration is the earned next-spell window. Mana stops on interruption.",
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {
-    "id": "ability_v2_umbral_mage_shadow_trap",
+    "id": "ability_v2_umbramancer_shadow_trap",
     "name": "Shadow Trap",
-    "className": "Umbral Mage",
+    "className": "Umbramancer",
     "category": "Prepare",
     "targetLabel": "Self",
     "primary": {
-      "text": "A damaging hit against the Umbral Mage triggers a free Siphon at [x]% of its trained potency.",
+      "text": "A damaging hit against the Umbramancer triggers a free Siphon at [x]% of its trained potency.",
       "potency": 0.5,
       "unit": "% of measured amount",
       "basis": "Trained Siphon potency",
@@ -5140,9 +5141,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "None"
   },
   {
-    "id": "ability_v2_umbral_mage_eclipse_field",
+    "id": "ability_v2_umbramancer_eclipse_field",
     "name": "Eclipse Field",
-    "className": "Umbral Mage",
+    "className": "Umbramancer",
     "category": "Prepare",
     "targetLabel": "Ground position",
     "primary": {
@@ -5185,9 +5186,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {
-    "id": "ability_v2_umbral_mage_shadow_image",
+    "id": "ability_v2_umbramancer_shadow_image",
     "name": "Shadow Image",
-    "className": "Umbral Mage",
+    "className": "Umbramancer",
     "category": "Prepare",
     "targetLabel": "Self",
     "primary": {
@@ -5198,7 +5199,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "cap": 1
     },
     "secondary": {
-      "text": "Enemies currently targeting the Umbral Mage approach and attack the decoy until it expires or is destroyed.",
+      "text": "Enemies currently targeting the Umbramancer approach and attack the decoy until it expires or is destroyed.",
       "potency": 0,
       "unit": "Binary / fixed rule",
       "basis": "None",
@@ -5230,9 +5231,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {
-    "id": "ability_v2_umbral_mage_shadow_bolt",
+    "id": "ability_v2_umbramancer_shadow_bolt",
     "name": "Shadow Bolt",
-    "className": "Umbral Mage",
+    "className": "Umbramancer",
     "category": "Assault",
     "targetLabel": "Single enemy",
     "primary": {
@@ -5270,16 +5271,16 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "healthPayer": "None",
     "tickInterval": 0,
     "starterFor": [
-      "Umbral Mage"
+      "Umbramancer"
     ],
     "trigger": "When useful and ready; respects player orders.",
     "limits": "Same named status refreshes instead of stacking; beneficial amounts cap at missing resources; control respects immunity.",
     "secondaryArea": "None"
   },
   {
-    "id": "ability_v2_umbral_mage_gloomburst",
+    "id": "ability_v2_umbramancer_gloomburst",
     "name": "Gloomburst",
-    "className": "Umbral Mage",
+    "className": "Umbramancer",
     "category": "Assault",
     "targetLabel": "Enemies",
     "primary": {
@@ -5317,16 +5318,16 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "healthPayer": "None",
     "tickInterval": 0,
     "starterFor": [
-      "Umbral Mage"
+      "Umbramancer"
     ],
     "trigger": "When useful and ready; respects player orders.",
     "limits": "Same named status refreshes instead of stacking; beneficial amounts cap at missing resources; control respects immunity.",
     "secondaryArea": "None"
   },
   {
-    "id": "ability_v2_umbral_mage_siphon",
+    "id": "ability_v2_umbramancer_siphon",
     "name": "Siphon",
-    "className": "Umbral Mage",
+    "className": "Umbramancer",
     "category": "Assault",
     "targetLabel": "Single enemy",
     "primary": {
@@ -5369,9 +5370,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {
-    "id": "ability_v2_umbral_mage_echo_of_night",
+    "id": "ability_v2_umbramancer_echo_of_night",
     "name": "Echo of Night",
-    "className": "Umbral Mage",
+    "className": "Umbramancer",
     "category": "Assault",
     "targetLabel": "Enemies",
     "primary": {
@@ -5414,9 +5415,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {
-    "id": "ability_v2_umbral_mage_essence_drain",
+    "id": "ability_v2_umbramancer_essence_drain",
     "name": "Essence Drain",
-    "className": "Umbral Mage",
+    "className": "Umbramancer",
     "category": "Restore",
     "targetLabel": "Single enemy",
     "primary": {
@@ -5427,7 +5428,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "cap": 1
     },
     "secondary": {
-      "text": "Restores [y]% of the actual Mana drained to the Umbral Mage.",
+      "text": "Restores [y]% of the actual Mana drained to the Umbramancer.",
       "potency": 1,
       "unit": "% of measured amount",
       "basis": "Actual Mana drained",
@@ -5459,13 +5460,13 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {
-    "id": "ability_v2_umbral_mage_shadow_mending",
+    "id": "ability_v2_umbramancer_shadow_mending",
     "name": "Shadow Mending",
-    "className": "Umbral Mage",
+    "className": "Umbramancer",
     "category": "Restore",
     "targetLabel": "Self",
     "primary": {
-      "text": "Restores [x] health to the Umbral Mage.",
+      "text": "Restores [x] health to the Umbramancer.",
       "potency": 0.85,
       "unit": "% of power basis",
       "basis": "Caster Spell Power",
@@ -5505,9 +5506,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "None"
   },
   {
-    "id": "ability_v2_sanguine_cleric_soul_reclamation",
+    "id": "ability_v2_sanguinist_soul_reclamation",
     "name": "Soul Reclamation",
-    "className": "Sanguine Cleric",
+    "className": "Sanguinist",
     "category": "Restore",
     "targetLabel": "Single fallen ally",
     "primary": {
@@ -5551,13 +5552,13 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "minimumLevel": 10
   },
   {
-    "id": "ability_v2_luminous_mage_soothing_light",
+    "id": "ability_v2_arcanist_soothing_light",
     "name": "Soothing Light",
-    "className": "Luminous Mage",
+    "className": "Arcanist",
     "category": "Restore",
     "targetLabel": "Self",
     "primary": {
-      "text": "Restores [x] health to the Luminous Mage.",
+      "text": "Restores [x] health to the Arcanist.",
       "potency": 0.7,
       "unit": "% of power basis",
       "basis": "Caster Spell Power",
@@ -5565,7 +5566,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "cap": null
     },
     "secondary": {
-      "text": "Restores [y] Mana to the Luminous Mage.",
+      "text": "Restores [y] Mana to the Arcanist.",
       "potency": 0.08,
       "unit": "% of power basis",
       "basis": "Caster maximum Mana",
@@ -5597,9 +5598,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {
-    "id": "ability_v2_luminous_mage_celestial_flow",
+    "id": "ability_v2_arcanist_celestial_flow",
     "name": "Celestial Flow",
-    "className": "Luminous Mage",
+    "className": "Arcanist",
     "category": "Restore",
     "targetLabel": "Allies",
     "primary": {
@@ -5637,16 +5638,16 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "healthPayer": "None",
     "tickInterval": 1000,
     "starterFor": [
-      "Luminous Mage"
+      "Arcanist"
     ],
     "trigger": "When useful and ready; respects player orders.",
     "limits": "Does not affect non-mana users; total restoration is divided among ticks.",
     "secondaryArea": "None"
   },
   {
-    "id": "ability_v2_luminous_mage_lunar_pulse",
+    "id": "ability_v2_arcanist_lunar_pulse",
     "name": "Lunar Pulse",
-    "className": "Luminous Mage",
+    "className": "Arcanist",
     "category": "Restore",
     "targetLabel": "Allies",
     "primary": {
@@ -5690,9 +5691,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Circle at caster, radius 240"
   },
   {
-    "id": "ability_v2_luminous_mage_renewed_focus",
+    "id": "ability_v2_arcanist_renewed_focus",
     "name": "Renewed Focus",
-    "className": "Luminous Mage",
+    "className": "Arcanist",
     "category": "Prepare",
     "targetLabel": "Allies",
     "primary": {
@@ -5730,16 +5731,16 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "healthPayer": "None",
     "tickInterval": 0,
     "starterFor": [
-      "Luminous Mage"
+      "Arcanist"
     ],
     "trigger": "When useful and ready; respects player orders.",
     "limits": "Excludes itself, other cooldown-reset abilities, duplication, charge restoration, and once-per-encounter effects.",
     "secondaryArea": "None"
   },
   {
-    "id": "ability_v2_luminous_mage_radiant_spear",
+    "id": "ability_v2_arcanist_radiant_spear",
     "name": "Radiant Spear",
-    "className": "Luminous Mage",
+    "className": "Arcanist",
     "category": "Assault",
     "targetLabel": "Single enemy",
     "primary": {
@@ -5777,16 +5778,16 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "healthPayer": "None",
     "tickInterval": 0,
     "starterFor": [
-      "Luminous Mage"
+      "Arcanist"
     ],
     "trigger": "When useful and ready; respects player orders.",
     "limits": "Same named status refreshes instead of stacking; beneficial amounts cap at missing resources; control respects immunity.",
     "secondaryArea": "None"
   },
   {
-    "id": "ability_v2_luminous_mage_prism_burst",
+    "id": "ability_v2_arcanist_prism_burst",
     "name": "Prism Burst",
-    "className": "Luminous Mage",
+    "className": "Arcanist",
     "category": "Assault",
     "targetLabel": "Enemies",
     "primary": {
@@ -5829,9 +5830,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "None"
   },
   {
-    "id": "ability_v2_luminous_mage_brilliant_reprisal",
+    "id": "ability_v2_arcanist_brilliant_reprisal",
     "name": "Brilliant Reprisal",
-    "className": "Luminous Mage",
+    "className": "Arcanist",
     "category": "Assault",
     "targetLabel": "Single enemy",
     "primary": {
@@ -5875,9 +5876,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {
-    "id": "ability_v2_luminous_mage_refraction_beam",
+    "id": "ability_v2_arcanist_refraction_beam",
     "name": "Refraction Beam",
-    "className": "Luminous Mage",
+    "className": "Arcanist",
     "category": "Assault",
     "targetLabel": "Enemies",
     "primary": {
@@ -5920,9 +5921,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "None"
   },
   {
-    "id": "ability_v2_luminous_mage_lunar_alignment",
+    "id": "ability_v2_arcanist_lunar_alignment",
     "name": "Lunar Alignment",
-    "className": "Luminous Mage",
+    "className": "Arcanist",
     "category": "Prepare",
     "targetLabel": "Self",
     "primary": {
@@ -5966,10 +5967,10 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {
-    "id": "ability_v2_luminous_mage_lightweaving",
+    "id": "ability_v2_arcanist_lightweaving",
     "name": "Lightweaving",
-    "className": "Luminous Mage",
-    "category": "Prepare",
+    "className": "Arcanist",
+    "category": "Restore",
     "targetLabel": "Single other ally",
     "primary": {
       "text": "Places one stationary decoy with [x] Health at a critically injured ally’s position.",
@@ -5979,7 +5980,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "cap": 1
     },
     "secondary": {
-      "text": "Restores [y] health to that ally after moving them to a valid position beside the Luminous Mage.",
+      "text": "Restores [y] health to that ally after moving them to a valid position beside the Arcanist.",
       "potency": 0.4,
       "unit": "% of power basis",
       "basis": "Caster Spell Power",
@@ -6012,9 +6013,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {
-    "id": "ability_v2_luminous_mage_radiant_reserve",
+    "id": "ability_v2_arcanist_radiant_reserve",
     "name": "Radiant Reserve",
-    "className": "Luminous Mage",
+    "className": "Arcanist",
     "category": "Prepare",
     "targetLabel": "Self",
     "primary": {
@@ -6057,9 +6058,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {
-    "id": "ability_v2_luminous_mage_prism_shields",
+    "id": "ability_v2_arcanist_prism_shields",
     "name": "Prism Shields",
-    "className": "Luminous Mage",
+    "className": "Arcanist",
     "category": "Prepare",
     "targetLabel": "Self",
     "primary": {
@@ -6103,13 +6104,13 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "manaCost": 20
   },
   {
-    "id": "ability_v2_crimson_mage_renewal",
+    "id": "ability_v2_spellbinder_renewal",
     "name": "Renewal",
-    "className": "Crimson Mage",
+    "className": "Spellbinder",
     "category": "Restore",
     "targetLabel": "Self",
     "primary": {
-      "text": "Restores [x] health to the Crimson Mage.",
+      "text": "Restores [x] health to the Spellbinder.",
       "potency": 0.85,
       "unit": "% of power basis",
       "basis": "Caster Spell Power",
@@ -6149,13 +6150,13 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "None"
   },
   {
-    "id": "ability_v2_crimson_mage_infusion",
+    "id": "ability_v2_spellbinder_infusion",
     "name": "Infusion",
-    "className": "Crimson Mage",
+    "className": "Spellbinder",
     "category": "Restore",
     "targetLabel": "Self",
     "primary": {
-      "text": "Restores [x] Mana to the Crimson Mage.",
+      "text": "Restores [x] Mana to the Spellbinder.",
       "potency": 0.12,
       "unit": "% of power basis",
       "basis": "Caster maximum Mana",
@@ -6194,9 +6195,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "None"
   },
   {
-    "id": "ability_v2_crimson_mage_ritual_of_replenishment",
+    "id": "ability_v2_spellbinder_ritual_of_replenishment",
     "name": "Ritual of Replenishment",
-    "className": "Crimson Mage",
+    "className": "Spellbinder",
     "category": "Restore",
     "targetLabel": "Allies",
     "primary": {
@@ -6235,16 +6236,16 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "healthPayer": "None",
     "tickInterval": 0,
     "starterFor": [
-      "Crimson Mage"
+      "Spellbinder"
     ],
     "trigger": "When useful and ready; respects player orders.",
     "limits": "Same named status refreshes instead of stacking; beneficial amounts cap at missing resources; control respects immunity.",
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {
-    "id": "ability_v2_crimson_mage_magic_missile",
+    "id": "ability_v2_spellbinder_magic_missile",
     "name": "Magic Missile",
-    "className": "Crimson Mage",
+    "className": "Spellbinder",
     "category": "Assault",
     "targetLabel": "Single enemy",
     "primary": {
@@ -6282,16 +6283,16 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "healthPayer": "None",
     "tickInterval": 0,
     "starterFor": [
-      "Crimson Mage"
+      "Spellbinder"
     ],
     "trigger": "When useful and ready; respects player orders.",
     "limits": "Final Crit chance respects the 40% hard cap.",
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {
-    "id": "ability_v2_crimson_mage_mindfire",
+    "id": "ability_v2_spellbinder_mindfire",
     "name": "Mindfire",
-    "className": "Crimson Mage",
+    "className": "Spellbinder",
     "category": "Assault",
     "targetLabel": "Enemies",
     "primary": {
@@ -6334,9 +6335,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "None"
   },
   {
-    "id": "ability_v2_crimson_mage_semistatic_pulse",
+    "id": "ability_v2_spellbinder_semistatic_pulse",
     "name": "Semistatic Pulse",
-    "className": "Crimson Mage",
+    "className": "Spellbinder",
     "category": "Assault",
     "targetLabel": "Enemies",
     "primary": {
@@ -6347,7 +6348,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "cap": null
     },
     "secondary": {
-      "text": "Teleports the Crimson Mage to a safe valid floor position away from nearby enemies.",
+      "text": "Teleports the Spellbinder to a safe valid floor position away from nearby enemies.",
       "potency": 0,
       "unit": "Binary / fixed rule",
       "basis": "None",
@@ -6379,9 +6380,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {
-    "id": "ability_v2_crimson_mage_crimson_cascade",
+    "id": "ability_v2_spellbinder_crimson_cascade",
     "name": "Crimson Cascade",
-    "className": "Crimson Mage",
+    "className": "Spellbinder",
     "category": "Assault",
     "targetLabel": "Enemies",
     "primary": {
@@ -6424,9 +6425,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {
-    "id": "ability_v2_crimson_mage_the_ritual",
+    "id": "ability_v2_spellbinder_the_ritual",
     "name": "The Ritual",
-    "className": "Crimson Mage",
+    "className": "Spellbinder",
     "category": "Prepare",
     "targetLabel": "Allies",
     "primary": {
@@ -6469,9 +6470,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "None"
   },
   {
-    "id": "ability_v2_crimson_mage_duplicity",
+    "id": "ability_v2_spellbinder_duplicity",
     "name": "Duplicity",
-    "className": "Crimson Mage",
+    "className": "Spellbinder",
     "category": "Prepare",
     "targetLabel": "Self",
     "primary": {
@@ -6509,16 +6510,16 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "healthPayer": "None",
     "tickInterval": 0,
     "starterFor": [
-      "Crimson Mage"
+      "Spellbinder"
     ],
     "trigger": "When useful and ready; respects player orders.",
     "limits": "One echo; same surviving targets and resolved area; no extra Mana cost; cannot echo control, teleports, resource returns, health costs, resets, or another echo.",
     "secondaryArea": "None"
   },
   {
-    "id": "ability_v2_crimson_mage_equivalent_exchange",
+    "id": "ability_v2_spellbinder_equivalent_exchange",
     "name": "Equivalent Exchange",
-    "className": "Crimson Mage",
+    "className": "Spellbinder",
     "category": "Prepare",
     "targetLabel": "Single ally or self",
     "primary": {
@@ -6562,9 +6563,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {
-    "id": "ability_v2_crimson_mage_neutral_ground",
+    "id": "ability_v2_spellbinder_neutral_ground",
     "name": "Neutral Ground",
-    "className": "Crimson Mage",
+    "className": "Spellbinder",
     "category": "Prepare",
     "targetLabel": "All combatants",
     "primary": {
@@ -6607,13 +6608,13 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {
-    "id": "ability_v2_verdant_cleric_ironwood_armor",
+    "id": "ability_v2_grovekeeper_ironwood_armor",
     "name": "Ironwood Armor",
-    "className": "Verdant Cleric",
+    "className": "Grovekeeper",
     "category": "Protect",
     "targetLabel": "Self",
     "primary": {
-      "text": "Increases the Verdant Cleric's Armor rating by [x]% for the duration.",
+      "text": "Increases the Grovekeeper's Armor rating by [x]% for the duration.",
       "potency": 0.5,
       "unit": "% change",
       "basis": "Caster Armor",
@@ -6652,9 +6653,10 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "None"
   },
   {
-    "id": "ability_v2_verdant_cleric_entangling_roots",
+    "id": "ability_v2_grovekeeper_entangling_roots",
+    "disabled": true,
     "name": "Entangling Roots",
-    "className": "Verdant Cleric",
+    "className": "Grovekeeper",
     "category": "Protect",
     "targetLabel": "Enemies",
     "primary": {
@@ -6697,9 +6699,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "None"
   },
   {
-    "id": "ability_v2_verdant_cleric_brambles",
+    "id": "ability_v2_grovekeeper_brambles",
     "name": "Brambles",
-    "className": "Verdant Cleric",
+    "className": "Grovekeeper",
     "category": "Protect",
     "targetLabel": "Ground position",
     "primary": {
@@ -6742,9 +6744,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {
-    "id": "ability_v2_verdant_cleric_nature_s_embrace",
+    "id": "ability_v2_grovekeeper_nature_s_embrace",
     "name": "Nature's Embrace",
-    "className": "Verdant Cleric",
+    "className": "Grovekeeper",
     "category": "Protect",
     "targetLabel": "Allies",
     "primary": {
@@ -6782,16 +6784,16 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "healthPayer": "None",
     "tickInterval": 0,
     "starterFor": [
-      "Verdant Cleric"
+      "Grovekeeper"
     ],
     "trigger": "When useful and ready; respects player orders.",
     "limits": "Same named status refreshes instead of stacking; beneficial amounts cap at missing resources; control respects immunity.",
     "secondaryArea": "None"
   },
   {
-    "id": "ability_v2_verdant_cleric_wrath",
+    "id": "ability_v2_grovekeeper_wrath",
     "name": "Wrath",
-    "className": "Verdant Cleric",
+    "className": "Grovekeeper",
     "category": "Assault",
     "targetLabel": "Single enemy",
     "primary": {
@@ -6834,9 +6836,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "None"
   },
   {
-    "id": "ability_v2_verdant_cleric_leeching_vines",
+    "id": "ability_v2_grovekeeper_leeching_vines",
     "name": "Leeching Vines",
-    "className": "Verdant Cleric",
+    "className": "Grovekeeper",
     "category": "Assault",
     "targetLabel": "Enemies",
     "primary": {
@@ -6879,9 +6881,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Allies within 200 of damage anchor"
   },
   {
-    "id": "ability_v2_verdant_cleric_thorn_barrier",
+    "id": "ability_v2_grovekeeper_thorn_barrier",
     "name": "Thorn Barrier",
-    "className": "Verdant Cleric",
+    "className": "Grovekeeper",
     "category": "Protect",
     "targetLabel": "Single ally or self",
     "primary": {
@@ -6924,10 +6926,10 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {
-    "id": "ability_v2_verdant_cleric_lifequake",
+    "id": "ability_v2_grovekeeper_lifequake",
     "name": "Lifequake",
-    "className": "Verdant Cleric",
-    "category": "Restore",
+    "className": "Grovekeeper",
+    "category": "Assault",
     "targetLabel": "Single ally or self",
     "primary": {
       "text": "Restores [x] health to one ally.",
@@ -6970,9 +6972,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Enemies within 200 of healed ally"
   },
   {
-    "id": "ability_v2_verdant_cleric_nature_s_touch",
+    "id": "ability_v2_grovekeeper_nature_s_touch",
     "name": "Nature's Touch",
-    "className": "Verdant Cleric",
+    "className": "Grovekeeper",
     "category": "Restore",
     "targetLabel": "Single ally or self",
     "primary": {
@@ -7011,16 +7013,16 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "healthPayer": "None",
     "tickInterval": 0,
     "starterFor": [
-      "Verdant Cleric"
+      "Grovekeeper"
     ],
     "trigger": "When useful and ready; respects player orders.",
     "limits": "Same named status refreshes instead of stacking; beneficial amounts cap at missing resources; control respects immunity.",
     "secondaryArea": "None"
   },
   {
-    "id": "ability_v2_verdant_cleric_regrowth",
+    "id": "ability_v2_grovekeeper_regrowth",
     "name": "Regrowth",
-    "className": "Verdant Cleric",
+    "className": "Grovekeeper",
     "category": "Restore",
     "targetLabel": "Single ally or self",
     "primary": {
@@ -7065,9 +7067,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {
-    "id": "ability_v2_verdant_cleric_spring_canopy",
+    "id": "ability_v2_grovekeeper_spring_canopy",
     "name": "Spring Canopy",
-    "className": "Verdant Cleric",
+    "className": "Grovekeeper",
     "category": "Restore",
     "targetLabel": "Allies",
     "primary": {
@@ -7112,9 +7114,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {
-    "id": "ability_v2_verdant_cleric_briarweave",
+    "id": "ability_v2_grovekeeper_briarweave",
     "name": "Briarweave",
-    "className": "Verdant Cleric",
+    "className": "Grovekeeper",
     "category": "Restore",
     "targetLabel": "Single ally or self",
     "primary": {
@@ -7157,9 +7159,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {
-    "id": "ability_v2_everbright_cleric_sunlit_ward",
+    "id": "ability_v2_dawnpriest_sunlit_ward",
     "name": "Sunlit Ward",
-    "className": "Everbright Cleric",
+    "className": "Dawnpriest",
     "category": "Protect",
     "targetLabel": "Single ally or self",
     "primary": {
@@ -7197,16 +7199,16 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "healthPayer": "None",
     "tickInterval": 0,
     "starterFor": [
-      "Everbright Cleric"
+      "Dawnpriest"
     ],
     "trigger": "When useful and ready; respects player orders.",
     "limits": "Same named status refreshes instead of stacking; beneficial amounts cap at missing resources; control respects immunity.",
     "secondaryArea": "None"
   },
   {
-    "id": "ability_v2_everbright_cleric_blinding_radiance",
+    "id": "ability_v2_dawnpriest_blinding_radiance",
     "name": "Blinding Radiance",
-    "className": "Everbright Cleric",
+    "className": "Dawnpriest",
     "category": "Protect",
     "targetLabel": "Single ally or self",
     "primary": {
@@ -7250,9 +7252,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Enemies within 100 of healed ally"
   },
   {
-    "id": "ability_v2_everbright_cleric_guardian_spirit",
+    "id": "ability_v2_dawnpriest_guardian_spirit",
     "name": "Guardian Spirit",
-    "className": "Everbright Cleric",
+    "className": "Dawnpriest",
     "category": "Protect",
     "targetLabel": "Single ally or self",
     "primary": {
@@ -7295,9 +7297,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "None"
   },
   {
-    "id": "ability_v2_everbright_cleric_sacred_blessing",
+    "id": "ability_v2_dawnpriest_sacred_blessing",
     "name": "Sacred Blessing",
-    "className": "Everbright Cleric",
+    "className": "Dawnpriest",
     "category": "Protect",
     "targetLabel": "Single ally or self",
     "primary": {
@@ -7340,9 +7342,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "None"
   },
   {
-    "id": "ability_v2_everbright_cleric_radiant_bolt",
+    "id": "ability_v2_dawnpriest_radiant_bolt",
     "name": "Radiant Bolt",
-    "className": "Everbright Cleric",
+    "className": "Dawnpriest",
     "category": "Assault",
     "targetLabel": "Single enemy",
     "primary": {
@@ -7385,9 +7387,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "None"
   },
   {
-    "id": "ability_v2_everbright_cleric_judgement_ray",
+    "id": "ability_v2_dawnpriest_judgement_ray",
     "name": "Judgement Ray",
-    "className": "Everbright Cleric",
+    "className": "Dawnpriest",
     "category": "Assault",
     "targetLabel": "Single enemy",
     "primary": {
@@ -7430,9 +7432,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "None"
   },
   {
-    "id": "ability_v2_everbright_cleric_cleansing_fire",
+    "id": "ability_v2_dawnpriest_cleansing_fire",
     "name": "Cleansing Fire",
-    "className": "Everbright Cleric",
+    "className": "Dawnpriest",
     "category": "Assault",
     "targetLabel": "Enemies",
     "primary": {
@@ -7475,9 +7477,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {
-    "id": "ability_v2_everbright_cleric_guided_retribution",
+    "id": "ability_v2_dawnpriest_guided_retribution",
     "name": "Guided Retribution",
-    "className": "Everbright Cleric",
+    "className": "Dawnpriest",
     "category": "Assault",
     "targetLabel": "Enemies",
     "primary": {
@@ -7520,9 +7522,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Allies within 200 of damage anchor"
   },
   {
-    "id": "ability_v2_everbright_cleric_holy_light",
+    "id": "ability_v2_dawnpriest_holy_light",
     "name": "Holy Light",
-    "className": "Everbright Cleric",
+    "className": "Dawnpriest",
     "category": "Restore",
     "targetLabel": "Single ally or self",
     "primary": {
@@ -7561,16 +7563,16 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "healthPayer": "None",
     "tickInterval": 0,
     "starterFor": [
-      "Everbright Cleric"
+      "Dawnpriest"
     ],
     "trigger": "When useful and ready; respects player orders.",
     "limits": "Same named status refreshes instead of stacking; beneficial amounts cap at missing resources; control respects immunity.",
     "secondaryArea": "None"
   },
   {
-    "id": "ability_v2_everbright_cleric_eternal_renewal",
+    "id": "ability_v2_dawnpriest_eternal_renewal",
     "name": "Eternal Renewal",
-    "className": "Everbright Cleric",
+    "className": "Dawnpriest",
     "category": "Restore",
     "targetLabel": "Single ally or self",
     "primary": {
@@ -7614,9 +7616,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "None"
   },
   {
-    "id": "ability_v2_everbright_cleric_blessed_restoration",
+    "id": "ability_v2_dawnpriest_blessed_restoration",
     "name": "Blessed Restoration",
-    "className": "Everbright Cleric",
+    "className": "Dawnpriest",
     "category": "Restore",
     "targetLabel": "Single ally or self",
     "primary": {
@@ -7660,9 +7662,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {
-    "id": "ability_v2_everbright_cleric_divine_reprisal",
+    "id": "ability_v2_dawnpriest_divine_reprisal",
     "name": "Divine Reprisal",
-    "className": "Everbright Cleric",
+    "className": "Dawnpriest",
     "category": "Restore",
     "targetLabel": "Allies",
     "primary": {
@@ -7706,9 +7708,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Enemies within 100 of effectively healed allies"
   },
   {
-    "id": "ability_v2_sanguine_cleric_blood_covenant",
+    "id": "ability_v2_sanguinist_blood_covenant",
     "name": "Blood Covenant",
-    "className": "Sanguine Cleric",
+    "className": "Sanguinist",
     "category": "Protect",
     "targetLabel": "Allies",
     "primary": {
@@ -7751,9 +7753,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "None"
   },
   {
-    "id": "ability_v2_sanguine_cleric_hemorrhagic_hex",
+    "id": "ability_v2_sanguinist_hemorrhagic_hex",
     "name": "Hemorrhagic Hex",
-    "className": "Sanguine Cleric",
+    "className": "Sanguinist",
     "category": "Protect",
     "targetLabel": "Enemies",
     "primary": {
@@ -7796,9 +7798,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "None"
   },
   {
-    "id": "ability_v2_sanguine_cleric_vital_pact",
+    "id": "ability_v2_sanguinist_vital_pact",
     "name": "Vital Pact",
-    "className": "Sanguine Cleric",
+    "className": "Sanguinist",
     "category": "Protect",
     "targetLabel": "Single ally or self",
     "primary": {
@@ -7837,16 +7839,16 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "healthPayer": "None",
     "tickInterval": 0,
     "starterFor": [
-      "Sanguine Cleric"
+      "Sanguinist"
     ],
     "trigger": "When useful and ready; respects player orders.",
     "limits": "Same named status refreshes instead of stacking; beneficial amounts cap at missing resources; control respects immunity.",
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {
-    "id": "ability_v2_sanguine_cleric_scarlet_curse",
+    "id": "ability_v2_sanguinist_scarlet_curse",
     "name": "Scarlet Curse",
-    "className": "Sanguine Cleric",
+    "className": "Sanguinist",
     "category": "Protect",
     "targetLabel": "Enemies",
     "primary": {
@@ -7889,9 +7891,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Allies within 240 of caster"
   },
   {
-    "id": "ability_v2_sanguine_cleric_blood_lance",
+    "id": "ability_v2_sanguinist_blood_lance",
     "name": "Blood Lance",
-    "className": "Sanguine Cleric",
+    "className": "Sanguinist",
     "category": "Assault",
     "targetLabel": "Single enemy",
     "primary": {
@@ -7902,7 +7904,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "cap": null
     },
     "secondary": {
-      "text": "Restores [y]% of actual damage dealt to the Sanguine Cleric.",
+      "text": "Restores [y]% of actual damage dealt to the Sanguinist.",
       "potency": 0.25,
       "unit": "% of measured amount",
       "basis": "Actual damage dealt",
@@ -7934,9 +7936,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {
-    "id": "ability_v2_sanguine_cleric_scarlet_rupture",
+    "id": "ability_v2_sanguinist_scarlet_rupture",
     "name": "Scarlet Rupture",
-    "className": "Sanguine Cleric",
+    "className": "Sanguinist",
     "category": "Assault",
     "targetLabel": "Enemies",
     "primary": {
@@ -7947,7 +7949,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "cap": null
     },
     "secondary": {
-      "text": "Restores [y]% of actual total damage dealt to the Sanguine Cleric.",
+      "text": "Restores [y]% of actual total damage dealt to the Sanguinist.",
       "potency": 0.15,
       "unit": "% of measured amount",
       "basis": "Actual damage dealt",
@@ -7979,9 +7981,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {
-    "id": "ability_v2_sanguine_cleric_siphon_life",
+    "id": "ability_v2_sanguinist_siphon_life",
     "name": "Siphon Life",
-    "className": "Sanguine Cleric",
+    "className": "Sanguinist",
     "category": "Assault",
     "targetLabel": "Single enemy",
     "primary": {
@@ -7992,7 +7994,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
       "cap": null
     },
     "secondary": {
-      "text": "Restores [y]% of actual damage dealt to the Sanguine Cleric.",
+      "text": "Restores [y]% of actual damage dealt to the Sanguinist.",
       "potency": 0.3,
       "unit": "% of measured amount",
       "basis": "Actual damage dealt",
@@ -8024,9 +8026,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {
-    "id": "ability_v2_sanguine_cleric_hematic_wave",
+    "id": "ability_v2_sanguinist_hematic_wave",
     "name": "Hematic Wave",
-    "className": "Sanguine Cleric",
+    "className": "Sanguinist",
     "category": "Assault",
     "targetLabel": "Enemies",
     "primary": {
@@ -8069,9 +8071,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {
-    "id": "ability_v2_sanguine_cleric_blood_mend",
+    "id": "ability_v2_sanguinist_blood_mend",
     "name": "Blood Mend",
-    "className": "Sanguine Cleric",
+    "className": "Sanguinist",
     "category": "Restore",
     "targetLabel": "Single ally or self",
     "primary": {
@@ -8110,16 +8112,16 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "healthPayer": "Caster",
     "tickInterval": 0,
     "starterFor": [
-      "Sanguine Cleric"
+      "Sanguinist"
     ],
     "trigger": "When useful and ready; respects player orders.",
     "limits": "Health costs use current HP, bypass mitigation, cannot critically hit, and cannot reduce the payer below 1 HP; skip when unsafe. Costs do not grow with rank.",
     "secondaryArea": "None"
   },
   {
-    "id": "ability_v2_sanguine_cleric_sanguine_renewal",
+    "id": "ability_v2_sanguinist_sanguine_renewal",
     "name": "Sanguine Renewal",
-    "className": "Sanguine Cleric",
+    "className": "Sanguinist",
     "category": "Restore",
     "targetLabel": "Single ally or self",
     "primary": {
@@ -8163,9 +8165,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "None"
   },
   {
-    "id": "ability_v2_sanguine_cleric_benediction",
+    "id": "ability_v2_sanguinist_benediction",
     "name": "Benediction",
-    "className": "Sanguine Cleric",
+    "className": "Sanguinist",
     "category": "Restore",
     "targetLabel": "Single ally or self",
     "primary": {
@@ -8209,9 +8211,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally."
   },
   {
-    "id": "ability_v2_sanguine_cleric_life_reap",
+    "id": "ability_v2_sanguinist_life_reap",
     "name": "Life Reap",
-    "className": "Sanguine Cleric",
+    "className": "Sanguinist",
     "category": "Restore",
     "targetLabel": "Allies",
     "primary": {
@@ -8255,9 +8257,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "secondaryArea": "None"
   },
   {
-    "id": "ability_v2_everbright_cleric_restore_spirit",
+    "id": "ability_v2_dawnpriest_restore_spirit",
     "name": "Restore Spirit",
-    "className": "Everbright Cleric",
+    "className": "Dawnpriest",
     "category": "Restore",
     "targetLabel": "Single fallen ally",
     "primary": {
@@ -8301,9 +8303,9 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "minimumLevel": 10
   },
   {
-    "id": "ability_v2_verdant_cleric_cocoon_of_life",
+    "id": "ability_v2_grovekeeper_cocoon_of_life",
     "name": "Cocoon of Life",
-    "className": "Verdant Cleric",
+    "className": "Grovekeeper",
     "category": "Restore",
     "targetLabel": "Single fallen ally",
     "primary": {

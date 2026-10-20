@@ -15,7 +15,7 @@ Maintained files under `tests/visual/audit/`:
 - `actions.spec.js`: equipment/ability/tactic loadout changes, unlock cancellation and crafting at all three merchants.
 - `combat.spec.js` and `encounter-controls.spec.js`: preparation, selection, Move/Focus, radials, pause, retreat/cancel, camp, ordinary/boss presentation and results.
 - `environments.spec.js`: each current battlefield's preview, bestiary and HUD.
-- `overlays.spec.js`: map destination states, native save transfer and the existing How to Play slideshow. No interactive tutorial implementation.
+- `overlays.spec.js`: map destination states, native save transfer and the Tutorial preparation notice. No interactive tutorial implementation.
 - `stability.spec.js`: live texture/animation frames and optional approved screenshot regression.
 
 Open `output/qa/overnight-ui-audit/index.html` for the gallery. JSON companions contain source/runtime inventories, geometry, actual pointer attempts, coverage and execution results. Per-test records survive interruption. Failures retain screenshots; videos, traces and test retries are disabled. Each test and the whole run have time limits. The supervisor permits one restart only for Vite startup failure, never for assertions. It saves previous execution summaries before each run. It does not delete existing output folders; Playwright manages its own `test-results` folder.

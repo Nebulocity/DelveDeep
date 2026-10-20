@@ -20,7 +20,6 @@ import ExchangeScene from '../scenes/ExchangeScene.js';
 
 import DelveSelectScene from '../scenes/DelveSelectScene.js';
 import PartySelectScene from '../scenes/PartySelectScene.js';
-import DungeonScene from '../scenes/DungeonScene.js';
 import BattleScene from '../scenes/BattleScene.js';
 import RewardScene from '../scenes/RewardScene.js';
 import FacilityScene from '../scenes/FacilityScene.js';
@@ -57,7 +56,6 @@ const gameConfig = {
     BlacksmithScene,
     DelveSelectScene,
     PartySelectScene,
-    DungeonScene,
     BattleScene,
     RewardScene,
     EncounterSummaryScene,

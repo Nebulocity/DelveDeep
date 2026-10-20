@@ -1,13 +1,15 @@
 import GameState from './GameState.js';
 
-// Between delves activeParty is cleared, while lastPartyIds retains the chosen party.
+import { selectedParty } from './PartySelection.js';
+
+// Preparation always resolves current roster data from the one saved lineup.
 export function worldMapParty() {
-  if (GameState.activeParty.length) return GameState.activeParty;
-  return GameState.lastPartyIds.map(id => GameState.roster.find(hero => hero.id === id)).filter(Boolean);
+  return selectedParty();
 }
 
 export function resolveWorldMapCharacter(party = worldMapParty()) {
-  const hero = party.find(entry => entry.id === GameState.world.mapCharacterId) ?? party[0] ?? null;
+  // A chosen representative remains selected even after leaving the active party.
+  const hero = GameState.roster.find(entry => entry.id === GameState.world.mapCharacterId) ?? party[0] ?? null;
   GameState.world.mapCharacterId = hero?.id ?? null;
   return hero;
 }

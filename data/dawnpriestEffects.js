@@ -2,7 +2,7 @@
 // lasting effects, so saved encounters need no new visual fields.
 import { shieldSphereClips } from './shieldSphereEffects.js';
 
-const PREFIX = 'ability_v2_everbright_cleric_';
+const PREFIX = 'ability_v2_dawnpriest_';
 const entries = [
   { slug: 'holy-light', name: 'Holy Light', suffix: 'holy_light', layers: true, targetSize: 1.5 },
   { slug: 'sunlit-ward', name: 'Sunlit Ward', suffix: 'sunlit_ward', ward: true },
@@ -25,9 +25,9 @@ const entries = [
   { slug: 'reprisal-hit', file: 'radiant-bolt', name: 'Divine Reprisal', suffix: 'divine_reprisal', vfxPhase: 'hit', targetSize: 1.1 }
 ];
 
-export const EVERBRIGHT_CLERIC_EFFECTS = entries.map(({ name, suffix, status, ...placement }) => ({
-  ...placement, id: 'everbright-cleric-' + placement.slug,
-  className: 'Cleric of the Everbright', abilityName: name, abilityId: PREFIX + suffix,
+export const DAWNPRIEST_EFFECTS = entries.map(({ name, suffix, status, ...placement }) => ({
+  ...placement, id: 'dawnpriest-' + placement.slug,
+  className: 'Dawnpriest', abilityName: name, abilityId: PREFIX + suffix,
   everbrightStatus: status, persistentStatus: Boolean(status), statusActive: everbrightStatusActive,
   frames: 32, frameMs: 50, groundWidth: 96, holdMs: 1200, fadeMs: 400,
   fitTarget: !placement.ward, followTarget: true, recipientAnchor: true,
@@ -41,11 +41,11 @@ export const EVERBRIGHT_CLERIC_EFFECTS = entries.map(({ name, suffix, status, ..
 function everbrightClips(effect, status) {
   const file = effect.file ?? effect.slug;
   const clip = (layer = '') => ({
-    name: file + layer, key: 'everbright-cleric-' + file + layer,
+    name: file + layer, key: 'dawnpriest-' + file + layer,
     width: 96, height: 96, frames: 32, start: 0, x: -48, y: effect.clipY ?? -48,
     depth: layer === '-rear' ? 'behind' : 'front', loop: Boolean(status), holdLastFrame: !status,
     opacity: layer === '-rear' ? 0.65 : 1,
-    url: new URL(`../assets/effects/everbright-cleric/${file}${layer}.png`, import.meta.url).href
+    url: new URL(`../assets/effects/dawnpriest/${file}${layer}.png`, import.meta.url).href
   });
   return effect.layers ? [clip('-rear'), clip('-front')] : [clip()];
 }
@@ -69,4 +69,4 @@ export const EVERBRIGHT_FLIGHT_SHEETS = [
   { name: 'everbright-bolt', file: 'radiant-bolt-flight', width: 64, height: 32 },
   { name: 'everbright-ray', file: 'judgement-ray-flight', width: 160, height: 48, rootX: 6, tipX: 156 }
 ].map(sheet => ({ ...sheet, key: 'delivery-' + sheet.name, frames: 32, fps: 20, nativeColors: true,
-  url: new URL(`../assets/effects/everbright-cleric/${sheet.file}.png`, import.meta.url).href }));
+  url: new URL(`../assets/effects/dawnpriest/${sheet.file}.png`, import.meta.url).href }));

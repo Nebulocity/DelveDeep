@@ -198,9 +198,9 @@ export const AUTHORED_EQUIPMENT = [
     "rarity": "common",
     "minimumLevel": 1,
     "usableBy": [
-      "Cleric of the Verdant Covenant",
-      "Cleric of the Everbright",
-      "Cleric of the Sanguine Song"
+      "Grovekeeper",
+      "Dawnpriest",
+      "Sanguinist"
     ],
     "stats": {
       "maxMana": 25,
@@ -236,9 +236,9 @@ export const AUTHORED_EQUIPMENT = [
     "rarity": "common",
     "minimumLevel": 1,
     "usableBy": [
-      "Mage of the Umbral Veil",
-      "Mage of the Luminous Archive",
-      "Mage of the Crimson Spire"
+      "Umbramancer",
+      "Arcanist",
+      "Spellbinder"
     ],
     "stats": {
       "maxMana": 25,
@@ -480,9 +480,9 @@ export const AUTHORED_EQUIPMENT = [
     "rarity": "common",
     "minimumLevel": 7,
     "usableBy": [
-      "Cleric of the Verdant Covenant",
-      "Cleric of the Everbright",
-      "Cleric of the Sanguine Song"
+      "Grovekeeper",
+      "Dawnpriest",
+      "Sanguinist"
     ],
     "stats": {
       "maxMana": 50,
@@ -516,9 +516,9 @@ export const AUTHORED_EQUIPMENT = [
     "rarity": "common",
     "minimumLevel": 7,
     "usableBy": [
-      "Mage of the Umbral Veil",
-      "Mage of the Luminous Archive",
-      "Mage of the Crimson Spire"
+      "Umbramancer",
+      "Arcanist",
+      "Spellbinder"
     ],
     "stats": {
       "maxMana": 50,
@@ -750,9 +750,9 @@ export const AUTHORED_EQUIPMENT = [
     "rarity": "uncommon",
     "minimumLevel": 12,
     "usableBy": [
-      "Cleric of the Verdant Covenant",
-      "Cleric of the Everbright",
-      "Cleric of the Sanguine Song"
+      "Grovekeeper",
+      "Dawnpriest",
+      "Sanguinist"
     ],
     "stats": {
       "maxMana": 50,
@@ -785,9 +785,9 @@ export const AUTHORED_EQUIPMENT = [
     "rarity": "uncommon",
     "minimumLevel": 12,
     "usableBy": [
-      "Mage of the Umbral Veil",
-      "Mage of the Luminous Archive",
-      "Mage of the Crimson Spire"
+      "Umbramancer",
+      "Arcanist",
+      "Spellbinder"
     ],
     "stats": {
       "maxMana": 50,
@@ -1011,9 +1011,9 @@ export const AUTHORED_EQUIPMENT = [
     "rarity": "uncommon",
     "minimumLevel": 17,
     "usableBy": [
-      "Cleric of the Verdant Covenant",
-      "Cleric of the Everbright",
-      "Cleric of the Sanguine Song"
+      "Grovekeeper",
+      "Dawnpriest",
+      "Sanguinist"
     ],
     "stats": {
       "maxMana": 100,
@@ -1045,9 +1045,9 @@ export const AUTHORED_EQUIPMENT = [
     "rarity": "uncommon",
     "minimumLevel": 17,
     "usableBy": [
-      "Mage of the Umbral Veil",
-      "Mage of the Luminous Archive",
-      "Mage of the Crimson Spire"
+      "Umbramancer",
+      "Arcanist",
+      "Spellbinder"
     ],
     "stats": {
       "maxMana": 100,
@@ -1308,9 +1308,9 @@ export const AUTHORED_EQUIPMENT = [
     "rarity": "rare",
     "minimumLevel": 15,
     "usableBy": [
-      "Cleric of the Verdant Covenant",
-      "Cleric of the Everbright",
-      "Cleric of the Sanguine Song"
+      "Grovekeeper",
+      "Dawnpriest",
+      "Sanguinist"
     ],
     "stats": {
       "maxMana": 300,
@@ -1350,9 +1350,9 @@ export const AUTHORED_EQUIPMENT = [
     "rarity": "rare",
     "minimumLevel": 15,
     "usableBy": [
-      "Mage of the Umbral Veil",
-      "Mage of the Luminous Archive",
-      "Mage of the Crimson Spire"
+      "Umbramancer",
+      "Arcanist",
+      "Spellbinder"
     ],
     "stats": {
       "maxMana": 300,
@@ -1588,9 +1588,9 @@ export const AUTHORED_EQUIPMENT = [
     "rarity": "uncommon",
     "minimumLevel": 23,
     "usableBy": [
-      "Cleric of the Verdant Covenant",
-      "Cleric of the Everbright",
-      "Cleric of the Sanguine Song"
+      "Grovekeeper",
+      "Dawnpriest",
+      "Sanguinist"
     ],
     "stats": {
       "spellPower": 134.32,
@@ -1619,9 +1619,9 @@ export const AUTHORED_EQUIPMENT = [
     "rarity": "uncommon",
     "minimumLevel": 23,
     "usableBy": [
-      "Mage of the Umbral Veil",
-      "Mage of the Luminous Archive",
-      "Mage of the Crimson Spire"
+      "Umbramancer",
+      "Arcanist",
+      "Spellbinder"
     ],
     "stats": {
       "spellPower": 134.32,
@@ -2326,12 +2326,12 @@ export const AUTHORED_EQUIPMENT = [
     "rarity": "common",
     "minimumLevel": 1,
     "usableBy": [
-      "Mage of the Umbral Veil",
-      "Mage of the Crimson Spire",
-      "Mage of the Luminous Archive",
-      "Cleric of the Everbright",
-      "Cleric of the Verdant Covenant",
-      "Cleric of the Sanguine Song"
+      "Umbramancer",
+      "Spellbinder",
+      "Arcanist",
+      "Dawnpriest",
+      "Grovekeeper",
+      "Sanguinist"
     ],
     "stats": {
       "maxHp": 30,
@@ -2370,12 +2370,12 @@ export const AUTHORED_EQUIPMENT = [
     "rarity": "common",
     "minimumLevel": 7,
     "usableBy": [
-      "Mage of the Umbral Veil",
-      "Mage of the Crimson Spire",
-      "Mage of the Luminous Archive",
-      "Cleric of the Everbright",
-      "Cleric of the Verdant Covenant",
-      "Cleric of the Sanguine Song"
+      "Umbramancer",
+      "Spellbinder",
+      "Arcanist",
+      "Dawnpriest",
+      "Grovekeeper",
+      "Sanguinist"
     ],
     "stats": {
       "maxHp": 50,
@@ -2412,12 +2412,12 @@ export const AUTHORED_EQUIPMENT = [
     "rarity": "uncommon",
     "minimumLevel": 12,
     "usableBy": [
-      "Mage of the Umbral Veil",
-      "Mage of the Crimson Spire",
-      "Mage of the Luminous Archive",
-      "Cleric of the Everbright",
-      "Cleric of the Verdant Covenant",
-      "Cleric of the Sanguine Song"
+      "Umbramancer",
+      "Spellbinder",
+      "Arcanist",
+      "Dawnpriest",
+      "Grovekeeper",
+      "Sanguinist"
     ],
     "stats": {
       "maxHp": 80,
@@ -2452,12 +2452,12 @@ export const AUTHORED_EQUIPMENT = [
     "rarity": "uncommon",
     "minimumLevel": 17,
     "usableBy": [
-      "Mage of the Umbral Veil",
-      "Mage of the Crimson Spire",
-      "Mage of the Luminous Archive",
-      "Cleric of the Everbright",
-      "Cleric of the Verdant Covenant",
-      "Cleric of the Sanguine Song"
+      "Umbramancer",
+      "Spellbinder",
+      "Arcanist",
+      "Dawnpriest",
+      "Grovekeeper",
+      "Sanguinist"
     ],
     "stats": {
       "maxHp": 120,
@@ -2491,9 +2491,9 @@ export const AUTHORED_EQUIPMENT = [
     "rarity": "rare",
     "minimumLevel": 15,
     "usableBy": [
-      "Mage of the Umbral Veil",
-      "Mage of the Crimson Spire",
-      "Mage of the Luminous Archive"
+      "Umbramancer",
+      "Spellbinder",
+      "Arcanist"
     ],
     "stats": {
       "maxHp": 170,
@@ -2533,9 +2533,9 @@ export const AUTHORED_EQUIPMENT = [
     "rarity": "rare",
     "minimumLevel": 15,
     "usableBy": [
-      "Cleric of the Everbright",
-      "Cleric of the Verdant Covenant",
-      "Cleric of the Sanguine Song"
+      "Dawnpriest",
+      "Grovekeeper",
+      "Sanguinist"
     ],
     "stats": {
       "maxHp": 190,
@@ -2801,9 +2801,9 @@ export const AUTHORED_EQUIPMENT = [
     "rarity": "uncommon",
     "minimumLevel": 23,
     "usableBy": [
-      "Mage of the Umbral Veil",
-      "Mage of the Crimson Spire",
-      "Mage of the Luminous Archive"
+      "Umbramancer",
+      "Spellbinder",
+      "Arcanist"
     ],
     "stats": {
       "maxHp": 250,
@@ -2835,9 +2835,9 @@ export const AUTHORED_EQUIPMENT = [
     "rarity": "uncommon",
     "minimumLevel": 23,
     "usableBy": [
-      "Cleric of the Everbright",
-      "Cleric of the Verdant Covenant",
-      "Cleric of the Sanguine Song"
+      "Dawnpriest",
+      "Grovekeeper",
+      "Sanguinist"
     ],
     "stats": {
       "maxHp": 275,
@@ -2898,12 +2898,12 @@ export const AUTHORED_EQUIPMENT = [
     "rarity": "uncommon",
     "minimumLevel": 10,
     "usableBy": [
-      "Mage of the Umbral Veil",
-      "Mage of the Crimson Spire",
-      "Mage of the Luminous Archive",
-      "Cleric of the Everbright",
-      "Cleric of the Verdant Covenant",
-      "Cleric of the Sanguine Song"
+      "Umbramancer",
+      "Spellbinder",
+      "Arcanist",
+      "Dawnpriest",
+      "Grovekeeper",
+      "Sanguinist"
     ],
     "stats": {
       "maxMana": 80,
@@ -2957,9 +2957,9 @@ export const AUTHORED_EQUIPMENT = [
     "rarity": "uncommon",
     "minimumLevel": 35,
     "usableBy": [
-      "Cleric of the Verdant Covenant",
-      "Cleric of the Everbright",
-      "Cleric of the Sanguine Song"
+      "Grovekeeper",
+      "Dawnpriest",
+      "Sanguinist"
     ],
     "stats": {
       "spellPower": 215.05,
@@ -2990,9 +2990,9 @@ export const AUTHORED_EQUIPMENT = [
     "rarity": "uncommon",
     "minimumLevel": 35,
     "usableBy": [
-      "Mage of the Umbral Veil",
-      "Mage of the Luminous Archive",
-      "Mage of the Crimson Spire"
+      "Umbramancer",
+      "Arcanist",
+      "Spellbinder"
     ],
     "stats": {
       "spellPower": 215.05,
@@ -3055,9 +3055,9 @@ export const AUTHORED_EQUIPMENT = [
     "rarity": "uncommon",
     "minimumLevel": 45,
     "usableBy": [
-      "Cleric of the Verdant Covenant",
-      "Cleric of the Everbright",
-      "Cleric of the Sanguine Song"
+      "Grovekeeper",
+      "Dawnpriest",
+      "Sanguinist"
     ],
     "stats": {
       "spellPower": 318.33,
@@ -3088,9 +3088,9 @@ export const AUTHORED_EQUIPMENT = [
     "rarity": "uncommon",
     "minimumLevel": 45,
     "usableBy": [
-      "Mage of the Umbral Veil",
-      "Mage of the Luminous Archive",
-      "Mage of the Crimson Spire"
+      "Umbramancer",
+      "Arcanist",
+      "Spellbinder"
     ],
     "stats": {
       "spellPower": 318.33,

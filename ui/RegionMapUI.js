@@ -2,6 +2,7 @@
 // artwork, while fixed controls should remain in screen space. Keep the visible list mask
 // and the list's valid touch region lined up.
 
+import { scrollbarSurface } from './Scrollbar.js';
 import { fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import { bindSelectionDetails } from './SelectionDetails.js';
 import { addRegionPanel, addRegionButton, setRegionPanelState } from './RegionMapTheme.js';
@@ -95,13 +96,12 @@ export function createRegionLocationRail(scene, locations, canVisit, isCleared, 
   // Math.max chooses the largest value; pairing it with Math.min can keep a result inside
   // both a lower and an upper bound.
   const maxOffset = Math.max(0, firstY + (locations.length - 1) * rowStep + rowHeight / 2 - listBottom);
-  const track = scene.add.graphics().lineStyle(4, 0xd3a750, 0.35)
-    .lineBetween(0, -(listBottom - listTop - 10) / 2, 0, (listBottom - listTop - 10) / 2)
-    .setPosition(width - 12, (listTop + listBottom) / 2).setScrollFactor(0).setDepth(1003);
+  const track = scrollbarSurface(scene, width - 12, (listTop + listBottom) / 2,
+    20, listBottom - listTop - 10, 'track', 1003).setScrollFactor(0);
   const thumbHeight = Math.max(70, (listBottom - listTop) ** 2 / (listBottom - listTop + maxOffset));
-  const thumb = scene.add.graphics().lineStyle(8, 0xe1c887, 0.9)
-    .lineBetween(0, -thumbHeight / 2, 0, thumbHeight / 2)
-    .setPosition(width - 12, listTop + 5 + thumbHeight / 2).setScrollFactor(0).setDepth(1004);
+  const thumb = scrollbarSurface(scene, width - 12, listTop + 5 + thumbHeight / 2,
+    20, thumbHeight, 'thumb', 1004).setScrollFactor(0);
+  thumb.setScrollbarProgress(0, listBottom - listTop - 10);
 
   track.setVisible(maxOffset > 0);
   thumb.setVisible(maxOffset > 0);
@@ -112,6 +112,7 @@ export function createRegionLocationRail(scene, locations, canVisit, isCleared, 
     list.y = -Math.max(0, Math.min(maxOffset, -list.y + delta));
     if (maxOffset > 0) thumb.y = listTop + 5 + thumbHeight / 2
       + (-list.y / maxOffset) * (listBottom - listTop - 10 - thumbHeight);
+    thumb.setScrollbarProgress(maxOffset ? -list.y / maxOffset : 0, listBottom - listTop - 10);
   };
 
   const inList = pointer => !scene.selectionDetailsClose && pointer.x >= 18 && pointer.x <= width - 18 && pointer.y >= listTop && pointer.y <= listBottom;

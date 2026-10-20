@@ -1,7 +1,7 @@
 // Finished sheets use 32 frames at 20 FPS. Existing combat records own lasting
 // artwork, so resumed encounters need no additional saved fields.
 
-const PREFIX = 'ability_v2_umbral_mage_';
+const PREFIX = 'ability_v2_umbramancer_';
 const entries = [
   { slug: 'dark-meditation', name: 'Dark Meditation', status: 'channel', targetCaster: true, depth: 'behind', targetSize: 1.7 },
   { slug: 'shadow-trap', name: 'Shadow Trap', status: 'reaction', targetCaster: true, depth: 'behind', targetSize: 1.6 },
@@ -26,10 +26,10 @@ const entries = [
   { slug: 'drain-mana', file: 'mana-return', suffix: 'essence_drain', name: 'Essence Drain', vfxPhase: 'mana', targetSize: 1.1 }
 ];
 
-export const UMBRAL_MAGE_EFFECTS = entries.map(({ name, suffix, status, depth, ...placement }) => {
+export const UMBRAMANCER_EFFECTS = entries.map(({ name, suffix, status, depth, ...placement }) => {
   const file = placement.file ?? placement.slug;
   return {
-    ...placement, id: 'umbral-' + placement.slug, className: 'Mage of the Umbral Veil', abilityName: name,
+    ...placement, id: 'umbral-' + placement.slug, className: 'Umbramancer', abilityName: name,
     abilityId: PREFIX + (suffix ?? placement.slug.replaceAll('-', '_')),
     umbralStatus: status, persistentStatus: Boolean(status), statusActive: umbralStatusActive,
     frames: 32, frameMs: 50, holdMs: 1200, fadeMs: 400, groundWidth: 96,
@@ -39,7 +39,7 @@ export const UMBRAL_MAGE_EFFECTS = entries.map(({ name, suffix, status, depth, .
     clips: [{ name: file, key: 'umbral-' + file, width: 96, height: 96, frames: 32,
       start: 0, x: -48, y: placement.clipY ?? -48, depth: depth ?? 'front',
       loop: Boolean(status), holdLastFrame: !status,
-      url: new URL(`../assets/effects/umbral-mage/${file}.png`, import.meta.url).href }]
+      url: new URL(`../assets/effects/umbramancer/${file}.png`, import.meta.url).href }]
   };
 });
 
@@ -66,4 +66,4 @@ export const UMBRAL_FLIGHT_SHEETS = [
   { name: 'umbral-siphon', file: 'siphon-flight', width: 160, height: 48, rootX: 6, tipX: 154 },
   { name: 'umbral-drain', file: 'essence-drain-flight', width: 160, height: 48, rootX: 6, tipX: 154 }
 ].map(sheet => ({ ...sheet, key: 'delivery-' + sheet.name, frames: 32, fps: 20, nativeColors: true,
-  url: new URL(`../assets/effects/umbral-mage/${sheet.file}.png`, import.meta.url).href }));
+  url: new URL(`../assets/effects/umbramancer/${sheet.file}.png`, import.meta.url).href }));

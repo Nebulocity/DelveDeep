@@ -1,6 +1,5 @@
 // Class identity, not character ID, chooses portrait atmosphere and heraldry. Reuse
 // cached environment art only; the roster must not load extra full-size battlefields.
-import { CLASS_CATALOG_NAMES } from './replacementAbilities.js';
 
 export const PORTRAIT_ARCHETYPES = Object.freeze({
   keep: { backgroundKey: 'old-quarry-chamber', color: 0x1d355b, banner: 0x183c71 },
@@ -20,13 +19,13 @@ export const CLASS_PORTRAIT_ART = Object.freeze({
   Dawnwarden: { archetype: 'dawn' }, Barbarian: { archetype: 'warcamp' },
   Scoundrel: { archetype: 'shadow' }, Ranger: { archetype: 'woodland' },
   Barmaid: { archetype: 'tavern' }, Runedancer: { archetype: 'arcane' },
-  'Umbral Mage': { archetype: 'shadow' }, 'Crimson Mage': { archetype: 'ember' },
-  'Luminous Mage': { archetype: 'arcane' }, 'Everbright Cleric': { archetype: 'dawn' },
-  'Verdant Cleric': { archetype: 'grove' }, 'Sanguine Cleric': { archetype: 'ember' }
+  'Umbramancer': { archetype: 'shadow' }, 'Spellbinder': { archetype: 'ember' },
+  'Arcanist': { archetype: 'arcane' }, 'Dawnpriest': { archetype: 'dawn' },
+  'Grovekeeper': { archetype: 'grove' }, 'Sanguinist': { archetype: 'ember' }
 });
 
 export function combatPortraitArt(className) {
-  const identity = CLASS_CATALOG_NAMES[className] ?? className;
+  const identity = className;
   const entry = CLASS_PORTRAIT_ART[identity] ?? { archetype: 'neutral' };
   return { ...PORTRAIT_ARCHETYPES[entry.archetype], ...entry,
     iconKey: `class-icon-${identity?.toLowerCase().replaceAll(' ', '_')}` };

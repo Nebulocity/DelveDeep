@@ -1356,10 +1356,10 @@ export const ABILITY_WORKBOOK = {
     }
   },
 
-  "Mage of the Umbral Veil": {
+  "Umbramancer": {
     "Umbral Grasp": {
       "Role": "Ranged DPS",
-      "Ability ID": "mage_of_the_umbral_veil_grasp",
+      "Ability ID": "umbramancer_grasp",
       "Ability": "Umbral Grasp",
       "Category": "Assault",
       "Target": "Single enemy",
@@ -1378,7 +1378,7 @@ export const ABILITY_WORKBOOK = {
 
     "Nightbolt": {
       "Role": "Ranged DPS",
-      "Ability ID": "mage_of_the_umbral_veil_nightbolt",
+      "Ability ID": "umbramancer_nightbolt",
       "Ability": "Nightbolt",
       "Category": "Assault",
       "Target": "Single enemy",
@@ -1397,7 +1397,7 @@ export const ABILITY_WORKBOOK = {
 
     "Gloomburst": {
       "Role": "Ranged DPS",
-      "Ability ID": "mage_of_the_umbral_veil_gloom",
+      "Ability ID": "umbramancer_gloom",
       "Ability": "Gloomburst",
       "Category": "Assault",
       "Target": "Enemies",
@@ -1416,7 +1416,7 @@ export const ABILITY_WORKBOOK = {
 
     "Veilstep": {
       "Role": "Ranged DPS",
-      "Ability ID": "mage_of_the_umbral_veil_veilstep",
+      "Ability ID": "umbramancer_veilstep",
       "Ability": "Veilstep",
       "Category": "Prepare",
       "Target": "Self",
@@ -1435,7 +1435,7 @@ export const ABILITY_WORKBOOK = {
 
     "Void Needle": {
       "Role": "Ranged DPS",
-      "Ability ID": "mage_of_the_umbral_veil_void_needle",
+      "Ability ID": "umbramancer_void_needle",
       "Ability": "Void Needle",
       "Category": "Assault",
       "Target": "Single enemy",
@@ -1454,7 +1454,7 @@ export const ABILITY_WORKBOOK = {
 
     "Eclipse Field": {
       "Role": "Ranged DPS",
-      "Ability ID": "mage_of_the_umbral_veil_eclipse_field",
+      "Ability ID": "umbramancer_eclipse_field",
       "Ability": "Eclipse Field",
       "Category": "Assault",
       "Target": "Enemies",
@@ -1473,7 +1473,7 @@ export const ABILITY_WORKBOOK = {
 
     "Veil Mantle": {
       "Role": "Ranged DPS",
-      "Ability ID": "mage_of_the_umbral_veil_veil_mantle",
+      "Ability ID": "umbramancer_veil_mantle",
       "Ability": "Veil Mantle",
       "Category": "Protect",
       "Target": "Single ally or self",
@@ -1492,7 +1492,7 @@ export const ABILITY_WORKBOOK = {
 
     "Siphon Breath": {
       "Role": "Ranged DPS",
-      "Ability ID": "mage_of_the_umbral_veil_siphon_breath",
+      "Ability ID": "umbramancer_siphon_breath",
       "Ability": "Siphon Breath",
       "Category": "Restore",
       "Target": "Self",
@@ -1511,7 +1511,7 @@ export const ABILITY_WORKBOOK = {
 
     "Night Focus": {
       "Role": "Ranged DPS",
-      "Ability ID": "mage_of_the_umbral_veil_night_focus",
+      "Ability ID": "umbramancer_night_focus",
       "Ability": "Night Focus",
       "Category": "Prepare",
       "Target": "Self",
@@ -1530,7 +1530,7 @@ export const ABILITY_WORKBOOK = {
 
     "Shrouded Steps": {
       "Role": "Ranged DPS",
-      "Ability ID": "mage_of_the_umbral_veil_shrouded_steps",
+      "Ability ID": "umbramancer_shrouded_steps",
       "Ability": "Shrouded Steps",
       "Category": "Prepare",
       "Target": "Self",
@@ -1548,10 +1548,10 @@ export const ABILITY_WORKBOOK = {
     }
   },
 
-  "Mage of the Crimson Spire": {
+  "Spellbinder": {
     "Arcane Stabilization": {
       "Role": "Ranged DPS",
-      "Ability ID": "mage_of_the_crimson_spire_stabilization",
+      "Ability ID": "spellbinder_stabilization",
       "Ability": "Arcane Stabilization",
       "Category": "Prepare",
       "Target": "Self",
@@ -1570,7 +1570,7 @@ export const ABILITY_WORKBOOK = {
 
     "Crimson Lash": {
       "Role": "Ranged DPS",
-      "Ability ID": "mage_of_the_crimson_spire_lash",
+      "Ability ID": "spellbinder_lash",
       "Ability": "Crimson Lash",
       "Category": "Assault",
       "Target": "Enemies",
@@ -1589,7 +1589,7 @@ export const ABILITY_WORKBOOK = {
 
     "Arcflare": {
       "Role": "Ranged DPS",
-      "Ability ID": "mage_of_the_crimson_spire_arcflare",
+      "Ability ID": "spellbinder_arcflare",
       "Ability": "Arcflare",
       "Category": "Assault",
       "Target": "Enemies",
@@ -1608,7 +1608,7 @@ export const ABILITY_WORKBOOK = {
 
     "Spireburst": {
       "Role": "Ranged DPS",
-      "Ability ID": "mage_of_the_crimson_spire_spire",
+      "Ability ID": "spellbinder_spire",
       "Ability": "Spireburst",
       "Category": "Assault",
       "Target": "Enemies",
@@ -1627,7 +1627,7 @@ export const ABILITY_WORKBOOK = {
 
     "Crimson Lance": {
       "Role": "Ranged DPS",
-      "Ability ID": "mage_of_the_crimson_spire_crimson_lance",
+      "Ability ID": "spellbinder_crimson_lance",
       "Ability": "Crimson Lance",
       "Category": "Assault",
       "Target": "Single enemy",
@@ -1646,7 +1646,7 @@ export const ABILITY_WORKBOOK = {
 
     "Shatter Pattern": {
       "Role": "Ranged DPS",
-      "Ability ID": "mage_of_the_crimson_spire_shatter_pattern",
+      "Ability ID": "spellbinder_shatter_pattern",
       "Ability": "Shatter Pattern",
       "Category": "Assault",
       "Target": "Enemies",
@@ -1665,7 +1665,7 @@ export const ABILITY_WORKBOOK = {
 
     "Rune Shell": {
       "Role": "Ranged DPS",
-      "Ability ID": "mage_of_the_crimson_spire_rune_shell",
+      "Ability ID": "spellbinder_rune_shell",
       "Ability": "Rune Shell",
       "Category": "Protect",
       "Target": "Single ally or self",
@@ -1684,7 +1684,7 @@ export const ABILITY_WORKBOOK = {
 
     "Arcane Reweave": {
       "Role": "Ranged DPS",
-      "Ability ID": "mage_of_the_crimson_spire_arcane_reweave",
+      "Ability ID": "spellbinder_arcane_reweave",
       "Ability": "Arcane Reweave",
       "Category": "Restore",
       "Target": "Self",
@@ -1703,7 +1703,7 @@ export const ABILITY_WORKBOOK = {
 
     "Overcharge Sigil": {
       "Role": "Ranged DPS",
-      "Ability ID": "mage_of_the_crimson_spire_overcharge_sigil",
+      "Ability ID": "spellbinder_overcharge_sigil",
       "Ability": "Overcharge Sigil",
       "Category": "Prepare",
       "Target": "Self",
@@ -1722,7 +1722,7 @@ export const ABILITY_WORKBOOK = {
 
     "Measured Casting": {
       "Role": "Ranged DPS",
-      "Ability ID": "mage_of_the_crimson_spire_measured_casting",
+      "Ability ID": "spellbinder_measured_casting",
       "Ability": "Measured Casting",
       "Category": "Prepare",
       "Target": "Self",
@@ -1740,10 +1740,10 @@ export const ABILITY_WORKBOOK = {
     }
   },
 
-  "Mage of the Luminous Archive": {
+  "Arcanist": {
     "Scripted Refuge": {
       "Role": "Ranged DPS",
-      "Ability ID": "mage_of_the_luminous_archive_refuge",
+      "Ability ID": "arcanist_refuge",
       "Ability": "Scripted Refuge",
       "Category": "Protect",
       "Target": "Self",
@@ -1762,7 +1762,7 @@ export const ABILITY_WORKBOOK = {
 
     "Radiant Touch": {
       "Role": "Ranged DPS",
-      "Ability ID": "mage_of_the_luminous_archive_touch",
+      "Ability ID": "arcanist_touch",
       "Ability": "Radiant Touch",
       "Category": "Assault",
       "Target": "Single enemy",
@@ -1781,7 +1781,7 @@ export const ABILITY_WORKBOOK = {
 
     "Lumenspear": {
       "Role": "Ranged DPS",
-      "Ability ID": "mage_of_the_luminous_archive_spear",
+      "Ability ID": "arcanist_spear",
       "Ability": "Lumenspear",
       "Category": "Assault",
       "Target": "Single enemy",
@@ -1800,7 +1800,7 @@ export const ABILITY_WORKBOOK = {
 
     "Libram of Knowledge": {
       "Role": "Ranged DPS",
-      "Ability ID": "mage_of_the_luminous_archive_libram",
+      "Ability ID": "arcanist_libram",
       "Ability": "Libram of Knowledge",
       "Category": "Assault",
       "Target": "Enemies",
@@ -1819,7 +1819,7 @@ export const ABILITY_WORKBOOK = {
 
     "Index of Light": {
       "Role": "Ranged DPS",
-      "Ability ID": "mage_of_the_luminous_archive_index_of_light",
+      "Ability ID": "arcanist_index_of_light",
       "Ability": "Index of Light",
       "Category": "Assault",
       "Target": "Single enemy",
@@ -1838,7 +1838,7 @@ export const ABILITY_WORKBOOK = {
 
     "Prism Script": {
       "Role": "Ranged DPS",
-      "Ability ID": "mage_of_the_luminous_archive_prism_script",
+      "Ability ID": "arcanist_prism_script",
       "Ability": "Prism Script",
       "Category": "Assault",
       "Target": "Enemies",
@@ -1857,7 +1857,7 @@ export const ABILITY_WORKBOOK = {
 
     "Margin Ward": {
       "Role": "Ranged DPS",
-      "Ability ID": "mage_of_the_luminous_archive_margin_ward",
+      "Ability ID": "arcanist_margin_ward",
       "Ability": "Margin Ward",
       "Category": "Protect",
       "Target": "Single ally or self",
@@ -1876,7 +1876,7 @@ export const ABILITY_WORKBOOK = {
 
     "Self Annotation": {
       "Role": "Ranged DPS",
-      "Ability ID": "mage_of_the_luminous_archive_self_annotation",
+      "Ability ID": "arcanist_self_annotation",
       "Ability": "Self Annotation",
       "Category": "Restore",
       "Target": "Self",
@@ -1895,7 +1895,7 @@ export const ABILITY_WORKBOOK = {
 
     "Illuminated Thesis": {
       "Role": "Ranged DPS",
-      "Ability ID": "mage_of_the_luminous_archive_illuminated_thesis",
+      "Ability ID": "arcanist_illuminated_thesis",
       "Ability": "Illuminated Thesis",
       "Category": "Prepare",
       "Target": "Self",
@@ -1914,7 +1914,7 @@ export const ABILITY_WORKBOOK = {
 
     "Quick Reference": {
       "Role": "Ranged DPS",
-      "Ability ID": "mage_of_the_luminous_archive_quick_reference",
+      "Ability ID": "arcanist_quick_reference",
       "Ability": "Quick Reference",
       "Category": "Prepare",
       "Target": "Self",
@@ -1932,10 +1932,10 @@ export const ABILITY_WORKBOOK = {
     }
   },
 
-  "Cleric of the Everbright": {
+  "Dawnpriest": {
     "Solar Aegis": {
       "Role": "Healer",
-      "Ability ID": "cleric_of_the_everbright_aegis",
+      "Ability ID": "dawnpriest_aegis",
       "Ability": "Solar Aegis",
       "Category": "Prepare",
       "Target": "Self",
@@ -1954,7 +1954,7 @@ export const ABILITY_WORKBOOK = {
 
     "Blessing of the Dawn": {
       "Role": "Healer",
-      "Ability ID": "cleric_of_the_everbright_blessing",
+      "Ability ID": "dawnpriest_blessing",
       "Ability": "Blessing of the Dawn",
       "Category": "Restore",
       "Target": "Single ally or self",
@@ -1973,7 +1973,7 @@ export const ABILITY_WORKBOOK = {
 
     "Ray of Benediction": {
       "Role": "Healer",
-      "Ability ID": "cleric_of_the_everbright_ray",
+      "Ability ID": "dawnpriest_ray",
       "Ability": "Ray of Benediction",
       "Category": "Restore",
       "Target": "Single ally or self",
@@ -1992,7 +1992,7 @@ export const ABILITY_WORKBOOK = {
 
     "Everbright Pulse": {
       "Role": "Healer",
-      "Ability ID": "cleric_of_the_everbright_pulse",
+      "Ability ID": "dawnpriest_pulse",
       "Ability": "Everbright Pulse",
       "Category": "Restore",
       "Target": "Allies",
@@ -2011,7 +2011,7 @@ export const ABILITY_WORKBOOK = {
 
     "Judgement Spark": {
       "Role": "Healer",
-      "Ability ID": "cleric_of_the_everbright_judgement",
+      "Ability ID": "dawnpriest_judgement",
       "Ability": "Judgement Spark",
       "Category": "Assault",
       "Target": "Single enemy",
@@ -2030,7 +2030,7 @@ export const ABILITY_WORKBOOK = {
 
     "Dawn Benediction": {
       "Role": "Healer",
-      "Ability ID": "cleric_of_the_everbright_dawn_benediction",
+      "Ability ID": "dawnpriest_dawn_benediction",
       "Ability": "Dawn Benediction",
       "Category": "Restore",
       "Target": "Single ally or self",
@@ -2049,7 +2049,7 @@ export const ABILITY_WORKBOOK = {
 
     "Morning Chorus": {
       "Role": "Healer",
-      "Ability ID": "cleric_of_the_everbright_morning_chorus",
+      "Ability ID": "dawnpriest_morning_chorus",
       "Ability": "Morning Chorus",
       "Category": "Restore",
       "Target": "Allies",
@@ -2068,7 +2068,7 @@ export const ABILITY_WORKBOOK = {
 
     "Halo Ward": {
       "Role": "Healer",
-      "Ability ID": "cleric_of_the_everbright_halo_ward",
+      "Ability ID": "dawnpriest_halo_ward",
       "Ability": "Halo Ward",
       "Category": "Protect",
       "Target": "Single ally or self",
@@ -2087,7 +2087,7 @@ export const ABILITY_WORKBOOK = {
 
     "Sanctuary Light": {
       "Role": "Healer",
-      "Ability ID": "cleric_of_the_everbright_sanctuary_light",
+      "Ability ID": "dawnpriest_sanctuary_light",
       "Ability": "Sanctuary Light",
       "Category": "Protect",
       "Target": "Allies",
@@ -2106,7 +2106,7 @@ export const ABILITY_WORKBOOK = {
 
     "Prayer of Clarity": {
       "Role": "Healer",
-      "Ability ID": "cleric_of_the_everbright_prayer_of_clarity",
+      "Ability ID": "dawnpriest_prayer_of_clarity",
       "Ability": "Prayer of Clarity",
       "Category": "Prepare",
       "Target": "Self",
@@ -2125,7 +2125,7 @@ export const ABILITY_WORKBOOK = {
 
     "Kindled Faith": {
       "Role": "Healer",
-      "Ability ID": "cleric_of_the_everbright_kindled_faith",
+      "Ability ID": "dawnpriest_kindled_faith",
       "Ability": "Kindled Faith",
       "Category": "Prepare",
       "Target": "Self",
@@ -2143,10 +2143,10 @@ export const ABILITY_WORKBOOK = {
     }
   },
 
-  "Cleric of the Verdant Covenant": {
+  "Grovekeeper": {
     "Rootbound Refuge": {
       "Role": "Healer",
-      "Ability ID": "cleric_of_the_verdant_covenant_refuge",
+      "Ability ID": "grovekeeper_refuge",
       "Ability": "Rootbound Refuge",
       "Category": "Protect",
       "Target": "Self",
@@ -2165,7 +2165,7 @@ export const ABILITY_WORKBOOK = {
 
     "Verdant Touch": {
       "Role": "Healer",
-      "Ability ID": "cleric_of_the_verdant_covenant_touch",
+      "Ability ID": "grovekeeper_touch",
       "Ability": "Verdant Touch",
       "Category": "Restore",
       "Target": "Single ally or self",
@@ -2184,7 +2184,7 @@ export const ABILITY_WORKBOOK = {
 
     "Bramble Mend": {
       "Role": "Healer",
-      "Ability ID": "cleric_of_the_verdant_covenant_mend",
+      "Ability ID": "grovekeeper_mend",
       "Ability": "Bramble Mend",
       "Category": "Restore",
       "Target": "Single ally or self",
@@ -2203,7 +2203,7 @@ export const ABILITY_WORKBOOK = {
 
     "Bloomfield Surge": {
       "Role": "Healer",
-      "Ability ID": "cleric_of_the_verdant_covenant_bloom",
+      "Ability ID": "grovekeeper_bloom",
       "Ability": "Bloomfield Surge",
       "Category": "Restore",
       "Target": "Allies",
@@ -2222,7 +2222,7 @@ export const ABILITY_WORKBOOK = {
 
     "Thornlance": {
       "Role": "Healer",
-      "Ability ID": "cleric_of_the_verdant_covenant_thorn",
+      "Ability ID": "grovekeeper_thorn",
       "Ability": "Thornlance",
       "Category": "Assault",
       "Target": "Single enemy",
@@ -2241,7 +2241,7 @@ export const ABILITY_WORKBOOK = {
 
     "Seedling Mend": {
       "Role": "Healer",
-      "Ability ID": "cleric_of_the_verdant_covenant_seedling_mend",
+      "Ability ID": "grovekeeper_seedling_mend",
       "Ability": "Seedling Mend",
       "Category": "Restore",
       "Target": "Single ally or self",
@@ -2260,7 +2260,7 @@ export const ABILITY_WORKBOOK = {
 
     "Spring Canopy": {
       "Role": "Healer",
-      "Ability ID": "cleric_of_the_verdant_covenant_spring_canopy",
+      "Ability ID": "grovekeeper_spring_canopy",
       "Ability": "Spring Canopy",
       "Category": "Restore",
       "Target": "Allies",
@@ -2279,7 +2279,7 @@ export const ABILITY_WORKBOOK = {
 
     "Barkskin Oath": {
       "Role": "Healer",
-      "Ability ID": "cleric_of_the_verdant_covenant_barkskin_oath",
+      "Ability ID": "grovekeeper_barkskin_oath",
       "Ability": "Barkskin Oath",
       "Category": "Protect",
       "Target": "Single ally or self",
@@ -2298,7 +2298,7 @@ export const ABILITY_WORKBOOK = {
 
     "Grove Shelter": {
       "Role": "Healer",
-      "Ability ID": "cleric_of_the_verdant_covenant_grove_shelter",
+      "Ability ID": "grovekeeper_grove_shelter",
       "Ability": "Grove Shelter",
       "Category": "Protect",
       "Target": "Allies",
@@ -2317,7 +2317,7 @@ export const ABILITY_WORKBOOK = {
 
     "Living Sap": {
       "Role": "Healer",
-      "Ability ID": "cleric_of_the_verdant_covenant_living_sap",
+      "Ability ID": "grovekeeper_living_sap",
       "Ability": "Living Sap",
       "Category": "Prepare",
       "Target": "Self",
@@ -2336,7 +2336,7 @@ export const ABILITY_WORKBOOK = {
 
     "Rooted Patience": {
       "Role": "Healer",
-      "Ability ID": "cleric_of_the_verdant_covenant_rooted_patience",
+      "Ability ID": "grovekeeper_rooted_patience",
       "Ability": "Rooted Patience",
       "Category": "Prepare",
       "Target": "Self",
@@ -2354,10 +2354,10 @@ export const ABILITY_WORKBOOK = {
     }
   },
 
-  "Cleric of the Sanguine Song": {
+  "Sanguinist": {
     "Bloodsong Ascendance": {
       "Role": "Healer",
-      "Ability ID": "cleric_of_the_sanguine_song_ascendance",
+      "Ability ID": "sanguinist_ascendance",
       "Ability": "Bloodsong Ascendance",
       "Category": "Prepare",
       "Target": "Self",
@@ -2376,7 +2376,7 @@ export const ABILITY_WORKBOOK = {
 
     "Sanguine Transfer": {
       "Role": "Healer",
-      "Ability ID": "cleric_of_the_sanguine_song_transfer",
+      "Ability ID": "sanguinist_transfer",
       "Ability": "Sanguine Transfer",
       "Category": "Restore",
       "Target": "Single ally or self",
@@ -2395,7 +2395,7 @@ export const ABILITY_WORKBOOK = {
 
     "Hemoflow Beam": {
       "Role": "Healer",
-      "Ability ID": "cleric_of_the_sanguine_song_beam",
+      "Ability ID": "sanguinist_beam",
       "Ability": "Hemoflow Beam",
       "Category": "Restore",
       "Target": "Single ally or self",
@@ -2414,7 +2414,7 @@ export const ABILITY_WORKBOOK = {
 
     "Crimson Chorus": {
       "Role": "Healer",
-      "Ability ID": "cleric_of_the_sanguine_song_chorus",
+      "Ability ID": "sanguinist_chorus",
       "Ability": "Crimson Chorus",
       "Category": "Restore",
       "Target": "Allies",
@@ -2433,7 +2433,7 @@ export const ABILITY_WORKBOOK = {
 
     "Vessel Rend": {
       "Role": "Healer",
-      "Ability ID": "cleric_of_the_sanguine_song_rend",
+      "Ability ID": "sanguinist_rend",
       "Ability": "Vessel Rend",
       "Category": "Assault",
       "Target": "Single enemy",
@@ -2452,7 +2452,7 @@ export const ABILITY_WORKBOOK = {
 
     "Pulse Exchange": {
       "Role": "Healer",
-      "Ability ID": "cleric_of_the_sanguine_song_pulse_exchange",
+      "Ability ID": "sanguinist_pulse_exchange",
       "Ability": "Pulse Exchange",
       "Category": "Restore",
       "Target": "Single ally or self",
@@ -2471,7 +2471,7 @@ export const ABILITY_WORKBOOK = {
 
     "Red Refrain": {
       "Role": "Healer",
-      "Ability ID": "cleric_of_the_sanguine_song_red_refrain",
+      "Ability ID": "sanguinist_red_refrain",
       "Ability": "Red Refrain",
       "Category": "Restore",
       "Target": "Allies",
@@ -2490,7 +2490,7 @@ export const ABILITY_WORKBOOK = {
 
     "Vein Ward": {
       "Role": "Healer",
-      "Ability ID": "cleric_of_the_sanguine_song_vein_ward",
+      "Ability ID": "sanguinist_vein_ward",
       "Ability": "Vein Ward",
       "Category": "Protect",
       "Target": "Single ally or self",
@@ -2509,7 +2509,7 @@ export const ABILITY_WORKBOOK = {
 
     "Chorus of Shelter": {
       "Role": "Healer",
-      "Ability ID": "cleric_of_the_sanguine_song_chorus_of_shelter",
+      "Ability ID": "sanguinist_chorus_of_shelter",
       "Ability": "Chorus of Shelter",
       "Category": "Protect",
       "Target": "Allies",
@@ -2528,7 +2528,7 @@ export const ABILITY_WORKBOOK = {
 
     "Measured Pulse": {
       "Role": "Healer",
-      "Ability ID": "cleric_of_the_sanguine_song_measured_pulse",
+      "Ability ID": "sanguinist_measured_pulse",
       "Ability": "Measured Pulse",
       "Category": "Prepare",
       "Target": "Self",
@@ -2547,7 +2547,7 @@ export const ABILITY_WORKBOOK = {
 
     "Quiet Cadence": {
       "Role": "Healer",
-      "Ability ID": "cleric_of_the_sanguine_song_quiet_cadence",
+      "Ability ID": "sanguinist_quiet_cadence",
       "Ability": "Quiet Cadence",
       "Category": "Prepare",
       "Target": "Self",
@@ -2605,35 +2605,35 @@ export const STARTER_KITS = {
     "Sunbrand Strike",
     "Sunlit Ward"
   ],
-  "Mage of the Umbral Veil": [
+  "Umbramancer": [
     "Nightbolt",
     "Veilstep",
     "Siphon Breath"
   ],
 
-  "Mage of the Crimson Spire": [
+  "Spellbinder": [
     "Arcane Stabilization",
     "Arcflare",
     "Arcane Reweave"
   ],
-  "Mage of the Luminous Archive": [
+  "Arcanist": [
     "Scripted Refuge",
     "Lumenspear",
     "Self Annotation"
   ],
 
-  "Cleric of the Everbright": [
+  "Dawnpriest": [
     "Blessing of the Dawn",
     "Everbright Pulse",
     "Halo Ward"
   ],
-  "Cleric of the Verdant Covenant": [
+  "Grovekeeper": [
     "Verdant Touch",
     "Bloomfield Surge",
     "Barkskin Oath"
   ],
 
-  "Cleric of the Sanguine Song": [
+  "Sanguinist": [
     "Hemoflow Beam",
     "Crimson Chorus",
     "Vein Ward"

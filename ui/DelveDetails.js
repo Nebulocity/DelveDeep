@@ -1,3 +1,4 @@
+import { scrollbarSurface } from './Scrollbar.js';
 import { combatPanel, combatText } from './CombatHudTheme.js';
 import { addRegionPanel, addRegionButton } from './RegionMapTheme.js';
 import { syncRegionMapCameras } from './RegionMapUI.js';
@@ -78,7 +79,7 @@ export function showDelveDetails(scene, details) {
     cursor = body.y + body.height + 28;
   }
   const scroll = hallScroll(scene, bounds, content, cursor - bounds.y, 0, () => {},
-    (owner, px, py, sw, sh) => combatPanel(owner, px, py, sw, sh, depth + 4)
+    (owner, px, py, sw, sh, kind) => scrollbarSurface(owner, px, py, sw, sh, kind, depth + 4)
       .setScrollFactor(0), blocked);
   objects.push(scroll.container.setDepth(depth + 4));
 

@@ -1,3 +1,4 @@
+import { isMageClass } from '../config/characterProgression.js';
 // We turn ability data into the held details a player can read. Use current ranked values
 // and gear-adjusted power here so the explanation matches the chosen adventurer. Displayed
 // base damage still precedes random critical hits and the target's mitigation.
@@ -252,7 +253,7 @@ export function leaderAbilityDescription(ability, party = []) {
   }
 
   if (ability.id === 'lunarAssault') {
-    const attackers = party.filter(hero => hero.alive !== false && hero.className?.startsWith('Mage of the'));
+    const attackers = party.filter(hero => hero.alive !== false && isMageClass(hero.className));
     if (!attackers.length) return `${ability.description} Range: Anywhere in the arena. Requires a living mage; affected enemies must be engaged.`;
     const damage = attackers.reduce((total, hero) => total + (hero.spellPower ?? hero.spellDamage), 0) * 3;
 

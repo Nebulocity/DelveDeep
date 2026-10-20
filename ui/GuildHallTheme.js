@@ -1,5 +1,6 @@
 // Hall rooms share the Town Hub's illustrated charcoal and gold materials. Large
 // panels carry the carvings; repeated rows and inset details use restrained trim.
+import { scrollbarSurface } from './Scrollbar.js';
 import { serviceFrame, serviceCard, serviceIcon } from './TownServiceTheme.js';
 
 export const GUILD = { ink: '#fff1d2', paper: '#ebd7b4', brass: 0xd3a750, bright: 0xffdb86, oak: 0x191f26 };
@@ -9,7 +10,10 @@ export function isGuildHall(scene) {
 }
 
 export function guildSurface(scene, x, y, width, height, variant = 'panel', selected = false) {
-  const plain = ['row', 'paper', 'track', 'thumb'].includes(variant);
+  if (variant === 'track' || variant === 'thumb') {
+    return scrollbarSurface(scene, x, y, width, height, variant).setName(`guild-${variant}`);
+  }
+  const plain = ['row', 'paper'].includes(variant);
   const surface = plain ? serviceCard(scene, x, y, width, height, { selected, track: variant === 'thumb' })
     : serviceFrame(scene, x, y, width, height, variant === 'beam' ? 'bar' : variant === 'button' ? selected ? 'selected' : 'option' : 'panel');
   return surface.setName(`guild-${variant}`);

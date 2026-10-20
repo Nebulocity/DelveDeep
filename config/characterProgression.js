@@ -63,9 +63,14 @@ export const CLASS_PROGRESSION = {
   Runedancer: 'Runedancer',
   Gladiator: 'Tank', Oathwarden: 'Tank', Dawnwarden: 'Dawnwarden',
   Barmaid: 'Melee', Scoundrel: 'Melee', Barbarian: 'Melee', Ranger: 'Ranged',
-  'Mage of the Umbral Veil': 'Mage', 'Mage of the Crimson Spire': 'Mage', 'Mage of the Luminous Archive': 'Mage',
-  'Cleric of the Everbright': 'Healer', 'Cleric of the Verdant Covenant': 'Healer', 'Cleric of the Sanguine Song': 'Healer'
+  'Umbramancer': 'Mage', 'Spellbinder': 'Mage', 'Arcanist': 'Mage',
+  'Dawnpriest': 'Healer', 'Grovekeeper': 'Healer', 'Sanguinist': 'Healer'
 };
+
+// The three ranged spellcaster classes share mage progression and tactic eligibility.
+export function isMageClass(className) {
+  return CLASS_PROGRESSION[className] === 'Mage';
+}
 
 // Each class can tune its Spell Power healing without changing damage or shared spells.
 // A multiplier of 0.25 means one quarter of the catalog's reference healing coefficient.
@@ -73,12 +78,12 @@ export const CLASS_PROGRESSION = {
 export const CLASS_HEALING_MULTIPLIERS = {
   Runedancer: 0.25,
   Dawnwarden: 0.25,
-  'Mage of the Umbral Veil': 0.25,
-  'Mage of the Crimson Spire': 0.25,
-  'Mage of the Luminous Archive': 0.25,
-  'Cleric of the Everbright': 0.25,
-  'Cleric of the Verdant Covenant': 0.25,
-  'Cleric of the Sanguine Song': 0.25
+  'Umbramancer': 0.25,
+  'Spellbinder': 0.25,
+  'Arcanist': 0.25,
+  'Dawnpriest': 0.25,
+  'Grovekeeper': 0.25,
+  'Sanguinist': 0.25
 };
 
 // Choose the class growth profile and apply any class-specific starting stat override.

@@ -65,24 +65,12 @@ test('save transfer native dialog errors, export and dismissal remain in viewpor
   await audit.active('TitleScene');
 });
 
-test('How to Play existing slideshow opens, navigates and dismisses', async ({ page, audit }) => {
-  test.setTimeout(300000);
+test('Tutorial preparation notice opens and dismisses', async ({ page, audit }) => {
   await audit.boot();
-  await audit.click('TitleScene', 'How to Play');
-  const total = await page.evaluate(async () => (await import('/data/tutorial.js')).tutorialSlides.length);
-  for (let index = 1; index <= total; index++) {
-    await page.waitForFunction(() => {
-      const scene = window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('TitleScene');
-      return scene.children.getByName('tutorial-video')?.frameReady;
-    });
-    const data = await audit.capture('TitleScene', `how-to-play-${index}`);
-    expect(data.texts.some(o => o.text === `${index} of ${total}`)).toBe(true);
-    if (index < total) await audit.click('TitleScene', 'tutorial-next');
-  }
-  await audit.click('TitleScene', 'tutorial-previous');
-  await audit.click('TitleScene', 'tutorial-pause');
-  await audit.click('TitleScene', 'tutorial-replay');
-  await audit.click('TitleScene', 'tutorial-close');
+  await audit.click('TitleScene', 'Tutorial');
+  const data = await audit.capture('TitleScene', 'tutorial-preparation');
+  expect(data.texts.some(o => o.text.includes('The tutorial is being prepared!'))).toBe(true);
+  await audit.click('TitleScene', 'CLOSE');
   expect(await page.evaluate(() => !!window.__DELVE_DEEP_VISUAL_QA__.game.scene.getScene('TitleScene').selectionDetailsClose)).toBe(false);
 });
 

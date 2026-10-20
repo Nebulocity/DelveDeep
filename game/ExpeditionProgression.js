@@ -56,6 +56,7 @@ export function completeExpedition() {
       name: adventurer.name,
       xpGained: xpResult.xpGained,
       levelsGained: xpResult.levelsGained,
+      abilitiesLearned: xpResult.abilitiesLearned,
       level: adventurer.level,
       happiness: adventurer.happiness
     });

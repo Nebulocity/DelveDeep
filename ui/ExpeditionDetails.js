@@ -1,3 +1,4 @@
+import { scrollbarSurface } from './Scrollbar.js';
 import { combatPanel, combatButton, combatText } from './CombatHudTheme.js';
 import { bindButtonPress } from './ButtonPress.js';
 import { hallScroll } from './HallUI.js';
@@ -46,7 +47,7 @@ export function showExpeditionDetails(scene, details) {
     y += body.height + 73;
   }
   const scroll = hallScroll(scene, bounds, content, y - bounds.y, 0, () => {},
-    (owner, px, py, sw, sh) => combatPanel(owner, px, py, sw, sh, depth + 3));
+    (owner, px, py, sw, sh, kind) => scrollbarSurface(owner, px, py, sw, sh, kind, depth + 3));
   objects.push(scroll.container.setDepth(depth + 3));
   const button = combatButton(scene, x, top + h - 58, 340, 82, depth + 3);
   const caption = combatText(scene, x, button.y, 'CLOSE', 31, depth + 4);

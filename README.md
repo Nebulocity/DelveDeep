@@ -154,3 +154,21 @@ Keep this expression in the module that defines the relative asset path. Do not
 concatenate strings or pass a computed path variable to `new URL`; those forms
 can work on the development server while leaving missing assets in production.
 Use exact filename capitalization because GitHub Pages paths are case-sensitive.
+
+## Playable class identities and selection sprites
+
+Malrek is a Sanguinist, Selenne a Dawnpriest, Sylva a Grovekeeper, Nadira an
+Arcanist, Valtheris a Spellbinder and Zareth an Umbramancer. These names are also
+the keys used by class definitions, equipment restrictions and ability permissions.
+Class-specific ability IDs use the corresponding lowercase name. Order and
+institution names remain valid lore. Development saves using retired names are
+unsupported; no aliases or migrations are provided.
+
+`ui/SelectedCharacterIdle.js` shares selection-screen idle playback. Heroes,
+Abilities and Equipment animate the selected adventurer; Party Select animates
+selected party members; Delve Overview and the world-map character gallery animate
+the chosen map representative. Unselected entries hold their first south-facing
+idle frame. Scroll masks suspend offscreen playback. Destruction, scene suspension
+and app visibility events release or suspend playback without changing combat.
+
+See [character selection implementation](docs/CHARACTER_SELECTION.md) for details.

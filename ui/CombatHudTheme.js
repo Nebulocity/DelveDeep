@@ -1,8 +1,10 @@
 // Combat shares Town's painted trim, with midnight faces and restrained crystal accents.
+import { preloadScrollbarAssets } from './Scrollbar.js';
 import { serviceFrame } from './TownServiceTheme.js';
 import { UI_FONT_FAMILIES } from '../config/uiTypography.js';
 
 export function preloadCombatHud(scene) {
+  preloadScrollbarAssets(scene);
   for (const kind of ['panel', 'option', 'bar']) {
     if (!scene.textures.exists(`town-hub-${kind}`)) {
       scene.load.image(`town-hub-${kind}`, new URL(`../assets/ui/town-hub/${kind}.png`, import.meta.url).href);

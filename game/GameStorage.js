@@ -172,6 +172,7 @@ export function loadProfile(baseRoster) {
     return restoreAdventurerAbilities(rebuildCharacterStats({
       ...base,
       level,
+      pendingAbilityUnlocks: Array.isArray(prior.pendingAbilityUnlocks) ? prior.pendingAbilityUnlocks.filter(key => typeof key === 'string') : [],
       xp: Math.max(0, prior.xp ?? 0),
       happiness: Math.min(100, Math.max(0, prior.happiness ?? base.happiness ?? 70)),
       delvesCompleted: Math.max(0, prior.delvesCompleted ?? 0),
@@ -271,6 +272,7 @@ function writeProfile() {
       abilityRanks: adventurer.abilityRanks ?? {},
       abilityLoadout: adventurer.abilityLoadout ?? [],
       abilityCatalogVersion: adventurer.abilityCatalogVersion,
+      pendingAbilityUnlocks: adventurer.pendingAbilityUnlocks ?? [],
       abilityRespec: adventurer.abilityRespec,
       skillPoints: adventurer.skillPoints ?? adventurer.level,
       level: adventurer.level,

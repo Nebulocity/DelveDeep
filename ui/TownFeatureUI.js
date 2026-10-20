@@ -9,6 +9,7 @@ import { clearFeatureToast } from './FeatureToast.js';
 import HapticsService from '../services/HapticsService.js';
 import { bindButtonPress } from './ButtonPress.js';
 import { playUiSound } from '../services/UiAudioService.js';
+import { showAbilityUnlockNotice } from './AbilityUnlockNotice.js';
 
 export function featurePanel(scene, bounds) {
   return serviceFrame(scene, bounds.x + bounds.width / 2, bounds.y + bounds.height / 2, bounds.width, bounds.height);
@@ -72,6 +73,7 @@ export default class TownFeatureScene extends Phaser.Scene {
       clearFeatureToast(this);
     });
     this.render();
+    showAbilityUnlockNotice(this);
   }
 
   backToTown() {

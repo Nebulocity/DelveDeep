@@ -178,10 +178,12 @@ export function awardOrdinaryWave(delve, waveIndex, bossIndex, farming = false, 
 
   // Report actual level gains with this payout so presentation cannot replay old levels.
   const levelsGainedByHero = {};
+  const abilitiesLearnedByHero = {};
   GameState.roster.filter(hero => partyIds.has(hero.id)).forEach(hero => {
     const gained = grantAdventurerXp(hero, xp, eligibility.cap);
     xpByHero[hero.id] = gained.xpGained;
     levelsGainedByHero[hero.id] = gained.levelsGained;
+    abilitiesLearnedByHero[hero.id] = gained.abilitiesLearned;
     if (farming && eligibility.eligibleIds.has(hero.id)) {
       adjustHappiness(hero, values.happiness);
 
@@ -211,6 +213,6 @@ export function awardOrdinaryWave(delve, waveIndex, bossIndex, farming = false, 
   const actualXp = Math.max(0, ...Object.values(xpByHero));
   const leaderResult = { levelsGained: (GameState.leader?.level ?? previousRenown) - previousRenown,
     renownPointsEarned: (GameState.leader?.renownPoints ?? previousPoints) - previousPoints };
-  return { leaderResult, gold, xp: actualXp, xpByHero, levelsGainedByHero, happiness: eligibility.eligibleIds.size ? values.happiness ?? 0 : 0, materials, items,
+  return { leaderResult, gold, xp: actualXp, xpByHero, levelsGainedByHero, abilitiesLearnedByHero, happiness: eligibility.eligibleIds.size ? values.happiness ?? 0 : 0, materials, items,
     materialId, materialCount: materials[materialId] ?? 0, farming };
 }

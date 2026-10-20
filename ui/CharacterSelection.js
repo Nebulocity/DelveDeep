@@ -1,6 +1,6 @@
 import GameState from '../game/GameState.js';
 import { getEquippedAdventurer } from '../game/Equipment.js';
-import { hallPortrait } from './HallUI.js';
+import { selectionCharacterPortrait } from './SelectedCharacterIdle.js';
 import { characterDetails, bindSelectionDetails } from './SelectionDetails.js';
 import { serviceText, serviceCard } from './TownServiceTheme.js';
 import { featureList, featurePanel } from './TownFeatureUI.js';
@@ -26,7 +26,7 @@ export function characterSelector(scene, bounds, onSelect, { roleOrder } = {}) {
   return featureList(scene, { x: bounds.x + 22, y: bounds.y + 90, width: bounds.width - 66, height: bounds.height - 122 }, entries,
     (hero, x, y, width) => {
       serviceCard(scene, x + width / 2, y + 80, width, 154, { selected: hero.id === selectedCharacter()?.id });
-      hallPortrait(scene, hero, x + 55, y + 79, 86);
+      selectionCharacterPortrait(scene, hero, x + 55, y + 79, 86, 'townRoster', hero.id === selectedCharacter()?.id);
       serviceText(scene, x + 108, y + 14, hero.name, 'body32', { wordWrap: { width: width - 130 }, maxLines: 2 });
       serviceText(scene, x + 108, y + 112, `Lv ${hero.level} · ${hero.shortName ?? hero.className}`, 'support28',
         { wordWrap: { width: width - 130 }, maxLines: 1, color: '#c6bdac' });

@@ -2,6 +2,7 @@
 // uses the same combat clock as ordinary attacks, including paused and offline battles.
 
 import GameState from '../game/GameState.js';
+import { abilityMeetsLevel } from '../data/abilityUnlocks.js';
 import { equippedItem, consumePotionCharge } from '../game/Equipment.js';
 import { getPotionDefinition } from '../data/items.js';
 import { arenaDistance, ADJACENT_DISTANCE, NEAR_DISTANCE } from '../config/combatRanges.js';
@@ -241,6 +242,7 @@ export default class ReplacementAbilitySystem {
   }
 
   usable(unit, ability, time) {
+    if (!abilityMeetsLevel(unit, ability)) return false;
     if (CLASS_RESTRICTED_ABILITIES[ability.id] && !abilityAllowed(unit.className, ability)) return false;
     const used = unit.delvesUsed ?? {};
     if (!this.affordable(unit, ability)) return false;
@@ -915,10 +917,10 @@ export default class ReplacementAbilitySystem {
   // Rebuild its trained definition without making it available to ordinary casting AI.
   trainedSkill(unit, name) {
     const equipped = Object.values(unit.abilities).find(ability => ability.name === name);
-    if (equipped) return equipped;
+    if (equipped && abilityMeetsLevel(unit, equipped)) return equipped;
     const base = Object.values(CLASS_DEFINITIONS[unit.className]?.abilities ?? {}).find(ability => ability.name === name);
     const rank = base && unit.knownAbilityRanks?.[base.id];
-    return Number.isSafeInteger(rank) && rank > 0 ? rankedReplacementAbility(base, rank) : null;
+    return Number.isSafeInteger(rank) && rank > 0 && abilityMeetsLevel(unit, base) ? rankedReplacementAbility(base, rank) : null;
   }
 
   control(recipient, ability, kind, duration) {
@@ -954,7 +956,7 @@ export default class ReplacementAbilitySystem {
 
     // A free reactive Siphon has no windup to borrow. Its connection grows as
     // feedback for the instant reaction while the original damage stays immediate.
-    if (triggered && ability.id === 'ability_v2_umbral_mage_siphon') {
+    if (triggered && ability.id === 'ability_v2_umbramancer_siphon') {
       this.scene.createAbilityTelegraph?.(caster, target, ability, null);
     }
     if (h === 'stealthStrike' && !ability.fromStealth && !caster.stealthed || h === 'rearStrike' && !this.isBehind(caster, target)) return;
@@ -1023,7 +1025,7 @@ export default class ReplacementAbilitySystem {
 
       // Meditation's artwork starts after the saved channel exists. Interruption
       // removes that record and lets the renderer fade without changing its rules.
-      if (ability.id === 'ability_v2_umbral_mage_dark_meditation') this.scene.createAbilityEffect?.(caster, caster, ability);
+      if (ability.id === 'ability_v2_umbramancer_dark_meditation') this.scene.createAbilityEffect?.(caster, caster, ability);
       return;
     }
     if (h === 'stealth') { caster.setStealthed(true); caster.status.stealthUntil = time + ability.duration; return; }
@@ -1063,7 +1065,7 @@ export default class ReplacementAbilitySystem {
 
       // Keep the existing resolved recipient and resource calculation. The drain
       // and return are cosmetic phases; a full caster gets no false recovery cue.
-      if (ability.id === 'ability_v2_umbral_mage_essence_drain' && drained > 0) {
+      if (ability.id === 'ability_v2_umbramancer_essence_drain' && drained > 0) {
         this.scene.createAbilityEffect?.(caster, target, ability);
         if (caster.mana > before) this.scene.createAbilityEffect?.(caster, caster, { ...ability, vfxPhase: 'mana' });
       }
@@ -1085,7 +1087,7 @@ export default class ReplacementAbilitySystem {
 
       // Briarweave forms on its recipient as soon as its reflection window starts.
       // The saved reaction controls its animation lifetime and combat-time fade.
-      if (ability.id === 'ability_v2_verdant_cleric_briarweave') this.scene.createAbilityEffect?.(caster, target, ability);
+      if (ability.id === 'ability_v2_grovekeeper_briarweave') this.scene.createAbilityEffect?.(caster, target, ability);
 
       // The counterattack record keeps the red parry rim visible for its full window.
       if (ability.id === 'ability_v2_oathwarden_vow_of_retaliation') this.scene.createAbilityEffect?.(caster, caster, ability);
@@ -1093,7 +1095,7 @@ export default class ReplacementAbilitySystem {
 
       // Quick Pour's saved reaction keeps the small ready bottle visible.
       if (ability.id === 'ability_v2_barmaid_quick_pour') this.scene.createAbilityEffect?.(caster, caster, ability);
-      if (ability.id === 'ability_v2_umbral_mage_shadow_trap') this.scene.createAbilityEffect?.(caster, caster, ability);
+      if (ability.id === 'ability_v2_umbramancer_shadow_trap') this.scene.createAbilityEffect?.(caster, caster, ability);
       if (h === 'blockStun') this.modifier(caster, caster, ability, { block: x }, ability.duration); return;
     }
     if (h === 'intercept') {
@@ -1266,7 +1268,7 @@ export default class ReplacementAbilitySystem {
 
       // Echo forms locally on every affected enemy and rewards each ally who
       // actually gains Mana with a separate rising blue rune.
-      if (ability.id === 'ability_v2_umbral_mage_echo_of_night' && ally.mana > before) {
+      if (ability.id === 'ability_v2_umbramancer_echo_of_night' && ally.mana > before) {
         this.scene.createAbilityEffect?.(caster, ally, { ...ability, vfxPhase: 'mana' }, [ally]);
       }
     }
@@ -1290,10 +1292,10 @@ export default class ReplacementAbilitySystem {
 
         // Guided Retribution forms healing light only on allies who recovered HP.
         // This cosmetic phase shares the original ID and changes no saved record.
-        if (recovered > 0 && ability.id === 'ability_v2_everbright_cleric_guided_retribution') {
+        if (recovered > 0 && ability.id === 'ability_v2_dawnpriest_guided_retribution') {
           this.scene.createAbilityEffect?.(caster, ally, { ...ability, vfxPhase: 'heal' }, [ally]);
         }
-        if (recovered > 0 && ability.id === 'ability_v2_umbral_mage_siphon') {
+        if (recovered > 0 && ability.id === 'ability_v2_umbramancer_siphon') {
           this.scene.createAbilityEffect?.(caster, ally, { ...ability, vfxPhase: 'heal' }, [ally]);
         }
       }
@@ -1307,7 +1309,7 @@ export default class ReplacementAbilitySystem {
 
         // Reprisal's secondary radiant hit forms beside healed allies. It launches
         // no object; confirmed contact receives separate impact art at the enemy.
-        if (result.hit && ability.id === 'ability_v2_everbright_cleric_divine_reprisal') {
+        if (result.hit && ability.id === 'ability_v2_dawnpriest_divine_reprisal') {
           this.scene.createAbilityEffect?.(caster, enemy, { ...ability, vfxPhase: 'hit' }, [enemy]);
         }
       }
@@ -1441,7 +1443,7 @@ export default class ReplacementAbilitySystem {
 
     // Shadow Image belongs to the distant decoy, never the caster's old point.
     // Its original sprite and existing saved expiry keep the summon recognizable.
-    if (ability.id === 'ability_v2_umbral_mage_shadow_image') this.scene.createAbilityEffect?.(caster, decoy, ability);
+    if (ability.id === 'ability_v2_umbramancer_shadow_image') this.scene.createAbilityEffect?.(caster, decoy, ability);
     if (rescue) {
       const landing = this.parent.adjacentPoint(target, caster);
       if (landing) {

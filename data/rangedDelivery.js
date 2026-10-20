@@ -1,8 +1,8 @@
 // Finished PixelLab missile artwork complements the shared travel renderer.
 // Delivery choices remain in rangedTravelEffects.js, independent of numeric range.
 import { RANGER_FLIGHT_SHEETS } from './rangerAbilityEffects.js';
-import { EVERBRIGHT_FLIGHT_SHEETS } from './everbrightClericEffects.js';
-import { UMBRAL_FLIGHT_SHEETS } from './umbralMageEffects.js';
+import { EVERBRIGHT_FLIGHT_SHEETS } from './dawnpriestEffects.js';
+import { UMBRAL_FLIGHT_SHEETS } from './umbramancerEffects.js';
 export const RANGED_DELIVERY_SHEETS = ['arrow', 'bolt', 'lance'].map(name => ({
   name, key: 'delivery-' + name, width: 48, height: 24, frames: 32, fps: 24,
   url: new URL(`../assets/effects/ranged-delivery/${name}.png`, import.meta.url).href

@@ -3,6 +3,7 @@ import GameState from '../game/GameState.js';
 import { pois } from '../data/worldMap.js';
 import { preloadTownAssets } from '../ui/TownAssets.js';
 import TownHub from '../ui/TownHub.js';
+import { showAbilityUnlockNotice } from '../ui/AbilityUnlockNotice.js';
 
 export default class TownScene extends Phaser.Scene {
   constructor() { super('TownScene'); }
@@ -25,6 +26,7 @@ export default class TownScene extends Phaser.Scene {
     };
     fitBackground();
     this.hub = new TownHub(this);
+    showAbilityUnlockNotice(this);
     const resize = () => { fitBackground(); this.hub.render(); };
     const back = () => this.hub.back();
     this.scale.on('resize', resize);

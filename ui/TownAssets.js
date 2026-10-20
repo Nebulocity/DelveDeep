@@ -1,9 +1,11 @@
+import { preloadScrollbarAssets } from './Scrollbar.js';
 import glint from '../assets/ui/town-hub/selection-glint.json';
 
 const icons = ['heroes', 'abilities', 'equipment', 'tactics', 'items', 'quests', 'market', 'tavern', 'exchange', 'world-map', 'settings', 'gold'];
 const frames = ['title', 'bar', 'button', 'selected', 'panel', 'capsule', 'option'];
 
 export function preloadTownAssets(scene) {
+  preloadScrollbarAssets(scene);
   for (const name of [...icons, ...frames]) {
     const key = `town-hub-${name}`;
     if (!scene.textures.exists(key)) {

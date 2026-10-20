@@ -1,7 +1,7 @@
 // Finished nature sheets have 32 frames at 20 FPS. Their open centers keep bodies
 // readable, and existing saved gameplay records decide when looping art fades.
 
-const PREFIX = 'ability_v2_verdant_cleric_';
+const PREFIX = 'ability_v2_grovekeeper_';
 
 // The shared root deadline has no source ID. Keep live Roots art until it expires,
 // but do not guess its origin after reload and label another class's root as ours.
@@ -26,15 +26,15 @@ const effects = [
   { slug: 'briarweave', name: 'Briarweave', suffix: 'briarweave', status: 'reaction' }
 ];
 
-export const VERDANT_CLERIC_EFFECTS = effects.map(({ name, suffix, status, bodyCenter, ...placement }) => ({
+export const GROVEKEEPER_EFFECTS = effects.map(({ name, suffix, status, bodyCenter, ...placement }) => ({
   ...placement,
-  id: 'verdant-cleric-' + placement.slug,
-  className: 'Cleric of the Verdant Covenant',
+  id: 'grovekeeper-' + placement.slug,
+  className: 'Grovekeeper',
   abilityName: name,
   abilityId: PREFIX + suffix,
   verdantStatus: status,
   persistentStatus: Boolean(status),
-  statusActive: verdantClericStatusActive,
+  statusActive: grovekeeperStatusActive,
   frames: placement.frames ?? 32,
   frameMs: 50,
   groundWidth: 96,
@@ -54,10 +54,10 @@ export const VERDANT_CLERIC_EFFECTS = effects.map(({ name, suffix, status, bodyC
 // the body hide the rear leaves while the nearer leaves cross in front of it.
 function verdantClips(effect, status, bodyCenter) {
   const clip = (slug, depth = 'front', extra = {}) => ({
-    name: slug, key: 'verdant-cleric-' + slug,
+    name: slug, key: 'grovekeeper-' + slug,
     width: 96, height: 96, frames: 32, start: 0, x: -48,
     y: effect.clipY ?? (bodyCenter ? -48 : -72), depth, loop: Boolean(status),
-    url: new URL(`../assets/effects/verdant-cleric/${slug}.png`, import.meta.url).href,
+    url: new URL(`../assets/effects/grovekeeper/${slug}.png`, import.meta.url).href,
     ...extra
   });
   if (effect.layers) return [
@@ -80,7 +80,7 @@ function verdantClips(effect, status, bodyCenter) {
 
 // No visual timers are added to saves. Roots use the combat control deadline;
 // armor, regeneration, reflection and ground fields read their existing records.
-export function verdantClericStatusActive(target, definition, now, wave) {
+export function grovekeeperStatusActive(target, definition, now, wave) {
   if (!target?.alive) return false;
   const status = target.status ?? {};
   if (definition.verdantStatus === 'root') return status.rootedUntil > now;

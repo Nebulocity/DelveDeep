@@ -1,12 +1,14 @@
 // Shared Hall builders keep navigation, roster cards and text consistent. A returned
 // display object can still need selection handlers and cleanup from its caller.
 
+import { scrollbarSurface } from './Scrollbar.js';
 import { UI_FONT_SIZES, UI_FONT_FAMILIES } from '../config/uiTypography.js';
 import { bindSelectionDetails } from './SelectionDetails.js';
 import { bindButtonPress } from './ButtonPress.js';
 import { addCategoryIcon } from './CategoryIcons.js';
 import { CHARACTER_SPRITES } from '../data/characterSprites.js';
 import { displayCharacterPortrait } from './CharacterSpriteDisplay.js';
+import { preloadSelectionPortraits, refreshSelectionIdleVisibility } from './SelectedCharacterIdle.js';
 
 import HapticsService from '../services/HapticsService.js';
 import { guildSurface } from './GuildHallTheme.js';
@@ -97,14 +99,7 @@ export function hallDetails(scene, target, details, onTap, onDetails) {
 // Queue the portraits required by the Hall's current roster. scene is the Phaser screen
 // that owns the objects, clock and input used here.
 export function preloadHallPortraits(scene) {
-  for (const definition of Object.values(CHARACTER_SPRITES)) {
-    const frame = definition.portraitFrame ?? definition.clips.idle.south.frames[0];
-
-    // find returns the first matching entry, or undefined when none matches. Check for
-    // that missing result before using its fields.
-    const texture = definition.textures.find((entry) => entry.key === frame.key);
-    if (texture && !scene.textures.exists(texture.key)) scene.load.spritesheet(texture.key, texture.url, { frameWidth: 256, frameHeight: 256 });
-  }
+  preloadSelectionPortraits(scene);
 }
 
 // Choose and crop the accepted sprite portrait while preserving its character identity.
@@ -121,7 +116,7 @@ export function hallPortrait(scene, hero, x, y, size, profile = 'townRoster') {
 }
 
 // Masks constrain drawing and hit tests; off-screen controls cannot receive taps.
-export function hallScroll(scene, bounds, objects, contentHeight, initial = 0, onScroll = () => {}, surface = guildSurface,
+export function hallScroll(scene, bounds, objects, contentHeight, initial = 0, onScroll = () => {}, surface = scrollbarSurface,
   isBlocked = () => Boolean(scene.selectionDetailsClose || scene.equipmentModalClose), minimumThumbHeight = 105) {
 
   // The braces pull named fields into local variables. This reads those fields without
@@ -174,22 +169,29 @@ export function hallScroll(scene, bounds, objects, contentHeight, initial = 0, o
     // inside both a lower and an upper bound.
     value = Math.max(0, Math.min(max, next));
     container.y = -value;
+    refreshSelectionIdleVisibility(objects, bounds);
 
     // The condition before ? chooses the first value when true and the value after : when
     // false.
     thumb.y = y + thumbHeight / 2 + (max ? value / max * (height - thumbHeight) : 0);
+    thumb.setScrollbarProgress?.(max ? value / max : 0, height);
     onScroll(value);
   };
 
   const wheel = (pointer, targets, dx, dy) => { if (!blocked() && inside(pointer.x, pointer.y)) set(value + dy); };
   const move = (pointer) => {
+    const bar = Math.abs(pointer.downX - trackX) <= 34 && pointer.downY >= y && pointer.downY <= y + height;
+    const over = Math.abs(pointer.x - trackX) <= 34 && pointer.y >= y && pointer.y <= y + height;
+    thumb.setScrollbarInteraction?.(Boolean(max && !blocked() && over), Boolean(max && !blocked() && pointer.isDown && bar));
     if (!pointer.isDown || blocked()) {
       drag = null;
       return;
     }
-    const bar = Math.abs(pointer.downX - trackX) <= 34 && pointer.downY >= y && pointer.downY <= y + height;
     if (bar && max) {
-      set((pointer.y - y - thumbHeight / 2) / (height - thumbHeight) * max);
+      const progress = thumb.scrollbarProgressFromPointer
+        ? thumb.scrollbarProgressFromPointer(pointer.y, y, height)
+        : (pointer.y - y - thumbHeight / 2) / (height - thumbHeight);
+      set(progress * max);
       return;
     }
 
@@ -203,7 +205,7 @@ export function hallScroll(scene, bounds, objects, contentHeight, initial = 0, o
     if (Math.abs(pointer.y - drag.start) > 24) set(drag.value + drag.start - pointer.y);
   };
 
-  const release = () => { drag = null; };
+  const release = () => { drag = null; thumb.setScrollbarInteraction?.(false, false); };
   const cleanup = () => {
     if (disposed) return;
     disposed = true;

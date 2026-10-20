@@ -1384,9 +1384,13 @@ export default class BattleScene extends Phaser.Scene {
       const units = this.getSelectedUnits();
       if (units.length === 0) return;
 
-      // Attack replaces previous movement and Hold orders only for the selected units.
-      // Cancel old windups so they can pursue this target.
+      // Repeating the active Attack order preserves its windup, including support casts.
+      // A different target or an intervening Move, Hold or formation order is an override.
       units.forEach((unit) => {
+        const redundant = this.attackTargets.get(unit.id) === enemy.id
+          && !this.manualTargets.has(unit.id) && !this.heldUnitIds.has(unit.id)
+          && unit.spacingMode === 'normal';
+        if (redundant) return;
 
         this.manualTargets.delete(unit.id);
         this.heldUnitIds.delete(unit.id);

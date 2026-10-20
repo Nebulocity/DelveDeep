@@ -1,8 +1,7 @@
 import GameState from '../game/GameState.js';
 import { beginRecruitmentTutorial, skipRecruitmentTutorial } from '../game/RecruitmentTutorial.js';
-import { showConfirmation } from './ConfirmationDialog.js';
+import { showTutorialDialog } from './TutorialDialog.js';
 import { showFeatureToast } from './FeatureToast.js';
-import { showSelectionDetails } from './SelectionDetails.js';
 import { syncRegionMapCameras } from './RegionMapUI.js';
 
 // Escape, closing a prompt or leaving its scene counts as exiting the lesson too.
@@ -10,7 +9,7 @@ import { syncRegionMapCameras } from './RegionMapUI.js';
 // cannot mistake a real BEGIN/TAVERN/CHOOSE PARTY action for dismissal.
 function tutorialPrompt(scene, options) {
   let answered = false;
-  showConfirmation(scene, { ...options,
+  showTutorialDialog(scene, { ...options,
     onConfirm: () => { answered = true; options.onConfirm(); },
     onCancel: () => { answered = true; options.onCancel(); }
   });
@@ -37,7 +36,7 @@ function tutorialPrompt(scene, options) {
 // Opt-in, resume and replay all use the existing shared Tutorial entry and dialogs.
 export function openRecruitmentTutorial(scene, replay = false) {
   if (GameState.activeBattle) {
-    showSelectionDetails(scene, { title: 'Tutorial',
+    showTutorialDialog(scene, { title: 'Tutorial', confirmLabel: 'CLOSE',
       description: 'Finish your active expedition before starting the recruitment lesson.' });
     syncRegionMapCameras(scene);
     return;

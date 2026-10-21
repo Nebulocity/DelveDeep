@@ -4,6 +4,8 @@
 // order matters.
 
 import GameState from '../game/GameState.js';
+import { emitGameplay } from '../game/GameplayEvents.js';
+import { reconcileTutorialOutcome } from '../game/TutorialProgress.js';
 import { captureBattle, unpackBattleValue } from '../game/BattleSnapshot.js';
 import { saveProfile, setBattleSaveProvider } from '../game/GameStorage.js';
 
@@ -280,6 +282,9 @@ export function restoreBattle(scene, snapshot) {
   } else if (GameState.run.entry === 'camp') scene.showDelveCamp();
   else if (scene.awaitingRevive) scene.showBattleMessage('PARTY DOWN - use ARISE! or FLEE', '#fde68a', true);
   else if (scene.combatPaused) scene.showBattleMessage('PAUSED', '#fbbf24', true);
+
+  reconcileTutorialOutcome(GameState);
+  emitGameplay(scene, 'combat.encounter.restored', { outcome: scene.gameplayContext?.outcome ?? null }, { kind: 'restore' });
 
   scene.game.backgroundProgress?.restore(snapshot.time, snapshot.savedAtMs,
     scene.combatPaused || scene.battleOver || scene.awaitingRevive || GameState.run.entry === 'camp');

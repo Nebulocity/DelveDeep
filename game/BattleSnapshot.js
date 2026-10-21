@@ -79,7 +79,7 @@ const SCENE_FIELDS = [
   'waveReturnPositions', 'waveReturnTargets', 'waveReturnReadyAt', 'waveReturnStartedAt',
   'waveReturnTimedOut', 'waveReturnProgress', 'waveReturnSettled', 'pendingWaveSpawns',
   'idlePhaseRemainingMs', 'idleSummary', 'idleSummaryResumePaused', 'combatRngState', 'abilityDecoySerial',
-  'delveTimerStartedAt', 'farmTiming', 'offlineFarm'
+  'delveTimerStartedAt', 'farmTiming', 'offlineFarm', 'gameplayContext'
 ];
 
 // Extract one unit's durable state while excluding live scene and graphics references.
@@ -112,6 +112,7 @@ export function captureBattle(scene, state, savedAtMs = Date.now()) {
   // original list in place.
   return {
     version: 1, delveId: state.currentDelve.id, savedAtMs, time: scene.time.now,
+    mode: scene.gameplayContext?.mode ?? 'campaign',
 
     // Optional metadata lets updated Delves distinguish older encounter lengths while
     // retaining version-1 snapshots and every recorded unit's combat totals.
@@ -166,6 +167,7 @@ export function validBattleSnapshot(snapshot, roster) {
     // undefined. A Set keeps each value once. has checks membership without searching a
     // list for duplicate entries. every requires all entries to pass the check; an empty
     // list gives true.
+    if (snapshot?.mode !== undefined && snapshot.mode !== 'campaign') return false;
     if (snapshot?.version !== 1 || typeof snapshot.delveId !== 'string'
       || !Number.isFinite(snapshot.time) || !Number.isFinite(snapshot.savedAtMs)
       || !Array.isArray(snapshot.partyIds) || snapshot.partyIds.length === 0 || snapshot.partyIds.length > 5
@@ -175,6 +177,11 @@ export function validBattleSnapshot(snapshot, roster) {
       || !Array.isArray(snapshot.enemies) || !Array.isArray(snapshot.events) || !Array.isArray(snapshot.traps)) return false;
 
     const model = unpackBattleValue(snapshot.scene);
+
+    // Practice is reserved, with no campaign restoration or reward entry path yet.
+    if (model.gameplayContext && (model.gameplayContext.mode !== 'campaign'
+      || typeof model.gameplayContext.encounterId !== 'string'
+      || !Number.isSafeInteger(model.gameplayContext.waveSerial))) return false;
     if (!Number.isSafeInteger(model.currentWaveIndex) || model.currentWaveIndex < -1
       || (model.currentWaveIndex === -1 && unpackBattleValue(snapshot.run)?.entry !== 'camp')) return false;
     const templates = unpackBattleValue(snapshot.partyTemplates);

@@ -1,6 +1,8 @@
 import { scrollbarSurface } from '../ui/Scrollbar.js';
 import { isMageClass } from '../config/characterProgression.js';
 import LeaderOrderPlan from '../combat/LeaderOrderPlan.js';
+import { beginGameplayEncounter, emitGameplay, requestOrder, acceptOrder, rejectOrder, executeOrder, cancelOrder, assignMovement,
+  finishGameplayEncounter, warningStarted, warningResolved, targetedTacticUnits, tacticRecipients, PLAYER_SOURCE } from '../game/GameplayEvents.js';
 import PartyLeaderTapCombat from '../combat/PartyLeaderTapCombat.js';
 import { createPartyLeaderTapIcon } from '../ui/PartyLeaderTapIcon.js';
 import { createTacticalPlanOverlay } from '../ui/TacticalPlanOverlay.js';
@@ -167,6 +169,7 @@ export default class BattleScene extends Phaser.Scene {
     // Reset encounter flags, selections, movement orders, threat tables, and leader
     // cooldowns for a fresh battle.
     this.battleOver = false;
+    beginGameplayEncounter(this);
 
     // A Set keeps each value once. has checks membership without searching a list for
     // duplicate entries.
@@ -615,6 +618,7 @@ export default class BattleScene extends Phaser.Scene {
     else this.selectedUnitIds = new Set([unit.id]);
     this.commandMode = null;
     this.setTargetingInputState(false);
+    emitGameplay(this, 'selection.changed', { selection: 'character', subjectIds: [...this.selectedUnitIds] }, PLAYER_SOURCE);
     this.radialHud?.selectionChanged();
     this.refreshTacticsMenus();
     this.clearBattleMessage();
@@ -850,7 +854,10 @@ export default class BattleScene extends Phaser.Scene {
       // that missing result before using its fields.
       const ability = leaderAbilities.find(entry => entry.id === 'revive');
       if (!this.commitTargetedTactic('revive')) return;
+      const order = requestOrder(this, 'TACTIC:revive', [unit], { targetId: unit.id });
+      acceptOrder(this, order);
       unit.revive(ability.healthFraction, ability.manaFraction);
+      emitGameplay(this, 'combat.order.executed', { ...order, phase: 'effect' }, PLAYER_SOURCE);
       this.commandMode = null;
       this.updateHud();
       this.showBattleMessage(`REVIVE! - ${unit.name} restored`, '#fde68a');
@@ -885,6 +892,7 @@ export default class BattleScene extends Phaser.Scene {
       this.showBattleMessage(`${unit.name} - tap ground to move, an ally to assist, or an enemy to attack`, '#93c5fd', true);
     }
 
+    emitGameplay(this, 'selection.changed', { selection: 'character', subjectIds: [...this.selectedUnitIds] }, PLAYER_SOURCE);
     HapticsService.tap();
   }
 
@@ -900,6 +908,8 @@ export default class BattleScene extends Phaser.Scene {
     // the original list in place.
     if (this.combatPaused) return this.leaderOrderPlan.prepare('ASSIST', { target });
 
+    const order = requestOrder(this, 'ASSIST', selected, { targetId: target.id });
+    acceptOrder(this, order);
     const movers = selected.filter((unit) => unit !== target);
     const positions = this.movement.getFormationPositions(movers, { x: target.arenaX, y: target.arenaY });
 
@@ -914,7 +924,8 @@ export default class BattleScene extends Phaser.Scene {
       const raw = unit === target ? { x: target.arenaX, y: target.arenaY } : positions[movers.indexOf(unit)];
       const point = this.terrain.nearestSafeUnitPoint(unit, raw.x, raw.y, combatSpacing.terrainFootRadius);
       unit.spacingMode = 'normal';
-      unit.finishAction('cancelled', 'movement_cancelled', 'Leader ally regroup order');
+      executeOrder(this, order, unit);
+      unit.finishAction('cancelled', 'movement_cancelled', 'Leader ally regroup order', { cause: { ...PLAYER_SOURCE, commandId: order.commandId } });
       this.attackTargets.delete(unit.id);
       this.healerPriorityTargets.delete(unit.id);
 
@@ -928,6 +939,7 @@ export default class BattleScene extends Phaser.Scene {
         this.manualTargets.set(unit.id, point);
         this.heldUnitIds.add(unit.id);
       }
+      if (this.manualTargets.has(unit.id)) assignMovement(this, unit, point, order);
     });
 
     this.commandMode = null;
@@ -976,6 +988,7 @@ export default class BattleScene extends Phaser.Scene {
     this.commandMode = null;
     this.setTargetingInputState(false);
 
+    emitGameplay(this, 'selection.changed', { selection: 'role', role, subjectIds: matching.map(u => u.id) }, PLAYER_SOURCE);
     this.radialHud?.selectionChanged(role === 'Healer' ? 'Healers' : role);
     if (!matching.length) this.showBattleMessage(`No living ${role}`, '#fca5a5');
     else this.clearBattleMessage();
@@ -1010,6 +1023,7 @@ export default class BattleScene extends Phaser.Scene {
   armCommand(label) {
 
     if (label === 'INTERRUPT' && this.interruptCooldownRemainingMs > 0) {
+      rejectOrder(this, requestOrder(this, label), 'interrupt_cooldown');
       this.showInterruptCooldown();
       return;
     }
@@ -1032,6 +1046,7 @@ export default class BattleScene extends Phaser.Scene {
 
     // Reject movement and formation commands until the player chooses units or a role.
     if (needsSelection && selected.length === 0) {
+      rejectOrder(this, requestOrder(this, label), 'no_selected_actors');
       this.showBattleMessage('SELECT AN ADVENTURER OR ROLE FIRST', '#fca5a5', true);
       HapticsService.tap();
       return;
@@ -1055,17 +1070,20 @@ export default class BattleScene extends Phaser.Scene {
     // Hold confirms a destination already assigned by Move, or holds the current position.
     // Other commands wait for a target tap.
     if (label === 'HOLD') {
+      const order = requestOrder(this, label, selected);
+      acceptOrder(this, order);
       this.combatLog?.diagnostics?.command('HOLD', selected);
 
       // Confirm the same order for each selected adventurer.
       selected.forEach((unit) => {
+        executeOrder(this, order, unit, { preserveMovement: this.manualTargets.has(unit.id) });
 
         // Keep a pending Move destination. Hold confirms the order rather than toggling it off.
         if (!this.manualTargets.has(unit.id)) {
           this.manualTargets.set(unit.id, { x: unit.arenaX, y: unit.arenaY });
         }
         this.attackTargets.delete(unit.id);
-        unit.finishAction('cancelled', 'movement_cancelled', 'Leader Hold order');
+        unit.finishAction('cancelled', 'movement_cancelled', 'Leader Hold order', { cause: { ...PLAYER_SOURCE, commandId: order.commandId } });
         this.heldUnitIds.add(unit.id);
       });
       this.commandMode = null;
@@ -1082,7 +1100,11 @@ export default class BattleScene extends Phaser.Scene {
     // Attack is a persistent order after an enemy is chosen. Pressing it again with that
     // same group selected releases a mistaken attack target.
     if (!this.combatPaused && label === 'ATTACK' && selected.some((unit) => this.attackTargets.has(unit.id))) {
-      selected.forEach((unit) => this.attackTargets.delete(unit.id));
+      selected.forEach((unit) => {
+        if (unit.leaderCommand) cancelOrder(this, unit.leaderCommand, 'released', [unit.id]);
+        unit.leaderCommand = null;
+        this.attackTargets.delete(unit.id);
+      });
       this.commandMode = null;
       this.setTargetingInputState(false);
       this.refreshTacticsMenus();
@@ -1256,7 +1278,9 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     const units = this.getSelectedUnits();
+    const order = requestOrder(this, this.commandMode, units, { destination: center });
     if (units.length === 0) {
+      rejectOrder(this, order, 'no_selected_actors');
       this.commandMode = null;
       this.refreshTacticsMenus();
       this.showBattleMessage('SELECT AN ADVENTURER OR ROLE FIRST', '#fca5a5');
@@ -1266,13 +1290,16 @@ export default class BattleScene extends Phaser.Scene {
 
     // A pending non-movement command must never fall through to Move.
     if (!['MOVE', 'SPREAD', 'STACK'].includes(this.commandMode)) {
+      rejectOrder(this, order, 'invalid_command_target');
       this.showBattleMessage('Choose a valid command target', '#fca5a5');
       return;
     }
     if (this.combatPaused) {
-      this.leaderOrderPlan.prepare(this.commandMode, { point: center, anchorId: anchor?.id });
+      this.leaderOrderPlan.prepare(this.commandMode, { point: center, anchorId: anchor?.id, observation: order });
       return;
     }
+
+    acceptOrder(this, order);
 
     // Place selected units around the tapped point using a wide spread or a tight stack,
     // then hold those positions.
@@ -1287,7 +1314,9 @@ export default class BattleScene extends Phaser.Scene {
         const rawPoint = positions[index];
         const point = this.terrain.nearestSafeUnitPoint(unit, rawPoint.x, rawPoint.y, combatSpacing.terrainFootRadius);
         unit.spacingMode = mode;
-        unit.finishAction('cancelled', 'movement_cancelled', `Leader ${formationMode} order`);
+        unit.finishAction('cancelled', 'movement_cancelled', `Leader ${formationMode} order`, { cause: { ...PLAYER_SOURCE, commandId: order.commandId } });
+        executeOrder(this, order, unit);
+        assignMovement(this, unit, point, order);
         this.manualTargets.set(unit.id, point);
         this.attackTargets.delete(unit.id);
         this.heldUnitIds.add(unit.id);
@@ -1310,7 +1339,7 @@ export default class BattleScene extends Phaser.Scene {
       const point = this.terrain.nearestSafeUnitPoint(unit, rawPoint.x, rawPoint.y, combatSpacing.terrainFootRadius);
       unit.spacingMode = 'normal';
 
-      unit.finishAction('cancelled', 'movement_cancelled', 'Leader Move order');
+      unit.finishAction('cancelled', 'movement_cancelled', 'Leader Move order', { cause: { ...PLAYER_SOURCE, commandId: order.commandId } });
       if (unit.classAbilities && !this.combatPaused) {
 
         // ??= fills a missing value once. It leaves an existing value, including zero or
@@ -1319,6 +1348,8 @@ export default class BattleScene extends Phaser.Scene {
         this.classAbilitySystem.move(unit, point, this.time.now);
       }
 
+      executeOrder(this, order, unit);
+      assignMovement(this, unit, point, order);
       this.manualTargets.set(unit.id, point);
 
       this.attackTargets.delete(unit.id);
@@ -1342,8 +1373,14 @@ export default class BattleScene extends Phaser.Scene {
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
-    if (!enemy?.alive || enemy.landing || this.battleOver || this.waveTransitioning) return;
+    const command = this.commandMode ?? 'ATTACK';
+    const observing = !['MOVE', 'SPREAD', 'STACK'].includes(this.commandMode)
+      && (this.commandMode || this.getSelectedUnits().length);
+    const intended = ['COORDINATED_ATTACK', 'LUNAR_ASSAULT'].includes(command) ? targetedTacticUnits(this, command) : this.getSelectedUnits();
+    const order = observing ? requestOrder(this, command, intended, { intendedRecipientIds: intended.map(unit => unit.id), targetId: enemy?.id ?? null, castId: enemy?.pendingAction?.castId ?? null }) : null;
+    if (!enemy?.alive || enemy.landing || this.battleOver || this.waveTransitioning) { if (order) rejectOrder(this, order, 'enemy_unavailable'); return; }
     if (this.commandMode === 'INTERRUPT' && this.interruptCooldownRemainingMs > 0) {
+      rejectOrder(this, order, 'interrupt_cooldown');
       this.showInterruptCooldown();
       return;
     }
@@ -1355,7 +1392,7 @@ export default class BattleScene extends Phaser.Scene {
       LUNAR_ASSAULT: 'lunarAssault' }[this.commandMode];
     if (tacticId && (this.battleOver || this.waveTransitioning)) return;
     if (this.combatPaused && tacticId) {
-      this.queuePausedTactic(tacticId, enemy.id);
+      this.queuePausedTactic(tacticId, enemy.id, order);
       this.commandMode = null;
       this.setTargetingInputState(false);
       this.refreshTacticsMenus();
@@ -1364,7 +1401,10 @@ export default class BattleScene extends Phaser.Scene {
 
     // Opening targeting reserves nothing. Recheck the party at the actual target tap,
     // since a required damage dealer may have fallen while the player was choosing.
-    if (tacticId && !this.commitTargetedTactic(tacticId)) return;
+    if (tacticId && !this.commitTargetedTactic(tacticId)) {
+      rejectOrder(this, order, 'tactic_unavailable', tacticRecipients(order, targetedTacticUnits(this, command)));
+      return;
+    }
 
     if (['MOVE', 'SPREAD', 'STACK'].includes(this.commandMode)) {
       this.handleArenaTap({ x: enemy.arenaX, y: enemy.arenaY });
@@ -1375,14 +1415,15 @@ export default class BattleScene extends Phaser.Scene {
 
     if (this.combatPaused) {
       const type = this.commandMode ?? 'ATTACK';
-      this.leaderOrderPlan.prepare(type, { target: enemy });
+      this.leaderOrderPlan.prepare(type, { target: enemy, observation: order });
       return;
     }
 
     this.combatLog?.diagnostics?.command(this.commandMode ?? 'ATTACK', this.getSelectedUnits(), enemy);
     if (!this.commandMode || this.commandMode === 'ATTACK') {
       const units = this.getSelectedUnits();
-      if (units.length === 0) return;
+      if (units.length === 0) { rejectOrder(this, order, 'no_selected_actors'); return; }
+      acceptOrder(this, order);
 
       // Repeating the active Attack order preserves its windup, including support casts.
       // A different target or an intervening Move, Hold or formation order is an override.
@@ -1390,19 +1431,26 @@ export default class BattleScene extends Phaser.Scene {
         const redundant = this.attackTargets.get(unit.id) === enemy.id
           && !this.manualTargets.has(unit.id) && !this.heldUnitIds.has(unit.id)
           && unit.spacingMode === 'normal';
-        if (redundant) return;
+        if (redundant) {
+          emitGameplay(this, 'combat.order.unchanged', { ...order, subjectIds: [unit.id], redundant: true }, PLAYER_SOURCE);
+          return;
+        }
+        executeOrder(this, order, unit);
 
         this.manualTargets.delete(unit.id);
         this.heldUnitIds.delete(unit.id);
         unit.spacingMode = 'normal';
         this.attackTargets.set(unit.id, enemy.id);
-        unit.finishAction('cancelled', 'action_replaced', 'Leader Attack order');
+        unit.finishAction('cancelled', 'action_replaced', 'Leader Attack order', { cause: { ...PLAYER_SOURCE, commandId: order.commandId } });
       });
 
       this.showBattleMessage(`ATTACK: ${enemy.name}`, '#fb923c');
       this.completePartyCommand('ATTACK');
       HapticsService.tap();
     } else if (this.commandMode === 'FOCUS') {
+      acceptOrder(this, order);
+      emitGameplay(this, 'combat.order.executed', { ...order, subjectIds: [], affectedRecipientIds: [],
+        affectedTargetIds: [enemy.id], effectScope: 'party_target', outcome: 'applied', phase: 'effect' }, PLAYER_SOURCE);
       this.focusTargetId = enemy.id;
       this.focusDamageTargetId = enemy.id;
 
@@ -1415,13 +1463,17 @@ export default class BattleScene extends Phaser.Scene {
 
       // filter keeps entries whose callback returns true. It builds a new list and leaves
       // the original list in place.
-      const melee = this.partyUnits.filter(unit => unit.alive && unit.role === 'Melee DPS');
+      const melee = targetedTacticUnits(this, 'COORDINATED_ATTACK');
+      const recipients = tacticRecipients(order, melee);
+      const effectResults = [];
+      acceptOrder(this, order, false, recipients);
       if (melee.length) {
         melee.forEach(unit => {
+          executeOrder(this, { ...order, ...recipients }, unit, { reportExecution: false });
           this.manualTargets.delete(unit.id);
           this.heldUnitIds.delete(unit.id);
           unit.spacingMode = 'normal';
-          unit.finishAction('cancelled', 'action_replaced', 'Leader Coordinated Attack order');
+          unit.finishAction('cancelled', 'action_replaced', 'Leader Coordinated Attack order', { cause: { ...PLAYER_SOURCE, commandId: order.commandId } });
           this.attackTargets.set(unit.id, enemy.id);
         });
 
@@ -1429,35 +1481,56 @@ export default class BattleScene extends Phaser.Scene {
         // returns the accumulator for the next step; the final argument supplies its
         // starting value.
         const damage = melee.reduce((sum, unit) => sum + unit.attackPower, 0) * 3;
-        this.resolveDamage(melee[0], enemy, damage, 'melee', 1, 'Coordinated Attack!', false);
+        const rootBefore = enemy.status.rootedUntil ?? 0;
+        const dealt = this.resolveDamage(melee[0], enemy, damage, 'melee', 1, 'Coordinated Attack!', false);
         if (enemy.alive) enemy.status.rootedUntil = Math.max(enemy.status.rootedUntil ?? 0, this.time.now + 6000);
+        effectResults.push({ targetId: enemy.id, damage: dealt, rootChanged: (enemy.status.rootedUntil ?? 0) !== rootBefore });
       }
 
+      emitGameplay(this, 'combat.order.executed', { ...order, ...recipients,
+        affectedRecipientIds: melee.map(unit => unit.id), effectResults,
+        affectedTargetIds: effectResults.filter(result => result.damage > 0 || result.rootChanged).map(result => result.targetId),
+        outcome: melee.length ? 'applied' : 'no_effect', phase: 'effect' }, PLAYER_SOURCE);
       this.showBattleMessage(`COORDINATED ATTACK - ${enemy.name} rooted`, '#bef264');
     } else if (this.commandMode === 'LUNAR_ASSAULT') {
-      const mages = this.partyUnits.filter(unit => unit.alive && isMageClass(unit.className));
+      const mages = targetedTacticUnits(this, 'LUNAR_ASSAULT');
+      const recipients = tacticRecipients(order, mages);
+      const effectResults = [];
+      acceptOrder(this, order, false, recipients);
       const radius = leaderAbilities.find(ability => ability.id === 'lunarAssault').radius;
       const targets = this.getLivingEnemies().filter(target => Math.hypot(target.arenaX - enemy.arenaX, target.arenaY - enemy.arenaY) <= radius);
       if (mages.length && targets.length) {
         mages.forEach(unit => {
+          executeOrder(this, { ...order, ...recipients }, unit, { reportExecution: false });
           this.manualTargets.delete(unit.id);
           this.heldUnitIds.delete(unit.id);
-          unit.finishAction('cancelled', 'action_replaced', 'Leader Lunar Assault order');
+          unit.finishAction('cancelled', 'action_replaced', 'Leader Lunar Assault order', { cause: { ...PLAYER_SOURCE, commandId: order.commandId } });
           this.attackTargets.set(unit.id, enemy.id);
         });
         const damage = mages.reduce((sum, unit) => sum + (unit.spellPower ?? unit.spellDamage), 0) * 3;
 
         targets.forEach(target => {
-          this.resolveDamage(mages[0], target, damage, 'spell', 1, 'Lunar Assault!', false);
+          const rootBefore = target.status.rootedUntil ?? 0;
+          const dealt = this.resolveDamage(mages[0], target, damage, 'spell', 1, 'Lunar Assault!', false);
           if (target.alive) target.status.rootedUntil = Math.max(target.status.rootedUntil ?? 0, this.time.now + 8000);
+          effectResults.push({ targetId: target.id, damage: dealt, rootChanged: (target.status.rootedUntil ?? 0) !== rootBefore });
         });
       }
 
+      emitGameplay(this, 'combat.order.executed', { ...order, ...recipients,
+        affectedRecipientIds: targets.length ? mages.map(unit => unit.id) : [],
+        effectResults, affectedTargetIds: effectResults.filter(result => result.damage > 0 || result.rootChanged).map(result => result.targetId),
+        outcome: mages.length && targets.length ? 'applied' : 'no_effect', phase: 'effect' }, PLAYER_SOURCE);
       this.showBattleMessage('LUNAR ASSAULT - enemies rooted', '#c4b5fd');
     } else if (this.commandMode === 'INTERRUPT') {
+      emitGameplay(this, 'combat.interrupt.attempted', { ...order, castId: enemy.pendingAction?.castId ?? null }, PLAYER_SOURCE);
       this.combatLog?.diagnostics?.control(enemy, { name: 'INTERRUPT' }, 'explicit_interrupt', !!enemy.pendingAction, enemy.pendingAction ? 'applied' : 'no_active_action');
       if (enemy.pendingAction) {
-        enemy.finishAction('interrupted', 'explicit_interrupt', 'Party Leader interrupt command', { cause: { actorId: 'party_leader', ability: 'INTERRUPT' } });
+        acceptOrder(this, order);
+        const castId = enemy.pendingAction.castId;
+        emitGameplay(this, 'combat.order.executed', { ...order, castId, phase: 'interrupt' }, PLAYER_SOURCE);
+        enemy.finishAction('interrupted', 'explicit_interrupt', 'Party Leader interrupt command', { cause: { kind: 'player', actorId: 'party_leader', ability: 'INTERRUPT', commandId: order.commandId } });
+        emitGameplay(this, 'combat.interrupt.succeeded', { ...order, castId }, PLAYER_SOURCE);
 
         // Spend the command cooldown only when an active cast was actually interrupted.
         this.interruptCooldownRemainingMs = 15000;
@@ -1469,6 +1542,7 @@ export default class BattleScene extends Phaser.Scene {
         this.showBattleMessage(`INTERRUPTED: ${enemy.name}`, '#fde68a');
         this.completePartyCommand('INTERRUPT');
       } else {
+        rejectOrder(this, order, 'no_active_cast');
         this.showBattleMessage(`${enemy.name} is not casting`, '#a8a29e');
       }
     }
@@ -1515,10 +1589,37 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     if (unit.distanceToPoint(target.x, target.y) > combatSpacing.arrivalTolerance) {
-      unit.moveToward(target.x, target.y, deltaSeconds, combatSpacing.arrival);
+      const start = { x: unit.arenaX, y: unit.arenaY };
+      const moved = unit.moveToward(target.x, target.y, deltaSeconds, combatSpacing.arrival);
+      const movement = unit.manualMovement;
+      if (movement) {
+        if (moved) {
+          unit.manualMovementSerial = (unit.manualMovementSerial ?? 0) + 1;
+          if (!movement.started) {
+            movement.started = true;
+            emitGameplay(this, 'combat.movement.started', { actorId: unit.id, ...movement }, PLAYER_SOURCE);
+          }
+          for (const warning of this.activeTelegraphs) {
+            const evidence = warning.action?.warningEvidence;
+            if (!evidence) continue;
+            const g = evidence.geometry;
+            if (Math.hypot(start.x - g.x, start.y - g.y) <= g.radius && unit.distanceToPoint(g.x, g.y) > g.radius) {
+              unit.manualWarningEscapes ??= {};
+              unit.manualWarningEscapes[evidence.castId] = { serial: unit.manualMovementSerial, commandId: movement.commandId, tutorial: movement.tutorial };
+            }
+          }
+        } else if (!movement.blocked) {
+          movement.blocked = true;
+          emitGameplay(this, 'combat.movement.blocked', { actorId: unit.id, ...movement }, PLAYER_SOURCE);
+        }
+      }
       return true;
     }
 
+    if (unit.manualMovement && !unit.manualMovement.arrived) {
+      unit.manualMovement.arrived = true;
+      emitGameplay(this, 'combat.movement.arrived', { actorId: unit.id, ...unit.manualMovement }, PLAYER_SOURCE);
+    }
     if (!this.isPositionLocked(unit)) {
       this.manualTargets.delete(unit.id);
     }
@@ -1529,7 +1630,15 @@ export default class BattleScene extends Phaser.Scene {
   // This helper triggers the chosen leadership effect under its battle cooldown.
   useLeaderAbility(id) {
 
-    if (this.battleOver || this.waveTransitioning) return;
+    const targeted = ['focusFire', 'coordinatedAttack', 'lunarAssault', 'revive'].includes(id);
+    const intended = targeted ? [] : this.leaderOrderPlan.membersForTactic(id)
+      .map(id => this.partyUnits.find(unit => unit.id === id));
+    const observation = targeted ? null : requestOrder(this, 'TACTIC:' + id, intended,
+      { intendedRecipientIds: intended.map(unit => unit.id) });
+    if (this.battleOver || this.waveTransitioning) {
+      if (observation) rejectOrder(this, observation, 'encounter_unavailable');
+      return;
+    }
     if (this.combatPaused) {
 
       // Targeted tactics need a battlefield tap before joining the Resume queue.
@@ -1539,7 +1648,7 @@ export default class BattleScene extends Phaser.Scene {
         this.commandMode = mode;
         this.setTargetingInputState(mode !== 'REVIVE');
         this.showBattleMessage(mode === 'REVIVE' ? 'REVIVE! - tap a fallen character' : `${mode} - tap an enemy`, '#bef264', true);
-      } else this.queuePausedTactic(id);
+      } else this.queuePausedTactic(id, null, observation);
       return;
     }
 
@@ -1547,6 +1656,7 @@ export default class BattleScene extends Phaser.Scene {
     // that missing result before using its fields.
     const ability = leaderAbilities.find((entry) => entry.id === id);
     if (!ability || !this.isLeaderAbilityReady(id)) {
+      if (observation) rejectOrder(this, observation, 'tactic_unavailable');
       this.showBattleMessage('Tactic unavailable or recharging', '#a8a29e');
       return;
     }
@@ -1557,21 +1667,26 @@ export default class BattleScene extends Phaser.Scene {
     const living = this.partyUnits.filter((unit) => unit.alive);
     const fallen = this.partyUnits.filter((unit) => !unit.alive && !unit.delvesUsed?.honorSacrifice);
     if (['arise', 'revive'].includes(id) && fallen.length === 0) {
+      if (observation) rejectOrder(this, observation, 'no_eligible_actors');
       this.showBattleMessage('No fallen adventurers to revive', '#a8a29e');
       return;
     }
 
-    if (!['arise', 'revive'].includes(id) && living.length === 0) return;
+    if (!['arise', 'revive'].includes(id) && living.length === 0) {
+      if (observation) rejectOrder(this, observation, 'no_eligible_actors');
+      return;
+    }
 
     // some stops with true as soon as one entry passes the check; an empty list gives
     // false.
     if (id === 'encouragement' && !living.some((unit) => unit.hp < unit.maxHp)) {
+      if (observation) rejectOrder(this, observation, 'no_effect');
       this.showBattleMessage('The party is already at full health', '#a8a29e');
       return;
     }
 
-    if (id === 'manaVortex' && !living.some(unit => unit.maxMana > unit.mana)) return;
-    if (id === 'shieldWall' && !living.some(unit => unit.role === 'Tank')) return;
+    if (id === 'manaVortex' && !living.some(unit => unit.maxMana > unit.mana)) { rejectOrder(this, observation, 'no_effect'); return; }
+    if (id === 'shieldWall' && !living.some(unit => unit.role === 'Tank')) { rejectOrder(this, observation, 'no_effect'); return; }
     if (id === 'coordinatedAttack' && !living.some(unit => unit.role === 'Melee DPS')) return;
 
     if (id === 'lunarAssault' && !living.some(unit => isMageClass(unit.className))) return;
@@ -1581,7 +1696,7 @@ export default class BattleScene extends Phaser.Scene {
       // that missing result before using its fields.
       const hero = GameState.roster.find(entry => entry.id === unit.id);
       return Boolean(equippedItem(hero, 'potion'));
-    })) return;
+    })) { if (observation) rejectOrder(this, observation, 'no_eligible_recipients'); return; }
 
     if (id === 'revive') {
       this.commandMode = 'REVIVE';
@@ -1601,6 +1716,11 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
+    const order = observation;
+    acceptOrder(this, order);
+    const validRecipients = this.leaderOrderPlan.membersForTactic(id).map(id => this.partyUnits.find(unit => unit.id === id));
+    const affectedRecipientIds = [];
+
     // Immediate tactics start their cooldown and usage when their effect is applied.
     const now = this.time.now;
     this.leaderAbilityCooldowns.set(id, now);
@@ -1610,13 +1730,16 @@ export default class BattleScene extends Phaser.Scene {
     if (id === 'fightOn') {
       this.assaultUntil = now + ability.duration;
       this.assaultBonus = ability.damageBonus;
+      affectedRecipientIds.push(...living.map(unit => unit.id));
       this.showBattleMessage('FIGHT ON! - +10% damage for 6 seconds', '#bef264', false, 1.5);
     } else if (id === 'brace') {
       this.braceUntil = now + ability.duration;
       this.braceReduction = ability.damageReduction;
+      affectedRecipientIds.push(...living.map(unit => unit.id));
       this.showBattleMessage('BRACE! - 30% less damage for 8 seconds', '#bef264', false, 1.5);
     } else if (id === 'shieldWall') {
       living.filter(unit => unit.role === 'Tank').forEach(unit => {
+        affectedRecipientIds.push(unit.id);
         unit.status.leaderBlockBonus = ability.blockBonus;
         unit.status.leaderBlockUntil = now + ability.duration;
       });
@@ -1626,13 +1749,16 @@ export default class BattleScene extends Phaser.Scene {
 
         const before = unit.hp;
         unit.heal(Math.round(unit.maxHp * ability.healFraction));
+        if (unit.hp !== before) affectedRecipientIds.push(unit.id);
         this.createFloatingText(unit.x, unit.y - 80, '+' + (unit.hp - before), '#86efac');
       });
       this.showBattleMessage('ENCOURAGE! - party healed', '#bef264', false, 1.5);
     } else if (id === 'arise') {
       fallen.forEach((unit) => {
 
+        executeOrder(this, order, unit, { reportExecution: false });
         unit.revive(ability.healthFraction, ability.manaFraction);
+        if (unit.alive) affectedRecipientIds.push(unit.id);
         this.manualTargets.delete(unit.id);
         this.attackTargets.delete(unit.id);
         this.heldUnitIds.delete(unit.id);
@@ -1645,10 +1771,14 @@ export default class BattleScene extends Phaser.Scene {
       this.updateHud();
       this.showBattleMessage('ARISE! - fallen allies restored', '#fde68a', false, 1.5);
     } else if (id === 'manaVortex') {
-      living.forEach(unit => { unit.mana = unit.maxMana; });
+      living.forEach(unit => {
+        if (unit.mana !== unit.maxMana) affectedRecipientIds.push(unit.id);
+        unit.mana = unit.maxMana;
+      });
       this.showBattleMessage('MANA VORTEX! - mana restored', '#c4b5fd', false, 1.5);
     } else if (id === 'regen') {
       living.forEach(unit => {
+        affectedRecipientIds.push(unit.id);
         unit.status.leaderRegenUntil = now + ability.duration;
         unit.status.leaderRegenNext = now + ability.healInterval;
         unit.status.leaderRegenAmount = ability.healAmount;
@@ -1663,17 +1793,23 @@ export default class BattleScene extends Phaser.Scene {
         const item = equippedItem(hero, 'potion');
         const definition = item && getPotionDefinition(item.itemId);
 
-        if (definition) item.charges = definition.uses;
+        if (definition) {
+          if (item.charges !== definition.uses) affectedRecipientIds.push(unit.id);
+          item.charges = definition.uses;
+        }
       });
 
       this.showBattleMessage('SUPPLIES! - potion uses restored', '#bef264', false, 1.5);
     } else if (id === 'ready') {
-      living.forEach(unit => { unit.status.nextAbilityCrit = true; });
+      living.forEach(unit => { affectedRecipientIds.push(unit.id); unit.status.nextAbilityCrit = true; });
       this.showBattleMessage('READY! - next abilities critically hit', '#fde68a', false, 1.5);
     }
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
+    emitGameplay(this, 'combat.order.executed', { ...order, intendedRecipientIds: order.intendedRecipientIds ?? order.subjectIds,
+      validRecipientIds: validRecipients.map(unit => unit.id), subjectIds: affectedRecipientIds, affectedRecipientIds,
+      outcome: affectedRecipientIds.length ? 'applied' : 'no_effect', phase: 'effect' }, PLAYER_SOURCE);
     this.combatLog?.add('tactic', ability.name + ' used', { wave: this.currentWaveIndex + 1, ability: ability.name });
     this.refreshTacticsMenus();
     this.updateLeaderLoadoutBar();
@@ -1697,12 +1833,14 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   // Commands and tactics share planning metadata while execution stays in existing paths.
-  queuePausedTactic(id, targetId = null) {
+  queuePausedTactic(id, targetId = null, observation = null) {
 
     // find returns the first matching entry, or undefined when none matches. Check for
     // that missing result before using its fields.
+    observation ??= requestOrder(this, 'TACTIC:' + id, [], { targetId });
     const ability = leaderAbilities.find((entry) => entry.id === id);
     if (!ability || !this.isLeaderAbilityReady(id)) {
+      rejectOrder(this, observation, 'tactic_unavailable');
       this.showBattleMessage('Tactic unavailable or recharging', '#a8a29e');
       return;
     }
@@ -1720,11 +1858,12 @@ export default class BattleScene extends Phaser.Scene {
 
       // The condition before ? chooses the first value when true and the value after :
       // when false.
+      rejectOrder(this, observation, 'no_effect');
       this.showBattleMessage(id === 'arise' ? 'No fallen adventurers to revive' : 'Tactic has no effect yet', '#a8a29e');
       return;
     }
 
-    this.leaderOrderPlan.prepareTactic(id, targetId);
+    this.leaderOrderPlan.prepareTactic(id, targetId, observation);
   }
 
   // Resume submits every prepared order through its existing validated execution path.
@@ -1759,6 +1898,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
+    this.gameplayContext.waveSerial++;
     this.currentWaveIndex = index;
     GameState.currentRoom = index;
 
@@ -2862,6 +3002,7 @@ export default class BattleScene extends Phaser.Scene {
     };
 
     this.activeTelegraphs.push(telegraph);
+    if (!this.restoringBattle) warningStarted(this, telegraph);
 
     // The Sovereign lobs its glob at the saved warning center, so movement can escape it.
     startSlimeGlobFlight(this, attacker, null, ability, attacker.pendingAction, center);
@@ -2889,6 +3030,7 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
+    warningResolved(this, action);
     const hasThornbriarImpact = this.isThornbriarHollow
       && startThornbriarAbilityEffect(this, attacker, attacker, ability, 'impact',
       this.battlefield.arenaToScreen(center.arenaX, center.arenaY));
@@ -2976,6 +3118,8 @@ export default class BattleScene extends Phaser.Scene {
     // filter keeps entries whose callback returns true. It builds a new list and leaves
     // the original list in place.
     this.activeTelegraphs = this.activeTelegraphs.filter((item) => item !== telegraph);
+    for (const unit of this.partyUnits) if (unit.manualWarningEscapes)
+      delete unit.manualWarningEscapes[telegraph.action?.castId];
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
@@ -3934,6 +4078,11 @@ export default class BattleScene extends Phaser.Scene {
       this.updateHud();
     }
 
+    for (const unit of this.partyUnits) {
+      if (unit.leaderCommand) cancelOrder(this, unit.leaderCommand, 'wave_finished', [unit.id]);
+      unit.leaderCommand = null;
+      unit.manualMovement = null;
+    }
     this.manualTargets.clear();
     this.heldUnitIds.clear();
     this.attackTargets.clear();
@@ -4691,6 +4840,7 @@ export default class BattleScene extends Phaser.Scene {
       }
       this.idleSummary.xp += Math.max(0, ...summary.adventurers.map(hero => hero.xpGained));
     }
+    finishGameplayEncounter(this, 'victory');
     saveProfile();
 
     const showVictory = () => this.showResultOverlay('DELVE CLEARED!', `${GameState.currentDelve?.name ?? 'The Delve'} has been cleared.`, 'CONFIRM', () => {
@@ -4715,6 +4865,8 @@ export default class BattleScene extends Phaser.Scene {
     // undefined.
     this.combatLog?.finish('defeat');
     failExpedition();
+    finishGameplayEncounter(this, 'defeat');
+    saveProfile();
     this.showResultOverlay('DEFEATED', 'The party was driven back.', 'CONFIRM', () => {
 
       HapticsService.confirm();
@@ -4727,6 +4879,7 @@ export default class BattleScene extends Phaser.Scene {
 
     if (this.battleOver) return;
     this.combatPaused = !this.combatPaused;
+    emitGameplay(this, 'combat.pause.changed', { paused: this.combatPaused }, PLAYER_SOURCE);
     this.time.paused = this.combatPaused;
 
     // ?. only follows this link when the value exists; a missing optional value gives
@@ -4756,6 +4909,8 @@ export default class BattleScene extends Phaser.Scene {
     // undefined.
     this.combatLog?.finish('fled');
     fleeExpedition();
+    finishGameplayEncounter(this, 'retreat');
+    saveProfile();
     this.scene.start('EncounterSummaryScene');
   }
 

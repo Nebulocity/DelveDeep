@@ -9,6 +9,8 @@ const GameState = {
   roster: [],
   recruitedIds: [],
   tutorial: { status: 'pending', step: 'recruit' },
+  tutorialProgress: null,
+  gameplay: null,
   activeParty: [],
   activeBattle: null,
   lastPartyIds: [],

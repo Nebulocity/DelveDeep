@@ -1,6 +1,7 @@
 // Private backups encrypt both legacy save records together. This protects the file
 // against casual editing; it does not prove gameplay was earned or protect purchases.
 import { PROFILE_STORAGE_KEY, LEADER_STORAGE_KEY } from './BuildSave.js';
+import { validTutorialProgress, validGameplayState } from './TutorialProgress.js';
 import { validBattleSnapshot } from './BattleSnapshot.js';
 import { restoreEverdeep } from './EverdeepState.js';
 import enemies from '../data/enemies.js';
@@ -72,6 +73,8 @@ export function validateSnapshot(snapshot) {
     && [...ids].every(id => profile.recruitedIds.includes(id)), 'Invalid recruitment ownership.');
   require(object(profile.tutorial) && ['pending', 'active', 'complete', 'skipped'].includes(profile.tutorial.status)
     && ['recruit', 'party'].includes(profile.tutorial.step), 'Invalid tutorial progress.');
+  require(profile.tutorialProgress === undefined || validTutorialProgress(profile.tutorialProgress), 'Invalid lesson checkpoints.');
+  require(profile.gameplay === undefined || validGameplayState(profile.gameplay), 'Invalid gameplay identities.');
   const gearIds = new Set();
   for (const gear of profile.inventory.equipment) {
     require(object(gear) && typeof gear.id === 'string' && !gearIds.has(gear.id), 'Invalid owned equipment.');

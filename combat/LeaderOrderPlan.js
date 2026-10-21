@@ -1,4 +1,4 @@
-import { isMageClass } from '../config/characterProgression.js';
+import { requestOrder, acceptOrder, rejectOrder, cancelOrder, targetedTacticUnits } from '../game/GameplayEvents.js';
 // Planning stores IDs and input coordinates only. No actions, resources, AI targets or
 // cooldowns change here; Resume dispatches through BattleScene's existing command paths.
 import GameState from '../game/GameState.js';
@@ -18,12 +18,12 @@ export default class LeaderOrderPlan {
 
   membersForTactic(id, targetId) {
     const party = this.scene.partyUnits;
+    if (id === 'coordinatedAttack' || id === 'lunarAssault')
+      return targetedTacticUnits(this.scene, id === 'coordinatedAttack' ? 'COORDINATED_ATTACK' : 'LUNAR_ASSAULT').map(unit => unit.id);
     if (id === 'revive') return party.filter(unit => unit.id === targetId).map(unit => unit.id);
     if (id === 'arise') return party.filter(unit => !unit.alive && !unit.delvesUsed?.honorSacrifice).map(unit => unit.id);
     return party.filter(unit => {
       if (!unit.alive) return false;
-      if (id === 'coordinatedAttack') return unit.role === 'Melee DPS';
-      if (id === 'lunarAssault') return isMageClass(unit.className);
       if (id === 'shieldWall') return unit.role === 'Tank';
       if (id === 'manaVortex') return unit.maxMana > 0;
       if (id === 'supplies') {
@@ -41,6 +41,13 @@ export default class LeaderOrderPlan {
 
   replaceMembers(ids) {
     const affected = new Set(ids);
+    for (const order of this.orders) {
+      const removed = order.unitIds.filter(id => affected.has(id));
+      if (removed.length) cancelOrder(this.scene, order.observation, 'superseded', removed);
+    }
+    for (const tactic of this.tactics) if (POSITIONAL_TACTICS.includes(tactic.id)
+      && this.membersForTactic(tactic.id, tactic.targetId).some(id => affected.has(id)))
+      cancelOrder(this.scene, tactic.observation, 'superseded');
     this.scene.pendingLeaderOrders = this.orders.map(order => ({ ...order,
       unitIds: order.unitIds.filter(id => !affected.has(id)) }))
       .filter(order => order.type === 'INTERRUPT' || order.unitIds.length);
@@ -49,33 +56,46 @@ export default class LeaderOrderPlan {
       || !this.membersForTactic(tactic.id, tactic.targetId).some(id => affected.has(id)));
   }
 
-  prepare(type, { point, target, anchorId } = {}) {
+  prepare(type, { point, target, anchorId, observation } = {}) {
     const scene = this.scene;
-    if (!scene.combatPaused || scene.battleOver || !ORDERS.includes(type)) return this.reject('That order cannot be prepared');
+    observation ??= requestOrder(scene, type, scene.getSelectedUnits(), { targetId: target?.id ?? null, destination: point ?? null });
+    if (!scene.combatPaused || scene.battleOver || !ORDERS.includes(type)) {
+      rejectOrder(scene, observation, 'cannot_prepare');
+      return this.reject('That order cannot be prepared');
+    }
     const action = target?.pendingAction;
-    const order = { type, unitIds: type === 'INTERRUPT' ? [] : scene.getSelectedUnits().map(unit => unit.id),
+    const order = { type, observation, unitIds: type === 'INTERRUPT' ? [] : scene.getSelectedUnits().map(unit => unit.id),
       point: point ? { x: point.x, y: point.y } : null, targetId: target?.id ?? null, anchorId: anchorId ?? null,
       waveIndex: scene.currentWaveIndex, castId: action?.id ?? null,
       castStartAt: action?.startAt ?? null, castName: action?.name ?? null };
     const error = this.validate(order);
-    if (error) return this.reject(error);
-    if (type === 'INTERRUPT') scene.pendingLeaderOrders = this.orders.filter(entry => entry.type !== 'INTERRUPT');
+    if (error) { rejectOrder(scene, observation, error); return this.reject(error); }
+    if (type === 'INTERRUPT') {
+      for (const entry of this.orders.filter(o => o.type === 'INTERRUPT')) cancelOrder(scene, entry.observation, 'superseded');
+      scene.pendingLeaderOrders = this.orders.filter(entry => entry.type !== 'INTERRUPT');
+    }
     else this.replaceMembers(order.unitIds);
     order.serial = this.nextSerial();
     scene.pendingLeaderOrders.push(order);
+    acceptOrder(scene, observation, true);
     this.finishPreparation(`${type} prepared`, type);
     return true;
   }
 
-  prepareTactic(id, targetId) {
+  prepareTactic(id, targetId, observation = null) {
     const scene = this.scene;
     if (!scene.combatPaused || scene.battleOver) return this.reject('Tactics can only be prepared during Tactical Pause');
-    const tactic = { id, targetId, waveIndex: scene.currentWaveIndex, serial: this.nextSerial() };
+    observation ??= requestOrder(scene, 'TACTIC:' + id, this.membersForTactic(id, targetId).map(id => ({ id })), { targetId, intendedRecipientIds: this.membersForTactic(id, targetId) });
+    observation = { ...observation, intendedRecipientIds: observation.intendedRecipientIds ?? this.membersForTactic(id, targetId),
+      validRecipientIds: this.membersForTactic(id, targetId), subjectIds: this.membersForTactic(id, targetId) };
+    const tactic = { id, observation, targetId, waveIndex: scene.currentWaveIndex, serial: this.nextSerial() };
     const error = this.validateTactic(tactic);
-    if (error) return this.reject(error);
+    if (error) { rejectOrder(scene, observation, error); return this.reject(error); }
     if (POSITIONAL_TACTICS.includes(id)) this.replaceMembers(this.membersForTactic(id, targetId));
+    for (const entry of this.tactics.filter(t => t.id === id)) cancelOrder(scene, entry.observation, 'superseded');
     scene.pendingPausedTactics = this.tactics.filter(entry => entry.id !== id);
     scene.pendingPausedTactics.push(tactic);
+    acceptOrder(scene, observation, true, { affectedRecipientIds: [], affectedTargetIds: [] });
     this.finishPreparation('Tactic prepared');
     return true;
   }
@@ -140,6 +160,14 @@ export default class LeaderOrderPlan {
     if (!scene.combatPaused) return;
     const ids = new Set(scene.getSelectedUnits().map(unit => unit.id));
     const count = this.count;
+    for (const order of this.orders) {
+      const removed = all || !ids.size ? order.unitIds : order.unitIds.filter(id => ids.has(id));
+      if (removed.length || order.type === 'INTERRUPT' && (all || !ids.size || order.targetId === scene.inspectedEnemyId))
+        cancelOrder(scene, order.observation, 'player_cancelled', removed);
+    }
+    for (const tactic of this.tactics) if (all || !ids.size
+      || this.membersForTactic(tactic.id, tactic.targetId).some(id => ids.has(id)))
+      cancelOrder(scene, tactic.observation, 'player_cancelled');
     if (all || !ids.size) {
       scene.pendingLeaderOrders = [];
       scene.pendingPausedTactics = [];
@@ -165,7 +193,11 @@ export default class LeaderOrderPlan {
     try {
       for (const { order, tactic } of pending) {
         const error = order ? this.validate(order) : this.validateTactic(tactic);
-        if (error) { failures.push(error); continue; }
+        if (error) {
+          cancelOrder(scene, (order ?? tactic).observation, error);
+          failures.push(error); continue;
+        }
+        scene.executingGameplayOrder = (order ?? tactic).observation;
         scene.commandMode = null;
         if (tactic) {
           scene.useLeaderAbility(tactic.id);
@@ -186,6 +218,7 @@ export default class LeaderOrderPlan {
         }
       }
     } finally {
+      scene.executingGameplayOrder = null;
       scene.selectedUnitIds = selection;
       scene.commandMode = mode;
       scene.setTargetingInputState(['ATTACK', 'FOCUS', 'INTERRUPT', 'COORDINATED_ATTACK', 'LUNAR_ASSAULT'].includes(mode));

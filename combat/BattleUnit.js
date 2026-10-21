@@ -13,6 +13,7 @@ import { characterStats } from '../game/CharacterStats.js';
 import { combatPacingFor } from '../config/combatSpeed.js';
 import { abilityMeetsLevel } from '../data/abilityUnlocks.js';
 import GameState from '../game/GameState.js';
+import { castStarted, castFinished } from '../game/GameplayEvents.js';
 import UnitSprite from './UnitSprite.js';
 import { monsterDeathPose, criticalHitDirection, criticalHitPose, CRITICAL_RECOIL_MS } from './SpritePresentation.js';
 import HapticsService from '../services/HapticsService.js';
@@ -389,6 +390,7 @@ export default class BattleUnit {
     this.actionSerial = (this.actionSerial ?? 0) + 1;
     this.pendingAction = { id: this.actionSerial, name, startAt: time, duration };
     this.busyUntil = time + duration;
+    castStarted(this, this.pendingAction, diagnosticTarget, diagnosticAbility);
     this.scene.combatLog?.diagnostics?.start(this, diagnosticTarget, diagnosticAbility);
 
     // Action-punishment effects can defeat a monster as it commits a move. Stop before
@@ -427,6 +429,7 @@ export default class BattleUnit {
         distanceTravelled: rush.travelled, neverLeftOrigin: !(rush.travelled > 1), replans: rush.replans,
         waypoints: rush.waypoints, position: { x: this.arenaX, y: this.arenaY }, destination: rush.point });
     }
+    castFinished(this, action, outcome, reasonCode, details.cause);
     this.scene.combatLog?.diagnostics?.end(this, outcome, reasonCode, explanation, details);
     this.pendingAction = null;
     this.busyUntil = 0;
@@ -454,6 +457,13 @@ export default class BattleUnit {
   // This helper moves the unit in combat space and refreshes its presentation.
   setArenaPosition(arenaX, arenaY) {
 
+    // Re-entry invalidates an earlier manual escape, including forced displacement.
+    for (const warning of this.scene.activeTelegraphs ?? []) {
+      const g = warning.action?.warningEvidence?.geometry;
+      if (g && Math.hypot(arenaX - g.x, arenaY - g.y) <= g.radius && this.manualWarningEscapes)
+        delete this.manualWarningEscapes[warning.action.castId];
+    }
+
     this.arenaX = arenaX;
     this.arenaY = arenaY;
     this.syncPresentation();
@@ -479,7 +489,7 @@ export default class BattleUnit {
 
     const distance = Phaser.Math.Distance.Between(this.arenaX, this.arenaY, targetX, targetY);
     if (distance <= stopDistance || distance === 0) {
-      return;
+      return false;
     }
 
     let destination = { x: targetX, y: targetY };
@@ -507,7 +517,7 @@ export default class BattleUnit {
     const travel = Math.min(this.moveSpeed * moveBonus * moveSlow * deltaSeconds,
       Phaser.Math.Distance.Between(this.arenaX, this.arenaY, destination.x, destination.y));
 
-    this.moveBy(direction.x * travel, direction.y * travel, avoidUnits);
+    return this.moveBy(direction.x * travel, direction.y * travel, avoidUnits);
   }
 
   // This helper retreats until the unit has the requested breathing room.
@@ -515,7 +525,7 @@ export default class BattleUnit {
 
     const distance = Phaser.Math.Distance.Between(this.arenaX, this.arenaY, targetX, targetY);
     if (distance >= desiredDistance) {
-      return;
+      return false;
     }
 
     let direction;
@@ -544,20 +554,20 @@ export default class BattleUnit {
     // inside both a lower and an upper bound.
     const travel = Math.min(this.moveSpeed * moveBonus * moveSlow * deltaSeconds, route.length());
     if (route.lengthSq() > 0) route.normalize();
-    this.moveBy(route.x * travel, route.y * travel);
+    return this.moveBy(route.x * travel, route.y * travel);
   }
 
   // Wave returns may disable steering, but every voluntary step still collides
   // with living/fallen bodies and terrain. Forced knockback has its own path.
   moveBy(dx, dy, avoidUnits = true) {
-    if (this.criticalKnockback) return;
-    if ((this.scene.time?.now ?? 0) < (this.status.replacementCostRootUntil ?? 0)) return;
+    if (this.criticalKnockback) return false;
+    if ((this.scene.time?.now ?? 0) < (this.status.replacementCostRootUntil ?? 0)) return false;
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined. Math.max chooses the largest value; pairing it with Math.min can keep a
     // result inside both a lower and an upper bound. ?? uses the fallback only for null or
     // undefined. A real zero or false stays intact.
-    if (this.scene.time?.now < Math.max(this.status?.rootedUntil ?? 0, this.status?.stunnedUntil ?? 0)) return;
+    if (this.scene.time?.now < Math.max(this.status?.rootedUntil ?? 0, this.status?.stunnedUntil ?? 0)) return false;
 
     // The condition before ? chooses the first value when true and the value after : when
     // false.
@@ -569,6 +579,7 @@ export default class BattleUnit {
     const moved = Math.hypot(point.x - this.arenaX, point.y - this.arenaY);
     this.setArenaPosition(point.x, point.y);
     if (moved > .001) this.spriteVisual?.recordMovement?.();
+    return moved > .001;
   }
 
   // Keep cooldown progress proportional when changing pace. Pending casts and their

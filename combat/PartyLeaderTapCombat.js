@@ -1,4 +1,5 @@
 import GameState from '../game/GameState.js';
+import { emitGameplay, gameplayId, PLAYER_SOURCE } from '../game/GameplayEvents.js';
 import { PARTY_LEADER_TAP as tuning } from '../config/partyLeaderTap.js';
 import { partyLeaderTapPower } from './PartyLeaderTapPower.js';
 import PartyLeaderTapTargeting, { tapScreenScale, validTapEnemy } from './PartyLeaderTapTargeting.js';
@@ -91,10 +92,13 @@ export default class PartyLeaderTapCombat {
     if (now - this.lastAttackAt < tuning.minimumIntervalMs) return true;
     if (!validTapEnemy(this.scene, result.enemy)) return false;
     this.lastAttackAt = now;
+    const tapId = gameplayId('tap');
+    emitGameplay(this.scene, 'combat.leaderTap.accepted', { tapId, targetId: result.enemy.id }, PLAYER_SOURCE);
     const power = partyLeaderTapPower(GameState.leader, this.scene.partyUnits, GameState.roster);
     const contact = { partyLeaderTap: true, hasArtwork: true, suppressKnockback: true,
       suppressHitReaction: true, replacementTriggered: true };
     const damage = this.scene.resolveDamage(this.actor, result.enemy, power, 'melee', 0, 'Leader Tap', false, contact);
+    emitGameplay(this.scene, 'combat.leaderTap.resolved', { tapId, targetId: result.enemy.id, damage }, PLAYER_SOURCE);
     if (damage > 0) this.feedback.play(result.enemy);
     return true;
   }

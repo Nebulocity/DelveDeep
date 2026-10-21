@@ -7,6 +7,7 @@
 import { compactCombatLog, initializeDiagnosticStorage, storageWarning, clearStorageWarning } from '../combat/DiagnosticStorage.js';
 import { rebuildCharacterStats } from './CharacterStats.js';
 import GameState from './GameState.js';
+import { emptyTutorialProgress, validTutorialProgress, newGameplayState, validGameplayState, reconcileTutorialOutcome, invalidateTutorialCallbacks } from './TutorialProgress.js';
 import { COMBAT_PACE_OPTIONS } from '../config/combatSpeed.js';
 import { restoreEverdeep } from './EverdeepState.js';
 import { restoreEquipment } from './Equipment.js';
@@ -43,6 +44,7 @@ export function setBattleSaveProvider(provider, isReplaying = () => false) {
 // identity and base stats come from the current roster definitions, while saved levels,
 // experience, and happiness carry forward.
 export function loadProfile(baseRoster) {
+  invalidateTutorialCallbacks(GameState);
 
   let saved = null;
 
@@ -59,6 +61,12 @@ export function loadProfile(baseRoster) {
   // Index records by stable character ID, rather than their position in the old roster.
   // Only matching current IDs restore progression; retired identities have no aliases.
   // Changing list order must not hand one character's progress to another.
+  GameState.tutorialProgress = validTutorialProgress(saved?.tutorialProgress) ? saved.tutorialProgress : emptyTutorialProgress();
+  GameState.gameplay = validGameplayState(saved?.gameplay) ? saved.gameplay : newGameplayState();
+
+  reconcileTutorialOutcome(GameState);
+
+  // Match the current roster by stable character ID.
   const savedRoster = new Map((saved?.roster ?? []).map((entry) => [entry.id, entry]));
 
   // Keep the playable roster owned-only. A fresh profile reserves Garrick until the
@@ -272,6 +280,8 @@ function writeProfile() {
     gold: GameState.gold,
     recruitedIds: GameState.recruitedIds,
     tutorial: GameState.tutorial,
+    tutorialProgress: GameState.tutorialProgress,
+    gameplay: GameState.gameplay,
     preferences: GameState.preferences,
     inventory: GameState.inventory,
     records: GameState.records,

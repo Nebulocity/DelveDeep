@@ -5,7 +5,7 @@ import Phaser from 'phaser';
 import { tutorialGuidance } from '../game/TutorialGuidance.js';
 import TutorialDialogue from '../ui/TutorialDialogue.js';
 import { TutorialCuePlayer, preloadTutorialAudio } from '../game/TutorialAudio.js';
-import { instructionPosition, preferredInstructionPosition, safeExitPosition, overlaps } from '../ui/TutorialSpotlightLayout.js';
+import { preferredInstructionPosition, safeExitPosition, overlaps } from '../ui/TutorialSpotlightLayout.js';
 import { bindButtonPress } from '../ui/ButtonPress.js';
 import { UI_FONT_FAMILIES, UI_FONT_SIZES } from '../config/uiTypography.js';
 import { UI_SAFE_LEFT, UI_SAFE_RIGHT, UI_SAFE_BOTTOM, UI_SAFE_TOP } from '../ui/Layout.js';
@@ -14,7 +14,10 @@ import { UI_SAFE_LEFT, UI_SAFE_RIGHT, UI_SAFE_BOTTOM, UI_SAFE_TOP } from '../ui/
 // substitutes for a real hire, party save, movement or successful interrupt.
 export default class TutorialOverlayScene extends Phaser.Scene {
   constructor() { super({ key: 'TutorialOverlayScene', active: true }); }
-  preload() { preloadTutorialAudio(this, true); preloadTutorialNpcPortraits(this); }
+  preload() {
+    if (!this.textures.exists('town-hub-panel')) this.load.image('town-hub-panel', new URL('../assets/ui/town-hub/panel.png', import.meta.url).href);
+    preloadTutorialAudio(this, true); preloadTutorialNpcPortraits(this);
+  }
   create() {
     this.guidance = tutorialGuidance(this.game);
     this.shade = this.add.graphics();
@@ -24,14 +27,14 @@ export default class TutorialOverlayScene extends Phaser.Scene {
     this.instruction = this.dialogue.body;
     this.audioCues = new TutorialCuePlayer(this);
     this.guidance.requestExit = () => this.askExit();
-    this.events.once('shutdown', () => { this.guidance.requestExit = null; });
+    this.events.once('shutdown', () => { this.closeExitConfirmation(); this.guidance.requestExit = null; });
     this.help = this.add.text(0, 0, '', { fontFamily: UI_FONT_FAMILIES.sans,
       fontSize: UI_FONT_SIZES.compact26, color: '#c6bdac' });
     this.exit = this.button('tutorial-exit', 'Exit Tutorial', () => {
       if (this.restartMessage && !this.guidance.guiding()) this.restartMessage = null;
       else this.askExit();
       this.signature = null;
-    });
+    }, 290, true);
     this.advanceDialogue = () => {
       this.audioCues.trigger('onAdvance');
       if (this.restartMessage && !this.guidance.guiding()) { this.restartMessage = null; this.signature = null; }
@@ -80,30 +83,39 @@ export default class TutorialOverlayScene extends Phaser.Scene {
     this.exitConfirmationOpen = true;
     this.signature = null;
   }
-  updateExitConfirmation(bounds, avoid) {
-    if (!this.exitConfirmationOpen) { this.exitPrompt?.setVisible(false); return; }
+  closeExitConfirmation() {
+    if (!this.exitConfirmationOpen && !this.exitPrompt && !this.releaseExitConfirmation) return;
+    this.releaseExitConfirmation?.(); this.releaseExitConfirmation = null;
+    this.exitConfirmationOpen = false;
+
+    // Remove the prompt and its hit areas immediately, including between scenes.
+    this.exitPrompt?.destroy(); this.exitPrompt = null; this.exitPromptButtons = [];
+    this.signature = null;
+  }
+  updateExitConfirmation() {
+    if (!this.exitConfirmationOpen) { this.closeExitConfirmation(); return; }
     if (!this.exitPrompt) {
       const root = this.add.container().setDepth(20000);
       root.add(dialogFrame(this, 340, 145, 680, 290, 0, { compact: true }));
       root.add(this.add.text(340, 54, 'Exit Tutorial?', { fontFamily: UI_FONT_FAMILIES.serif, fontSize: 36, color: '#fff1d2' }).setOrigin(.5));
       root.add(this.add.text(340, 105, 'Your progress is kept.', { fontFamily: UI_FONT_FAMILIES.sans, fontSize: 28, color: '#c6bdac' }).setOrigin(.5));
-      const stay = this.button('tutorial-exit-stay', 'Stay', () => { this.releaseExitConfirmation?.(); this.exitConfirmationOpen = false; this.signature = null; }, 260);
+      const stay = this.button('tutorial-exit-stay', 'Stay', () => this.closeExitConfirmation(), 260);
       const leave = this.button('tutorial-exit-confirm', 'Exit Tutorial', () => {
-        this.releaseExitConfirmation?.(); this.exitConfirmationOpen = false; this.audioCues.stop(); if (this.story?.point) this.story.skip(); else this.guidance.exit(this.guidance.opening.active()); this.signature = null;
+        this.closeExitConfirmation(); this.audioCues.stop(); if (this.story?.point) this.story.skip(); else this.guidance.exit(this.guidance.opening.active()); this.signature = null;
       }, 290);
       stay.root.setPosition(40, 165); leave.root.setPosition(340, 165);
       root.add([stay.root, leave.root]); this.exitPrompt = root; this.exitPromptButtons = [stay, leave];
     }
-    const p = instructionPosition(this.scale.width, this.scale.height, 680, 290, [...avoid, bounds],
-      { left: UI_SAFE_LEFT + 24, right: UI_SAFE_RIGHT + 24, top: 136, bottom: UI_SAFE_BOTTOM + 24 });
-    // If a warning/HUD fills the scene, the small prompt replaces the instruction
-    // area rather than placing a second invisible blocker across combat controls.
-    this.exitPrompt.setPosition(p?.x ?? Math.max(UI_SAFE_LEFT + 24, this.scale.width / 2 - 340),
-      p?.y ?? 150).setVisible(true);
+    const { width, height } = this.scale;
+    const x = Math.max(UI_SAFE_LEFT + 24, Math.min((width - 680) / 2, width - UI_SAFE_RIGHT - 704));
+    const y = Math.max(UI_SAFE_TOP + 24, Math.min((height - 290) / 2, height - UI_SAFE_BOTTOM - 314));
+    this.shade.clear(); this.dimAround([], width, height);
+    this.exitPrompt.setPosition(x, y).setVisible(true);
     this.exitPromptButtons.forEach(b => this.showButton(b, true));
   }
-  button(name, label, action, width = 290) {
-    const face = this.add.rectangle(width / 2, 42, width, 84, 0x171d24).setStrokeStyle(2, 0xd3a750);
+  button(name, label, action, width = 290, framed = false) {
+    const face = framed ? dialogFrame(this, width / 2, 42, width, 84, 0, { compact: true })
+      : this.add.rectangle(width / 2, 42, width, 84, 0x171d24).setStrokeStyle(2, 0xd3a750);
     const text = this.add.text(width / 2, 42, label, { fontFamily: UI_FONT_FAMILIES.serif,
       fontSize: UI_FONT_SIZES.body32, color: '#fff1d2' }).setOrigin(0.5);
     const hit = this.add.zone(width / 2, 42, width, 84).setName(name).setInteractive();
@@ -157,7 +169,7 @@ export default class TutorialOverlayScene extends Phaser.Scene {
     if (g.background) {
       this.dialogue.hide(); this.shade.clear(); this.targetMarker.clear(); this.help.setVisible(false);
       this.showButton(this.exit, false); 
-      this.exitPrompt?.setVisible(false); this.releaseExitConfirmation?.(); this.exitConfirmationOpen = false; this.signature = null; this.audioCues.stop(); return;
+      this.closeExitConfirmation(); this.signature = null; this.audioCues.stop(); return;
     }
     if (g.guiding()) g.refresh();
     if (g.controller.progress.retryReason === 'unsupported-curriculum' && !this.versionNoticeShown) {
@@ -184,7 +196,7 @@ export default class TutorialOverlayScene extends Phaser.Scene {
     this.showButton(this.restart, !active && !!usableScene);
     this.restart.root.setPosition(width - UI_SAFE_RIGHT - 120, height - UI_SAFE_BOTTOM - 220);
     this.showButton(this.exit, active);
-    if (!active) { this.audioCues.stop(); this.releaseExitConfirmation?.(); this.exitConfirmationOpen = false; this.exitPrompt?.setVisible(false); }
+    if (!active) { this.audioCues.stop(); this.closeExitConfirmation(); }
 
     if (!active) {
       
@@ -210,7 +222,7 @@ export default class TutorialOverlayScene extends Phaser.Scene {
     const exit = step.rewardPresentation ? { x: width - UI_SAFE_RIGHT - 290, y: (UI_SAFE_TOP - 84) / 2, width: 290, height: 84 }
       : safeExitPosition(width, height, step.exitAnchor ?? 'top-right', avoid,
         { left: UI_SAFE_LEFT + 24, right: UI_SAFE_RIGHT + 24, top: 136, bottom: UI_SAFE_BOTTOM + 24 });
-    this.updateExitConfirmation(exit, avoid);
+    this.updateExitConfirmation();
     if (this.exitConfirmationOpen) {
       this.dialogue.hide(); this.help.setVisible(false);  return;
     }

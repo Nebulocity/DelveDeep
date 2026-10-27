@@ -1,5 +1,5 @@
 import published from '../data/tutorialPresentation.json' with { type: 'json' };
-import { validateStoryPoints, storyAction, storyPointScene } from './StoryPresentation.js';
+import { validateStoryPoints, storyAction, storyPointScene, storyPoints, storyLines } from './StoryPresentation.js';
 import authority from '../data/tutorialAuthority.json' with { type: 'json' };
 
 export const PRESENTATION_VALIDATOR_VERSION = 6;
@@ -9,6 +9,11 @@ export const AUDIO_EVENTS = ['scene.entered', 'selection.changed', 'adventurer.r
   'combat.mechanic.warning', 'combat.interrupt.succeeded', 'combat.encounter.finished'];
 export const EXIT_ANCHORS = ['top-right', 'top-left', 'bottom-right', 'bottom-left'];
 export const clonePresentation = () => structuredClone(published);
+
+// A published intro owns onboarding, including gaps between its location lessons.
+// The built-in curriculum remains available for projects without an authored intro.
+export const usesAuthoredTutorial = storyPoints(published).some(point => point.enabled
+  && point.trigger === 'intro' && storyLines(published, point).length);
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const bounded = (n, lo, hi) => Number.isFinite(n) && n >= lo && n <= hi;
 

@@ -1,6 +1,7 @@
 import GameState from './GameState.js';
 import { saveProfile } from './GameStorage.js';
 import { beginRecruitmentTutorial } from './RecruitmentTutorial.js';
+import { usesAuthoredTutorial } from './TutorialPresentation.js';
 import { selectedParty, partyCounts } from './PartySelection.js';
 import { ownedEquipment, equipmentOwner, canEquipItem } from './Equipment.js';
 import { emitGameplay, PLAYER_SOURCE } from './GameplayEvents.js';
@@ -68,6 +69,7 @@ export default class OpeningTutorial {
   constructor(service) { this.service = service; service.define(OPENING_TUTORIAL, openingDefinition()); }
   active() { return this.service.guiding() && this.service.controller.progress.lessonId === OPENING_TUTORIAL; }
   start(scene, replay = false) {
+    if (usesAuthoredTutorial) return { ok: false, message: 'This adventure uses the tutorial published from Tutorial Studio.' };
     const service = this.service, p = service.controller.progress;
     if (GameState.activeBattle && (p.lessonId !== OPENING_TUTORIAL || !['active', 'paused', 'retry'].includes(p.status) || replay))
       return { ok: false, message: 'Finish your active expedition before starting the tutorial.' };

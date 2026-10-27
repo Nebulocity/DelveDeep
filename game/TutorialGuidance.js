@@ -6,7 +6,7 @@ import TutorialInputGate from './TutorialInputGate.js';
 import { exitTutorial, tutorialOwner } from './TutorialOwner.js';
 import { observeGameplay, emitGameplay, SYSTEM_SOURCE } from './GameplayEvents.js';
 import { tutorialEvidenceContext } from './TutorialProgress.js';
-import { withTutorialPresentation } from './TutorialPresentation.js';
+import { withTutorialPresentation, usesAuthoredTutorial } from './TutorialPresentation.js';
 
 const services = new WeakMap();
 export function tutorialGuidance(game) {
@@ -64,7 +64,14 @@ export default class TutorialGuidance {
 
   register(scene, id, options) { return this.targets.register(scene, id, options); }
   ownsInput() { return this.storyActive || this.guiding(); }
-  guiding() { return this.controller.progress.status === 'active'; }
+  guiding() {
+    const progress = this.controller.progress;
+
+    // An existing curriculum checkpoint cannot take input from authored onboarding.
+    // Leave saved evidence intact; independent help lessons can still run.
+    return progress.status === 'active'
+      && !(usesAuthoredTutorial && progress.lessonId === 'pineshire-first-adventure');
+  }
   step() {
     const p = this.controller.progress;
     return withTutorialPresentation(this.help.presentation(this.opening.presentation(this.controller.definitions[p.lessonId]?.checkpoints[p.checkpointId])), p.lessonId, p.checkpointId);

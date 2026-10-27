@@ -62,7 +62,7 @@ export default class StoryDirector {
     view.shade.clear(); view.targetMarker.clear(); view.help.setVisible(false);
     if (guide.background) {
       this.fadeTween?.pause();
-      view.exitPrompt?.setVisible(false); view.releaseExitConfirmation?.(); view.exitConfirmationOpen = false;
+      view.closeExitConfirmation();
       view.dialogue.hide(); view.showButton(view.exit, false); view.audioCues.stop(); return true;
     }
     this.fadeTween?.resume();
@@ -74,8 +74,8 @@ export default class StoryDirector {
     const exit = safeExitPosition(width, height, published.exitAnchor, exitAvoid, insets);
     view.exit.root.setPosition(exit.x, exit.y).setDepth(2000);
     view.showButton(view.exit, true);
-    view.exit.text.setText(storyAction(this.line()) ? 'Exit Tutorial' : 'Exit Story');
-    view.updateExitConfirmation(exit, []);
+    view.exit.text.setText('Exit Tutorial');
+    view.updateExitConfirmation();
     const atLocation = this.point.trigger === 'wave-start' ? storyWaveMatches(this.point, guide.scene, GameState)
       : storyLocationMatches(storyLocation(this.point.locationId), guide.scene, GameState);
     if (!atLocation && this.point.trigger === 'wave-start') { this.finish(); return false; }
@@ -116,14 +116,13 @@ export default class StoryDirector {
     const lines = storyLines(published, point);
     this.lineIndex = resume ? Math.max(0, lines.findIndex(line => line.id === GameState.storyProgress.lineId)) : 0;
     if (point.trigger === 'wave-start') {
-      this.intro = false;
       const source = this.overlay.guidance.scene;
       if (!source.combatPaused) {
         this.pausedScene = source; source.togglePause('tutorial');
         GameState.storyProgress.pausedEncounterId = source.gameplayContext.encounterId;
       } else if (GameState.storyProgress.pausedEncounterId === source.gameplayContext.encounterId) this.pausedScene = source;
       this.pausedSession = source.gameplayObserverSessionId;
-    } else if (point.trigger === 'intro' || resume && GameState.tutorial.status === 'pending') this.intro = true;
+    }
     GameState.storyProgress.activeId = point.id;
     GameState.storyProgress.lineId = this.line()?.id ?? null;
     saveProfile();
@@ -161,7 +160,7 @@ export default class StoryDirector {
       this.transitioning = false;
       this.releasePause();
       if (next?.trigger === 'after-previous') this.begin(next);
-      else { if (next?.trigger === 'wave-start') this.intro = false; this.finish(); }
+      else this.finish();
       this.fade?.destroy(); this.fade = null;
     };
     if (!duration) { finish(); return; }
@@ -176,21 +175,26 @@ export default class StoryDirector {
   }
   skip() {
     if (!this.point) return;
-    if (this.line()?.completion === 'hire-garrick') {
-      const guide = this.overlay.guidance;
-      const result = exitTutorial(guide.controller, true, 'recruitment');
-      if (!result.ok) { guide.message = result.message ?? 'Tutorial could not be saved. Please try Exit again.'; return; }
-      guide.scene.selectionDetailsClose?.(); guide.scene.render?.(); this.intro = false;
-    }
+    const guide = this.overlay.guidance;
+
+    // Exiting authored onboarding must also decline the built-in lesson. Use the
+    // existing recruitment transaction so Garrick remains available in free play.
+    const recruitment = ['pending', 'active'].includes(GameState.tutorial.status)
+      || (guide.controller.progress.lessonId === 'pineshire-first-adventure'
+        && ['active', 'paused', 'retry'].includes(guide.controller.progress.status));
+    const result = recruitment ? exitTutorial(guide.controller, true, 'recruitment')
+      : guide.guiding() ? guide.exit(true) : { ok: true };
+    if (!result.ok) { guide.message = result.message ?? 'Tutorial could not be saved. Please try Exit again.'; return; }
+    guide.opening.releasePause(); guide.releaseScope(); guide.confirmations.clear(); guide.message = '';
+    guide.scene.selectionDetailsClose?.();
+    if (recruitment) { guide.scene.render?.(); guide.scene.hub?.refresh?.(); }
     ++this.generation;
     this.fadeTween?.stop(); this.fadeTween = null;
     if (this.fade) { this.overlay.tweens.killTweensOf(this.fade); this.fade.destroy(); this.fade = null; }
-    const points = this.available(), start = points.indexOf(this.point);
-    this.completePoint(this.point);
-    for (const point of points.slice(start + 1)) {
-      if (point.trigger !== 'after-previous') break;
-      this.completePoint(point);
-    }
+
+    // Exit leaves the published tutorial, including later location/wave lessons.
+    // These are dialogue records only, never gameplay completion evidence.
+    for (const point of this.available()) this.completePoint(point);
     this.finish();
   }
   finish() {
@@ -200,11 +204,8 @@ export default class StoryDirector {
     view.audioCues.stop(); view.dialogue.hide(); view.shade.clear(); view.signature = null;
     view.exit.text.setText('Exit Tutorial'); view.exit.root.setDepth(0);
     guide.storyActive = false; guide.storyInteraction = null; this.interaction = null;
-    if (this.intro) {
-      this.intro = false;
-      GameState.world.currentLocation = 'pineshire'; GameState.world.travel = null; saveProfile();
-      if (guide.scene.scene.key !== 'TownScene') guide.scene.scene.start('TownScene', { townId: 'pineshire', townName: 'Pineshire' });
-      else if (GameState.tutorial.status === 'pending') guide.opening.start(guide.scene);
-    } else guide.refresh();
+    // Keep the authored destination and return control to gameplay or the next
+    // location trigger, without appending a second tutorial to the sequence.
+    guide.refresh();
   }
 }

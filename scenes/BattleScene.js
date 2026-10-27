@@ -1,3 +1,4 @@
+import { dialogFrame } from '../ui/DialogFrame.js';
 import { scrollbarSurface } from '../ui/Scrollbar.js';
 import { isMageClass } from '../config/characterProgression.js';
 import LeaderOrderPlan from '../combat/LeaderOrderPlan.js';
@@ -25,6 +26,7 @@ import { leaderAbilityDescription } from '../game/AbilityDescriptions.js';
 import { showConfirmation } from '../ui/ConfirmationDialog.js';
 import { bindButtonPress } from '../ui/ButtonPress.js';
 import { showFeatureToast } from '../ui/FeatureToast.js';
+import { playUiSound } from '../services/UiAudioService.js';
 import { hallScroll } from '../ui/HallUI.js';
 import { preloadCarvedStone, addStoneOrnaments, stoneText, stoneIcon, campStoneIcon, delveStoneTheme, STONE } from '../ui/CarvedStone.js';
 import { preloadSlimeSprites } from '../data/slimeSprites.js';
@@ -44,13 +46,15 @@ import { preloadVoidSprites } from '../data/voidSprites.js';
 import { preloadSunkenWatchSprites } from '../data/sunkenWatchSprites.js';
 import { preloadQuarrySprites } from '../data/quarrySprites.js';
 import GameState from '../game/GameState.js';
+import { STORY_WAVE_READY, storyWaveReadyId, storyWaveHasLanded } from '../game/StoryWaveStart.js';
 import { preloadCombatHud, combatPanel, combatButton, combatText, combatHudLayout } from '../ui/CombatHudTheme.js';
 import { createCombatPartyRoster } from '../ui/CombatPartyRoster.js';
 import CombatRadials from '../ui/CombatRadials.js';
 import { createCombatPauseMenu } from '../ui/CombatPauseMenu.js';
 
 import { getEquippedAdventurer, equippedItem, consumePotionCharge } from '../game/Equipment.js';
-import { getPotionDefinition, getMaterialDefinition } from '../data/items.js';
+import { getPotionDefinition, getMaterialDefinition, ITEM_RARITIES } from '../data/items.js';
+import { applyPotionEffects, potionCooldownRemaining, potionEffectDescription, potionHasBenefit, startPotionCooldown } from '../game/Potions.js';
 import { battleAbilities } from '../game/AdventurerAbilities.js';
 import enemies from '../data/enemies.js';
 import { thornbriarEnemyDefinition } from '../config/thornbriarBalance.js';
@@ -58,6 +62,8 @@ import { delveEnemyDefinition } from '../config/delveBalance.js';
 import { prepareActiveMonster, syncActiveCombat } from '../config/activeCombatBalance.js';
 import { createEncounterWaves } from '../data/encounters.js';
 import { leaderAbilities } from '../game/LeaderProgression.js';
+import { coordinatedTacticDamage } from '../data/leaderTactics.js';
+import { applyExpandedTactic, expandedTacticHasBenefit, tacticCanRevive } from '../combat/LeaderTacticEffects.js';
 import BattleUnit from '../combat/BattleUnit.js';
 
 import BattlefieldGeometry from '../combat/BattlefieldGeometry.js';
@@ -80,6 +86,7 @@ import { saveProfile } from '../game/GameStorage.js';
 import { awardOrdinaryWave, getDelveCheckpoint, isOrdinaryDelve, delveCampWaves, delveFarmWaveIndex, delveRewardEligibility, cappedDelveGold } from '../game/DelveCheckpoints.js';
 import { equipmentPerkBonus } from '../game/EquipmentPerks.js';
 import { awardEquipmentLoot, mergeEquipmentLoot } from '../game/EquipmentLoot.js';
+import { awardPineshireBoss } from '../game/DelveCheckpoints.js';
 import { getBattleLayout } from '../ui/Layout.js';
 import { createCombatEncounterPanel } from '../ui/CombatEncounterPanel.js';
 import { preloadEnvironment, createEnvironment, getDelveArena } from '../combat/LayeredEnvironment.js';
@@ -90,7 +97,8 @@ import { cappedChance } from '../config/characterProgression.js';
 import { canTankTaunt, INTERPOSE, INTERVENE, INTERCEPT_THREAT_FRACTION, reactiveTankThreat } from '../combat/TankMechanics.js';
 import { advanceIdleBattle, resumeIdleBattle, recordIdleEvent } from '../combat/IdleBattle.js';
 import { prepareDeathNotifications } from '../services/DeathNotifications.js';
-import { idleRewardLines } from '../game/IdleSummary.js';
+import { idleRewardRows } from '../game/IdleSummary.js';
+import { RESOURCE_GAIN_COLOR, rewardItemColor, rewardTextRows, firstFindReceipt } from '../ui/RewardDisplay.js';
 import { advanceOfflineFarm, finishOfflineFarm } from '../combat/OfflineFarm.js';
 import { recordFarmClear } from '../combat/FarmTiming.js';
 import { migrateEncounterSnapshot, legacyPortalCheckpoint } from '../game/EncounterSaveMigration.js';
@@ -577,6 +585,7 @@ export default class BattleScene extends Phaser.Scene {
       // This gives the display object an input hit area. Visible artwork alone does not
       // make an object respond to a tap.
       unit.hitZone.setInteractive({ useHandCursor: true });
+      unit.hitZone.setName('battle-party-' + unit.id);
 
       // on registers a callback for later events; it does not call that callback now.
       // Long-lived emitters need matching listener cleanup.
@@ -632,7 +641,7 @@ export default class BattleScene extends Phaser.Scene {
     // an object respond to a tap. Depth is drawing order, not distance or size.
     // Higher-depth objects draw on top of lower-depth objects.
     const hit = this.add.zone(this.scale.width / 2, this.scale.height / 2,
-      this.scale.width, this.scale.height).setDepth(30).setInteractive();
+      this.scale.width, this.scale.height).setDepth(30).setName('battle-arena').setInteractive();
     this.partyLeaderTap.bindSurface(hit, true);
 
     // on registers a callback for later events; it does not call that callback now.
@@ -658,7 +667,7 @@ export default class BattleScene extends Phaser.Scene {
     this.radialHud = new CombatRadials(this);
     this.tacticalPlanOverlay = createTacticalPlanOverlay(this);
     this.pauseMenu = createCombatPauseMenu(this);
-    this.pauseButton = combatButton(this, width - 142, 48, 260, 84, 9000);
+    this.pauseButton = combatButton(this, width - 142, 48, 260, 84, 9000).setName('battle-pause');
     const pauseIcon = stoneIcon(this, width - 234, 48, 'PAUSE', 32, 9002);
     this.pauseButtonText = combatText(this, width - 118, 48, 'PAUSE', 30, 9002);
     bindButtonPress(this, this.pauseButton, [this.pauseButtonText, pauseIcon], () => this.togglePause());
@@ -1480,7 +1489,7 @@ export default class BattleScene extends Phaser.Scene {
         // reduce carries an accumulated result from one entry to the next. The callback
         // returns the accumulator for the next step; the final argument supplies its
         // starting value.
-        const damage = melee.reduce((sum, unit) => sum + unit.attackPower, 0) * 3;
+        const damage = coordinatedTacticDamage(leaderAbilities.find(ability => ability.id === 'coordinatedAttack'), melee);
         const rootBefore = enemy.status.rootedUntil ?? 0;
         const dealt = this.resolveDamage(melee[0], enemy, damage, 'melee', 1, 'Coordinated Attack!', false);
         if (enemy.alive) enemy.status.rootedUntil = Math.max(enemy.status.rootedUntil ?? 0, this.time.now + 6000);
@@ -1507,7 +1516,7 @@ export default class BattleScene extends Phaser.Scene {
           unit.finishAction('cancelled', 'action_replaced', 'Leader Lunar Assault order', { cause: { ...PLAYER_SOURCE, commandId: order.commandId } });
           this.attackTargets.set(unit.id, enemy.id);
         });
-        const damage = mages.reduce((sum, unit) => sum + (unit.spellPower ?? unit.spellDamage), 0) * 3;
+        const damage = coordinatedTacticDamage(leaderAbilities.find(ability => ability.id === 'lunarAssault'), mages);
 
         targets.forEach(target => {
           const rootBefore = target.status.rootedUntil ?? 0;
@@ -1672,8 +1681,14 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
-    if (!['arise', 'revive'].includes(id) && living.length === 0) {
+    if (!tacticCanRevive(ability) && living.length === 0) {
       if (observation) rejectOrder(this, observation, 'no_eligible_actors');
+      return;
+    }
+
+    if (ability.effects && !expandedTacticHasBenefit(this, ability)) {
+      if (observation) rejectOrder(this, observation, 'no_effect');
+      this.showBattleMessage('Tactic has no eligible effect yet', '#fff1d2');
       return;
     }
 
@@ -1727,7 +1742,12 @@ export default class BattleScene extends Phaser.Scene {
     if (ability.oncePerEncounter) this.usedLeaderAbilities.add(id);
     HapticsService.confirm();
 
-    if (id === 'fightOn') {
+    let expandedResult = null;
+    if (ability.effects) {
+      expandedResult = applyExpandedTactic(this, ability);
+      affectedRecipientIds.push(...expandedResult.affectedRecipientIds);
+      this.showBattleMessage(ability.name, '#fff1d2', false, 1.5);
+    } else if (id === 'fightOn') {
       this.assaultUntil = now + ability.duration;
       this.assaultBonus = ability.damageBonus;
       affectedRecipientIds.push(...living.map(unit => unit.id));
@@ -1750,7 +1770,7 @@ export default class BattleScene extends Phaser.Scene {
         const before = unit.hp;
         unit.heal(Math.round(unit.maxHp * ability.healFraction));
         if (unit.hp !== before) affectedRecipientIds.push(unit.id);
-        this.createFloatingText(unit.x, unit.y - 80, '+' + (unit.hp - before), '#86efac');
+        this.createFloatingText(unit.x, unit.y - 80, '+' + Math.round(unit.hp - before), '#86efac');
       });
       this.showBattleMessage('ENCOURAGE! - party healed', '#bef264', false, 1.5);
     } else if (id === 'arise') {
@@ -1809,6 +1829,7 @@ export default class BattleScene extends Phaser.Scene {
     // undefined.
     emitGameplay(this, 'combat.order.executed', { ...order, intendedRecipientIds: order.intendedRecipientIds ?? order.subjectIds,
       validRecipientIds: validRecipients.map(unit => unit.id), subjectIds: affectedRecipientIds, affectedRecipientIds,
+      ...(expandedResult ? { affectedTargetIds: expandedResult.affectedTargetIds } : {}),
       outcome: affectedRecipientIds.length ? 'applied' : 'no_effect', phase: 'effect' }, PLAYER_SOURCE);
     this.combatLog?.add('tactic', ability.name + ' used', { wave: this.currentWaveIndex + 1, ability: ability.name });
     this.refreshTacticsMenus();
@@ -1852,7 +1873,7 @@ export default class BattleScene extends Phaser.Scene {
 
     // some stops with true as soon as one entry passes the check; an empty list gives
     // false.
-    if ((!['arise', 'revive'].includes(id) && living.length === 0)
+    if ((!tacticCanRevive(ability) && living.length === 0)
       || (['arise', 'revive'].includes(id) && fallen.length === 0)
       || (id === 'encouragement' && !living.some((unit) => unit.hp < unit.maxHp))) {
 
@@ -2156,6 +2177,7 @@ export default class BattleScene extends Phaser.Scene {
 
   // Connect enemy taps and held inspection to the current battle commands.
   bindEnemyInput(enemy) {
+    enemy.hitZone.setName('battle-enemy-' + enemy.id);
     enemy.hitZone.disableInteractive();
 
     bindSelectionDetails(this, enemy.hitZone, () => characterDetails(enemy),
@@ -2401,6 +2423,13 @@ export default class BattleScene extends Phaser.Scene {
       return;
     }
 
+    // Wait for queued spawns and every landing, then let story dialogue pause before
+    // this frame's combat decisions. Historical catch-up never opens a lesson.
+    if (!replaying && storyWaveHasLanded(this) && this.storyReadyWave !== storyWaveReadyId(this)) {
+      this.storyReadyWave = storyWaveReadyId(this);
+      this.game.events.emit(STORY_WAVE_READY, this);
+    }
+
     if (this.battleOver || this.waveTransitioning || this.combatPaused) {
 
       // Finish a fall even when its lethal hit ended the battle or wave.
@@ -2430,7 +2459,7 @@ export default class BattleScene extends Phaser.Scene {
         && unit.status.leaderRegenNext <= unit.status.leaderRegenUntil) {
         const before = unit.hp;
         unit.heal(unit.status.leaderRegenAmount);
-        if (unit.hp > before) this.createFloatingText(unit.x, unit.y - 80, `+${unit.hp - before}`, '#86efac');
+        if (unit.hp > before) this.createFloatingText(unit.x, unit.y - 80, `+${Math.round(unit.hp - before)}`, '#86efac');
         unit.status.leaderRegenNext += 3000;
       }
     });
@@ -2461,9 +2490,10 @@ export default class BattleScene extends Phaser.Scene {
 
     // every requires all entries to pass the check; an empty list gives true.
     if (this.partyUnits.every((unit) => !unit.alive)) {
-      if (this.isLeaderAbilityReady('arise')) {
+      if (leaderAbilities.some(ability => tacticCanRevive(ability) && this.isLeaderAbilityReady(ability.id)
+        && this.partyUnits.some(unit => !unit.alive && !unit.delvesUsed?.honorSacrifice))) {
         this.awaitingRevive = true;
-        this.showBattleMessage('PARTY DOWN - use ARISE! or FLEE', '#fde68a', true);
+        this.showBattleMessage('PARTY DOWN - use a revival tactic or FLEE', '#fde68a', true);
       } else {
         this.finishDefeat();
       }
@@ -3105,8 +3135,7 @@ export default class BattleScene extends Phaser.Scene {
     unit.finishAction('cancelled', 'movement_cancelled', 'AI abandons action to evade a ground warning');
     const warnings = this.activeTelegraphs.filter(warning => warning.autoAvoid !== false);
     const destination = this.movement.getEscapePoint(unit, warnings);
-    if (destination) unit.moveToward(destination.x, destination.y, deltaSeconds, 6);
-    return true;
+    return destination ? unit.moveToward(destination.x, destination.y, deltaSeconds, 6) : false;
   }
 
   // This helper retires a ground warning from both the display and hazard tracking.
@@ -3466,7 +3495,7 @@ export default class BattleScene extends Phaser.Scene {
     // Authored healing columns replace the generic traveling dot. Health text and
     // hit flashes still show the unchanged amount restored by this heal.
     if (!hasArtwork) this.createMeleePulse(target, 0x86efac);
-    this.createFloatingText(target.x, target.y - 82, `+${effectiveHealing}${critical ? '!' : ''}`, '#22c55e', critical, 'healing');
+    this.createFloatingText(target.x, target.y - 82, `+${Math.round(effectiveHealing)}${critical ? '!' : ''}`, '#22c55e', critical, 'healing');
 
     // filter keeps entries whose callback returns true. It builds a new list and leaves
     // the original list in place.
@@ -4093,13 +4122,18 @@ export default class BattleScene extends Phaser.Scene {
     // undefined.
     this.waveRewardText?.destroy();
     this.waveRewardText = null;
-    if (!this.game.backgroundProgress?.isReplaying) this.waveRewardText = this.add.text(this.scale.width / 2, this.scale.height * 0.39,
-      waveReward ? this.formatWaveReward(waveReward) : 'WAVE CLEARED', {
+    const firstFind = GameState.currentDelve?.id === 'slime-cave' && this.currentWaveIndex === 0
+      && waveReward?.items?.some(item => item.source === 'first-clear');
+    if (!this.game.backgroundProgress?.isReplaying && firstFind) {
+      this.waveRewardText = firstFindReceipt(this, combatHudLayout(this), this.formatWaveReward(waveReward))
+        .setDepth(5000).setName('wave-reward-text');
+    } else if (!this.game.backgroundProgress?.isReplaying) this.waveRewardText = rewardTextRows(this, this.scale.width / 2, this.scale.height * 0.39,
+      waveReward ? this.formatWaveReward(waveReward) : [{ text: 'WAVE CLEARED' }], {
         fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx('heading40'), fontStyle: UI_FONT_WEIGHTS.bold, color: '#bef264',
         stroke: '#080e19', strokeThickness: 6, align: 'center', wordWrap: { width: this.scale.width - 760 }
-      }).setOrigin(0.5).setDepth(5000).setName('wave-reward-text');
+      }, { centered: true }).setDepth(5000).setName('wave-reward-text');
 
-    if (this.waveRewardText) this.tweens.add({ targets: this.waveRewardText, y: this.waveRewardText.y - 36, duration: 900, ease: 'Cubic.Out' });
+    if (this.waveRewardText && !firstFind) this.tweens.add({ targets: this.waveRewardText, y: this.waveRewardText.y - 36, duration: 900, ease: 'Cubic.Out' });
     this.combatLog?.diagnostics?.summary('cleared');
     this.combatLog?.add('wave', `Wave ${this.currentWaveIndex + 1} cleared`, { wave: this.currentWaveIndex + 1 });
     this.combatLog?.persist();
@@ -4140,13 +4174,16 @@ export default class BattleScene extends Phaser.Scene {
     // objects inside. The condition before ? chooses the first value when true and the
     // value after : when false. map builds one output entry for each input entry, in the
     // same order. The callback's return value becomes that output entry.
-    return [`+${reward.gold} GOLD  +${reward.xp} XP`,
+    return [{ text: `+${reward.gold} GOLD  +${reward.xp} XP`, color: RESOURCE_GAIN_COLOR },
       ...(reward.leaderResult?.renownPointsEarned > 0
-        ? [`+${reward.leaderResult.renownPointsEarned} RP · Renown Level ${GameState.leader.level}`] : []),
-      ...(reward.happiness ? [`+${reward.happiness} HAPPINESS per living adventurer`] : []),
+        ? [{ text: `+${reward.leaderResult.renownPointsEarned} RP · Renown Level ${GameState.leader.level}`, color: '#d8c6f0' }] : []),
+      ...(reward.happiness ? [{ text: `+${reward.happiness} HAPPINESS per living adventurer`, color: RESOURCE_GAIN_COLOR }] : []),
       ...Object.entries(materials).filter(([, count]) => count > 0)
-        .map(([id, count]) => `+${count} ${getMaterialDefinition(id)?.name ?? id}`),
-      ...(reward.items ?? []).map(item => `+${item.count ?? 1} ${item.name ?? item.itemId ?? item.id}`)].join('\n');
+        .map(([id, count]) => ({ text: `+${count} ${getMaterialDefinition(id)?.name ?? id}`, color: rewardItemColor({ id }) })),
+      ...(reward.items ?? []).map(item => {
+        const rarity = item.source === 'first-clear' ? ` (${ITEM_RARITIES[item.rarity]?.label ?? item.rarity})` : '';
+        return { text: `+${item.count ?? 1} ${item.name ?? item.itemId ?? item.id}${rarity}`, color: rewardItemColor(item), item: true };
+      })];
   }
 
   // Return living adventurers to their original positions before the next wave.
@@ -4290,7 +4327,7 @@ export default class BattleScene extends Phaser.Scene {
 
     // Keep the top at y=222 and extend the lower frame to y=822. The extra 32 pixels leave
     // room below the four reward lines while staying above the party HUD.
-    overlay.push(combatPanel(this, width / 2, 522, 1700, 600, 12000));
+    overlay.push(dialogFrame(this, width / 2, 522, 1700, 600, 12000));
     const headingWindow = combatPanel(this, width / 2, 312, 1558, 156, 12001);
     headingWindow.name = 'delve-camp-heading-window';
     overlay.push(headingWindow);
@@ -4319,7 +4356,7 @@ export default class BattleScene extends Phaser.Scene {
       // The card is centered at y=599 with height 386, so its top is 406 and bottom is
       // 792. This preserves its top while making room below the four reward lines. Depth
       // 12001 puts it above the outer panel; color chooses the action tint.
-      const button = combatButton(this, x, 599, 502, 386, 12001, color);
+      const button = combatButton(this, x, 599, 502, 386, 12001, color).setName('battle-camp-' + index);
 
       // The icon sits in the upper part of the card at y=482. index crops the matching
       // town/farm/boss icon from the shared sheet. Depth 12003 draws it over the card
@@ -4414,7 +4451,8 @@ export default class BattleScene extends Phaser.Scene {
 
     // The condition before ? chooses the first value when true and the value after : when
     // false.
-    return definition ? { title: definition.name, description: `${definition.description} ${item.charges}/${definition.uses} uses remain. Tap POTION to use it on ${unit.name}.` }
+    const remaining = definition ? Math.ceil(potionCooldownRemaining(this, unit, definition) / 1000) : 0;
+    return definition ? { title: definition.name, description: `${definition.description} ${potionEffectDescription(definition)} ${item.charges}/${definition.uses} uses remain.${remaining > 0 ? ` Ready in ${remaining}s.` : ''} Tap POTION to use it on ${unit.name}.` }
       : { title: 'Potion', description: 'Equip a potion pack on this adventurer at the Adventurer\'s Hall.' };
   }
 
@@ -4434,12 +4472,8 @@ export default class BattleScene extends Phaser.Scene {
     const definition = getPotionDefinition(item?.itemId);
 
     // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
-    if (!definition || item.charges <= 0 || time - (this.lastPotionUseAt?.get(unit.id) ?? -Infinity) < 1500) return false;
-
-    // The condition before ? chooses the first value when true and the value after : when
-    // false.
-    return definition.effect.resource === 'hp' ? unit.hp < unit.maxHp
-      : definition.effect.resource === 'mana' && unit.maxMana > 0 && unit.mana < unit.maxMana;
+    if (!definition || item.charges <= 0 || potionCooldownRemaining(this, unit, definition, time) > 0) return false;
+    return potionHasBenefit(this, unit, definition, time);
   }
 
   // Restore the actual missing resource, consume one charge and bank the action. unit is
@@ -4454,33 +4488,21 @@ export default class BattleScene extends Phaser.Scene {
     const item = this.classAbilitySystem?.replacement?.potion(unit)?.item ?? equippedItem(hero, 'potion', GameState);
     const definition = getPotionDefinition(item.itemId);
     const resource = definition.effect.resource;
-
-    // The condition before ? chooses the first value when true and the value after : when
-    // false.
-    const maximum = resource === 'hp' ? unit.maxHp : unit.maxMana;
-    const before = resource === 'hp' ? unit.hp : unit.mana;
-
-    // Math.max chooses the largest value; pairing it with Math.min can keep a result
-    // inside both a lower and an upper bound.
-    const restored = Math.max(1, Math.round(maximum * definition.effect.fraction));
-    if (resource === 'hp') unit.heal(restored);
-    else unit.mana = Math.min(unit.maxMana, unit.mana + restored);
-    const amount = Math.round((resource === 'hp' ? unit.hp : unit.mana) - before);
-    if (this.classAbilitySystem?.replacement) this.classAbilitySystem.replacement.consumePotion(unit);
-    else consumePotionCharge(hero.id, GameState);
-
-    // ??= fills a missing value once. It leaves an existing value, including zero or
-    // false, alone. A Map pairs a key with a value. Unlike an array index, the key can be
-    // an ID or an object; get/set read and write that same key.
-    this.lastPotionUseAt ??= new Map();
-    this.lastPotionUseAt.set(unit.id, time);
+    const consumed = this.classAbilitySystem?.replacement
+      ? this.classAbilitySystem.replacement.consumePotion(unit) : consumePotionCharge(hero.id, GameState);
+    if (!consumed) return false;
+    startPotionCooldown(this, unit, time);
+    const recovery = applyPotionEffects(this, unit, definition, time);
+    const amount = recovery[resource];
+    const gains = [recovery.hp > 0 ? `+${recovery.hp} HP` : '', recovery.mana > 0 ? `+${recovery.mana} MANA` : '',
+      recovery.ward > 0 ? `+${recovery.ward} WARD` : ''].filter(Boolean);
 
     // ?. only follows this link when the value exists; a missing optional value gives
     // undefined.
     unit.flash?.(0x86efac);
-    this.createFloatingText(unit.x, unit.y - 100, `+${amount} ${resource === 'hp' ? 'HP' : 'MANA'}`, '#86efac', true);
+    this.createFloatingText(unit.x, unit.y - 100, gains.join(' / ') || 'RESTORED', '#86efac', true);
     this.showBattleMessage(`${unit.name} uses ${definition.name}`, '#86efac');
-    this.combatLog?.add('item', `${unit.name} restored ${amount} ${resource === 'hp' ? 'HP' : 'mana'} with ${definition.name}`, { target: unit.name, amount, resource });
+    this.combatLog?.add('item', `${unit.name} uses ${definition.name}${gains.length ? `: ${gains.join(' / ')}` : ''}`, { target: unit.name, amount, resource, recovery, secondary: definition.effect.secondary });
     HapticsService.confirm();
     saveProfile();
     this.updateHud();
@@ -4505,12 +4527,13 @@ export default class BattleScene extends Phaser.Scene {
       const definition = getPotionDefinition(item?.itemId);
       const available = Boolean(definition && item.charges > 0);
       const ready = available && this.canUsePotion(unit);
+      const remaining = available ? Math.ceil(potionCooldownRemaining(this, unit, definition) / 1000) : 0;
 
       // The condition before ? chooses the first value when true and the value after :
       // when false.
       potionButton?.setVisible(available).setFillStyle(ready ? 0x14532d : 0x292524);
       if (potionButton?.input) potionButton.input.enabled = available;
-      potionLabel?.setVisible(available).setAlpha(ready ? 1 : 0.55).setText(available ? `POTION\n${item.charges}/${definition.uses}` : '');
+      potionLabel?.setVisible(available).setAlpha(ready ? 1 : 0.55).setText(available ? `POTION\n${remaining > 0 ? `${remaining}s` : `${item.charges}/${definition.uses}`}` : '');
     });
   }
 
@@ -4594,8 +4617,11 @@ export default class BattleScene extends Phaser.Scene {
       `${death.actor ?? 'Unknown attacker'}: ${death.ability ?? 'Unknown ability'}`
     ]) : summary.deaths.length ? [`Died: ${summary.deaths.join(', ')}`, 'Details unavailable for these earlier idle deaths.']
       : [];
-    const lines = idleRewardLines(summary, GameState.activeParty,
-      id => getMaterialDefinition(id)?.name ?? id);
+    const rows = idleRewardRows(summary, GameState.activeParty,
+      id => getMaterialDefinition(id)?.name ?? id).map(row => ({
+      text: row.text,
+      color: row.item ? rewardItemColor(row.item) : row.resource ? RESOURCE_GAIN_COLOR : '#f5f5dc'
+    }));
 
     // Measure the readable text first so short reports do not need a screen-wide panel.
     // These dimensions are logical canvas pixels, before scaling to the phone display.
@@ -4605,10 +4631,10 @@ export default class BattleScene extends Phaser.Scene {
     // corner. Both text objects use their left edges so the bullets line up with the W.
     const title = combatText(this, 0, 0, 'While you were away:', UI_FONT_SIZES.heading46, 13002)
       .setOrigin(0, 0).setName('idle-summary-title');
-    const text = this.add.text(0, 0, lines.join('\n'), {
+    const text = rewardTextRows(this, 0, 0, rows, {
       fontFamily: UI_FONT_FAMILIES.sans, fontSize: fontPx('body30'), color: '#f5f5dc',
       align: 'left', lineSpacing: 8, wordWrap: { width: Math.min(1040, width - 200) }
-    }).setOrigin(0, 0).setDepth(13002).setName('idle-summary-text');
+    }, { gap: 8 }).setDepth(13002).setName('idle-summary-text');
     const buttonHeight = 80;
     const continueWidth = 300;
     const deathWidth = 360;
@@ -4640,7 +4666,7 @@ export default class BattleScene extends Phaser.Scene {
     // on registers a callback for later events; it does not call that callback now.
     // Long-lived emitters need matching listener cleanup.
     blocker.on('pointerdown', (pointer, x, y, event) => event?.stopPropagation?.());
-    const panel = combatPanel(this, width / 2, centerY, panelWidth, panelHeight, 13001)
+    const panel = dialogFrame(this, width / 2, centerY, panelWidth, panelHeight, 13001)
       .setName('idle-summary-panel');
     const bodyHeight = panelHeight - reservedHeight;
     let bodyScroll = null;
@@ -4793,10 +4819,10 @@ export default class BattleScene extends Phaser.Scene {
     // undefined.
     this.combatLog?.finish('victory');
 
-    // Commit encounter gold and progression before showing the button that opens the
-    // reward screen.
-    const gold = cappedDelveGold(Math.max(1, this.earnedGold));
-    GameState.gold += gold;
+    // Commit encounter gold and progression before opening the reward screen.
+    const firstClearBoss = awardPineshireBoss(GameState.currentDelve, () => this.combatRandom());
+    const gold = firstClearBoss ? firstClearBoss.gold : cappedDelveGold(Math.max(1, this.earnedGold));
+    if (!firstClearBoss) GameState.gold += gold;
     GameState.currentRoom = this.waves.length;
 
     // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
@@ -4804,13 +4830,14 @@ export default class BattleScene extends Phaser.Scene {
 
     // Final bosses use one boss cascade instead of an additional ordinary wave roll.
     // The existing battleOver guard and saved victory phase prevent duplicate payouts.
-    const equipmentRewards = awardEquipmentLoot(GameState.currentDelve, 'boss', () => this.combatRandom());
+    const equipmentRewards = firstClearBoss ? firstClearBoss.items
+      : awardEquipmentLoot(GameState.currentDelve, 'boss', () => this.combatRandom());
     GameState.rewards.push(...equipmentRewards.map(item => ({ ...item, type: 'equipment' })));
     if (this.idleSimulating) this.idleSummary.items = mergeEquipmentLoot(this.idleSummary.items, equipmentRewards);
     if (this.idleSimulating) {
       this.idleSummary.gold += gold;
     }
-    const summary = completeExpedition();
+    const summary = completeExpedition(firstClearBoss);
     if (this.idleSimulating) {
       this.idleSummary.renownPoints = (this.idleSummary.renownPoints ?? 0) + summary.leaderResult.renownPointsEarned;
       this.idleSummary.renownLevels = (this.idleSummary.renownLevels ?? 0) + summary.leaderResult.levelsGained;
@@ -4818,7 +4845,7 @@ export default class BattleScene extends Phaser.Scene {
     this.updateHud();
 
     // Boss XP can also grant levels. Finish saving rewards immediately, but let the
-    // celebration play before the victory panel covers the characters' heads.
+    // celebration play before opening the reward screen.
     let celebrating = false;
     for (const hero of summary.adventurers) {
       if (hero.levelsGained > 0) {
@@ -4843,15 +4870,14 @@ export default class BattleScene extends Phaser.Scene {
     finishGameplayEncounter(this, 'victory');
     saveProfile();
 
-    const showVictory = () => this.showResultOverlay('DELVE CLEARED!', `${GameState.currentDelve?.name ?? 'The Delve'} has been cleared.`, 'CONFIRM', () => {
-
+    const showRewards = () => {
       HapticsService.confirm();
       this.scene.start('RewardScene');
-    });
+    };
 
     // This drawing-only timer needs no saved event; reloading already keeps the rewards.
-    if (celebrating) this.time.delayedCall(LEVEL_UP_DURATION_MS, showVictory);
-    else showVictory();
+    if (celebrating) this.time.delayedCall(LEVEL_UP_DURATION_MS, showRewards);
+    else showRewards();
   }
 
   // This helper records the loss and offers the encounter summary.
@@ -4875,11 +4901,11 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   // This helper pauses or resumes combat updates and the scene clock.
-  togglePause() {
+  togglePause(pauseOwner = 'player') {
 
     if (this.battleOver) return;
     this.combatPaused = !this.combatPaused;
-    emitGameplay(this, 'combat.pause.changed', { paused: this.combatPaused }, PLAYER_SOURCE);
+    emitGameplay(this, 'combat.pause.changed', { paused: this.combatPaused, pauseOwner }, PLAYER_SOURCE);
     this.time.paused = this.combatPaused;
 
     // ?. only follows this link when the value exists; a missing optional value gives
@@ -4922,7 +4948,6 @@ export default class BattleScene extends Phaser.Scene {
     // copying the whole source object.
     const { width, height } = this.scale;
     const centerY = height * 0.5;
-    const victory = title === 'DELVE CLEARED!';
 
     // Place an invisible input blocker behind the result panel so taps cannot reach the
     // battlefield.
@@ -4934,7 +4959,7 @@ export default class BattleScene extends Phaser.Scene {
     // Long-lived emitters need matching listener cleanup.
     inputBlocker.on('pointerdown', (pointer, localX, localY, event) => event?.stopPropagation?.());
 
-    combatPanel(this, width / 2, centerY, width * 0.78, 390, 12000);
+    dialogFrame(this, width / 2, centerY, width * 0.78, 390, 12000);
 
     // Depth is drawing order, not distance or size. Higher-depth objects draw on top of
     // lower-depth objects. Origin is the anchor within the object: 0 is the left/top edge,
@@ -4945,7 +4970,7 @@ export default class BattleScene extends Phaser.Scene {
       fontFamily: UI_FONT_FAMILIES.serif,
       fontSize: fontPx('display78'),
       fontStyle: UI_FONT_WEIGHTS.bold,
-      color: victory ? '#bef264' : '#ef4444'
+      color: '#ef4444'
     }).setOrigin(0.5).setDepth(12001);
 
     this.add.text(width / 2, centerY - 22, subtitle, {
@@ -4954,7 +4979,7 @@ export default class BattleScene extends Phaser.Scene {
       color: '#d6d3d1'
     }).setOrigin(0.5).setDepth(12001);
 
-    const button = combatButton(this, width / 2, centerY + 90, width * 0.58, 96, 12001);
+    const button = combatButton(this, width / 2, centerY + 90, width * 0.58, 96, 12001).setName('battle-result-confirm');
 
     const buttonText = this.add.text(width / 2, centerY + 90, buttonLabel, {
       fontFamily: UI_FONT_FAMILIES.serif,

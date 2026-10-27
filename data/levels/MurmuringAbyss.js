@@ -8,16 +8,15 @@ export default {
   name: 'The Murmuring Abyss',
   mapLabel: 'The Murmuring Abyss',
   subtitle: 'A tear in the world. Something on the other side is whispering.',
-  difficulty: 'Incredibly Tough', recommendedLevel: 25, depth: 4, type: 'void',
-  bossPreparation: { level: 30, gearRarity: 'best', abilityCount: 4, spendSkillPoints: true },
+  difficulty: 'Incredibly Tough', recommendedLevel: 9, depth: 4, type: 'void',
+  bossPreparation: { level: 10, gearRarity: 'best', abilityCount: 4, spendSkillPoints: true },
 
-  // These are preparation recommendations, so level-25 parties can still farm the early
-  // camp to earn level 26. Existing checkpoints and lower-level saved parties remain usable.
-  entryPreparation: { level: 25, farmLevel: 26, gearRarity: 'best', abilityCount: 4, spendSkillPoints: true },
+  // The final preparation camp lets the party equip and train before the Sovereign.
+  entryPreparation: { level: 9, farmLevel: 10, gearRarity: 'best', abilityCount: 4, spendSkillPoints: true },
 
-  // Keep the portal identity and artwork while banking waves and offering two camps.
+  // Keep the portal identity and artwork while banking waves and offering its final preparation camp.
   // Each number means camp opens after clearing that player-visible wave.
-  campWaves: [15, 33],
+  campWaves: [11],
   materialEnvironments: ['Caves', 'Forests', 'Humanoid'],
   possibleDrops: ['Gold', 'Adventurer XP'],
   prerequisites: ['slime-cave', 'thornbriar-hollow', 'dolmark-den'],

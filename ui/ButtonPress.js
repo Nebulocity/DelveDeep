@@ -153,4 +153,5 @@ export function bindButtonPress(scene, target, labels = [], onClick) {
   // once registers a callback that removes itself after the first matching event.
   scene.events.once('shutdown', cleanup);
   target.once('destroy', cleanup);
+  return { shadow };
 }

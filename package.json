@@ -6,6 +6,7 @@
   "scripts": {
     "test": "node tests/run-tests.js",
     "dev": "vite --port 5173 --strictPort",
+    "tutorial:studio": "node tools/tutorial-studio/server.mjs",
     "build": "vite build",
     "build:android": "npm run build && npx cap sync android && cd android && gradlew.bat assembleDebug",
     "preview": "vite preview",

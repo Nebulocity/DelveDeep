@@ -3,6 +3,7 @@
 // in the Hall. Timing and costs remain concrete and readable instead of exposing formulas.
 
 import { replacementAmount } from '../combat/ReplacementEffects.js';
+import { statDisplayNumber } from './StatDisplay.js';
 import { HOLD_THE_LINE, INTERPOSE, INTERVENE, PERIMETER_RADIUS, PERIMETER_REDUCTION, SECONDARY_THREAT } from '../combat/TankMechanics.js';
 
 export function replacementDescription(unit, ability, compact = false, structured = false) {
@@ -12,7 +13,8 @@ export function replacementDescription(unit, ability, compact = false, structure
   const usedDurations = new Set();
   const effectText = (effect, token) => {
     const casterAmount = effect.basis.startsWith('Caster ') && effect.unit === '% of power basis';
-    const value = casterAmount ? Math.round(replacementAmount(unit, unit, effect)) : rounded(effect.potency * 100);
+    const chanceStat = /crit chance/i.test(effect.basis) ? 'critChance' : /hit chance/i.test(effect.basis) ? 'hitChance' : undefined;
+    const value = casterAmount ? Math.round(replacementAmount(unit, unit, effect)) : statDisplayNumber(effect.potency * 100, chanceStat);
     const dynamic = !casterAmount && effect.unit === '% of power basis';
     const resourceOwner = effect.basis.startsWith('Target ') ? "the enemy's" : 'their';
     let text = effect.text.replace(token, dynamic ? `${value}% of ${resourceOwner} maximum ${effect.basis.includes('Mana') ? 'Mana' : 'Health'}` : String(value));
@@ -41,13 +43,13 @@ export function replacementDescription(unit, ability, compact = false, structure
   let effects = [effectText(ability.primary, '[x]')];
   if (ability.secondary.text !== 'None') effects.push(effectText(ability.secondary, '[y]'));
   if (ability.id === HOLD_THE_LINE) {
-    effects.push(`While holding position, other allies within ${distance(PERIMETER_RADIUS / 100)} take ${rounded(PERIMETER_REDUCTION * 100)}% less incoming damage. Protecting them and blocking hits generates threat on their attackers.`,
+    effects.push(`While holding position, other allies within ${distance(PERIMETER_RADIUS / 100)} take ${statDisplayNumber(PERIMETER_REDUCTION * 100)}% less incoming damage. Protecting them and blocking hits generates threat on their attackers.`,
       'The movement lock and perimeter end early if no enemies remain within Near range; the Armor bonus keeps its own duration.');
   }
   if (ability.id === INTERVENE) effects.push('Choose an enemy or another ally. Both modes share this rank, equipped slot and cooldown. Rush at 3 times normal movement speed along a clear lane; effects require arrival. Intercepting a hit generates threat on its attacker.');
   if (ability.id === INTERPOSE) effects.push('Successfully intercepting a hit generates threat on its attacker.');
   const spread = SECONDARY_THREAT[ability.id];
-  if (spread) effects.push(`Successful hits also generate ${rounded(spread.fraction * 100)}% of their normal threat on other enemies within ${distance(spread.radius / 100)} of the struck target, without dealing additional damage.`);
+  if (spread) effects.push(`Successful hits also generate ${statDisplayNumber(spread.fraction * 100)}% of their normal threat on other enemies within ${distance(spread.radius / 100)} of the struck target, without dealing additional damage.`);
   if (ability.threatPulseInterval) {
     effects.push(`Generate threat on enemies within ${distance(ability.radius / 100)} every ${seconds(ability.threatPulseInterval)} for ${seconds(ability.threatPulseDuration)}, including new arrivals.`);
   }
@@ -58,7 +60,7 @@ export function replacementDescription(unit, ability, compact = false, structure
 
   // These few mechanics need a shorter explanation than the design workbook wording.
   // Values still come from the inspected rank and gear, just like the shared text above.
-  const x = rounded(ability.primary.potency * 100);
+  const x = statDisplayNumber(ability.primary.potency * 100);
   const y = Math.round(replacementAmount(unit, unit, ability.secondary));
   if (ability.handler === 'arenaRepositionTruce') {
     effects = [`Move ordinary enemies left and stop their movement and attacks for ${seconds(ability.duration)}.`,
@@ -77,7 +79,7 @@ export function replacementDescription(unit, ability, compact = false, structure
   }
   if (ability.duration && !usedDurations.has('duration')) effects.push(`Lasts ${seconds(ability.duration)}.`);
   if (ability.secondaryDuration && !usedDurations.has('secondaryDuration')) effects.push(`Secondary effect lasts ${seconds(ability.secondaryDuration)}.`);
-  if (ability.restockDamageBonus) effects.push(`Boosts your next physical ability's damage by ${rounded(ability.restockDamageBonus * 100)}%. Use it within 8s.`);
+  if (ability.restockDamageBonus) effects.push(`Boosts your next physical ability's damage by ${statDisplayNumber(ability.restockDamageBonus * 100)}%. Use it within 8s.`);
 
   const facts = [ability.range === Infinity ? 'Range: Anywhere' : !ability.range ? 'Range: Self' : `Range: ${distance(ability.range)}`];
   if (ability.shape === 'Circle') facts.push(`Radius: ${distance(ability.radius / 100)}`);
@@ -85,9 +87,9 @@ export function replacementDescription(unit, ability, compact = false, structure
   if (ability.shape === 'Cone') facts.push(`Cone reach: ${distance(ability.radius / 100)}`);
   facts.push(`Cooldown: ${seconds(ability.cooldown)}`);
   const costs = [];
-  if (ability.manaCost && !ability.manaFraction) costs.push(`${ability.manaCost} Mana`);
+  if (ability.manaCost && !ability.manaFraction) costs.push(`${statDisplayNumber(ability.manaCost)} Mana`);
   if (ability.manaFraction) costs.push(`${Math.round(unit.maxMana * ability.manaFraction)} Mana`);
-  if (ability.healthFraction) costs.push(`${rounded(ability.healthFraction * 100)}% current Health${ability.healthPayer === 'Every living ally' ? ' from each ally' : ''}`);
+  if (ability.healthFraction) costs.push(`${statDisplayNumber(ability.healthFraction * 100)}% current Health${ability.healthPayer === 'Every living ally' ? ' from each ally' : ''}`);
   if (costs.length) facts.push(`Cost: ${costs.join(' + ')}`);
 
   // Explain requirements and tradeoffs that can change a player's loadout choice. Leave

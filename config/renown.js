@@ -5,11 +5,11 @@ export const MAX_CHARACTER_LEVEL = 50;
 export const CHARACTER_RENOWN_INTERVAL = 5;
 
 // Rarity gates require earned standing even when another source supplies extra points.
-// Legendary abilities are quest rewards, so the normal shop never sells them.
+// All tactic rarities can be purchased with Renown Points, including Legendary.
 export const LEADERSHIP_RARITIES = {
-  common: { name: 'Common', level: 1, minCost: 1, maxCost: 5 },
-  uncommon: { name: 'Uncommon', level: 10, minCost: 15, maxCost: 20 },
-  rare: { name: 'Rare', level: 20, minCost: 30, maxCost: 35 },
-  epic: { name: 'Epic', level: 40, minCost: 45, maxCost: 50 },
-  legendary: { name: 'Legendary', level: 50, questOnly: true }
+  common: { name: 'Common', level: 1, minCost: 1, maxCost: 3 },
+  uncommon: { name: 'Uncommon', level: 10, minCost: 4, maxCost: 6 },
+  rare: { name: 'Rare', level: 20, minCost: 8, maxCost: 10 },
+  epic: { name: 'Epic', level: 40, minCost: 15, maxCost: 15 },
+  legendary: { name: 'Legendary', level: 50, minCost: 50, maxCost: 50 }
 };

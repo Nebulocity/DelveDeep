@@ -3,9 +3,9 @@ import { flushProfileSave } from './GameStorage.js';
 import { observeGameplay } from './GameplayEvents.js';
 import { emptyTutorialProgress, validTutorialProgress, tutorialRuntime, invalidateTutorialCallbacks } from './TutorialProgress.js';
 
-const COMPLETION_EVENTS = new Set(['selection.changed', 'combat.order.executed', 'combat.interrupt.succeeded',
+const COMPLETION_EVENTS = new Set(['tutorial.continued', 'tutorial.action.accepted', 'selection.changed', 'combat.order.executed', 'combat.interrupt.succeeded',
   'combat.leaderTap.accepted', 'combat.leaderTap.resolved', 'combat.movement.arrived',
-  'combat.mechanic.resolved', 'combat.encounter.finished']);
+  'combat.mechanic.resolved', 'combat.encounter.finished', 'scene.entered', 'adventurer.recruited', 'party.saved']);
 
 // The controller owns durable facts. Scene scopes own transient listeners and timers;
 // neither navigation nor a stale presentation callback may reset gameplay transactions.
@@ -64,7 +64,10 @@ export default class TutorialController {
     if (!lesson?.checkpoints?.[lesson.firstCheckpoint] || !['campaign', 'practice'].includes(mode))
       return { ok: false, reason: 'unknown_lesson' };
     return this.commit(token, p => {
-      Object.assign(p, emptyTutorialProgress(), { status: 'active', lessonId, mode,
+      const openingRecord = lessonId.startsWith('help-')
+        ? p.lessonId === 'pineshire-first-adventure' ? { status: p.status, completed: p.completed, find: p.find ?? null, finds: p.finds ?? [] } : p.openingRecord
+        : null;
+      Object.assign(p, emptyTutorialProgress(), { openingRecord, status: 'active', lessonId, mode,
         attemptId: crypto.randomUUID() });
       this.setCheckpoint(p, lesson.firstCheckpoint);
     }, ['idle', 'active', 'paused', 'retry', 'skipped', 'complete']);
@@ -88,8 +91,13 @@ export default class TutorialController {
       || event.tutorial?.attemptId !== p.attemptId || event.tutorial?.authorityId !== p.authorityId
       || event.tutorial?.lessonId !== p.lessonId || event.tutorial?.checkpointId !== p.checkpointId) return false;
     if (event.type.startsWith('combat.') && (!p.encounterId || event.encounterId !== p.encounterId || event.mode !== p.mode)) return false;
-    for (const key of ['command', 'phase', 'targetId', 'castId', 'waveId', 'outcome'])
+    for (const key of ['command', 'phase', 'targetId', 'castId', 'waveId', 'outcome', 'sceneId', 'selectionId', 'role', 'action', 'waveIndex'])
       if (rule[key] !== undefined && event[key] !== rule[key]) return false;
+    if (rule.validate && !rule.validate(event, this.state)) return false;
+    if (rule.memberIds && (event.memberIds?.length !== rule.memberIds.length
+      || !rule.memberIds.every(id => event.memberIds.includes(id)))) return false;
+    if (['adventurer.recruited', 'party.saved'].includes(event.type)
+      && (event.phase !== 'committed' || !this.state.gameplay?.transactions?.some(e => e.eventId === event.eventId))) return false;
     if (rule.actorId && event.actorId !== rule.actorId && !event.subjectIds?.includes(rule.actorId)
       && !event.manualAvoidance?.some(entry => entry.actorId === rule.actorId)) return false;
     if (event.type === 'combat.order.executed' && !event.subjectIds?.length && event.phase !== 'interrupt') return false;
@@ -148,6 +156,18 @@ export default class TutorialController {
     const outcome = this.state.gameplay?.outcomes.find(o => o.encounterId === p.encounterId && o.mode === p.mode);
     if (!outcome || outcome.eventId === p.outcome?.eventId) return { ok: true, unchanged: true };
     return this.commit(token, next => { next.outcome = { ...outcome }; }, ['active', 'paused', 'retry', 'skipped', 'complete']);
+  }
+
+  reconcileFacts(token) {
+    if (!token?.ownerId || !this.authorized(token)) return { ok: false, reason: 'stale_authority' };
+    for (const event of this.state.gameplay?.transactions ?? []) {
+      // A committed transaction can outlive its originating scene and a failed tutorial
+      // save. Keep the exact original attempt/checkpoint/source predicate; only the
+      // transient scene-session and observation watermark are reconstructed here.
+      const origin = { ...token, sceneSessionId: event.sceneSessionId, afterSequence: event.sequence - 1 };
+      if (this.matchesEvidence(event, origin)) return this.complete(token.checkpointId, event, origin);
+    }
+    return { ok: true, unchanged: true };
   }
 
   // Use a scope for callbacks created by a scene. Deferred apply runs only after checking

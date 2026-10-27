@@ -8,8 +8,8 @@ export default {
   name: 'The Old Quarry',
   mapLabel: 'The Old Quarry',
   subtitle: 'An abandoned excavation haunted by creatures of stone and crystal.',
-  difficulty: 'Very Tough', recommendedLevel: 15,
-  bossPreparation: { level: 20, gearRarity: 'uncommon', abilityCount: 4, spendSkillPoints: true },
+  difficulty: 'Very Tough', recommendedLevel: 5,
+  bossPreparation: { level: 7, gearRarity: 'uncommon', abilityCount: 4, spendSkillPoints: true },
   prerequisites: ['dolmark-den'],
   visuals: {
     environment: {

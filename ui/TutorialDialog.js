@@ -1,4 +1,5 @@
-import { serviceCard, serviceText, serviceButton, serviceScrollSurface } from './TownServiceTheme.js';
+import { dialogFrame } from './DialogFrame.js';
+import { serviceText, serviceButton, serviceScrollSurface } from './TownServiceTheme.js';
 import { hallScroll } from './HallUI.js';
 import { playUiSound } from '../services/UiAudioService.js';
 
@@ -39,7 +40,7 @@ export function showTutorialDialog(scene, { title, description, confirmLabel = '
   const shade = keep(scene.add.rectangle(width / 2, height / 2, width, height, 0, 0.68)
     .setDepth(depth).setInteractive());
   shade.on('pointerdown', stop).on('pointerup', stop);
-  const panel = keep(serviceCard(scene, width / 2, height / 2, panelWidth, panelHeight)
+  const panel = keep(dialogFrame(scene, width / 2, height / 2, panelWidth, panelHeight)
     .setDepth(depth + 1).setInteractive());
   panel.on('pointerdown', stop).on('pointerup', stop);
   const bodyHeight = panelHeight - heading.height - 202;

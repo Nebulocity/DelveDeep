@@ -1,3 +1,5 @@
+import { CLASS_STARTER_KITS } from './classStarterKits.js';
+
 // Character levels for first learning, as assigned in the final ability plan.
 // Rank training has its own level gates. Shared skills use the same gate for every class.
 export const ABILITY_UNLOCK_LEVELS = {
@@ -207,7 +209,11 @@ export function abilityEnabled(ability) {
   return Boolean(ability) && !ability.disabled && !DISABLED_ABILITY_IDS.has(ability.id);
 }
 
-export function abilityUnlockLevel(ability) {
+export function abilityUnlockLevel(ability, className) {
+
+  // Resolved class definitions carry starter eligibility into combat and UI checks.
+  // Raw generic rows receive the exception only for a class that actually starts with it.
+  if (ability.starter || CLASS_STARTER_KITS[className]?.includes(ability.id)) return 1;
   return ABILITY_UNLOCK_LEVELS[ability.id] ?? ability.minimumLevel ?? 1;
 }
 

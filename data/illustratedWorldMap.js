@@ -16,7 +16,14 @@ export const areas = [{ id: 'pineshire-reach', name: 'Pineshire Reach', column: 
 
 // Keep established encounter IDs so prior boss clears and checkpoints remain attached.
 export const pois = [
-  { id: 'pineshire', name: 'Pineshire', type: 'town', position: [0.13, 0.76], label: [0.13, 0.60], conceptArt: 'town-concept-pineshire' },
+  {
+    id: 'pineshire', name: 'Pineshire', type: 'town', position: [0.13, 0.76], label: [0.13, 0.60], conceptArt: 'town',
+    description: [
+      'Beyond the dark pines, blue roofs and weathered stone walls mark the welcome sight of Pineshire. Lanterns burn beneath timbered eaves, market awnings crowd the cobbled streets, and the scent of warm bread mingles with woodsmoke. Here, the Reach feels almost peaceful.',
+      'The roads bring traders, hopeful adventurers, and troubling stories from the depths. Over a tankard in the tavern, a whispered rumor can become the start of an expedition. At the market, the next party to leave weighs fresh supplies against the gold in its purse.',
+      'For your company, Pineshire is a place to gather before the next descent. Recruit adventurers at the Tavern, visit the Market for supplies, and prepare your heroes, abilities, equipment, tactics, and items before taking the road into the Reach.'
+    ].join('\n\n')
+  },
   { id: 'slime-cave', name: 'The Slime Cave', type: 'delve', position: [0.16, 0.415], label: [0.15, 0.265], template: 'slime-cave' },
   { id: 'thornbriar-hollow', name: 'Thornbriar Hollow', type: 'delve', position: [0.30, 0.19], label: [0.30, 0.09], template: 'thornbriar-hollow', requiresClear: 'slime-cave' },
   { id: 'dolmark-den', name: 'Dolmark Den', type: 'delve', position: [0.57, 0.255], label: [0.57, 0.09], template: 'dolmark-den', requiresClear: 'thornbriar-hollow' },

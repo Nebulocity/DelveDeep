@@ -55,6 +55,7 @@ export function createRegionLocationRail(scene, locations, canVisit, isCleared, 
   // decide which pixels remain visible. The mask shape can be hidden while still clipping
   // its target.
   list.setMask(clip.createGeometryMask());
+  list.tutorialClipBounds = { x: 18, y: listTop, width: width - 36, height: listBottom - listTop };
 
   // once registers a callback that removes itself after the first matching event.
   scene.events.once('shutdown', () => clip.destroy());
@@ -64,7 +65,7 @@ export function createRegionLocationRail(scene, locations, canVisit, isCleared, 
   scene.locationRows = locations.map((poi, index) => {
     const y = firstY + index * rowStep;
     const open = canVisit(poi);
-    const row = addRegionPanel(scene, width / 2 - 6, y, width - 48, rowHeight, 1001, 'normal', true, 'card').setName(`destination-${poi.id}`);
+    const row = addRegionPanel(scene, width / 2 - 6, y, width - 48, rowHeight, 1001, 'normal', true, 'destination').setName(`destination-${poi.id}`);
 
     // Depth is drawing order, not distance or size. Higher-depth objects draw on top of
     // lower-depth objects. The condition before ? chooses the first value when true and
@@ -255,6 +256,7 @@ export function showRegionDestination(scene, poi, { open, completed, details, tr
   scene.events.once('shutdown', close);
   const addAction = (px, py, bw, label, action, options = {}) => {
     const button = addRegionButton(scene, px, py, bw, 88, label, action, { depth: depth + 3, ...options });
+    if (options.tutorialId) button.panel.setName(options.tutorialId);
     objects.push(...button.objects);
   };
   const closeControl = addOrnateCloseButton(scene, w / 2 - 78, 76, 96, 88, close, { depth: depth + 3 });
@@ -264,7 +266,7 @@ export function showRegionDestination(scene, poi, { open, completed, details, tr
     close();
     playUiSound(scene, 'navigation');
     travel();
-  }, { enabled: open, disabledReason: summary, state: 'selected' });
+  }, { enabled: open, disabledReason: summary, state: 'selected', tutorialId: 'destination-travel' });
   addAction((buttonWidth + 24) / 2, h - 80, buttonWidth, 'Details', () => { close(); inspect(details); });
   container.add(objects.sort((a, b) => a.depth - b.depth));
 

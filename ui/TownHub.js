@@ -1,3 +1,4 @@
+import { dialogFrame } from './DialogFrame.js';
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
 import HapticsService from '../services/HapticsService.js';
@@ -132,7 +133,11 @@ export default class TownHub {
     const map = this.frame(mapX, y, 430 * u, 106 * u, 'capsule');
     const arrow = this.text(mapX - 170 * u, y - 2 * u, '‹', 'display62');
     const icon = this.icon(mapX - 102 * u, y, 72 * u, 'world-map');
-    const label = this.text(mapX + 50 * u, y, 'World Map', 'heading40');
+    const label = this.text(mapX + 40 * u, y, 'World Map', 'heading40');
+
+    // Keep the label between the map icon and the capsule's pointed gold trim.
+    const mapLabelWidth = 230 * u;
+    if (label.width > mapLabelWidth) label.setScale(mapLabelWidth / label.width);
     this.control(mapX, y, 420 * u, 100 * u, [map, arrow, icon, label], () => this.back()).setName('town-world-map');
 
     const titleWidth = Math.min(690 * u, width - 1240 * u);
@@ -199,7 +204,7 @@ export default class TownHub {
     const shade = this.remember(this.scene.add.rectangle(width / 2, height / 2, width, height, 0, 0.12)
       .setDepth(100).setInteractive(), true);
     shade.on('pointerdown', (pointer, localX, localY, event) => event.stopPropagation());
-    this.frame(x, y, w, h, 'panel', 101, true);
+    this.remember(dialogFrame(this.scene, x, y, w, h, 101), true);
     const heading = 'Settings';
     this.text(x, top + 65 * u, heading, 'heading48', 103, true);
     const close = this.remember(addCloseEmblem(this.scene, x + w / 2 - 66 * u, top + 64 * u, 90 * u, 103), true);

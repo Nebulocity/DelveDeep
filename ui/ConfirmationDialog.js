@@ -1,4 +1,5 @@
-import { expeditionPanel as addStonePanel, expeditionButton as addStoneButton, isExpeditionScene } from './ExpeditionTheme.js';
+import { dialogFrame } from './DialogFrame.js';
+import { expeditionButton as addStoneButton, isExpeditionScene } from './ExpeditionTheme.js';
 // A confirmation is a temporary group of UI objects above the current screen. Its blocker
 // catches input before the screen beneath it. Confirm and cancel both need to remove that
 // whole group and restore the caller's appropriate state.
@@ -15,12 +16,13 @@ import { STONE } from './CarvedStone.js';
 
 import { bindButtonPress } from './ButtonPress.js';
 import { playUiSound, runUiAction } from '../services/UiAudioService.js';
+import { tutorialGuidance } from '../game/TutorialGuidance.js';
 
 // Nothing is committed until a fresh press and release on CONFIRM. Reusing the modal lock
 // also prevents held selections behind the dialog from firing.
-export function showConfirmation(scene, { title, description, category, usableBy, confirmLabel = 'CONFIRM', onConfirm, onCancel }) {
+export function showConfirmation(scene, { title, description, category, usableBy, confirmLabel = 'CONFIRM', onConfirm, onCancel, tutorialOwned = false }) {
   playUiSound(scene, 'dialogOpen');
-  if (isGuildHall(scene)) return showGuildConfirmation(scene, { title, description, category, usableBy, confirmLabel, onConfirm, onCancel });
+  if (isGuildHall(scene)) return showGuildConfirmation(scene, { title, description, category, usableBy, confirmLabel, onConfirm, onCancel, tutorialOwned });
 
   // ?. only follows this link when the value exists; a missing optional value gives
   // undefined.
@@ -40,9 +42,13 @@ export function showConfirmation(scene, { title, description, category, usableBy
   // both a lower and an upper bound.
   const panelWidth = Math.min(1200, width - 120);
   let closed = false;
+  const guidance = tutorialGuidance(scene.game);
+  const scope = tutorialOwned ? guidance.controller.scope(scene) : null;
+  const release = tutorialOwned ? guidance.confirm(scene, ['tutorial-dialog-confirm', 'tutorial-dialog-cancel']) : () => {};
   const close = () => {
     if (closed) return;
     closed = true;
+    release(); scope?.dispose();
     scene.events.off('shutdown', close);
 
     if (scene.selectionDetailsClose === close) scene.selectionDetailsClose = null;
@@ -83,7 +89,7 @@ export function showConfirmation(scene, { title, description, category, usableBy
 
     // This gives the display object an input hit area. Visible artwork alone does not make
     // an object respond to a tap.
-    const box = add((index === 1 ? (stone ? addStonePanel : regionMap ? addRegionPanel : addWoodenPanel)(scene, width / 2, height / 2, w, h, depth + index)
+    const box = add((index === 1 ? dialogFrame(scene, width / 2, height / 2, w, h, depth + index)
       : scene.add.rectangle(width / 2, height / 2, w, h, color, alpha).setDepth(depth + index)).setInteractive());
 
     // on registers a callback for later events; it does not call that callback now.
@@ -104,11 +110,12 @@ export function showConfirmation(scene, { title, description, category, usableBy
     const y = top + panelHeight - (regionMap ? 88 : 72);
     if (regionMap) {
       const control = addRegionButton(scene, x, y, (panelWidth - 156) / 2, 88, label, () => {
-        if (closed) return;
+        if (closed || scope && !scope.valid()) return;
         close();
         if (accept) return onConfirm();
         else { playUiSound(scene, 'dialogClose'); onCancel?.(); }
       }, { depth: depth + 2, state: accept ? 'danger' : 'normal' });
+      control.panel.setName(accept ? 'tutorial-dialog-confirm' : 'tutorial-dialog-cancel');
       objects.push(control.panel, control.text);
       return;
     }
@@ -117,6 +124,7 @@ export function showConfirmation(scene, { title, description, category, usableBy
       // The condition before ? chooses the first value when true and the value after :
       // when false.
       const box = add(addStoneButton(scene, x, y, (panelWidth - 156) / 2, 96, depth + 2, accept ? 0x3f1d1d : 0x1f2937));
+      box.setName(accept ? 'tutorial-dialog-confirm' : 'tutorial-dialog-cancel');
 
       // Depth is drawing order, not distance or size. Higher-depth objects draw on top of
       // lower-depth objects. Origin is the anchor within the object: 0 is the left/top
@@ -125,7 +133,7 @@ export function showConfirmation(scene, { title, description, category, usableBy
       const caption = add(scene.add.text(x, y, label, { fontFamily: UI_FONT_FAMILIES.serif, fontSize: fontPx('body34'), color: STONE.text })
         .setOrigin(0.5).setDepth(depth + 3));
       bindButtonPress(scene, box, [caption], () => {
-        if (closed) return;
+        if (closed || scope && !scope.valid()) return;
         close();
         HapticsService.tap();
 
@@ -140,6 +148,7 @@ export function showConfirmation(scene, { title, description, category, usableBy
     // an object respond to a tap.
     const box = add((regionMap ? addRegionPanel : addWoodenPanel)(scene, x, y, (panelWidth - 156) / 2, 96, depth + 2,
       regionMap && accept ? 'danger' : 'normal').setInteractive({ useHandCursor: true }));
+    box.setName(accept ? 'tutorial-dialog-confirm' : 'tutorial-dialog-cancel');
     add(scene.add.text(x, y, label, { fontFamily: regionMap ? UI_FONT_FAMILIES.serif : UI_FONT_FAMILIES.sans, fontSize: fontPx('body34'), fontStyle: UI_FONT_WEIGHTS.bold, color: regionMap ? '#fff1d2' : '#ffffff' })
       .setOrigin(0.5).setDepth(depth + 3));
     let press = null;
@@ -179,7 +188,7 @@ export function showConfirmation(scene, { title, description, category, usableBy
       // ?. only follows this link when the value exists; a missing optional value gives
       // undefined.
       event?.stopPropagation?.();
-      if (closed || press?.id !== pointer.id) return;
+      if (closed || press?.id !== pointer.id || scope && !scope.valid()) return;
       cancelPress();
       close();
       HapticsService.tap();

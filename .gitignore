@@ -5,6 +5,7 @@ node_modules/
 # The root README remains public.
 *.md
 !/README.md
+!/TUTORIAL_STUDIO_USER_GUIDE.md
 AGENTS.md*
 /docs/
 
@@ -27,6 +28,10 @@ AGENTS.md*
 /outputs/
 /cheatsheets/
 /output/
+/authoring/tutorial-studio/*.bak
+/authoring/tutorial-studio/*.tmp
+/data/tutorialAudioImports.json.bak
+/data/tutorialPortraitImports.json.bak
 /.tmp/
 /buildapk.sh
 

@@ -1,5 +1,6 @@
+import { dialogFrame } from './DialogFrame.js';
 import { scrollbarSurface } from './Scrollbar.js';
-import { combatPanel, combatButton, combatText } from './CombatHudTheme.js';
+import { combatButton, combatText } from './CombatHudTheme.js';
 import { bindButtonPress } from './ButtonPress.js';
 import { hallScroll } from './HallUI.js';
 import { UI_FONT_FAMILIES } from '../config/uiTypography.js';
@@ -23,7 +24,7 @@ export function showExpeditionDetails(scene, details) {
   scene.events.once('shutdown', close);
   const shade = scene.add.rectangle(x, height / 2, width, height, 0x020714, 0.65).setDepth(depth).setInteractive();
   shade.on('pointerdown', (pointer, px, py, event) => { event.stopPropagation(); close(); });
-  const panel = combatPanel(scene, x, height / 2, w, h, depth + 1).setInteractive();
+  const panel = dialogFrame(scene, x, height / 2, w, h, depth + 1).setInteractive();
   panel.on('pointerdown', (pointer, px, py, event) => event.stopPropagation());
   objects.push(shade, panel, combatText(scene, x, top + 49, details.title, 40, depth + 2));
   const hasImage = details.image && scene.textures.exists(details.image);

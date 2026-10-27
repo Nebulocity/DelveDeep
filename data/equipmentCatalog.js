@@ -6,6 +6,8 @@
 // points per level. These are authored values, not extra scaling applied to owned items.
 
 import { runebladeEquipment, runebladeRecipes } from './runebladeEquipment.js';
+import { EARLY_EQUIPMENT } from './lowLevelEquipment.js';
+import { pineshireEquipment } from './pineshireEquipment.js';
 
 export const AUTHORED_EQUIPMENT = [
   {
@@ -3150,6 +3152,8 @@ export const AUTHORED_EQUIPMENT = [
 
 // New class gear shares the established regional tier and recipe rules.
 AUTHORED_EQUIPMENT.push(...runebladeEquipment(AUTHORED_EQUIPMENT));
+AUTHORED_EQUIPMENT.push(...EARLY_EQUIPMENT);
+AUTHORED_EQUIPMENT.push(...pineshireEquipment(AUTHORED_EQUIPMENT));
 for (const item of AUTHORED_EQUIPMENT) {
 
   // Only leather armor gains the new class, keeping mail, plate and robes restricted.
@@ -4710,5 +4714,21 @@ export const EQUIPMENT_LOOT_TABLES = [
     }
   }
 ];
+
+// Early rares can now appear before the Abyss. Epics remain a small boss/chest
+// opportunity; ordinary wave drops never roll the new epic tier.
+const earlyBossRolls = {
+  'slime-cave': { rare: 0.01, epic: 0 },
+  'thornbriar-hollow': { rare: 0.02, epic: 0 },
+  'dolmark-den': { rare: 0.03, epic: 0.004 },
+  'march-west-delves': { rare: 0.04, epic: 0.005 },
+  'verge-delves': { rare: 0.04, epic: 0.005 },
+  'murmuring-abyss': { rare: 0.08, epic: 0.01 }
+};
+for (const table of EQUIPMENT_LOOT_TABLES) {
+  if (table.region !== 'pineshire-reach') continue;
+  if (table.source === 'boss') Object.assign(table.rolls, earlyBossRolls[table.location]);
+  if (table.source === 'everdeep') table.rolls.epic = 0.001 + (table.firstChest - 1) * 0.0005;
+}
 
 export const LEGACY_EVERDEEP_ITEM_IDS = ["BLS01","ILS01","SLS01","MLS01","BSS01","ISS01","SSS01","MSS01","BDS01","IDS01","SDS01","MDS01","PST01","MST01","OST01","IST01","PBR01","MBR01","OBR01","IBR01","PV01","SAR01","CSH01","SM01","SBB01","SPB01","RMD01","CMD01","SAD01","PAD01","LRO01","RWR01","SRO01","RTR01","UMI004","UMI005","UMI006","UMI007"];

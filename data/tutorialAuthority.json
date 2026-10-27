@@ -1,0 +1,574 @@
+[
+  {
+    "lessonId": "pineshire-first-adventure",
+    "checkpointId": "welcome",
+    "scene": "TownScene",
+    "text": "You are the Party Leader. Gather your adventurers here in Pineshire, then prepare to face the creatures threatening the Reach.",
+    "targetIds": [],
+    "presentation": "card",
+    "pause": "none",
+    "next": "town-tavern",
+    "evidence": {
+      "type": "tutorial.continued",
+      "source": "player"
+    },
+    "hasValidator": false,
+    "id": "pineshire-first-adventure/welcome",
+    "label": "welcome",
+    "chapter": "Pineshire",
+    "order": 0,
+    "gate": "{\"evidence\":{\"type\":\"tutorial.continued\",\"source\":\"player\"},\"hasValidator\":false,\"next\":\"town-tavern\"}"
+  },
+  {
+    "lessonId": "pineshire-first-adventure",
+    "checkpointId": "town-tavern",
+    "scene": "TownScene",
+    "text": "There’s talk of a tank looking for adventure. Visit the Tavern.",
+    "targetIds": [
+      "town-tavern"
+    ],
+    "presentation": "spotlight",
+    "pause": "none",
+    "next": "hire-garrick",
+    "evidence": {
+      "type": "scene.entered",
+      "source": "system",
+      "sceneId": "TavernScene"
+    },
+    "hasValidator": false,
+    "id": "pineshire-first-adventure/town-tavern",
+    "label": "town tavern",
+    "chapter": "Town / Tavern",
+    "order": 1,
+    "gate": "{\"evidence\":{\"type\":\"scene.entered\",\"source\":\"system\",\"sceneId\":\"TavernScene\"},\"hasValidator\":false,\"next\":\"hire-garrick\"}"
+  },
+  {
+    "lessonId": "pineshire-first-adventure",
+    "checkpointId": "hire-garrick",
+    "scene": "TavernScene",
+    "text": "Garrick will join for free. Inspect his abilities if you like, then Hire for Free and confirm Hire.",
+    "targetIds": [
+      "tavern-hire"
+    ],
+    "presentation": "spotlight",
+    "pause": "none",
+    "next": "prepare-heroes",
+    "evidence": {
+      "type": "adventurer.recruited",
+      "source": "player",
+      "actorId": "garrick"
+    },
+    "hasValidator": false,
+    "id": "pineshire-first-adventure/hire-garrick",
+    "label": "hire garrick",
+    "chapter": "Town / Tavern",
+    "order": 2,
+    "gate": "{\"evidence\":{\"type\":\"adventurer.recruited\",\"source\":\"player\",\"actorId\":\"garrick\"},\"hasValidator\":false,\"next\":\"prepare-heroes\"}"
+  },
+  {
+    "lessonId": "pineshire-first-adventure",
+    "checkpointId": "prepare-heroes",
+    "scene": "HeroesScene",
+    "text": "Garrick is now in your roster. Open Manage Party and give him a place in the expedition.",
+    "targetIds": [
+      "town-manage-party"
+    ],
+    "presentation": "spotlight",
+    "pause": "none",
+    "next": "party-fill",
+    "evidence": {
+      "type": "scene.entered",
+      "source": "system",
+      "sceneId": "PartySelectScene"
+    },
+    "hasValidator": false,
+    "id": "pineshire-first-adventure/prepare-heroes",
+    "label": "prepare heroes",
+    "chapter": "Party",
+    "order": 3,
+    "gate": "{\"evidence\":{\"type\":\"scene.entered\",\"source\":\"system\",\"sceneId\":\"PartySelectScene\"},\"hasValidator\":false,\"next\":\"party-fill\"}"
+  },
+  {
+    "lessonId": "pineshire-first-adventure",
+    "checkpointId": "party-fill",
+    "scene": "PartySelectScene",
+    "text": "Choose Garrick, a healer and three damage dealers. Keep your selections, or use Auto-Select.",
+    "targetIds": [
+      "party-adventurer-garrick"
+    ],
+    "presentation": "spotlight",
+    "pause": "none",
+    "next": "party-save",
+    "evidence": {
+      "type": "runtime-state",
+      "source": "system"
+    },
+    "hasValidator": false,
+    "id": "pineshire-first-adventure/party-fill",
+    "label": "party fill",
+    "chapter": "Party",
+    "order": 4,
+    "gate": "{\"evidence\":{\"type\":\"runtime-state\",\"source\":\"system\"},\"hasValidator\":false,\"next\":\"party-save\"}"
+  },
+  {
+    "lessonId": "pineshire-first-adventure",
+    "checkpointId": "party-save",
+    "scene": "PartySelectScene",
+    "text": "Five adventurers, ready for the road. Save Party to make this your expedition lineup.",
+    "targetIds": [
+      "party-save"
+    ],
+    "presentation": "spotlight",
+    "pause": "none",
+    "next": "ready-map",
+    "evidence": {
+      "type": "party.saved",
+      "source": "player"
+    },
+    "hasValidator": true,
+    "id": "pineshire-first-adventure/party-save",
+    "label": "party save",
+    "chapter": "Party",
+    "order": 5,
+    "gate": "{\"evidence\":{\"type\":\"party.saved\",\"source\":\"player\"},\"hasValidator\":true,\"next\":\"ready-map\"}"
+  },
+  {
+    "lessonId": "pineshire-first-adventure",
+    "checkpointId": "ready-map",
+    "scene": "TownScene",
+    "text": "The road is calling. Return to the World Map.",
+    "targetIds": [
+      "town-world-map"
+    ],
+    "presentation": "spotlight",
+    "pause": "none",
+    "next": "slime-select",
+    "evidence": {
+      "type": "scene.entered",
+      "source": "system",
+      "sceneId": "TitleScene"
+    },
+    "hasValidator": false,
+    "id": "pineshire-first-adventure/ready-map",
+    "label": "ready map",
+    "chapter": "World Map",
+    "order": 6,
+    "gate": "{\"evidence\":{\"type\":\"scene.entered\",\"source\":\"system\",\"sceneId\":\"TitleScene\"},\"hasValidator\":false,\"next\":\"slime-select\"}"
+  },
+  {
+    "lessonId": "pineshire-first-adventure",
+    "checkpointId": "slime-select",
+    "scene": "TitleScene",
+    "text": "Something is stirring beneath the hills. Choose The Slime Cave.",
+    "targetIds": [
+      "destination-slime-cave",
+      "map-location-slime-cave",
+      "map-landmark-slime-cave"
+    ],
+    "presentation": "spotlight",
+    "pause": "none",
+    "next": "slime-travel",
+    "evidence": {
+      "type": "selection.changed",
+      "source": "player",
+      "selectionId": "slime-cave"
+    },
+    "hasValidator": false,
+    "id": "pineshire-first-adventure/slime-select",
+    "label": "slime select",
+    "chapter": "World Map",
+    "order": 7,
+    "gate": "{\"evidence\":{\"type\":\"selection.changed\",\"source\":\"player\",\"selectionId\":\"slime-cave\"},\"hasValidator\":false,\"next\":\"slime-travel\"}"
+  },
+  {
+    "lessonId": "pineshire-first-adventure",
+    "checkpointId": "slime-travel",
+    "scene": "TitleScene",
+    "text": "Follow the road to the Slime Cave. Tap Travel, then let the party make the journey.",
+    "targetIds": [
+      "destination-travel"
+    ],
+    "presentation": "spotlight",
+    "pause": "none",
+    "next": "slime-depart",
+    "evidence": {
+      "type": "scene.entered",
+      "source": "system",
+      "sceneId": "DelveSelectScene"
+    },
+    "hasValidator": false,
+    "id": "pineshire-first-adventure/slime-travel",
+    "label": "slime travel",
+    "chapter": "World Map",
+    "order": 8,
+    "gate": "{\"evidence\":{\"type\":\"scene.entered\",\"source\":\"system\",\"sceneId\":\"DelveSelectScene\"},\"hasValidator\":false,\"next\":\"slime-depart\"}"
+  },
+  {
+    "lessonId": "pineshire-first-adventure",
+    "checkpointId": "slime-depart",
+    "scene": "DelveSelectScene",
+    "text": "A six-wave expedition awaits, with camp before the boss. Your party is ready: Delve Deep!",
+    "targetIds": [
+      "delve-depart"
+    ],
+    "presentation": "spotlight",
+    "pause": "none",
+    "next": "battle-hud",
+    "evidence": {
+      "type": "scene.entered",
+      "source": "system",
+      "sceneId": "BattleScene"
+    },
+    "hasValidator": false,
+    "id": "pineshire-first-adventure/slime-depart",
+    "label": "slime depart",
+    "chapter": "Slime Cave",
+    "order": 9,
+    "gate": "{\"evidence\":{\"type\":\"scene.entered\",\"source\":\"system\",\"sceneId\":\"BattleScene\"},\"hasValidator\":false,\"next\":\"battle-hud\"}"
+  },
+  {
+    "lessonId": "pineshire-first-adventure",
+    "checkpointId": "battle-hud",
+    "scene": "BattleScene",
+    "text": "Into the cave! Your party fights on its own. The left-hand cards show Health and Mana; you direct their tactics.",
+    "targetIds": [
+      "tutorial-party-resources"
+    ],
+    "presentation": "card",
+    "pause": "tactical",
+    "next": "battle-select",
+    "evidence": {
+      "type": "tutorial.continued",
+      "source": "player"
+    },
+    "hasValidator": false,
+    "id": "pineshire-first-adventure/battle-hud",
+    "label": "battle hud",
+    "chapter": "Slime Cave",
+    "order": 10,
+    "gate": "{\"evidence\":{\"type\":\"tutorial.continued\",\"source\":\"player\"},\"hasValidator\":false,\"next\":\"battle-select\"}"
+  },
+  {
+    "lessonId": "pineshire-first-adventure",
+    "checkpointId": "battle-select",
+    "scene": "BattleScene",
+    "text": "Select Garrick by tapping his card or his figure on the battlefield.",
+    "targetIds": [
+      "battle-party-garrick"
+    ],
+    "presentation": "spotlight",
+    "pause": "tactical",
+    "next": "battle-move",
+    "evidence": {
+      "type": "selection.changed",
+      "source": "player",
+      "actorId": "garrick"
+    },
+    "hasValidator": false,
+    "id": "pineshire-first-adventure/battle-select",
+    "label": "battle select",
+    "chapter": "Slime Cave",
+    "order": 11,
+    "gate": "{\"evidence\":{\"type\":\"selection.changed\",\"source\":\"player\",\"actorId\":\"garrick\"},\"hasValidator\":false,\"next\":\"battle-move\"}"
+  },
+  {
+    "lessonId": "pineshire-first-adventure",
+    "checkpointId": "battle-move",
+    "scene": "BattleScene",
+    "text": "A real warning is active. ACTION → Move, then choose clear ground for Garrick. Attack sends him back afterward.",
+    "targetIds": [],
+    "presentation": "spotlight",
+    "pause": "none",
+    "next": "battle-attack",
+    "evidence": {
+      "type": "combat.movement.arrived",
+      "source": "player"
+    },
+    "hasValidator": false,
+    "id": "pineshire-first-adventure/battle-move",
+    "label": "battle move",
+    "chapter": "Slime Cave",
+    "order": 12,
+    "gate": "{\"evidence\":{\"type\":\"combat.movement.arrived\",\"source\":\"player\"},\"hasValidator\":false,\"next\":\"battle-attack\"}"
+  },
+  {
+    "lessonId": "pineshire-first-adventure",
+    "checkpointId": "battle-attack",
+    "scene": "BattleScene",
+    "text": "Send your selected hero back into the fight: tap a live enemy to Attack.",
+    "targetIds": [],
+    "presentation": "spotlight",
+    "pause": "none",
+    "next": "first-find",
+    "evidence": {
+      "type": "combat.order.executed",
+      "source": "player",
+      "command": "ATTACK"
+    },
+    "hasValidator": false,
+    "id": "pineshire-first-adventure/battle-attack",
+    "label": "battle attack",
+    "chapter": "Slime Cave",
+    "order": 13,
+    "gate": "{\"evidence\":{\"type\":\"combat.order.executed\",\"source\":\"player\",\"command\":\"ATTACK\"},\"hasValidator\":false,\"next\":\"first-find\"}"
+  },
+  {
+    "lessonId": "pineshire-first-adventure",
+    "checkpointId": "first-find",
+    "scene": "BattleScene",
+    "text": "",
+    "targetIds": [],
+    "presentation": "ambient",
+    "pause": "none",
+    "next": "camp",
+    "evidence": {
+      "type": "runtime-state",
+      "source": "system"
+    },
+    "hasValidator": false,
+    "id": "pineshire-first-adventure/first-find",
+    "label": "first find",
+    "chapter": "Camp",
+    "order": 14,
+    "gate": "{\"evidence\":{\"type\":\"runtime-state\",\"source\":\"system\"},\"hasValidator\":false,\"next\":\"camp\"}"
+  },
+  {
+    "lessonId": "pineshire-first-adventure",
+    "checkpointId": "camp",
+    "scene": "BattleScene",
+    "text": "Camp: Leave keeps banked rewards; Farm repeats a cleared wave. Face Boss when you’re ready.",
+    "targetIds": [
+      "battle-camp-2"
+    ],
+    "presentation": "spotlight",
+    "pause": "none",
+    "next": "boss-interrupt",
+    "evidence": {
+      "type": "runtime-state",
+      "source": "system"
+    },
+    "hasValidator": false,
+    "id": "pineshire-first-adventure/camp",
+    "label": "camp",
+    "chapter": "Camp",
+    "order": 15,
+    "gate": "{\"evidence\":{\"type\":\"runtime-state\",\"source\":\"system\"},\"hasValidator\":false,\"next\":\"boss-interrupt\"}"
+  },
+  {
+    "lessonId": "pineshire-first-adventure",
+    "checkpointId": "boss-interrupt",
+    "scene": "BattleScene",
+    "text": "ACTION → Interrupt → casting Sovereign.",
+    "targetIds": [],
+    "presentation": "spotlight",
+    "pause": "none",
+    "next": "victory",
+    "evidence": {
+      "type": "combat.interrupt.succeeded",
+      "source": "player"
+    },
+    "hasValidator": false,
+    "id": "pineshire-first-adventure/boss-interrupt",
+    "label": "boss interrupt",
+    "chapter": "Boss",
+    "order": 16,
+    "gate": "{\"evidence\":{\"type\":\"combat.interrupt.succeeded\",\"source\":\"player\"},\"hasValidator\":false,\"next\":\"victory\"}"
+  },
+  {
+    "lessonId": "pineshire-first-adventure",
+    "checkpointId": "victory",
+    "scene": "RewardScene",
+    "text": "The cave is cleared! Your real rewards and level gains are saved. Return to the World Map.",
+    "targetIds": [
+      "reward-world-map"
+    ],
+    "presentation": "spotlight",
+    "pause": "none",
+    "next": "return-select",
+    "evidence": {
+      "type": "scene.entered",
+      "source": "system",
+      "sceneId": "TitleScene"
+    },
+    "hasValidator": false,
+    "id": "pineshire-first-adventure/victory",
+    "label": "victory",
+    "chapter": "Victory",
+    "order": 17,
+    "gate": "{\"evidence\":{\"type\":\"scene.entered\",\"source\":\"system\",\"sceneId\":\"TitleScene\"},\"hasValidator\":false,\"next\":\"return-select\"}"
+  },
+  {
+    "lessonId": "pineshire-first-adventure",
+    "checkpointId": "return-select",
+    "scene": "TitleScene",
+    "text": "Victorious, we return to Pineshire. Choose the town.",
+    "targetIds": [
+      "destination-pineshire",
+      "map-location-pineshire",
+      "map-landmark-pineshire"
+    ],
+    "presentation": "spotlight",
+    "pause": "none",
+    "next": "return-travel",
+    "evidence": {
+      "type": "selection.changed",
+      "source": "player",
+      "selectionId": "pineshire"
+    },
+    "hasValidator": false,
+    "id": "pineshire-first-adventure/return-select",
+    "label": "return select",
+    "chapter": "Afterward",
+    "order": 18,
+    "gate": "{\"evidence\":{\"type\":\"selection.changed\",\"source\":\"player\",\"selectionId\":\"pineshire\"},\"hasValidator\":false,\"next\":\"return-travel\"}"
+  },
+  {
+    "lessonId": "pineshire-first-adventure",
+    "checkpointId": "return-travel",
+    "scene": "TitleScene",
+    "text": "Travel back to Pineshire. Your loot and earned experience stay with you.",
+    "targetIds": [
+      "destination-travel"
+    ],
+    "presentation": "spotlight",
+    "pause": "none",
+    "next": "town-rewards",
+    "evidence": {
+      "type": "scene.entered",
+      "source": "system",
+      "sceneId": "TownScene"
+    },
+    "hasValidator": false,
+    "id": "pineshire-first-adventure/return-travel",
+    "label": "return travel",
+    "chapter": "Afterward",
+    "order": 19,
+    "gate": "{\"evidence\":{\"type\":\"scene.entered\",\"source\":\"system\",\"sceneId\":\"TownScene\"},\"hasValidator\":false,\"next\":\"town-rewards\"}"
+  },
+  {
+    "lessonId": "pineshire-first-adventure",
+    "checkpointId": "town-rewards",
+    "scene": "TownScene",
+    "text": "",
+    "targetIds": [],
+    "presentation": "ambient",
+    "pause": "none",
+    "next": "complete",
+    "evidence": {
+      "type": "runtime-state",
+      "source": "system"
+    },
+    "hasValidator": false,
+    "id": "pineshire-first-adventure/town-rewards",
+    "label": "town rewards",
+    "chapter": "Afterward",
+    "order": 20,
+    "gate": "{\"evidence\":{\"type\":\"runtime-state\",\"source\":\"system\"},\"hasValidator\":false,\"next\":\"complete\"}"
+  },
+  {
+    "lessonId": "pineshire-first-adventure",
+    "checkpointId": "complete",
+    "scene": "TownScene",
+    "text": "Your first adventure is complete. Equipment compares your finds; ? offers optional help. Choose your next road.",
+    "targetIds": [],
+    "presentation": "ambient",
+    "pause": "none",
+    "next": null,
+    "evidence": {
+      "type": "runtime-state",
+      "source": "system"
+    },
+    "hasValidator": false,
+    "id": "pineshire-first-adventure/complete",
+    "label": "complete",
+    "chapter": "Afterward",
+    "order": 21,
+    "gate": "{\"evidence\":{\"type\":\"runtime-state\",\"source\":\"system\"},\"hasValidator\":false,\"next\":null}"
+  },
+  {
+    "lessonId": "help-leader",
+    "checkpointId": "leader-tap",
+    "scene": "BattleScene",
+    "text": "Tap the highlighted ordinary enemy to deal Leader damage.",
+    "targetIds": [],
+    "presentation": "spotlight",
+    "pause": "none",
+    "next": null,
+    "evidence": {
+      "type": "combat.leaderTap.resolved",
+      "source": "player"
+    },
+    "hasValidator": true,
+    "id": "help-leader/leader-tap",
+    "label": "leader tap",
+    "chapter": "Optional help",
+    "order": 22,
+    "gate": "{\"evidence\":{\"type\":\"combat.leaderTap.resolved\",\"source\":\"player\"},\"hasValidator\":true,\"next\":null}"
+  },
+  {
+    "lessonId": "help-groups",
+    "checkpointId": "groups",
+    "scene": "BattleScene",
+    "text": "SELECT → Melee commands your close-range heroes together. Use groups when several heroes need the same order.",
+    "targetIds": [
+      "battle-radial-SELECT"
+    ],
+    "presentation": "spotlight",
+    "pause": "none",
+    "next": null,
+    "evidence": {
+      "type": "selection.changed",
+      "source": "player",
+      "role": "Melee"
+    },
+    "hasValidator": false,
+    "id": "help-groups/groups",
+    "label": "groups",
+    "chapter": "Optional help",
+    "order": 23,
+    "gate": "{\"evidence\":{\"type\":\"selection.changed\",\"source\":\"player\",\"role\":\"Melee\"},\"hasValidator\":false,\"next\":null}"
+  },
+  {
+    "lessonId": "help-formations",
+    "checkpointId": "formations",
+    "scene": "BattleScene",
+    "text": "Spread separates a group against area attacks. Stack gathers it at a point; Hold keeps its position. Try them when useful. This explanation does not record mastery.",
+    "targetIds": [],
+    "presentation": "card",
+    "pause": "none",
+    "next": null,
+    "evidence": {
+      "type": "tutorial.continued",
+      "source": "player"
+    },
+    "hasValidator": false,
+    "id": "help-formations/formations",
+    "label": "formations",
+    "chapter": "Optional help",
+    "order": 24,
+    "gate": "{\"evidence\":{\"type\":\"tutorial.continued\",\"source\":\"player\"},\"hasValidator\":false,\"next\":null}"
+  },
+  {
+    "lessonId": "help-tactics",
+    "checkpointId": "tactics",
+    "scene": "TacticsScene",
+    "text": "Renown grows through milestones. Each tactic shows its cost and requirement. Choose Restore to browse healing; no purchase is needed.",
+    "targetIds": [
+      "tactics-category-Restore"
+    ],
+    "presentation": "spotlight",
+    "pause": "none",
+    "next": null,
+    "evidence": {
+      "type": "tutorial.action.accepted",
+      "source": "player",
+      "action": "tactics-category-Restore"
+    },
+    "hasValidator": false,
+    "id": "help-tactics/tactics",
+    "label": "tactics",
+    "chapter": "Optional help",
+    "order": 25,
+    "gate": "{\"evidence\":{\"type\":\"tutorial.action.accepted\",\"source\":\"player\",\"action\":\"tactics-category-Restore\"},\"hasValidator\":false,\"next\":null}"
+  }
+]

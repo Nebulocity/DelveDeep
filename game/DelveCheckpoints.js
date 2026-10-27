@@ -1,14 +1,15 @@
 // Ordinary waves bank their rewards before the boss. The saved nextWave is zero-based,
 // while the player sees wave numbers starting at one. Farming repeats the latest camp
-// wave. Normal and farm wave XP goes only to living uncapped adventurers; farm
-// Happiness follows the same eligibility. Gold and materials are shared. The
+// wave. First-clear XP includes fallen participants; farm XP goes only to living
+// uncapped adventurers. Gold and materials are shared. The
 // checkpoint guard prevents paying an ordinary first-clear reward twice.
 
 import { delveMaterialIds } from './DelveDrops.js';
 import { FARM_MATERIAL_CHANCES } from '../config/farmMaterialDrops.js';
 import GameState from './GameState.js';
 import { grantMaterial } from './Equipment.js';
-import { awardEquipmentLoot } from './EquipmentLoot.js';
+import { awardEquipmentLoot, awardPineshireItem } from './EquipmentLoot.js';
+import { pineshireWaveReward, pineshireEncounterId } from '../data/pineshireProgression.js';
 import { grantAdventurerXp, adjustHappiness } from './AdventurerProgression.js';
 import { saveProfile } from './GameStorage.js';
 import { MAX_CHARACTER_LEVEL } from '../config/renown.js';
@@ -121,6 +122,9 @@ export function awardOrdinaryWave(delve, waveIndex, bossIndex, farming = false, 
   // First-clear rewards must match the saved next uncleared wave. That check prevents
   // duplicate calls or revisited earlier waves from paying again.
   if (!farming && waveIndex !== checkpoint.nextWave) return null;
+  const firstClear = !farming && pineshireWaveReward(delve, waveIndex);
+  const settlementKey = `${pineshireEncounterId(delve)}:${waveIndex + 1}`;
+  if (firstClear && GameState.pineshireSettlements[settlementKey]) return null;
 
   // The condition before ? chooses the first value when true and the value after : when
   // false.
@@ -129,13 +133,13 @@ export function awardOrdinaryWave(delve, waveIndex, bossIndex, farming = false, 
   // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
   const values = table[delve.difficulty] ?? table.Easy;
 
-  // Both rewards scale with survivors before their existing cap reductions.
-  // Gold is one shared payout; each survivor receives the full per-character XP.
+  // A first clear pays fixed Gold even at the XP cap. Every deployed participant,
+  // including fallen allies, receives its XP once. Repeat farming keeps survivor rules.
   const eligibility = delveRewardEligibility(delve);
   const selectedIds = new Set(GameState.activeParty.map(hero => hero.id));
-  const partyIds = new Set(partyUnits.filter(unit => unit.alive && selectedIds.has(unit.id)).map(unit => unit.id));
-  const gold = cappedDelveGold(values.gold * partyIds.size, eligibility);
-  const xp = delveWaveXp(delve, partyIds.size);
+  const partyIds = new Set(partyUnits.filter(unit => (firstClear || unit.alive) && selectedIds.has(unit.id)).map(unit => unit.id));
+  const gold = firstClear ? firstClear.gold : cappedDelveGold(values.gold * partyIds.size, eligibility);
+  const xp = firstClear ? firstClear.xp : delveWaveXp(delve, partyIds.size);
   const pool = delveMaterialIds(delve);
   const materials = {};
 
@@ -171,7 +175,7 @@ export function awardOrdinaryWave(delve, waveIndex, bossIndex, farming = false, 
   // them.
   Object.entries(materials).forEach(([id, count]) => grantMaterial(id, count));
 
-  // Match survivors to the persistent roster, where XP actually lives.
+  // Match eligible participants to the persistent roster, where XP actually lives.
   const xpByHero = {};
   const previousRenown = GameState.leader?.level ?? 1;
   const previousPoints = GameState.leader?.renownPoints ?? 0;
@@ -202,7 +206,10 @@ export function awardOrdinaryWave(delve, waveIndex, bossIndex, farming = false, 
     campUnlocked: checkpoint.campUnlocked || delveCampWaves(delve, bossIndex).includes(waveIndex + 1)
   };
 
-  const items = awardEquipmentLoot(delve, 'wave', random);
+  const items = firstClear ? awardPineshireItem(delve, waveIndex, random) : awardEquipmentLoot(delve, 'wave', random);
+  if (firstClear) GameState.pineshireSettlements[settlementKey] = true;
+
+  if (firstClear) recordTutorialFinds(delve, items);
 
   // Bank the shared resources and updated checkpoint before returning the reward
   // description. The battle save provider combines this with the completed action's phase
@@ -215,4 +222,32 @@ export function awardOrdinaryWave(delve, waveIndex, bossIndex, farming = false, 
     renownPointsEarned: (GameState.leader?.renownPoints ?? previousPoints) - previousPoints };
   return { leaderResult, gold, xp: actualXp, xpByHero, levelsGainedByHero, abilitiesLearnedByHero, happiness: eligibility.eligibleIds.size ? values.happiness ?? 0 : 0, materials, items,
     materialId, materialCount: materials[materialId] ?? 0, farming };
+}
+
+// The final wave is settled by finishVictory before completeExpedition saves its XP
+// and world clear. A separate identity survives checkpoint changes and practice replay.
+export function awardPineshireBoss(delve, random = Math.random) {
+  const index = (delve?.rooms ?? 1) - 1;
+  const reward = pineshireWaveReward(delve, index);
+  if (!reward?.boss) return null;
+  const key = `${pineshireEncounterId(delve)}:${index + 1}`;
+  if (GameState.pineshireSettlements[key] || GameState.world.clearedDelves.includes(delve.id)) {
+    return { gold: 0, items: [], xp: 0 };
+  }
+  const items = awardPineshireItem(delve, index, random);
+  recordTutorialFinds(delve, items);
+  GameState.gold += reward.gold;
+  GameState.pineshireSettlements[key] = true;
+  return { gold: reward.gold, items, xp: reward.xp };
+}
+
+// Observation metadata shares the real settlement save. It neither rolls nor grants loot.
+function recordTutorialFinds(delve, items) {
+  const tutorial = GameState.tutorialProgress;
+  if (delve.id !== 'slime-cave' || tutorial?.curriculumVersion !== 2
+    || tutorial.lessonId !== 'pineshire-first-adventure') return;
+  tutorial.find ??= items[0] ? { ...items[0] } : null;
+  tutorial.finds ??= [];
+  for (const item of items) if (item.instanceId && !tutorial.finds.some(find => find.instanceId === item.instanceId))
+    tutorial.finds.push({ ...item });
 }

@@ -50,6 +50,7 @@ export function createCombatPartyRoster(scene) {
     const potionLabel = combatText(scene, portraitCenter, top + height - 37, '', 21, 4506);
     bindSelectionDetails(scene, potionButton, () => scene.potionDetails(unit), () => scene.usePotion(unit));
     bindButtonPress(scene, potionButton, [potionLabel]);
+    statusHitZone.setName('battle-card-' + unit.id);
     const entry = { panel, cardHighlight, statusHitZone, potionButton, potionLabel, unit,
       nameText, levelText, portrait, hpBar, resourceBar, resource, portraitHeight };
     entry.updateResources = () => {

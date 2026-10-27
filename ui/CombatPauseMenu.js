@@ -1,6 +1,7 @@
+import { dialogFrame } from './DialogFrame.js';
 import GameState from '../game/GameState.js';
 import { saveProfile } from '../game/GameStorage.js';
-import { combatPanel, combatButton, combatText } from './CombatHudTheme.js';
+import { combatButton, combatText } from './CombatHudTheme.js';
 import { RADIAL_BEHAVIORS, RADIAL_BEHAVIOR_LABELS } from './CombatRadials.js';
 import { bindButtonPress } from './ButtonPress.js';
 import HapticsService from '../services/HapticsService.js';
@@ -25,7 +26,7 @@ export function createCombatPauseMenu(scene) {
   });
   const shade = scene.add.rectangle(width / 2, height / 2, width, height, 0x020813, 0.12).setDepth(8900).setInteractive();
   shade.on('pointerdown', (pointer, lx, ly, event) => event.stopPropagation());
-  objects.push(shade, combatPanel(scene, x, y, 620, 820, 8901));
+  objects.push(shade, dialogFrame(scene, x, y, 620, 820, 8901));
   const label = (px, py, value, size = 29) => {
     const text = combatText(scene, px, py, value, size, 8904);
     objects.push(text);

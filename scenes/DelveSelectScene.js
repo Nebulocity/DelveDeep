@@ -1,3 +1,4 @@
+import { dialogFrame } from '../ui/DialogFrame.js';
 import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
 import { UI_FONT_SIZES, UI_FONT_FAMILIES } from '../config/uiTypography.js';
@@ -239,7 +240,7 @@ export default class DelveSelectScene extends Phaser.Scene {
     const objects = [];
     const shade = this.add.rectangle(width / 2, height / 2, width, height, 0, 0.75)
       .setDepth(20000).setInteractive();
-    objects.push(shade, combatPanel(this, width / 2, height / 2, 1400, 410, 20001));
+    objects.push(shade, dialogFrame(this, width / 2, height / 2, 1400, 410, 20001));
     objects.push(combatText(this, width / 2, height / 2 - 85, message, UI_FONT_SIZES.body36, 20002,
       { align: 'center', wordWrap: { width: 1260 } }));
     const close = () => {

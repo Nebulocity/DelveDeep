@@ -20,8 +20,10 @@ export function partyCounts(party) {
 
 export function partyDepartureProblem(party = selectedParty()) {
   if (GameState.activeBattle) return 'An expedition is already in progress. Return to your active battle.';
-  if (GameState.tutorial.status === 'pending'
-    || GameState.tutorial.status === 'active' && (!GameState.recruitedIds.includes('garrick')
+
+  // Story-led recruitment can prepare a valid party while the tutorial offer is
+  // still pending. Check actual ownership and selection rather than that offer alone.
+  if (['pending', 'active'].includes(GameState.tutorial.status) && (!GameState.recruitedIds.includes('garrick')
       || !party.some(hero => hero.id === 'garrick'))) {
     return 'Visit the Tavern to recruit Garrick and add him to your party, or skip the tutorial to receive him for free.';
   }

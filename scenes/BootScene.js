@@ -113,9 +113,9 @@ export default class BootScene extends Phaser.Scene {
     this.initializeGameState();
     OrientationService.lockLandscape();
 
-    // The condition before ? chooses the first value when true and the value after : when
-    // false.
-    this.scene.start(GameState.activeBattle ? 'BattleScene' : 'TitleScene');
+    // Fresh adventures begin in Pineshire; existing expeditions retain their saved route.
+    const freshAdventure = !globalThis.__tutorialStudioPreview && GameState.tutorial.status === 'pending';
+    this.scene.start(GameState.activeBattle ? 'BattleScene' : freshAdventure ? 'TownScene' : 'TitleScene');
   }
 
   // This helper restores persistent progress and prepares clean encounter state.

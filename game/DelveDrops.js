@@ -6,6 +6,7 @@
 import { CRAFTING_MATERIALS, MATERIAL_ID_ALIASES } from '../data/items.js';
 import { FARM_MATERIAL_CHANCES } from '../config/farmMaterialDrops.js';
 import { equipmentLootPool, equipmentLootTable, EQUIPMENT_LOOT_RARITIES } from './EquipmentLoot.js';
+import { pineshireProgression } from '../data/pineshireProgression.js';
 
 // Resolve this encounter's environment pool. Without an override, use first-clear
 // difficulty rules; farming supplies allowedRarities to check one chart rarity at a time.
@@ -62,5 +63,15 @@ export function delveDropNames(delve) {
     });
     if (sources.length) equipment.push(`${rarity[0].toUpperCase() + rarity.slice(1)} equipment (${sources.length === 2 ? 'waves and final boss' : 'final boss'})`);
   }
-  return ['Gold / Adventurer XP', ...ids.map(id => CRAFTING_MATERIALS[id].name), ...equipment];
+  const plan = pineshireProgression(delve);
+  const firstClear = plan ? [
+    'First clear: guaranteed equipment each wave',
+    plan.cap === 10 ? 'Waves 1-9: Common, 30% Uncommon; 10-11: Uncommon, 35% Rare'
+      : plan.waves === 6 ? 'Waves 1-3: Common; 4-5: Common, 30% Uncommon'
+        : 'Waves 1-9: Common, 30% Uncommon',
+    `First final boss: party-usable ${plan.cap === 10 ? 'Epic' : 'Rare'}`
+  ] : [];
+  // Keep repeat equipment tiers out of the campaign Delve Details list.
+  return ['Gold / Adventurer XP', ...firstClear, ...ids.map(id => CRAFTING_MATERIALS[id].name),
+    ...(plan ? [] : equipment)];
 }

@@ -1,25 +1,31 @@
+export const TUTORIAL_CURRICULUM_VERSION = 2;
+
 // Profile-local observation identity. This is independent of diagnostic logging.
 export function newGameplayState() {
   return { version: 1, epoch: globalThis.crypto?.randomUUID?.() ?? String(Date.now()) + '-' + Math.random().toString(36).slice(2),
-    serial: 0, outcomes: [] };
+    serial: 0, outcomes: [], transactions: [] };
 }
 
 export function validGameplayState(value) {
   return value?.version === 1 && typeof value.epoch === 'string' && Number.isSafeInteger(value.serial)
-    && value.serial >= 0 && Array.isArray(value.outcomes) && value.outcomes.length <= 16
+    && value.serial >= 0 && Array.isArray(value.transactions) && value.transactions.length <= 16
+    && value.transactions.every(e => e?.version === 1 && e.profileEpoch === value.epoch
+      && ['adventurer.recruited', 'party.saved'].includes(e.type) && e.phase === 'committed'
+      && typeof e.eventId === 'string' && Number.isSafeInteger(e.sequence))
+    && Array.isArray(value.outcomes) && value.outcomes.length <= 16
     && value.outcomes.every(o => o && typeof o.encounterId === 'string' && typeof o.eventId === 'string'
       && ['victory', 'defeat', 'retreat'].includes(o.outcome) && o.mode === 'campaign');
 }
 
 export function emptyTutorialProgress() {
-  return { version: 1, curriculumVersion: 1, status: 'idle', lessonId: null, checkpointId: null,
-    attemptId: null, authorityId: null, mode: 'campaign', encounterId: null, completed: {}, outcome: null,
+  return { version: 1, curriculumVersion: TUTORIAL_CURRICULUM_VERSION, status: 'idle', lessonId: null, checkpointId: null,
+    attemptId: null, authorityId: null, find: null, finds: [], openingRecord: null, pauseOwnedEncounter: null, mode: 'campaign', encounterId: null, completed: {}, outcome: null,
     targetId: null, allowedInteractions: [], retryReason: null };
 }
 
 export function validTutorialProgress(value) {
   const id = v => v === null || typeof v === 'string';
-  return value?.version === 1 && value.curriculumVersion === 1
+  return value?.version === 1 && value.curriculumVersion === TUTORIAL_CURRICULUM_VERSION
     && ['idle', 'active', 'paused', 'skipped', 'complete', 'retry'].includes(value.status)
     && ['campaign', 'practice'].includes(value.mode)
     && ['lessonId', 'checkpointId', 'attemptId', 'authorityId', 'encounterId', 'targetId', 'retryReason'].every(k => id(value[k]))

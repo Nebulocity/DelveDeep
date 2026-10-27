@@ -4,7 +4,7 @@ import { RECRUITMENT_COSTS, RECRUITMENT_LINES } from '../data/recruitment.js';
 import { rebuildCharacterStats } from './CharacterStats.js';
 import { restoreAdventurerAbilities } from './AdventurerAbilities.js';
 import { grantStartingEquipment } from './StartingEquipment.js';
-import { flushProfileSave } from './GameStorage.js';
+import { persistGameplayFact, PLAYER_SOURCE, SYSTEM_SOURCE } from './GameplayEvents.js';
 
 export const isRecruited = id => GameState.recruitedIds.includes(id);
 
@@ -18,7 +18,7 @@ export function recruitmentPreview(id) {
 
 // This synchronous transaction rechecks ownership and funds at confirmation time. One
 // profile write commits both changes; a failed write restores the in-memory purchase.
-export function recruitAdventurer(id) {
+export function recruitAdventurer(id, evidence = {}) {
   const cost = RECRUITMENT_COSTS[id];
   const hero = recruitmentPreview(id);
   if (!hero || !Number.isSafeInteger(cost)) return { ok: false, message: 'This adventurer is unavailable.' };
@@ -35,7 +35,9 @@ export function recruitAdventurer(id) {
   GameState.roster = [...GameState.roster, hero];
   grantStartingEquipment(new Map(), { ...GameState, roster: [hero] });
   if (id === 'garrick' && GameState.tutorial?.step === 'recruit') GameState.tutorial.step = 'party';
-  if (!flushProfileSave()) {
+  if (!persistGameplayFact(evidence.scene, 'adventurer.recruited', { subjectIds: [id],
+    adventurerId: id, cost, ...(Object.hasOwn(evidence, 'tutorial') ? { tutorial: evidence.tutorial } : {}) },
+  evidence.scene ? PLAYER_SOURCE : SYSTEM_SOURCE)) {
     Object.assign(GameState, previous);
     return { ok: false, message: 'Your recruitment could not be saved. No gold was spent. Please try again.' };
   }

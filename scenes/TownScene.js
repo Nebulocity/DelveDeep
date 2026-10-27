@@ -5,6 +5,7 @@ import { preloadTownAssets } from '../ui/TownAssets.js';
 import TownHub from '../ui/TownHub.js';
 import { showAbilityUnlockNotice } from '../ui/AbilityUnlockNotice.js';
 import { openRecruitmentTutorial } from '../ui/RecruitmentTutorial.js';
+import { hideLoadingScreenAfterRender } from '../ui/LoadingScreen.js';
 
 export default class TownScene extends Phaser.Scene {
   constructor() { super('TownScene'); }
@@ -27,6 +28,7 @@ export default class TownScene extends Phaser.Scene {
     };
     fitBackground();
     this.hub = new TownHub(this);
+    hideLoadingScreenAfterRender(this);
     showAbilityUnlockNotice(this);
     if (['pending', 'active'].includes(GameState.tutorial.status)) openRecruitmentTutorial(this);
     const resize = () => { fitBackground(); this.hub.render(); };

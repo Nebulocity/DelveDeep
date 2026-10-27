@@ -3,6 +3,8 @@ import { requestOrder, acceptOrder, rejectOrder, cancelOrder, targetedTacticUnit
 // cooldowns change here; Resume dispatches through BattleScene's existing command paths.
 import GameState from '../game/GameState.js';
 import { equippedItem } from '../game/Equipment.js';
+import { leaderAbilities } from '../game/LeaderProgression.js';
+import { expandedTacticRecipients, expandedTacticHasBenefit, tacticCanRevive } from './LeaderTacticEffects.js';
 const POSITIONAL_TACTICS = ['focusFire', 'coordinatedAttack', 'lunarAssault'];
 const TARGET_MODES = { focusFire: 'FOCUS', coordinatedAttack: 'COORDINATED_ATTACK', lunarAssault: 'LUNAR_ASSAULT', revive: 'REVIVE' };
 const ORDERS = ['MOVE', 'HOLD', 'SPREAD', 'STACK', 'ATTACK', 'INTERRUPT', 'ASSIST'];
@@ -17,6 +19,8 @@ export default class LeaderOrderPlan {
   nextSerial() { return ++this.scene.leaderOrderSerial; }
 
   membersForTactic(id, targetId) {
+    const ability = leaderAbilities.find(entry => entry.id === id);
+    if (ability?.effects) return expandedTacticRecipients(this.scene, ability);
     const party = this.scene.partyUnits;
     if (id === 'coordinatedAttack' || id === 'lunarAssault')
       return targetedTacticUnits(this.scene, id === 'coordinatedAttack' ? 'COORDINATED_ATTACK' : 'LUNAR_ASSAULT').map(unit => unit.id);
@@ -139,9 +143,12 @@ export default class LeaderOrderPlan {
   validateTactic(tactic) {
     const scene = this.scene;
     if (!scene.isLeaderAbilityReady(tactic.id)) return 'Tactic unavailable or recharging';
+    const ability = leaderAbilities.find(entry => entry.id === tactic.id);
+    if (ability?.effects && !expandedTacticHasBenefit(scene, ability)) return 'Tactic has no eligible effect yet';
     const living = scene.partyUnits.filter(unit => unit.alive);
     const fallen = scene.partyUnits.filter(unit => !unit.alive && !unit.delvesUsed?.honorSacrifice);
-    if (['arise', 'revive'].includes(tactic.id) ? !fallen.length : !living.length) return 'Tactic has no eligible adventurers';
+    if (!living.length && !(tacticCanRevive(ability) && fallen.length)) return 'Tactic has no eligible adventurers';
+    if (['arise', 'revive'].includes(tactic.id) && !fallen.length) return 'Tactic has no eligible adventurers';
     if (tactic.id === 'encouragement' && !living.some(unit => unit.hp < unit.maxHp)) return 'The party is already at full health';
     if (tactic.id === 'manaVortex' && !living.some(unit => unit.mana < unit.maxMana)) return 'The party is already at full mana';
     if (['shieldWall', 'supplies'].includes(tactic.id) && !this.membersForTactic(tactic.id).length) return 'Tactic has no eligible recipients';

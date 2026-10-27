@@ -1,0 +1,16 @@
+{
+  "id": "slimeSovereign",
+  "frameWidth": 256,
+  "frameHeight": 256,
+  "columns": 8,
+  "portrait": "portrait.png",
+  "clips": {
+    "idle": {
+      "file": "idle-sheet.png",
+      "frameCount": 16,
+      "frameDurationMs": 250,
+      "durationMs": 4000,
+      "loop": true
+    }
+  }
+}

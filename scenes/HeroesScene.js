@@ -1,3 +1,4 @@
+import GameState from '../game/GameState.js';
 import TownFeatureScene, { featurePanel, featureBody } from '../ui/TownFeatureUI.js';
 import { characterSelector, selectedCharacter } from '../ui/CharacterSelection.js';
 import { serviceText, serviceButton } from '../ui/TownServiceTheme.js';
@@ -9,9 +10,9 @@ import { CLASS_DESCRIPTIONS } from '../data/classDescriptions.js';
 import { STAT_DESCRIPTIONS } from '../data/statDescriptions.js';
 import { selectedParty, partyCounts } from '../game/PartySelection.js';
 import { showSelectionDetails } from '../ui/SelectionDetails.js';
+import { statDisplayNumber as number, statDisplayText } from '../game/StatDisplay.js';
 
-const number = value => Number.isFinite(value) ? Math.round(value * 100) / 100 : 0;
-const percent = value => `${number((value ?? 0) * 100)}%`;
+const percent = (value, stat) => statDisplayText(value, stat);
 
 export default class HeroesScene extends TownFeatureScene {
   constructor() { super('HeroesScene', true); }
@@ -21,7 +22,8 @@ export default class HeroesScene extends TownFeatureScene {
     const party = selectedParty();
     const counts = partyCounts(party);
     serviceButton(this, this.scale.width - 310, 68, 450, 88, `Manage Party ${party.length}/5`, () => {
-      this.scene.start('PartySelectScene', { origin: 'town', returnScene: 'HeroesScene' });
+      this.scene.start('PartySelectScene', { origin: 'town', returnScene: this.game.scene.getScene('TutorialOverlayScene')?.guidance.opening.active()
+        && !GameState.recruitedIds.includes('garrick') ? 'TownScene' : 'HeroesScene' });
     }, { name: 'town-manage-party', depth: 5 });
     this.children.getByName('feature-feedback').setText(
       `${party.map(hero => hero.name).join(' · ') || 'No party selected'} | Tank ${counts.Tank} · Healer ${counts.Healer} · DPS ${counts.DPS}`);
@@ -40,7 +42,7 @@ export default class HeroesScene extends TownFeatureScene {
     }).setOrigin(0.5);
     const progress = hero.level >= MAX_CHARACTER_LEVEL ? 'Maximum character level' : `${hero.xp ?? 0} / ${xpRequired(hero.level)} XP`;
     serviceText(this, 790, bounds.y + 505, `Level ${hero.level}\n${progress}`, 'body36', { align: 'center' }).setOrigin(0.5);
-    serviceText(this, 790, bounds.y + 599, `${happinessLabel(hero.happiness ?? 70)}\n${hero.happiness ?? 70}% happiness`, 'body32', { align: 'center' }).setOrigin(0.5);
+    serviceText(this, 790, bounds.y + 599, `${happinessLabel(hero.happiness ?? 70)}\n${number(hero.happiness ?? 70)}% happiness`, 'body32', { align: 'center' }).setOrigin(0.5);
     serviceButton(this, 790, bounds.y + bounds.height - 70, 430, 84, 'About this class', () => {
       showSelectionDetails(this, { title: hero.className, className: hero.className, description: CLASS_DESCRIPTIONS[hero.className] });
     });
@@ -50,8 +52,8 @@ export default class HeroesScene extends TownFeatureScene {
       ['Progress', `Level ${hero.level} · Delves cleared ${hero.delvesCompleted ?? 0}`],
       ['Resources', `Health ${number(stats.maxHp)} · Mana ${number(stats.maxMana)}`],
       ['Attributes', `Strength ${number(stats.strength)}\nAgility ${number(stats.agility)}\nConstitution ${number(stats.constitution)}\nIntellect ${number(stats.intellect)}\nWisdom ${number(stats.wisdom)}`],
-      ['Defense', `Armor ${number(stats.armor)}\nDodge ${percent(stats.dodge)} · Block ${percent(stats.block)}`],
-      ['Offense', `Attack Power ${number(stats.attackPower)}\nSpell Power ${number(stats.spellPower ?? Math.max(stats.spellDamage ?? 0, stats.spellHealing ?? 0))}\nSpeed ${number(stats.speed ?? 100)}\nHit Chance ${percent(stats.hitChance)}\nCrit Chance ${percent(stats.critChance)} · Crit Multiplier ${number(stats.critMultiplier)}x`]
+      ['Defense', `Armor ${number(stats.armor)}\nDodge ${percent(stats.dodge, 'dodge')} · Block ${percent(stats.block, 'block')}`],
+      ['Offense', `Attack Power ${number(stats.attackPower)}\nSpell Power ${number(stats.spellPower ?? Math.max(stats.spellDamage ?? 0, stats.spellHealing ?? 0))}\nSpeed ${number(stats.speed ?? 100)}\nHit Chance ${percent(stats.hitChance, 'hitChance')}\nCrit Chance ${percent(stats.critChance, 'critChance')} · Crit Multiplier ${number(stats.critMultiplier, 'critMultiplier')}x`]
     ];
     featureBody(this, { x: detail.x + 40, y: detail.y + 106, width: detail.width - 106, height: detail.height - 240 },
       values.map(([title, value]) => `${title}\n${value}`).join('\n\n'), this.statsOffset ?? 0, value => { this.statsOffset = value; });

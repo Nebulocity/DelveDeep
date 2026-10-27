@@ -1,3 +1,4 @@
+import { emitGameplay, PLAYER_SOURCE } from '../game/GameplayEvents.js';
 import TownFeatureScene, { featurePanel, featureList, featureBody, featureSelect } from '../ui/TownFeatureUI.js';
 import { serviceText, serviceCard, serviceButton } from '../ui/TownServiceTheme.js';
 import { playUiSound } from '../services/UiAudioService.js';
@@ -43,8 +44,9 @@ export default class TacticsScene extends TownFeatureScene {
     }
     this.category ??= 'Assault';
     CATEGORIES.forEach((category, index) => serviceButton(this, library.x + 30 + (index + 0.5) * 203,
-      b.y + 65, 190, 70, category, () => { this.category = category; this.libraryOffset = 0; this.render(); },
-      { selected: this.category === category, compact: true, slot: 'body30' }));
+      b.y + 65, 190, 70, category, () => { this.category = category; this.libraryOffset = 0; this.render();
+        emitGameplay(this, 'tutorial.action.accepted', { action: 'tactics-category-' + category }, PLAYER_SOURCE); },
+      { name: 'tactics-category-' + category, selected: this.category === category, compact: true, slot: 'body30' }));
     const entries = leaderAbilities.filter(ability => ability.category === this.category)
       .sort((a, z) => RARITY_ORDER.indexOf(a.rarity ?? 'common') - RARITY_ORDER.indexOf(z.rarity ?? 'common')
         || a.cost - z.cost || a.name.localeCompare(z.name));

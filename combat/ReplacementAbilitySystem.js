@@ -5,6 +5,7 @@ import GameState from '../game/GameState.js';
 import { abilityMeetsLevel } from '../data/abilityUnlocks.js';
 import { equippedItem, consumePotionCharge } from '../game/Equipment.js';
 import { getPotionDefinition } from '../data/items.js';
+import { applyPotionEffects, potionCooldownRemaining, startPotionCooldown } from '../game/Potions.js';
 import { arenaDistance, ADJACENT_DISTANCE, NEAR_DISTANCE } from '../config/combatRanges.js';
 import { incomingPressure, missingHealth, healingUrgency, reserveHealing } from './CombatDecisions.js';
 import { replacementAmount, replacementMultiplier, refreshReplacementTiming } from './ReplacementEffects.js';
@@ -207,11 +208,14 @@ export default class ReplacementAbilitySystem {
 
   consumePotion(unit) {
     const pack = this.potion(unit);
-    if (!pack?.item.charges) return false;
+    if (!pack?.item.charges || potionCooldownRemaining(this.scene, unit, pack.definition, this.now()) > 0) return false;
+    let consumed = false;
     const free = unit.status.replacementFreeItem;
-    if (free?.until > this.now()) { unit.status.replacementFreeItem = null; return true; }
-    if (pack.saved.temporary > 0) { pack.saved.temporary--; return true; }
-    return consumePotionCharge(unit.id, GameState);
+    if (free?.until > this.now()) { unit.status.replacementFreeItem = null; consumed = true; }
+    else if (pack.saved.temporary > 0) { pack.saved.temporary--; consumed = true; }
+    else consumed = consumePotionCharge(unit.id, GameState);
+    if (consumed) startPotionCooldown(this.scene, unit, this.now());
+    return consumed;
   }
 
   refill(unit, fraction) {
@@ -1047,8 +1051,7 @@ export default class ReplacementAbilitySystem {
       return;
     }
     if (h === 'revive') {
-      if (!target.alive && !target.noReviveThisBattle) {
-        target.revive(x, y);
+      if (!target.noReviveThisBattle && target.revive(x, y)) {
 
         // Reclamation forms a local soul silhouette on the newly revived ally.
         this.scene.createAbilityEffect?.(caster, target, ability);
@@ -1680,7 +1683,8 @@ export default class ReplacementAbilitySystem {
         for (const reaction of owner.status.replacementReactions ?? []) if (reaction.kind === 'criticalPotionReaction' && reaction.until > this.now() && this.now() - reaction.lastAt >= 1000) {
           const pack = this.potion(owner);
           if (pack?.definition.effect.resource === 'hp' && arenaDistance(owner, target) <= reaction.ability.range * 100 && this.consumePotion(owner)) {
-            const recovered = this.heal(owner, target, target.maxHp * pack.definition.effect.fraction * reaction.ability.primary.potency, reaction.ability, true);
+            const recovered = applyPotionEffects(this.scene, target, pack.definition, this.now(), reaction.ability.primary.potency,
+              amount => this.heal(owner, target, amount, reaction.ability, true)).hp;
 
             // Pour artwork forms on the actually healed ally. Healing stays at
             // its original critical-hit timestamp with no added flight delay.

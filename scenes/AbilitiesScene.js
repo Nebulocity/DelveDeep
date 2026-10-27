@@ -10,6 +10,7 @@ import { showConfirmation } from '../ui/ConfirmationDialog.js';
 import { trainingComparison } from '../ui/AbilityPresentation.js';
 import { categoryIcon } from '../ui/IdentityIcons.js';
 import { abilityMeetsLevel } from '../data/abilityUnlocks.js';
+import { ITEM_RARITIES } from '../data/items.js';
 
 export default class AbilitiesScene extends TownFeatureScene {
   constructor() { super('AbilitiesScene', true); }
@@ -60,7 +61,8 @@ export default class AbilitiesScene extends TownFeatureScene {
         if (locked) card.setAlpha(0.7);
         categoryIcon(this, ability.category, x + 48, y + 51, 48).setAlpha(locked ? 0.65 : 1);
         serviceText(this, x + 88, y + 16, ability.name, 'body34', {
-          wordWrap: { width: width - 110 }, maxLines: 2, color: locked ? '#b7afa2' : '#f1dfca'
+          wordWrap: { width: width - 110 }, maxLines: 2,
+          color: locked ? '#b7afa2' : (ITEM_RARITIES[ability.rarity] ?? ITEM_RARITIES.common).color
         });
         serviceText(this, x + 22, y + 112, locked ? `Unlocks at Level ${ability.minimumLevel}`
           : `${ability.category} · Rank ${rank}/${MAX_ABILITY_RANK}${ability.innate ? ' · Innate' : loadout.includes(key) ? ' · Equipped' : ''}`,
@@ -96,7 +98,7 @@ export default class AbilitiesScene extends TownFeatureScene {
     serviceButton(this, detail.x + detail.width - 36 - actionWidth / 2, top + height - 65, actionWidth, 84,
       rank ? 'Train rank' : 'Learn', () => showConfirmation(this, {
         title: `${rank ? 'Train' : 'Learn'} ${base.name}`, category: base.category,
-        description: `${hero.name} · Rank ${rank} → ${next}\n\n${trainingComparison(hero, base, rank, next)}\n\nSpend ${points} skill points and ${gold} Gold?\nRequires level ${level}. Price includes ${hero.happiness ?? 70}% happiness.`,
+        description: `${hero.name} · Rank ${rank} → ${next}\n\n${trainingComparison(hero, base, rank, next)}\n\nSpend ${points} skill points and ${gold} Gold?\nRequires level ${level}. Price includes ${Math.round(hero.happiness ?? 70)}% happiness.`,
         onConfirm: () => this.commit(purchaseAdventurerAbility(hero.id, key), 'training')
       }), { enabled: !reason, disabledReason: reason, slot: 'body30' });
   }

@@ -1,0 +1,4455 @@
+{
+  "budget": {
+    "equipment": [
+      {
+        "hero": "garrick",
+        "tier": "Bronze",
+        "id": "BLS01",
+        "slot": "weapon",
+        "name": "Bronze Longsword",
+        "price": 33
+      },
+      {
+        "hero": "garrick",
+        "tier": "Bronze",
+        "id": "RMD01",
+        "slot": "armor",
+        "name": "Ring Mail",
+        "price": 300
+      },
+      {
+        "hero": "garrick",
+        "tier": "Bronze",
+        "id": "PIN_BRONZE_CHARM",
+        "slot": "accessory",
+        "name": "Bronze Trail Charm",
+        "price": 25
+      },
+      {
+        "hero": "garrick",
+        "tier": "Iron",
+        "id": "ILS01",
+        "slot": "weapon",
+        "name": "Iron Longsword",
+        "price": 133
+      },
+      {
+        "hero": "garrick",
+        "tier": "Iron",
+        "id": "CMD01",
+        "slot": "armor",
+        "name": "Chain Mail",
+        "price": 900
+      },
+      {
+        "hero": "garrick",
+        "tier": "Iron",
+        "id": "PIN_IRON_CHARM",
+        "slot": "accessory",
+        "name": "Iron Trail Charm",
+        "price": 100
+      },
+      {
+        "hero": "selenne",
+        "tier": "Bronze",
+        "id": "BRM01",
+        "slot": "weapon",
+        "name": "Bronze Mace",
+        "price": 25
+      },
+      {
+        "hero": "selenne",
+        "tier": "Bronze",
+        "id": "LRO01",
+        "slot": "armor",
+        "name": "Linen Robes",
+        "price": 300
+      },
+      {
+        "hero": "selenne",
+        "tier": "Bronze",
+        "id": "PIN_BRONZE_CHARM",
+        "slot": "accessory",
+        "name": "Bronze Trail Charm",
+        "price": 25
+      },
+      {
+        "hero": "selenne",
+        "tier": "Iron",
+        "id": "IMA01",
+        "slot": "weapon",
+        "name": "Iron Mace",
+        "price": 133
+      },
+      {
+        "hero": "selenne",
+        "tier": "Iron",
+        "id": "RWR01",
+        "slot": "armor",
+        "name": "Reinforced Wool Robes",
+        "price": 900
+      },
+      {
+        "hero": "selenne",
+        "tier": "Iron",
+        "id": "PIN_IRON_CHARM",
+        "slot": "accessory",
+        "name": "Iron Trail Charm",
+        "price": 100
+      },
+      {
+        "hero": "chaska",
+        "tier": "Bronze",
+        "id": "BGA01",
+        "slot": "weapon",
+        "name": "Bronze Greataxe",
+        "price": 44
+      },
+      {
+        "hero": "chaska",
+        "tier": "Bronze",
+        "id": "PV01",
+        "slot": "armor",
+        "name": "Padded Leather Vest",
+        "price": 25
+      },
+      {
+        "hero": "chaska",
+        "tier": "Bronze",
+        "id": "PIN_BRONZE_CHARM",
+        "slot": "accessory",
+        "name": "Bronze Trail Charm",
+        "price": 25
+      },
+      {
+        "hero": "chaska",
+        "tier": "Iron",
+        "id": "IGA01",
+        "slot": "weapon",
+        "name": "Iron Greataxe",
+        "price": 200
+      },
+      {
+        "hero": "chaska",
+        "tier": "Iron",
+        "id": "SAR01",
+        "slot": "armor",
+        "name": "Studded Leather Armor",
+        "price": 100
+      },
+      {
+        "hero": "chaska",
+        "tier": "Iron",
+        "id": "PIN_IRON_CHARM",
+        "slot": "accessory",
+        "name": "Iron Trail Charm",
+        "price": 100
+      },
+      {
+        "hero": "durgrim",
+        "tier": "Bronze",
+        "id": "BGA01",
+        "slot": "weapon",
+        "name": "Bronze Greataxe",
+        "price": 44
+      },
+      {
+        "hero": "durgrim",
+        "tier": "Bronze",
+        "id": "PV01",
+        "slot": "armor",
+        "name": "Padded Leather Vest",
+        "price": 25
+      },
+      {
+        "hero": "durgrim",
+        "tier": "Bronze",
+        "id": "PIN_BRONZE_CHARM",
+        "slot": "accessory",
+        "name": "Bronze Trail Charm",
+        "price": 25
+      },
+      {
+        "hero": "durgrim",
+        "tier": "Iron",
+        "id": "IGA01",
+        "slot": "weapon",
+        "name": "Iron Greataxe",
+        "price": 200
+      },
+      {
+        "hero": "durgrim",
+        "tier": "Iron",
+        "id": "SAR01",
+        "slot": "armor",
+        "name": "Studded Leather Armor",
+        "price": 100
+      },
+      {
+        "hero": "durgrim",
+        "tier": "Iron",
+        "id": "PIN_IRON_CHARM",
+        "slot": "accessory",
+        "name": "Iron Trail Charm",
+        "price": 100
+      },
+      {
+        "hero": "orwen",
+        "tier": "Bronze",
+        "id": "PBR01",
+        "slot": "weapon",
+        "name": "Pine Bow",
+        "price": 25
+      },
+      {
+        "hero": "orwen",
+        "tier": "Bronze",
+        "id": "PV01",
+        "slot": "armor",
+        "name": "Padded Leather Vest",
+        "price": 25
+      },
+      {
+        "hero": "orwen",
+        "tier": "Bronze",
+        "id": "PIN_BRONZE_CHARM",
+        "slot": "accessory",
+        "name": "Bronze Trail Charm",
+        "price": 25
+      },
+      {
+        "hero": "orwen",
+        "tier": "Iron",
+        "id": "MBR01",
+        "slot": "weapon",
+        "name": "Maple Bow",
+        "price": 133
+      },
+      {
+        "hero": "orwen",
+        "tier": "Iron",
+        "id": "SAR01",
+        "slot": "armor",
+        "name": "Studded Leather Armor",
+        "price": 100
+      },
+      {
+        "hero": "orwen",
+        "tier": "Iron",
+        "id": "PIN_IRON_CHARM",
+        "slot": "accessory",
+        "name": "Iron Trail Charm",
+        "price": 100
+      }
+    ],
+    "skills": [
+      {
+        "hero": "chaska",
+        "key": "ability_v2_barbarian_savage_swing",
+        "minimumLevel": 5,
+        "sp": 2,
+        "price": 280
+      },
+      {
+        "hero": "chaska",
+        "key": "ability_v2_barbarian_fearsome_presence",
+        "minimumLevel": 5,
+        "sp": 2,
+        "price": 280
+      },
+      {
+        "hero": "chaska",
+        "key": "ability_v2_barbarian_intimidating_blow",
+        "minimumLevel": 5,
+        "sp": 2,
+        "price": 280
+      },
+      {
+        "hero": "chaska",
+        "key": "ability_v2_barbarian_berserking",
+        "minimumLevel": 5,
+        "sp": 2,
+        "price": 280
+      },
+      {
+        "hero": "durgrim",
+        "key": "ability_v2_barbarian_savage_swing",
+        "minimumLevel": 5,
+        "sp": 2,
+        "price": 280
+      },
+      {
+        "hero": "durgrim",
+        "key": "ability_v2_barbarian_fearsome_presence",
+        "minimumLevel": 5,
+        "sp": 2,
+        "price": 280
+      },
+      {
+        "hero": "durgrim",
+        "key": "ability_v2_barbarian_intimidating_blow",
+        "minimumLevel": 5,
+        "sp": 2,
+        "price": 280
+      },
+      {
+        "hero": "durgrim",
+        "key": "ability_v2_barbarian_berserking",
+        "minimumLevel": 5,
+        "sp": 2,
+        "price": 280
+      },
+      {
+        "hero": "orwen",
+        "key": "ability_v2_ranger_piercing_shot",
+        "minimumLevel": 5,
+        "sp": 2,
+        "price": 280
+      },
+      {
+        "hero": "orwen",
+        "key": "ability_v2_ranger_camouflage",
+        "minimumLevel": 5,
+        "sp": 2,
+        "price": 280
+      },
+      {
+        "hero": "orwen",
+        "key": "ability_v2_ranger_pinning_arrow",
+        "minimumLevel": 5,
+        "sp": 2,
+        "price": 280
+      },
+      {
+        "hero": "orwen",
+        "key": "ability_v2_ranger_hunter_s_trap",
+        "minimumLevel": 5,
+        "sp": 2,
+        "price": 280
+      },
+      {
+        "hero": "selenne",
+        "key": "ability_v2_dawnpriest_holy_light",
+        "minimumLevel": 5,
+        "sp": 2,
+        "price": 280
+      },
+      {
+        "hero": "selenne",
+        "key": "ability_v2_dawnpriest_guardian_spirit",
+        "minimumLevel": 5,
+        "sp": 2,
+        "price": 280
+      },
+      {
+        "hero": "selenne",
+        "key": "ability_v2_dawnpriest_radiant_bolt",
+        "minimumLevel": 5,
+        "sp": 2,
+        "price": 280
+      },
+      {
+        "hero": "selenne",
+        "key": "ability_v2_dawnpriest_eternal_renewal",
+        "minimumLevel": 5,
+        "sp": 2,
+        "price": 280
+      },
+      {
+        "hero": "garrick",
+        "key": "ability_v2_gladiator_defiant_roar",
+        "minimumLevel": 5,
+        "sp": 2,
+        "price": 280
+      },
+      {
+        "hero": "garrick",
+        "key": "ability_v2_gladiator_offensive_drill",
+        "minimumLevel": 5,
+        "sp": 2,
+        "price": 280
+      },
+      {
+        "hero": "garrick",
+        "key": "ability_v2_gladiator_shield_bash",
+        "minimumLevel": 5,
+        "sp": 2,
+        "price": 280
+      },
+      {
+        "hero": "garrick",
+        "key": "ability_v2_gladiator_combat_readiness",
+        "minimumLevel": 5,
+        "sp": 2,
+        "price": 280
+      }
+    ],
+    "bronze": 971,
+    "iron": 3399,
+    "training": 5600,
+    "potions": 600,
+    "enchantments": 3000,
+    "base": 13570,
+    "required": 17641
+  },
+  "waves": [
+    {
+      "delve": "slime-cave",
+      "wave": 1,
+      "gold": 1000,
+      "cumulativeGold": 1000,
+      "balance": 1000,
+      "xp": 30,
+      "item": {
+        "itemId": "PIN_BHA01_1_common",
+        "name": "Dewtrail Wayfarer Handaxe",
+        "count": 1,
+        "rarity": "common",
+        "source": "first-clear"
+      },
+      "usableNow": false,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "chaska",
+          "level": 1,
+          "xp": 30,
+          "sp": 1,
+          "ranks": [
+            0,
+            0,
+            1,
+            0
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 1,
+          "xp": 30,
+          "sp": 1,
+          "ranks": [
+            0,
+            0,
+            1,
+            0
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 1,
+          "xp": 30,
+          "sp": 1,
+          "ranks": [
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 1,
+          "xp": 30,
+          "sp": 1,
+          "ranks": [
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "garrick",
+          "level": 1,
+          "xp": 30,
+          "sp": 1,
+          "ranks": [
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "slime-cave",
+      "wave": 2,
+      "gold": 100,
+      "cumulativeGold": 1100,
+      "balance": 1100,
+      "xp": 30,
+      "item": {
+        "itemId": "PIN_BHA01_1_common",
+        "name": "Dewtrail Wayfarer Handaxe",
+        "count": 1,
+        "rarity": "common",
+        "source": "first-clear"
+      },
+      "usableNow": false,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 1,
+          "xp": 60,
+          "sp": 1,
+          "ranks": [
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 1,
+          "xp": 60,
+          "sp": 1,
+          "ranks": [
+            0,
+            0,
+            1,
+            0
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 1,
+          "xp": 60,
+          "sp": 1,
+          "ranks": [
+            0,
+            0,
+            1,
+            0
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 1,
+          "xp": 60,
+          "sp": 1,
+          "ranks": [
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 1,
+          "xp": 60,
+          "sp": 1,
+          "ranks": [
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "slime-cave",
+      "wave": 3,
+      "gold": 100,
+      "cumulativeGold": 1200,
+      "balance": 1200,
+      "xp": 30,
+      "item": {
+        "itemId": "PIN_BGA01_1_common",
+        "name": "Dewtrail Wayfarer Greataxe",
+        "count": 1,
+        "rarity": "common",
+        "source": "first-clear"
+      },
+      "usableNow": true,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 1,
+          "xp": 90,
+          "sp": 1,
+          "ranks": [
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 1,
+          "xp": 90,
+          "sp": 1,
+          "ranks": [
+            0,
+            0,
+            1,
+            0
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 1,
+          "xp": 90,
+          "sp": 1,
+          "ranks": [
+            0,
+            0,
+            1,
+            0
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 1,
+          "xp": 90,
+          "sp": 1,
+          "ranks": [
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 1,
+          "xp": 90,
+          "sp": 1,
+          "ranks": [
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "slime-cave",
+      "wave": 4,
+      "gold": 100,
+      "cumulativeGold": 1300,
+      "balance": 1300,
+      "xp": 30,
+      "item": {
+        "itemId": "PIN_RMD01_2_uncommon",
+        "name": "Slimeglass Vigorous Ring Mail",
+        "count": 1,
+        "rarity": "uncommon",
+        "source": "first-clear"
+      },
+      "usableNow": true,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 2,
+          "xp": 20,
+          "sp": 2,
+          "ranks": [
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 2,
+          "xp": 20,
+          "sp": 2,
+          "ranks": [
+            0,
+            0,
+            1,
+            0
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 2,
+          "xp": 20,
+          "sp": 2,
+          "ranks": [
+            0,
+            0,
+            1,
+            0
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 2,
+          "xp": 20,
+          "sp": 2,
+          "ranks": [
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 2,
+          "xp": 20,
+          "sp": 2,
+          "ranks": [
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "slime-cave",
+      "wave": 5,
+      "gold": 100,
+      "cumulativeGold": 1400,
+      "balance": 1400,
+      "xp": 30,
+      "item": {
+        "itemId": "PIN_BLS01_2_common",
+        "name": "Slimeglass Wayfarer Longsword",
+        "count": 1,
+        "rarity": "common",
+        "source": "first-clear"
+      },
+      "usableNow": true,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 2,
+          "xp": 50,
+          "sp": 2,
+          "ranks": [
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 2,
+          "xp": 50,
+          "sp": 2,
+          "ranks": [
+            0,
+            0,
+            1,
+            0
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 2,
+          "xp": 50,
+          "sp": 2,
+          "ranks": [
+            0,
+            0,
+            1,
+            0
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 2,
+          "xp": 50,
+          "sp": 2,
+          "ranks": [
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 2,
+          "xp": 50,
+          "sp": 2,
+          "ranks": [
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "slime-cave",
+      "wave": 6,
+      "gold": 300,
+      "cumulativeGold": 1700,
+      "balance": 1700,
+      "xp": 75,
+      "item": {
+        "itemId": "PIN_RMD01_2_rare",
+        "name": "Slimeglass Resonant Ring Mail",
+        "count": 1,
+        "rarity": "rare",
+        "source": "first-clear"
+      },
+      "usableNow": true,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 3,
+          "xp": 0,
+          "sp": 3,
+          "ranks": [
+            1,
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 3,
+          "xp": 0,
+          "sp": 3,
+          "ranks": [
+            0,
+            0,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 3,
+          "xp": 0,
+          "sp": 3,
+          "ranks": [
+            0,
+            0,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 3,
+          "xp": 0,
+          "sp": 3,
+          "ranks": [
+            1,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 3,
+          "xp": 0,
+          "sp": 3,
+          "ranks": [
+            1,
+            1,
+            0,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "thornbriar-hollow",
+      "wave": 1,
+      "gold": 200,
+      "cumulativeGold": 1900,
+      "balance": 1900,
+      "xp": 20,
+      "item": {
+        "itemId": "PIN_ARB01_3_common",
+        "name": "Briarpath Wayfarer Runeblade",
+        "count": 1,
+        "rarity": "common",
+        "source": "first-clear"
+      },
+      "usableNow": false,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 3,
+          "xp": 20,
+          "sp": 3,
+          "ranks": [
+            1,
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 3,
+          "xp": 20,
+          "sp": 3,
+          "ranks": [
+            0,
+            0,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 3,
+          "xp": 20,
+          "sp": 3,
+          "ranks": [
+            0,
+            0,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 3,
+          "xp": 20,
+          "sp": 3,
+          "ranks": [
+            1,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 3,
+          "xp": 20,
+          "sp": 3,
+          "ranks": [
+            1,
+            1,
+            0,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "thornbriar-hollow",
+      "wave": 2,
+      "gold": 200,
+      "cumulativeGold": 2100,
+      "balance": 2100,
+      "xp": 20,
+      "item": {
+        "itemId": "early-wayside-vow-ring",
+        "name": "Wayside Vow Ring",
+        "count": 1,
+        "rarity": "common",
+        "source": "first-clear"
+      },
+      "usableNow": false,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 3,
+          "xp": 40,
+          "sp": 3,
+          "ranks": [
+            1,
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 3,
+          "xp": 40,
+          "sp": 3,
+          "ranks": [
+            0,
+            0,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 3,
+          "xp": 40,
+          "sp": 3,
+          "ranks": [
+            0,
+            0,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 3,
+          "xp": 40,
+          "sp": 3,
+          "ranks": [
+            1,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 3,
+          "xp": 40,
+          "sp": 3,
+          "ranks": [
+            1,
+            1,
+            0,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "thornbriar-hollow",
+      "wave": 3,
+      "gold": 200,
+      "cumulativeGold": 2300,
+      "balance": 2300,
+      "xp": 20,
+      "item": {
+        "itemId": "early-seedkeepers-mantle",
+        "name": "Seedkeepers Mantle",
+        "count": 1,
+        "rarity": "common",
+        "source": "first-clear"
+      },
+      "usableNow": false,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 3,
+          "xp": 60,
+          "sp": 3,
+          "ranks": [
+            1,
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 3,
+          "xp": 60,
+          "sp": 3,
+          "ranks": [
+            0,
+            0,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 3,
+          "xp": 60,
+          "sp": 3,
+          "ranks": [
+            0,
+            0,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 3,
+          "xp": 60,
+          "sp": 3,
+          "ranks": [
+            1,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 3,
+          "xp": 60,
+          "sp": 3,
+          "ranks": [
+            1,
+            1,
+            0,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "thornbriar-hollow",
+      "wave": 4,
+      "gold": 200,
+      "cumulativeGold": 2500,
+      "balance": 2500,
+      "xp": 20,
+      "item": {
+        "itemId": "PIN_BGA01_3_uncommon",
+        "name": "Briarpath Vigorous Greataxe",
+        "count": 1,
+        "rarity": "uncommon",
+        "source": "first-clear"
+      },
+      "usableNow": true,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 3,
+          "xp": 80,
+          "sp": 3,
+          "ranks": [
+            1,
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 3,
+          "xp": 80,
+          "sp": 3,
+          "ranks": [
+            0,
+            0,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 3,
+          "xp": 80,
+          "sp": 3,
+          "ranks": [
+            0,
+            0,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 3,
+          "xp": 80,
+          "sp": 3,
+          "ranks": [
+            1,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 3,
+          "xp": 80,
+          "sp": 3,
+          "ranks": [
+            1,
+            1,
+            0,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "thornbriar-hollow",
+      "wave": 5,
+      "gold": 200,
+      "cumulativeGold": 2700,
+      "balance": 2700,
+      "xp": 20,
+      "item": {
+        "itemId": "early-ribbonbound-leathers",
+        "name": "Ribbonbound Leathers",
+        "count": 1,
+        "rarity": "common",
+        "source": "first-clear"
+      },
+      "usableNow": false,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 3,
+          "xp": 100,
+          "sp": 3,
+          "ranks": [
+            1,
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 3,
+          "xp": 100,
+          "sp": 3,
+          "ranks": [
+            0,
+            0,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 3,
+          "xp": 100,
+          "sp": 3,
+          "ranks": [
+            0,
+            0,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 3,
+          "xp": 100,
+          "sp": 3,
+          "ranks": [
+            1,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 3,
+          "xp": 100,
+          "sp": 3,
+          "ranks": [
+            1,
+            1,
+            0,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "thornbriar-hollow",
+      "wave": 6,
+      "gold": 400,
+      "cumulativeGold": 3100,
+      "balance": 3100,
+      "xp": 50,
+      "item": {
+        "itemId": "PIN_PV01_3_rare",
+        "name": "Briarpath Resonant Leather Vest",
+        "count": 1,
+        "rarity": "rare",
+        "source": "first-clear"
+      },
+      "usableNow": true,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 4,
+          "xp": 0,
+          "sp": 4,
+          "ranks": [
+            1,
+            1,
+            1,
+            0
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 4,
+          "xp": 0,
+          "sp": 4,
+          "ranks": [
+            1,
+            0,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 4,
+          "xp": 0,
+          "sp": 4,
+          "ranks": [
+            1,
+            0,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 4,
+          "xp": 0,
+          "sp": 4,
+          "ranks": [
+            1,
+            0,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 4,
+          "xp": 0,
+          "sp": 4,
+          "ranks": [
+            1,
+            1,
+            0,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "dolmark-den",
+      "wave": 1,
+      "gold": 350,
+      "cumulativeGold": 3450,
+      "balance": 3450,
+      "xp": 25,
+      "item": {
+        "itemId": "PIN_RMD01_4_common",
+        "name": "Thornheart Wayfarer Ring Mail",
+        "count": 1,
+        "rarity": "common",
+        "source": "first-clear"
+      },
+      "usableNow": true,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 4,
+          "xp": 25,
+          "sp": 4,
+          "ranks": [
+            1,
+            1,
+            1,
+            0
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 4,
+          "xp": 25,
+          "sp": 4,
+          "ranks": [
+            1,
+            0,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 4,
+          "xp": 25,
+          "sp": 4,
+          "ranks": [
+            1,
+            0,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 4,
+          "xp": 25,
+          "sp": 4,
+          "ranks": [
+            1,
+            0,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 4,
+          "xp": 25,
+          "sp": 4,
+          "ranks": [
+            1,
+            1,
+            0,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "dolmark-den",
+      "wave": 2,
+      "gold": 350,
+      "cumulativeGold": 3800,
+      "balance": 3800,
+      "xp": 25,
+      "item": {
+        "itemId": "PIN_LRO01_4_common",
+        "name": "Thornheart Wayfarer Robes",
+        "count": 1,
+        "rarity": "common",
+        "source": "first-clear"
+      },
+      "usableNow": true,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 4,
+          "xp": 50,
+          "sp": 4,
+          "ranks": [
+            1,
+            1,
+            1,
+            0
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 4,
+          "xp": 50,
+          "sp": 4,
+          "ranks": [
+            1,
+            0,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 4,
+          "xp": 50,
+          "sp": 4,
+          "ranks": [
+            1,
+            0,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 4,
+          "xp": 50,
+          "sp": 4,
+          "ranks": [
+            1,
+            0,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 4,
+          "xp": 50,
+          "sp": 4,
+          "ranks": [
+            1,
+            1,
+            0,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "dolmark-den",
+      "wave": 3,
+      "gold": 350,
+      "cumulativeGold": 4150,
+      "balance": 4150,
+      "xp": 25,
+      "item": {
+        "itemId": "PIN_BDS01_4_common",
+        "name": "Thornheart Wayfarer Dagger",
+        "count": 1,
+        "rarity": "common",
+        "source": "first-clear"
+      },
+      "usableNow": false,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 4,
+          "xp": 75,
+          "sp": 4,
+          "ranks": [
+            1,
+            1,
+            1,
+            0
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 4,
+          "xp": 75,
+          "sp": 4,
+          "ranks": [
+            1,
+            0,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 4,
+          "xp": 75,
+          "sp": 4,
+          "ranks": [
+            1,
+            0,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 4,
+          "xp": 75,
+          "sp": 4,
+          "ranks": [
+            1,
+            0,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 4,
+          "xp": 75,
+          "sp": 4,
+          "ranks": [
+            1,
+            1,
+            0,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "dolmark-den",
+      "wave": 4,
+      "gold": 350,
+      "cumulativeGold": 4500,
+      "balance": 4500,
+      "xp": 25,
+      "item": {
+        "itemId": "PIN_BLS01_4_common",
+        "name": "Thornheart Wayfarer Longsword",
+        "count": 1,
+        "rarity": "common",
+        "source": "first-clear"
+      },
+      "usableNow": true,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 4,
+          "xp": 100,
+          "sp": 4,
+          "ranks": [
+            1,
+            1,
+            1,
+            0
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 4,
+          "xp": 100,
+          "sp": 4,
+          "ranks": [
+            1,
+            0,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 4,
+          "xp": 100,
+          "sp": 4,
+          "ranks": [
+            1,
+            0,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 4,
+          "xp": 100,
+          "sp": 4,
+          "ranks": [
+            1,
+            0,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 4,
+          "xp": 100,
+          "sp": 4,
+          "ranks": [
+            1,
+            1,
+            0,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "dolmark-den",
+      "wave": 5,
+      "gold": 350,
+      "cumulativeGold": 4850,
+      "balance": 4850,
+      "xp": 25,
+      "item": {
+        "itemId": "PIN_BDS01_4_common",
+        "name": "Thornheart Wayfarer Dagger",
+        "count": 1,
+        "rarity": "common",
+        "source": "first-clear"
+      },
+      "usableNow": false,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 4,
+          "xp": 125,
+          "sp": 4,
+          "ranks": [
+            1,
+            1,
+            1,
+            0
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 4,
+          "xp": 125,
+          "sp": 4,
+          "ranks": [
+            1,
+            0,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 4,
+          "xp": 125,
+          "sp": 4,
+          "ranks": [
+            1,
+            0,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 4,
+          "xp": 125,
+          "sp": 4,
+          "ranks": [
+            1,
+            0,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 4,
+          "xp": 125,
+          "sp": 4,
+          "ranks": [
+            1,
+            1,
+            0,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "dolmark-den",
+      "wave": 6,
+      "gold": 500,
+      "cumulativeGold": 5350,
+      "balance": 5350,
+      "xp": 75,
+      "item": {
+        "itemId": "PIN_BRM01_4_rare",
+        "name": "Thornheart Resonant Mace",
+        "count": 1,
+        "rarity": "rare",
+        "source": "first-clear"
+      },
+      "usableNow": true,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 5,
+          "xp": 0,
+          "sp": 5,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 5,
+          "xp": 0,
+          "sp": 5,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 5,
+          "xp": 0,
+          "sp": 5,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 5,
+          "xp": 0,
+          "sp": 5,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 5,
+          "xp": 0,
+          "sp": 5,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "march-west-delves",
+      "wave": 1,
+      "gold": 450,
+      "cumulativeGold": 5800,
+      "balance": 5800,
+      "xp": 50,
+      "item": {
+        "itemId": "PIN_LRO01_5_common",
+        "name": "Denkeeper Wayfarer Robes",
+        "count": 1,
+        "rarity": "common",
+        "source": "first-clear"
+      },
+      "usableNow": true,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 5,
+          "xp": 50,
+          "sp": 5,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 5,
+          "xp": 50,
+          "sp": 5,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 5,
+          "xp": 50,
+          "sp": 5,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 5,
+          "xp": 50,
+          "sp": 5,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 5,
+          "xp": 50,
+          "sp": 5,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "march-west-delves",
+      "wave": 2,
+      "gold": 450,
+      "cumulativeGold": 6250,
+      "balance": 6250,
+      "xp": 50,
+      "item": {
+        "itemId": "PIN_PIN_BRONZE_CHARM_5_common",
+        "name": "Denkeeper Wayfarer Trail Charm",
+        "count": 1,
+        "rarity": "common",
+        "source": "first-clear"
+      },
+      "usableNow": true,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 5,
+          "xp": 100,
+          "sp": 5,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 5,
+          "xp": 100,
+          "sp": 5,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 5,
+          "xp": 100,
+          "sp": 5,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 5,
+          "xp": 100,
+          "sp": 5,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 5,
+          "xp": 100,
+          "sp": 5,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "march-west-delves",
+      "wave": 3,
+      "gold": 450,
+      "cumulativeGold": 6700,
+      "balance": 6700,
+      "xp": 50,
+      "item": {
+        "itemId": "PIN_BGA01_5_uncommon",
+        "name": "Denkeeper Vigorous Greataxe",
+        "count": 1,
+        "rarity": "uncommon",
+        "source": "first-clear"
+      },
+      "usableNow": true,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 5,
+          "xp": 150,
+          "sp": 5,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 5,
+          "xp": 150,
+          "sp": 5,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 5,
+          "xp": 150,
+          "sp": 5,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 5,
+          "xp": 150,
+          "sp": 5,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 5,
+          "xp": 150,
+          "sp": 5,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "march-west-delves",
+      "wave": 4,
+      "gold": 450,
+      "cumulativeGold": 7150,
+      "balance": 7150,
+      "xp": 50,
+      "item": {
+        "itemId": "PIN_BDS01_5_common",
+        "name": "Denkeeper Wayfarer Dagger",
+        "count": 1,
+        "rarity": "common",
+        "source": "first-clear"
+      },
+      "usableNow": false,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 5,
+          "xp": 200,
+          "sp": 5,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 5,
+          "xp": 200,
+          "sp": 5,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 5,
+          "xp": 200,
+          "sp": 5,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 5,
+          "xp": 200,
+          "sp": 5,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 5,
+          "xp": 200,
+          "sp": 5,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "march-west-delves",
+      "wave": 5,
+      "gold": 450,
+      "cumulativeGold": 7600,
+      "balance": 7600,
+      "xp": 50,
+      "item": {
+        "itemId": "PIN_ARB01_5_uncommon",
+        "name": "Denkeeper Vigorous Runeblade",
+        "count": 1,
+        "rarity": "uncommon",
+        "source": "first-clear"
+      },
+      "usableNow": false,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 6,
+          "xp": 0,
+          "sp": 6,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 6,
+          "xp": 0,
+          "sp": 6,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 6,
+          "xp": 0,
+          "sp": 6,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 6,
+          "xp": 0,
+          "sp": 6,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 6,
+          "xp": 0,
+          "sp": 6,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "march-west-delves",
+      "wave": 6,
+      "gold": 450,
+      "cumulativeGold": 8050,
+      "balance": 8050,
+      "xp": 50,
+      "item": {
+        "itemId": "early-brassbutton-barcoat",
+        "name": "Brassbutton Barcoat",
+        "count": 1,
+        "rarity": "uncommon",
+        "source": "first-clear"
+      },
+      "usableNow": false,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 6,
+          "xp": 50,
+          "sp": 6,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 6,
+          "xp": 50,
+          "sp": 6,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 6,
+          "xp": 50,
+          "sp": 6,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 6,
+          "xp": 50,
+          "sp": 6,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 6,
+          "xp": 50,
+          "sp": 6,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "march-west-delves",
+      "wave": 7,
+      "gold": 450,
+      "cumulativeGold": 8500,
+      "balance": 8500,
+      "xp": 50,
+      "item": {
+        "itemId": "PIN_RMD01_6_common",
+        "name": "Deepstone Wayfarer Ring Mail",
+        "count": 1,
+        "rarity": "common",
+        "source": "first-clear"
+      },
+      "usableNow": true,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 6,
+          "xp": 100,
+          "sp": 6,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 6,
+          "xp": 100,
+          "sp": 6,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 6,
+          "xp": 100,
+          "sp": 6,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 6,
+          "xp": 100,
+          "sp": 6,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 6,
+          "xp": 100,
+          "sp": 6,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "march-west-delves",
+      "wave": 8,
+      "gold": 450,
+      "cumulativeGold": 8950,
+      "balance": 8950,
+      "xp": 50,
+      "item": {
+        "itemId": "PIN_RMD01_6_common",
+        "name": "Deepstone Wayfarer Ring Mail",
+        "count": 1,
+        "rarity": "common",
+        "source": "first-clear"
+      },
+      "usableNow": true,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 6,
+          "xp": 150,
+          "sp": 6,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 6,
+          "xp": 150,
+          "sp": 6,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 6,
+          "xp": 150,
+          "sp": 6,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 6,
+          "xp": 150,
+          "sp": 6,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 6,
+          "xp": 150,
+          "sp": 6,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "march-west-delves",
+      "wave": 9,
+      "gold": 450,
+      "cumulativeGold": 9400,
+      "balance": 9400,
+      "xp": 50,
+      "item": {
+        "itemId": "early-duskvelvet-robes",
+        "name": "Duskvelvet Robes",
+        "count": 1,
+        "rarity": "uncommon",
+        "source": "first-clear"
+      },
+      "usableNow": false,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 6,
+          "xp": 200,
+          "sp": 6,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 6,
+          "xp": 200,
+          "sp": 6,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 6,
+          "xp": 200,
+          "sp": 6,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 6,
+          "xp": 200,
+          "sp": 6,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 6,
+          "xp": 200,
+          "sp": 6,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "march-west-delves",
+      "wave": 10,
+      "gold": 950,
+      "cumulativeGold": 10350,
+      "balance": 10350,
+      "xp": 100,
+      "item": {
+        "itemId": "PIN_PV01_6_rare",
+        "name": "Deepstone Resonant Leather Vest",
+        "count": 1,
+        "rarity": "rare",
+        "source": "first-clear"
+      },
+      "usableNow": true,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 7,
+          "xp": 0,
+          "sp": 7,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 7,
+          "xp": 0,
+          "sp": 7,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 7,
+          "xp": 0,
+          "sp": 7,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 7,
+          "xp": 0,
+          "sp": 7,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 7,
+          "xp": 0,
+          "sp": 7,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "verge-delves",
+      "wave": 1,
+      "gold": 400,
+      "cumulativeGold": 10750,
+      "balance": 10750,
+      "xp": 70,
+      "item": {
+        "itemId": "PIN_BHA01_7_common",
+        "name": "Quarrylight Wayfarer Handaxe",
+        "count": 1,
+        "rarity": "common",
+        "source": "first-clear"
+      },
+      "usableNow": false,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 7,
+          "xp": 70,
+          "sp": 7,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 7,
+          "xp": 70,
+          "sp": 7,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 7,
+          "xp": 70,
+          "sp": 7,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 7,
+          "xp": 70,
+          "sp": 7,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 7,
+          "xp": 70,
+          "sp": 7,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "verge-delves",
+      "wave": 2,
+      "gold": 400,
+      "cumulativeGold": 11150,
+      "balance": 11150,
+      "xp": 70,
+      "item": {
+        "itemId": "PIN_BLS01_7_common",
+        "name": "Quarrylight Wayfarer Longsword",
+        "count": 1,
+        "rarity": "common",
+        "source": "first-clear"
+      },
+      "usableNow": true,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 7,
+          "xp": 140,
+          "sp": 7,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 7,
+          "xp": 140,
+          "sp": 7,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 7,
+          "xp": 140,
+          "sp": 7,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 7,
+          "xp": 140,
+          "sp": 7,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 7,
+          "xp": 140,
+          "sp": 7,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "verge-delves",
+      "wave": 3,
+      "gold": 400,
+      "cumulativeGold": 11550,
+      "balance": 11550,
+      "xp": 70,
+      "item": {
+        "itemId": "PIN_BDS01_7_uncommon",
+        "name": "Quarrylight Vigorous Dagger",
+        "count": 1,
+        "rarity": "uncommon",
+        "source": "first-clear"
+      },
+      "usableNow": false,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 7,
+          "xp": 210,
+          "sp": 7,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 7,
+          "xp": 210,
+          "sp": 7,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 7,
+          "xp": 210,
+          "sp": 7,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 7,
+          "xp": 210,
+          "sp": 7,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 7,
+          "xp": 210,
+          "sp": 7,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "verge-delves",
+      "wave": 4,
+      "gold": 400,
+      "cumulativeGold": 11950,
+      "balance": 11950,
+      "xp": 70,
+      "item": {
+        "itemId": "PIN_BHA01_7_common",
+        "name": "Quarrylight Wayfarer Handaxe",
+        "count": 1,
+        "rarity": "common",
+        "source": "first-clear"
+      },
+      "usableNow": false,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 7,
+          "xp": 280,
+          "sp": 7,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 7,
+          "xp": 280,
+          "sp": 7,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 7,
+          "xp": 280,
+          "sp": 7,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 7,
+          "xp": 280,
+          "sp": 7,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 7,
+          "xp": 280,
+          "sp": 7,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "verge-delves",
+      "wave": 5,
+      "gold": 400,
+      "cumulativeGold": 12350,
+      "balance": 12350,
+      "xp": 70,
+      "item": {
+        "itemId": "PIN_RMD01_7_common",
+        "name": "Quarrylight Wayfarer Ring Mail",
+        "count": 1,
+        "rarity": "common",
+        "source": "first-clear"
+      },
+      "usableNow": true,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 8,
+          "xp": 0,
+          "sp": 8,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 8,
+          "xp": 0,
+          "sp": 8,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 8,
+          "xp": 0,
+          "sp": 8,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 8,
+          "xp": 0,
+          "sp": 8,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 8,
+          "xp": 0,
+          "sp": 8,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "verge-delves",
+      "wave": 6,
+      "gold": 400,
+      "cumulativeGold": 12750,
+      "balance": 12750,
+      "xp": 70,
+      "item": {
+        "itemId": "PIN_BSS01_8_common",
+        "name": "Watchwater Wayfarer Shortsword",
+        "count": 1,
+        "rarity": "common",
+        "source": "first-clear"
+      },
+      "usableNow": true,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 8,
+          "xp": 70,
+          "sp": 8,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 8,
+          "xp": 70,
+          "sp": 8,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 8,
+          "xp": 70,
+          "sp": 8,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 8,
+          "xp": 70,
+          "sp": 8,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 8,
+          "xp": 70,
+          "sp": 8,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "verge-delves",
+      "wave": 7,
+      "gold": 400,
+      "cumulativeGold": 13150,
+      "balance": 13150,
+      "xp": 70,
+      "item": {
+        "itemId": "PIN_BSS01_8_common",
+        "name": "Watchwater Wayfarer Shortsword",
+        "count": 1,
+        "rarity": "common",
+        "source": "first-clear"
+      },
+      "usableNow": true,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 8,
+          "xp": 140,
+          "sp": 8,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 8,
+          "xp": 140,
+          "sp": 8,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 8,
+          "xp": 140,
+          "sp": 8,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 8,
+          "xp": 140,
+          "sp": 8,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 8,
+          "xp": 140,
+          "sp": 8,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "verge-delves",
+      "wave": 8,
+      "gold": 400,
+      "cumulativeGold": 13550,
+      "balance": 13550,
+      "xp": 70,
+      "item": {
+        "itemId": "PIN_BRM01_8_common",
+        "name": "Watchwater Wayfarer Mace",
+        "count": 1,
+        "rarity": "common",
+        "source": "first-clear"
+      },
+      "usableNow": true,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 8,
+          "xp": 210,
+          "sp": 8,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 8,
+          "xp": 210,
+          "sp": 8,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 8,
+          "xp": 210,
+          "sp": 8,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 8,
+          "xp": 210,
+          "sp": 8,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 8,
+          "xp": 210,
+          "sp": 8,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "verge-delves",
+      "wave": 9,
+      "gold": 400,
+      "cumulativeGold": 13950,
+      "balance": 13950,
+      "xp": 70,
+      "item": {
+        "itemId": "PIN_BDS01_8_uncommon",
+        "name": "Watchwater Vigorous Dagger",
+        "count": 1,
+        "rarity": "uncommon",
+        "source": "first-clear"
+      },
+      "usableNow": false,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 8,
+          "xp": 280,
+          "sp": 8,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 8,
+          "xp": 280,
+          "sp": 8,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 8,
+          "xp": 280,
+          "sp": 8,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 8,
+          "xp": 280,
+          "sp": 8,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 8,
+          "xp": 280,
+          "sp": 8,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "verge-delves",
+      "wave": 10,
+      "gold": 900,
+      "cumulativeGold": 14850,
+      "balance": 14850,
+      "xp": 120,
+      "item": {
+        "itemId": "early-silvanarks-bark-shard",
+        "name": "Silvanarks Bark Shard",
+        "count": 1,
+        "rarity": "rare",
+        "source": "first-clear"
+      },
+      "usableNow": true,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 9,
+          "xp": 0,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 9,
+          "xp": 0,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 9,
+          "xp": 0,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 9,
+          "xp": 0,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 9,
+          "xp": 0,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "murmuring-abyss",
+      "wave": 1,
+      "gold": 250,
+      "cumulativeGold": 15100,
+      "balance": 15100,
+      "xp": 40,
+      "item": {
+        "itemId": "PIN_BDS01_9_common",
+        "name": "Whisperwood Wayfarer Dagger",
+        "count": 1,
+        "rarity": "common",
+        "source": "first-clear"
+      },
+      "usableNow": false,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 9,
+          "xp": 40,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 9,
+          "xp": 40,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 9,
+          "xp": 40,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 9,
+          "xp": 40,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 9,
+          "xp": 40,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "murmuring-abyss",
+      "wave": 2,
+      "gold": 250,
+      "cumulativeGold": 15350,
+      "balance": 15350,
+      "xp": 40,
+      "item": {
+        "itemId": "PIN_BGA01_9_uncommon",
+        "name": "Whisperwood Vigorous Greataxe",
+        "count": 1,
+        "rarity": "uncommon",
+        "source": "first-clear"
+      },
+      "usableNow": true,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 9,
+          "xp": 80,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 9,
+          "xp": 80,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 9,
+          "xp": 80,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 9,
+          "xp": 80,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 9,
+          "xp": 80,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "murmuring-abyss",
+      "wave": 3,
+      "gold": 250,
+      "cumulativeGold": 15600,
+      "balance": 15600,
+      "xp": 40,
+      "item": {
+        "itemId": "PIN_BGA01_9_common",
+        "name": "Whisperwood Wayfarer Greataxe",
+        "count": 1,
+        "rarity": "common",
+        "source": "first-clear"
+      },
+      "usableNow": true,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 9,
+          "xp": 120,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 9,
+          "xp": 120,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 9,
+          "xp": 120,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 9,
+          "xp": 120,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 9,
+          "xp": 120,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "murmuring-abyss",
+      "wave": 4,
+      "gold": 250,
+      "cumulativeGold": 15850,
+      "balance": 15850,
+      "xp": 40,
+      "item": {
+        "itemId": "PIN_PIN_BRONZE_CHARM_9_common",
+        "name": "Whisperwood Wayfarer Trail Charm",
+        "count": 1,
+        "rarity": "common",
+        "source": "first-clear"
+      },
+      "usableNow": true,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 9,
+          "xp": 160,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 9,
+          "xp": 160,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 9,
+          "xp": 160,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 9,
+          "xp": 160,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 9,
+          "xp": 160,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "murmuring-abyss",
+      "wave": 5,
+      "gold": 250,
+      "cumulativeGold": 16100,
+      "balance": 16100,
+      "xp": 40,
+      "item": {
+        "itemId": "PIN_RMD01_9_common",
+        "name": "Whisperwood Wayfarer Ring Mail",
+        "count": 1,
+        "rarity": "common",
+        "source": "first-clear"
+      },
+      "usableNow": true,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 9,
+          "xp": 200,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 9,
+          "xp": 200,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 9,
+          "xp": 200,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 9,
+          "xp": 200,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 9,
+          "xp": 200,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "murmuring-abyss",
+      "wave": 6,
+      "gold": 250,
+      "cumulativeGold": 16350,
+      "balance": 16350,
+      "xp": 40,
+      "item": {
+        "itemId": "PIN_BDS01_9_common",
+        "name": "Whisperwood Wayfarer Dagger",
+        "count": 1,
+        "rarity": "common",
+        "source": "first-clear"
+      },
+      "usableNow": false,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 9,
+          "xp": 240,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 9,
+          "xp": 240,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 9,
+          "xp": 240,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 9,
+          "xp": 240,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 9,
+          "xp": 240,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "murmuring-abyss",
+      "wave": 7,
+      "gold": 250,
+      "cumulativeGold": 16600,
+      "balance": 16600,
+      "xp": 40,
+      "item": {
+        "itemId": "PIN_BGA01_9_common",
+        "name": "Whisperwood Wayfarer Greataxe",
+        "count": 1,
+        "rarity": "common",
+        "source": "first-clear"
+      },
+      "usableNow": true,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 9,
+          "xp": 280,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 9,
+          "xp": 280,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 9,
+          "xp": 280,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 9,
+          "xp": 280,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 9,
+          "xp": 280,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "murmuring-abyss",
+      "wave": 8,
+      "gold": 250,
+      "cumulativeGold": 16850,
+      "balance": 16850,
+      "xp": 40,
+      "item": {
+        "itemId": "PIN_BRM01_9_uncommon",
+        "name": "Whisperwood Vigorous Mace",
+        "count": 1,
+        "rarity": "uncommon",
+        "source": "first-clear"
+      },
+      "usableNow": true,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 9,
+          "xp": 320,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 9,
+          "xp": 320,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 9,
+          "xp": 320,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 9,
+          "xp": 320,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 9,
+          "xp": 320,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "murmuring-abyss",
+      "wave": 9,
+      "gold": 250,
+      "cumulativeGold": 17100,
+      "balance": 17100,
+      "xp": 40,
+      "item": {
+        "itemId": "PIN_PST01_9_common",
+        "name": "Whisperwood Wayfarer Staff",
+        "count": 1,
+        "rarity": "common",
+        "source": "first-clear"
+      },
+      "usableNow": false,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 9,
+          "xp": 360,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 9,
+          "xp": 360,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 9,
+          "xp": 360,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 9,
+          "xp": 360,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 9,
+          "xp": 360,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "murmuring-abyss",
+      "wave": 10,
+      "gold": 375,
+      "cumulativeGold": 17475,
+      "balance": 17475,
+      "xp": 45,
+      "item": {
+        "itemId": "PIN_PBR01_9_uncommon",
+        "name": "Whisperwood Vigorous Bow",
+        "count": 1,
+        "rarity": "uncommon",
+        "source": "first-clear"
+      },
+      "usableNow": true,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 9,
+          "xp": 405,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 9,
+          "xp": 405,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 9,
+          "xp": 405,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 9,
+          "xp": 405,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 9,
+          "xp": 405,
+          "sp": 9,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "delve": "murmuring-abyss",
+      "wave": 11,
+      "gold": 375,
+      "cumulativeGold": 17850,
+      "balance": 17850,
+      "xp": 45,
+      "item": {
+        "itemId": "PIN_BSS01_9_uncommon",
+        "name": "Whisperwood Vigorous Shortsword",
+        "count": 1,
+        "rarity": "uncommon",
+        "source": "first-clear"
+      },
+      "usableNow": true,
+      "equippedFinds": 0,
+      "heroes": [
+        {
+          "id": "garrick",
+          "level": 10,
+          "xp": 0,
+          "sp": 10,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "chaska",
+          "level": 10,
+          "xp": 0,
+          "sp": 10,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "durgrim",
+          "level": 10,
+          "xp": 0,
+          "sp": 10,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "orwen",
+          "level": 10,
+          "xp": 0,
+          "sp": 10,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "id": "selenne",
+          "level": 10,
+          "xp": 0,
+          "sp": 10,
+          "ranks": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      ]
+    }
+  ],
+  "rarities": {
+    "slime-cave:1": {
+      "common": 1000
+    },
+    "slime-cave:2": {
+      "common": 1000
+    },
+    "slime-cave:3": {
+      "common": 1000
+    },
+    "slime-cave:4": {
+      "common": 702,
+      "uncommon": 298
+    },
+    "slime-cave:5": {
+      "common": 701,
+      "uncommon": 299
+    },
+    "slime-cave:6": {
+      "rare": 1000
+    },
+    "thornbriar-hollow:1": {
+      "common": 1000
+    },
+    "thornbriar-hollow:2": {
+      "common": 1000
+    },
+    "thornbriar-hollow:3": {
+      "common": 1000
+    },
+    "thornbriar-hollow:4": {
+      "common": 699,
+      "uncommon": 301
+    },
+    "thornbriar-hollow:5": {
+      "common": 701,
+      "uncommon": 299
+    },
+    "thornbriar-hollow:6": {
+      "rare": 1000
+    },
+    "dolmark-den:1": {
+      "common": 1000
+    },
+    "dolmark-den:2": {
+      "common": 1000
+    },
+    "dolmark-den:3": {
+      "common": 1000
+    },
+    "dolmark-den:4": {
+      "common": 702,
+      "uncommon": 298
+    },
+    "dolmark-den:5": {
+      "uncommon": 300,
+      "common": 700
+    },
+    "dolmark-den:6": {
+      "rare": 1000
+    },
+    "march-west-delves:1": {
+      "uncommon": 302,
+      "common": 698
+    },
+    "march-west-delves:2": {
+      "common": 711,
+      "uncommon": 289
+    },
+    "march-west-delves:3": {
+      "uncommon": 300,
+      "common": 700
+    },
+    "march-west-delves:4": {
+      "common": 700,
+      "uncommon": 300
+    },
+    "march-west-delves:5": {
+      "common": 697,
+      "uncommon": 303
+    },
+    "march-west-delves:6": {
+      "common": 702,
+      "uncommon": 298
+    },
+    "march-west-delves:7": {
+      "common": 697,
+      "uncommon": 303
+    },
+    "march-west-delves:8": {
+      "common": 701,
+      "uncommon": 299
+    },
+    "march-west-delves:9": {
+      "common": 700,
+      "uncommon": 300
+    },
+    "march-west-delves:10": {
+      "rare": 1000
+    },
+    "verge-delves:1": {
+      "common": 701,
+      "uncommon": 299
+    },
+    "verge-delves:2": {
+      "uncommon": 215,
+      "common": 785
+    },
+    "verge-delves:3": {
+      "uncommon": 290,
+      "common": 710
+    },
+    "verge-delves:4": {
+      "common": 700,
+      "uncommon": 300
+    },
+    "verge-delves:5": {
+      "uncommon": 300,
+      "common": 700
+    },
+    "verge-delves:6": {
+      "uncommon": 300,
+      "common": 700
+    },
+    "verge-delves:7": {
+      "uncommon": 300,
+      "common": 700
+    },
+    "verge-delves:8": {
+      "uncommon": 300,
+      "common": 700
+    },
+    "verge-delves:9": {
+      "uncommon": 297,
+      "common": 703
+    },
+    "verge-delves:10": {
+      "rare": 1000
+    },
+    "murmuring-abyss:1": {
+      "uncommon": 337,
+      "common": 663
+    },
+    "murmuring-abyss:2": {
+      "common": 700,
+      "uncommon": 300
+    },
+    "murmuring-abyss:3": {
+      "uncommon": 301,
+      "common": 699
+    },
+    "murmuring-abyss:4": {
+      "common": 700,
+      "uncommon": 300
+    },
+    "murmuring-abyss:5": {
+      "common": 701,
+      "uncommon": 299
+    },
+    "murmuring-abyss:6": {
+      "common": 701,
+      "uncommon": 299
+    },
+    "murmuring-abyss:7": {
+      "common": 701,
+      "uncommon": 299
+    },
+    "murmuring-abyss:8": {
+      "common": 701,
+      "uncommon": 299
+    },
+    "murmuring-abyss:9": {
+      "common": 696,
+      "uncommon": 304
+    },
+    "murmuring-abyss:10": {
+      "uncommon": 652,
+      "rare": 348
+    },
+    "murmuring-abyss:11": {
+      "uncommon": 649,
+      "rare": 351
+    },
+    "murmuring-abyss:12": {
+      "epic": 1000
+    }
+  }
+}

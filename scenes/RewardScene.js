@@ -3,6 +3,8 @@ import Phaser from 'phaser';
 import GameState from '../game/GameState.js';
 import { formatDuration } from '../game/ExpeditionProgression.js';
 import { resultsFrame, resultsSection, resultsText, resultsButton } from '../ui/EncounterResults.js';
+import { RESOURCE_GAIN_COLOR, rewardItemColor } from '../ui/RewardDisplay.js';
+import { getCatalogItemDefinition, ITEM_RARITIES } from '../data/items.js';
 
 export default class RewardScene extends Phaser.Scene {
   constructor() {
@@ -16,7 +18,7 @@ export default class RewardScene extends Phaser.Scene {
       `Time in encounter: ${formatDuration(summary?.elapsedMs)}`);
     const { centerX, leftX, rightX, columnWidth, contentTop, contentHeight, actionY } = layout;
     resultsSection(this, leftX, contentTop, columnWidth, contentHeight, 'DELVE REWARDS');
-    resultsText(this, leftX, contentTop + 112, `+${gold} Gold`, 'display57', { color: '#ffdb86' });
+    resultsText(this, leftX, contentTop + 112, `+${gold} Gold`, 'display57', { color: RESOURCE_GAIN_COLOR });
     resultsText(this, leftX, contentTop + 170, `Total Gold: ${GameState.gold}`, 'body32', { color: '#c6bdac' });
     resultsText(this, leftX, contentTop + 228,
       summary?.leaderResult?.renownPointsEarned > 0
@@ -27,8 +29,10 @@ export default class RewardScene extends Phaser.Scene {
     }
     const gearReward = GameState.rewards.find(reward => reward.type === 'equipment');
     if (gearReward) {
-      resultsText(this, leftX, contentTop + 318, `Found: ${gearReward.name}`, 'body30', {
-        originY: 0, color: gearReward.rarity === 'rare' ? '#60a5fa' : '#f5f5dc',
+      const definition = getCatalogItemDefinition(gearReward.itemId ?? gearReward.id);
+      const rarity = ITEM_RARITIES[definition?.rarity ?? gearReward.rarity] ?? ITEM_RARITIES.common;
+      resultsText(this, leftX, contentTop + 318, `Found: ${definition?.name ?? gearReward.name} (${rarity.label})`, 'body30', {
+        originY: 0, color: rewardItemColor(gearReward),
         wordWrap: { width: columnWidth - 72 }
       }).setName('victory-equipment-reward');
     }
@@ -37,11 +41,11 @@ export default class RewardScene extends Phaser.Scene {
     (summary?.adventurers ?? []).forEach((entry, index) => {
       const y = contentTop + 80 + index * 66;
       resultsText(this, rightX - columnWidth / 2 + 30, y, `${entry.name}: +${entry.xpGained} XP`, 'body30', {
-        originX: 0, originY: 0, align: 'left', color: entry.levelsGained > 0 ? '#ffdb86' : '#fff1d2'
+        originX: 0, originY: 0, align: 'left', color: RESOURCE_GAIN_COLOR
       });
       resultsText(this, rightX - columnWidth / 2 + 30, y + 34,
-        `${entry.levelsGained > 0 ? 'LEVEL UP! ' : ''}Lv ${entry.level}  •  ${entry.happiness}% happy`, 'support29', {
-          originX: 0, originY: 0, color: '#b8d5ac'
+        `${entry.levelsGained > 0 ? 'LEVEL UP! ' : ''}Lv ${entry.level}  •  ${Math.round(entry.happiness)}% happy`, 'support29', {
+          originX: 0, originY: 0, color: RESOURCE_GAIN_COLOR
         });
     });
 
@@ -50,6 +54,6 @@ export default class RewardScene extends Phaser.Scene {
       GameState.currentRoom = 0;
       GameState.rewards = [];
       this.scene.start('TitleScene');
-    }, { primary: true });
+    }, { primary: true }).setName('reward-world-map');
   }
 }

@@ -29,6 +29,7 @@ export default class CombatMovement {
     // WeakMap stores object references without keeping unused objects alive. That is
     // useful for temporary per-object bookkeeping.
     this.paths = new WeakMap();
+    this.blockedPursuits = new WeakMap();
     this.zoneChoices = new WeakMap();
   }
 
@@ -505,8 +506,7 @@ export default class CombatMovement {
           && zone.record.wave === this.scene.currentWaveIndex)
         || arenaDistance(unit, cached.point) <= this.config.arrivalTolerance
         || !this.usefulZoneRoute(unit, target, cached.point)) return false;
-      unit.moveToward(cached.point.x, cached.point.y, delta, this.config.arrival);
-      return true;
+      return unit.moveToward(cached.point.x, cached.point.y, delta, this.config.arrival);
     }
     this.zoneChoices.set(unit, { next: time + this.config.slotRecheckMs });
     const zones = beneficialZones(system, time).filter(zone => zone.until > time + 1500
@@ -541,8 +541,7 @@ export default class CombatMovement {
       zones: zones.filter(zone => positionZoneValue(context, [zone], unit, best, damageEstimate) > 0) });
     if (melee) this.slots.set(unit, { target, index: best.index, usedAt: time, recheckAt: time + this.config.slotRecheckMs });
     else this.rangeStates.set(unit, { target, direction: 0, settled: true });
-    unit.moveToward(best.x, best.y, delta, this.config.arrival);
-    return true;
+    return unit.moveToward(best.x, best.y, delta, this.config.arrival);
   }
 
   getMeleeApproachPosition(unit, target, time) {
@@ -709,8 +708,25 @@ export default class CombatMovement {
     const approachPosition = this.getMeleeApproachPosition(unit, target, time);
 
     if (unit.distanceToPoint(approachPosition.x, approachPosition.y) > this.config.arrivalTolerance) {
-      unit.moveToward(approachPosition.x, approachPosition.y, delta, this.config.arrival);
+      const moved = unit.moveToward(approachPosition.x, approachPosition.y, delta, this.config.arrival);
+      if (moved) this.blockedPursuits.delete(unit);
+      else this.blockedPursuits.set(unit, { targetId: target.id, x: unit.arenaX, y: unit.arenaY });
     }
+  }
+
+  // Failed autonomous tank pursuit still permits a local basic attack. Rescue selection
+  // stays intact and is retried on the next movement opportunity. Player orders win.
+  basicAttackTarget(unit, preferred) {
+    const failed = this.blockedPursuits.get(unit);
+    if (unit.role !== 'Tank' || !preferred || this.scene.isWithinAttackReach(unit, preferred)
+      || this.scene.manualTargets.has(unit.id) || this.scene.isPositionLocked(unit)
+      || failed?.targetId !== preferred.id || arenaDistance(unit, failed) > .001) return preferred;
+    const living = this.scene.getLivingEnemies();
+    const ordered = living.some(enemy => enemy.id === this.scene.attackTargets.get(unit.id)
+      || enemy.id === this.scene.focusTargetId);
+    if (ordered) return preferred;
+    return living.filter(enemy => this.scene.isWithinAttackReach(unit, enemy))
+      .sort((a, b) => unit.distanceTo(a) - unit.distanceTo(b))[0] ?? preferred;
   }
 
   // Imagine the arena as graph paper. A* finds safe stepping stones around bodies and
@@ -1121,8 +1137,7 @@ export default class CombatMovement {
     if (close.length < minimumCount || (unit.role === 'Tank' && unit.hp / unit.maxHp >= 0.35)) return false;
     const point = this.getEscapePoint(unit, [], this.isMeleeUnit(unit) ? 160 : 240);
     if (!point) return false;
-    unit.moveToward(point.x, point.y, delta, this.config.arrival);
-    return true;
+    return unit.moveToward(point.x, point.y, delta, this.config.arrival);
   }
 
   // When the party drifts to an edge, take a slow voluntary step back toward open floor.
@@ -1167,8 +1182,7 @@ export default class CombatMovement {
         && Math.hypot(point.x - enemy.arenaX, point.y - enemy.arenaY)
           < Math.min(clearance, unit.distanceTo(enemy)) - 1)) return false;
     }
-    unit.moveToward(point.x, point.y, delta * this.config.interiorReturnSpeed, this.config.arrival);
-    return true;
+    return unit.moveToward(point.x, point.y, delta * this.config.interiorReturnSpeed, this.config.arrival);
   }
 
   // Approach or back away according to the unit's preferred combat distance. unit is the
@@ -1210,11 +1224,12 @@ export default class CombatMovement {
 
     this.rangeStates.set(unit, rangeState);
 
+    let moved = false;
     if (rangeState.direction < 0) {
       const escape = this.getEscapePoint(unit, [], minimumAllowedRange + spacingConfig.rangeHysteresis);
-      if (escape) unit.moveToward(escape.x, escape.y, delta, spacingConfig.arrival);
+      if (escape) moved = unit.moveToward(escape.x, escape.y, delta, spacingConfig.arrival);
     } else if (rangeState.direction > 0) {
-      unit.moveToward(
+      moved = unit.moveToward(
         target.arenaX,
         target.arenaY,
         delta,
@@ -1222,7 +1237,7 @@ export default class CombatMovement {
       );
     }
 
-    return rangeState.direction !== 0;
+    return moved;
   }
 
 }

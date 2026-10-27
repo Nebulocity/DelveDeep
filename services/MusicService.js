@@ -11,7 +11,7 @@ import townUrl from '../sounds/town/bgm_town.mp3?url';
 import shopsUrl from '../sounds/town/bgm_shops.m4a?url';
 import hallUrl from '../sounds/town/bgm_hall.m4a?url';
 
-const MUSIC_TRACKS = {
+export const MUSIC_TRACKS = {
   'music-slime-cave': slimeCaveUrl,
   'music-pineshire': pineshireUrl,
   'music-boss': bossUrl,

@@ -3,6 +3,7 @@ import { saveProfile } from '../game/GameStorage.js';
 import { pendingAbilityUnlocks, acknowledgeAbilityUnlocks } from '../game/AbilityUnlockNotifications.js';
 import { showSelectionDetails } from './SelectionDetails.js';
 import { syncRegionMapCameras } from './RegionMapUI.js';
+import { tutorialGuidance } from '../game/TutorialGuidance.js';
 
 // Deliver on return to a menu, never in active combat. The shared details body scrolls
 // when several adventurers or skipped milestones produce more text than fits on phone.
@@ -17,7 +18,7 @@ export function showAbilityUnlockNotice(scene) {
     if (scene.abilityUnlockNoticeCleanup === cleanup) scene.abilityUnlockNoticeCleanup = null;
   };
   const present = () => {
-    if (!scene.sys.isActive() || scene.selectionDetailsClose || rendered) return;
+    if (!scene.sys.isActive() || scene.selectionDetailsClose || rendered || tutorialGuidance(scene.game).ownsInput()) return;
     const groups = pendingAbilityUnlocks(GameState.roster);
     if (!groups.length) { cleanup(); return; }
     const description = groups.map(({ hero }) =>
@@ -31,12 +32,17 @@ export function showAbilityUnlockNotice(scene) {
     });
     if (scene.mapUiCamera) syncRegionMapCameras(scene);
     const noticeClose = scene.selectionDetailsClose;
+    scene.abilityUnlockNoticeClose = noticeClose;
 
     // Opening a modal is not delivery. A same-frame prompt or scene transition can
     // replace it before rendering; keep those IDs pending and retry on this menu.
     rendered = () => {
       scene.game.events.off('postrender', rendered);
       rendered = null;
+      if (tutorialGuidance(scene.game).ownsInput()) {
+        if (scene.selectionDetailsClose === noticeClose) noticeClose?.();
+        return;
+      }
       if (!scene.sys.isActive() || !noticeClose || scene.selectionDetailsClose !== noticeClose) return;
       acknowledgeAbilityUnlocks(groups);
       saveProfile();

@@ -118,7 +118,8 @@ export function basicCandidates(system, unit, time, preparations = unit.status.r
         unit.healWindup, unit.basicHealManaCost ?? 0) });
     }
   }
-  const target = scene.getPrimaryTarget(unit, false);
+  const preferred = scene.getPrimaryTarget(unit, false);
+  const target = scene.movement?.basicAttackTarget(unit, preferred) ?? preferred;
   if (!healingNeeded && !unit.stealthed && target && scene.isWithinAttackReach(unit, target) && unit.canAttack(time)) {
     const attackType = ['Tank', 'Melee DPS'].includes(unit.role) ? 'melee' : unit.className === 'Ranger' ? 'ranged' : 'spell';
     let power = unit.attackPower, critBonus = 0;

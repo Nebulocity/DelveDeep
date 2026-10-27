@@ -25,6 +25,10 @@ const buildName = branch + '-' + commit;
 export default defineConfig({
   define: { __DELVE_DEEP_BUILD_ID__: JSON.stringify(randomUUID()) },
 
+  // Dependency discovery has its own scan, separate from the file watcher. Start at
+  // the game entry so archived QA pages and Gradle HTML docs cannot exhaust file handles.
+  optimizeDeps: { entries: ['index.html'] },
+
   // The repository root is also the source root. Keep generated screenshots, traces,
   // and archived art out of the development watcher so writing a report cannot reload
   // the game halfway through a gesture or spend time watching thousands of old frames.
@@ -32,6 +36,19 @@ export default defineConfig({
     watch: { ignored: ['**/output/**', '**/outputs/**', '**/project-backup/**', '**/work/**', '**/.tmp/**'] }
   },
   plugins: [{
+    name: 'block-local-authoring-tools',
+    configureServer(server) {
+      server.middlewares.use((request, response, next) => {
+        let url;
+        try { url = decodeURIComponent(request.url).replaceAll('\\', '/').toLowerCase(); }
+        catch { response.writeHead(400).end(); return; }
+        if (url.includes('/tools/tutorial-studio') || url.includes('/authoring/tutorial-studio') || url.includes('/__studio/')) {
+          response.writeHead(404).end('Local authoring tools use their separate localhost server.'); return;
+        }
+        next();
+      });
+    }
+  }, {
     name: 'delve-build-name',
 
     // We handle transform index html here, keeping this operation in one place for its

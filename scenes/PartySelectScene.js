@@ -18,7 +18,6 @@ import { addBgmToggle } from '../ui/BgmToggle.js';
 import { getEquippedAdventurer } from '../game/Equipment.js';
 import HapticsService from '../services/HapticsService.js';
 import { happinessLabel } from '../game/AdventurerProgression.js';
-import { saveProfile, flushProfileSave } from '../game/GameStorage.js';
 import { resolveWorldMapCharacter } from '../game/WorldMapCharacter.js';
 import { recordTutorialParty } from '../game/RecruitmentTutorial.js';
 import { UI_SAFE_TOP, UI_SAFE_BOTTOM, UI_SAFE_LEFT, UI_SAFE_RIGHT } from '../ui/Layout.js';
@@ -28,6 +27,8 @@ import { preloadEnvironment } from '../combat/LayeredEnvironment.js';
 import { everdeepUnavailableIds } from '../game/Everdeep.js';
 
 import { MAX_PARTY_SIZE, ROLE_LIMITS, partyCounts, partyRoleGroup, partyCompositionWarning } from '../game/PartySelection.js';
+import { persistGameplayFact, emitGameplay, PLAYER_SOURCE } from '../game/GameplayEvents.js';
+import { tutorialGuidance } from '../game/TutorialGuidance.js';
 
 const ROLE_COLUMNS = [
   { title: 'TANKS', roles: ['Tank'] },
@@ -158,7 +159,12 @@ export default class PartySelectScene extends Phaser.Scene {
       { fontFamily: UI_FONT_FAMILIES.sans, color: STONE.muted });
 
     // Scroll only the role column under the pointer.
-    this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY) => {
+    this.tutorialScrollHandlers = {};
+    const scrollHandler = (name, callback) => {
+      this.tutorialScrollHandlers[name] = callback;
+      this.input.on(name, callback);
+    };
+    scrollHandler('wheel', (pointer, gameObjects, deltaX, deltaY) => {
 
       // find returns the first matching entry, or undefined when none matches. Check for
       // that missing result before using its fields.
@@ -170,7 +176,7 @@ export default class PartySelectScene extends Phaser.Scene {
 
     // on registers a callback for later events; it does not call that callback now.
     // Long-lived emitters need matching listener cleanup.
-    this.input.on('pointerdown', (pointer) => {
+    scrollHandler('pointerdown', (pointer) => {
 
       // find returns the first matching entry, or undefined when none matches. Check for
       // that missing result before using its fields.
@@ -181,7 +187,7 @@ export default class PartySelectScene extends Phaser.Scene {
       if (column?.maxOffset > 0) listDrag = { id: pointer.id, y: pointer.y, startY: pointer.y, column, moved: false };
     });
 
-    this.input.on('pointermove', (pointer) => {
+    scrollHandler('pointermove', (pointer) => {
       if (listDrag && !listDrag.column.container.active) listDrag = null;
       if (!listDrag || listDrag.id !== pointer.id || !pointer.isDown) return;
       if (!listDrag.moved && Math.abs(pointer.y - listDrag.startY) > 6) {
@@ -193,11 +199,11 @@ export default class PartySelectScene extends Phaser.Scene {
       listDrag.y = pointer.y;
     });
 
-    this.input.on('pointerup', () => { listDrag = null; });
+    scrollHandler('pointerup', () => { listDrag = null; });
     this.input.on('gameout', () => { listDrag = null; });
 
     // Convert scrollbar thumb movement into a bounded content offset.
-    this.input.on('drag', (pointer, gameObject, dragX, dragY) => {
+    scrollHandler('drag', (pointer, gameObject, dragX, dragY) => {
 
       // find returns the first matching entry, or undefined when none matches. Check for
       // that missing result before using its fields.
@@ -268,6 +274,7 @@ export default class PartySelectScene extends Phaser.Scene {
     maskShape.fillStyle(0xffffff).fillRect(x - width / 2 + 20, scrollTop, width - 94, scrollHeight);
     const mask = maskShape.createGeometryMask();
     content.setMask(mask);
+    content.tutorialClipBounds = { x: x - width / 2 + 20, y: scrollTop, width: width - 94, height: scrollHeight };
     const contentCenterX = x - 27;
     const cardWidth = width - 110;
     const renderedCards = [];
@@ -303,7 +310,7 @@ export default class PartySelectScene extends Phaser.Scene {
       // ?? uses the fallback only for null or undefined. A real zero or false stays
       // intact.
       const cls = stoneText(this, textX + 40, cardY, adventurer.shortName ?? adventurer.className, UI_FONT_SIZES.partyClass, 0, { fontFamily: UI_FONT_FAMILIES.sans, fontStyle: UI_FONT_WEIGHTS.normal, color: STONE.muted }).setOrigin(0, 0.5);
-      const level = stoneText(this, textX, cardY + textStep, `Lv ${adventurer.level} · ${adventurer.happiness ?? 70}%`, UI_FONT_SIZES.partyLevel, 0, { fontFamily: UI_FONT_FAMILIES.sans, fontStyle: UI_FONT_WEIGHTS.normal, color: STONE.muted }).setOrigin(0, 0.5);
+      const level = stoneText(this, textX, cardY + textStep, `Lv ${adventurer.level} · ${Math.round(adventurer.happiness ?? 70)}%`, UI_FONT_SIZES.partyLevel, 0, { fontFamily: UI_FONT_FAMILIES.sans, fontStyle: UI_FONT_WEIGHTS.normal, color: STONE.muted }).setOrigin(0, 0.5);
       const emblem = classIcon(this, adventurer.className, textX + 16, cardY, 32);
       [name, cls, level].forEach(label => {
         const availableWidth = textWidth - (label === cls ? 40 : 0);
@@ -356,12 +363,24 @@ export default class PartySelectScene extends Phaser.Scene {
     };
 
     this.columns.push(column);
+    const scrollId = 'party-scroll-' + this.columns.length;
+    track.setName(scrollId + '-track'); thumb.setName(scrollId + '-thumb');
+    up.button.setName(scrollId + '-up'); down.button.setName(scrollId + '-down');
+    const unregisterScroll = tutorialGuidance(this.game).register(this, scrollId, {
+      bounds: () => ({ x: column.bounds.x, y: scrollTop, width: width - 30, height: scrollHeight }),
+      kinds: ['gesture', 'wheel'], receiver: content, handlers: () => this.tutorialScrollHandlers
+    });
+    const unregisterThumb = tutorialGuidance(this.game).register(this, scrollId + '-thumb', {
+      object: thumb, kinds: ['drag'], receiver: thumb, handlers: () => this.tutorialScrollHandlers
+    });
 
     // on registers a callback for later events; it does not call that callback now.
     // Long-lived emitters need matching listener cleanup.
     track.on('pointerdown', pointer => this.setColumnOffsetFromPointer(column, pointer.y));
     const owned = this.children.list.filter(object => !retained.has(object));
     const destroy = () => {
+      unregisterScroll();
+      unregisterThumb();
       this.events.off('shutdown', destroy);
       this.tweens.killTweensOf(content);
       content.clearMask();
@@ -471,6 +490,8 @@ export default class PartySelectScene extends Phaser.Scene {
     }
 
     this.selectedIds.add(id);
+    emitGameplay(this, 'selection.changed', { subjectIds: [...this.selectedIds], selectionId: id,
+      selectionKind: 'party' }, PLAYER_SOURCE);
     this.refreshSelectionUi();
   }
 
@@ -547,7 +568,7 @@ export default class PartySelectScene extends Phaser.Scene {
 
     this.cards.forEach((objects, id) => {
       const away = this.unavailableIds.has(id);
-      objects.level.setText(away ? 'IN THE EVERDEEP' : `Lv ${objects.adventurer.level} · ${objects.adventurer.happiness ?? 70}%`);
+      objects.level.setText(away ? 'IN THE EVERDEEP' : `Lv ${objects.adventurer.level} · ${Math.round(objects.adventurer.happiness ?? 70)}%`);
       objects.level.setColor(away ? '#d9b6ff' : STONE.muted);
       const selected = this.selectedIds.has(id);
       objects.portrait.selectionIdle?.setSelected(selected);
@@ -614,33 +635,40 @@ export default class PartySelectScene extends Phaser.Scene {
 
   // Commit only on Save. Cancel leaves the persisted lineup untouched, even when empty.
   begin() {
+    if (!tutorialGuidance(this.game).allowsAction(this, 'party-save')) return;
     if (GameState.activeBattle) {
       this.showToast('Return to your active battle before changing the party.');
       return;
     }
     this.unavailableIds = everdeepUnavailableIds();
+    const legal = new Set();
+    for (const id of this.selectedIds) {
+      const hero = GameState.roster.find(entry => entry.id === id);
+      if (!hero || !this.canAddToSelection(hero, legal)) {
+        this.showToast('Choose a legal party before saving.'); return;
+      }
+      legal.add(id);
+    }
     if ([...this.selectedIds].some(id => this.unavailableIds.has(id))) {
       this.showToast('A selected adventurer is in The Everdeep. Remove them before saving.');
       return;
     }
     HapticsService.confirm();
-    const tutorialActive = GameState.tutorial.status === 'active';
     const previous = { lastPartyIds: GameState.lastPartyIds, activeParty: GameState.activeParty,
       tutorial: GameState.tutorial, mapCharacterId: GameState.world.mapCharacterId };
     GameState.lastPartyIds = [...this.selectedIds];
     GameState.activeParty = GameState.lastPartyIds.map(id => ({ ...GameState.roster.find(hero => hero.id === id) }));
     resolveWorldMapCharacter();
     recordTutorialParty();
-    if (tutorialActive) {
-      if (!flushProfileSave()) {
-        GameState.lastPartyIds = previous.lastPartyIds;
-        GameState.activeParty = previous.activeParty;
-        GameState.tutorial = previous.tutorial;
-        GameState.world.mapCharacterId = previous.mapCharacterId;
-        this.showToast('Your party could not be saved. Please try again.');
-        return;
-      }
-    } else saveProfile();
+    if (!persistGameplayFact(this, 'party.saved', { memberIds: [...GameState.lastPartyIds],
+      subjectIds: [...GameState.lastPartyIds] }, PLAYER_SOURCE)) {
+      GameState.lastPartyIds = previous.lastPartyIds;
+      GameState.activeParty = previous.activeParty;
+      GameState.tutorial = previous.tutorial;
+      GameState.world.mapCharacterId = previous.mapCharacterId;
+      this.showToast('Your party could not be saved. Please try again.');
+      return;
+    }
     this.scene.start(this.returnScene);
   }
 
@@ -654,11 +682,11 @@ export default class PartySelectScene extends Phaser.Scene {
     // real zero or false stays intact.
     const stats = [
       `Level ${adventurer.level} · ${adventurer.role}`,
-      `HP ${adventurer.maxHp} · Attack ${adventurer.attackPower}`,
-      (adventurer.spellPower ?? adventurer.healPower) > 0 ? `Spell Power ${adventurer.spellPower ?? adventurer.healPower}` : '',
-      adventurer.maxMana > 0 ? `Mana ${adventurer.maxMana}` : '',
-      `Move Speed ${adventurer.moveSpeed} · Crit ${Math.round((adventurer.critChance ?? 0) * 100)}%`,
-      `Happiness ${adventurer.happiness ?? 70}% (${happinessLabel(adventurer.happiness ?? 70)})`
+      `HP ${Math.round(adventurer.maxHp)} · Attack ${Math.round(adventurer.attackPower)}`,
+      (adventurer.spellPower ?? adventurer.healPower) > 0 ? `Spell Power ${Math.round(adventurer.spellPower ?? adventurer.healPower)}` : '',
+      adventurer.maxMana > 0 ? `Mana ${Math.round(adventurer.maxMana)}` : '',
+      `Move Speed ${Math.round(adventurer.moveSpeed)} · Crit ${Math.round((adventurer.critChance ?? 0) * 100)}%`,
+      `Happiness ${Math.round(adventurer.happiness ?? 70)}% (${happinessLabel(adventurer.happiness ?? 70)})`
     ].filter(Boolean).join('\n');
 
     showSelectionDetails(this, { title: adventurer.name, className: adventurer.className,

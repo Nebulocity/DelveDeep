@@ -1,3 +1,4 @@
+import { emitGameplay, PLAYER_SOURCE } from '../game/GameplayEvents.js';
 // This manages the illustrated map, camera and traveling party. Roads are traced curves,
 // so travel follows their points rather than moving directly through scenery. Map/world
 // coordinates move with the camera; fixed menu coordinates belong to the screen.
@@ -19,7 +20,7 @@ import { createWorldMapAmbience } from '../ui/WorldMapAmbience.js';
 import { privateTransfersEnabled, showSaveTransferDialog } from '../ui/SaveTransferDialog.js';
 import { bindSelectionDetails, showSelectionDetails, delveDetails } from '../ui/SelectionDetails.js';
 import { TILE, WORLD_COLUMNS, WORLD_ROWS, regions, nodes, roads, pois, nodePoint, roadPoint, mapPoint, branchLock, regionExit, routeBetween, routeFromEdge, nearestTown } from '../data/worldMap.js';
-import { settleEverdeep } from '../game/Everdeep.js';
+import { everdeepUnlocked, settleEverdeep } from '../game/Everdeep.js';
 import { REGIONAL_MAPS } from '../data/regionalMaps.js';
 import { RegionalMapRenderer } from '../ui/RegionalMapRenderer.js';
 import { UI_SAFE_RIGHT } from '../ui/Layout.js';
@@ -238,7 +239,7 @@ function renderPois(scene) {
         y = Math.max(24, other.y - h - 24);
       }
     }
-    const panel = addRegionPanel(scene, 0, h / 2 - 14, w, h, 169, 'normal', false, 'card');
+    const panel = addRegionPanel(scene, 0, h / 2 - 14, w, h, 169, 'normal', false, 'destination').setName('map-location-' + poi.id);
     const plaque = scene.add.container(x, y, [panel.regionMapArt, panel, nameplate, status]).setDepth(169);
     const connector = scene.add.graphics().lineStyle(2, unlocked ? 0xd3a750 : 0x8b887e, 0.45).setDepth(150);
     connector.lineBetween(x, y + h - 14, point.x, point.y - 100);
@@ -247,7 +248,7 @@ function renderPois(scene) {
 
     // Landmark hit areas sit below plaques so their generous radius cannot steal
     // input from a visible card. Fixed controls and modal blockers remain above both.
-    const hit = scene.add.circle(point.x, point.y - 100, 145, 0xffffff, 0.001).setDepth(168);
+    const hit = scene.add.circle(point.x, point.y - 100, 145, 0xffffff, 0.001).setDepth(168).setName('map-landmark-' + poi.id);
     const details = () => locationDetails(poi);
     bindSelectionDetails(scene, hit, details, () => inspectDestination(scene, poi), undefined, { allowSceneInput: true });
 
@@ -321,7 +322,8 @@ function locationDetails(poi) {
     : poi.type === 'everdeep' ? { title: poi.name, description: everdeepUnlocked()
       ? 'Send adventurers on timed expeditions. Visit the Everdeep to prepare an expedition and review its rewards.'
       : 'Defeat the boss of The Sunken Watch to unlock the Everdeep branch.' }
-    : { title: poi.name, description: 'Visit town to prepare your party.', image: poi.conceptArt };
+    : { title: poi.name, description: poi.description, image: poi.conceptArt,
+      panelWidth: 1500, imageColumn: 520, align: 'left' };
 
   // ... copies the source's own fields into this object; fields listed later replace
   // earlier ones. This is a shallow copy, so nested objects are still shared.
@@ -335,6 +337,7 @@ function inspectDestination(scene, poi) {
     details: locationDetails(poi), travel: () => selectPoi(scene, poi),
     inspect: details => showSelectionDetails(scene, details)
   });
+  emitGameplay(scene, 'selection.changed', { selectionId: poi.id, selectionKind: 'destination' }, PLAYER_SOURCE);
 }
 
 // Pan to the traveling party and restore the intended camera follow behavior. scene is the

@@ -3,6 +3,7 @@
 // its own clear record and checkpoint.
 
 import { catalogWaves, expandCatalogWaves } from './catalogWaves.js';
+import { pineshireProgression } from './pineshireProgression.js';
 
 // These small fallback groups use active monsters if a future Delve reuses this builder.
 const forgottenCavernWaves = [
@@ -341,8 +342,9 @@ export function createEncounterWaves(delve = {}, arenaWidth = 1400, random = Mat
   const base = isVoid ? voidPortalWaves : forgottenCavernWaves;
   const finale = isVoid ? finalWaves.Unknown
     : difficulty === 'Easy' ? finalWaves.Easy : finalWaves.Difficult;
-  const targetCount = isVoid && difficulty === 'Unknown' ? base.length + finale.length
-    : encounterWaveCounts[difficulty] ?? encounterWaveCounts.Easy;
+  const targetCount = pineshireProgression(delve)?.waves
+    ?? (isVoid && difficulty === 'Unknown' ? base.length + finale.length
+      : encounterWaveCounts[difficulty] ?? encounterWaveCounts.Easy);
 
   // filter keeps entries whose callback returns true. It builds a new list and leaves the
   // original list in place.
@@ -396,10 +398,18 @@ export function createEncounterWaves(delve = {}, arenaWidth = 1400, random = Mat
 
   // map builds one output entry for each input entry, in the same order. The callback's
   // return value becomes that output entry.
-  return waves.map((wave) => ({
-    ...wave, enemies: (catalogGroups ? wave.enemies : wave.boss
+  return waves.map((wave, waveIndex) => {
+    let spawns = catalogGroups ? wave.enemies : wave.boss
       ? standardizeWaveEnemies(wave.enemies, Math.max(1, Math.round(wave.enemies.length * 0.8)))
-      : standardizeWaveEnemies(wave.enemies, encounterEnemyCounts[difficulty] ?? encounterEnemyCounts.Easy))
-      .map((enemy) => ({ ...enemy, arenaX: enemy.arenaX + centerOffset }))
-  }));
+      : standardizeWaveEnemies(wave.enemies, encounterEnemyCounts[difficulty] ?? encounterEnemyCounts.Easy);
+
+    // Three Keepers outlast level-9 healing in the late Abyss preparation waves.
+    // Keep seven enemies, but replace the third Keeper with a lower-pressure Wisp.
+    if (encounterId === 'murmuring-abyss' && waveIndex >= 8 && waveIndex <= 10) {
+      let keepers = 0;
+      spawns = spawns.map(enemy => enemy.type === 'voidKeeper' && ++keepers > 2
+        ? { ...enemy, type: 'voidWisp' } : enemy);
+    }
+    return { ...wave, enemies: spawns.map(enemy => ({ ...enemy, arenaX: enemy.arenaX + centerOffset })) };
+  });
 }

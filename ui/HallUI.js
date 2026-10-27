@@ -3,6 +3,7 @@
 
 import { scrollbarSurface } from './Scrollbar.js';
 import { UI_FONT_SIZES, UI_FONT_FAMILIES } from '../config/uiTypography.js';
+import { tutorialGuidance } from '../game/TutorialGuidance.js';
 import { bindSelectionDetails } from './SelectionDetails.js';
 import { bindButtonPress } from './ButtonPress.js';
 import { addCategoryIcon } from './CategoryIcons.js';
@@ -135,6 +136,12 @@ export function hallScroll(scene, bounds, objects, contentHeight, initial = 0, o
   // The mask limits which pixels are drawn. It does not automatically limit the touch hit
   // area; input bounds need their own check.
   container.setMask(mask);
+  container.tutorialClipBounds = bounds;
+  const unregisterTutorialScroll = tutorialGuidance(scene.game).register(scene,
+    `scroll-${objects.find(object => object.name)?.name ?? 'body'}`, {
+      bounds: () => ({ x, y, width: width + 48, height }), kinds: ['gesture', 'wheel'], receiver: container,
+      handlers: { wheel: (...args) => wheel(...args), pointermove: (...args) => move(...args), pointerup: () => release() }
+    });
 
   // Math.max chooses the largest value; pairing it with Math.min can keep a result inside
   // both a lower and an upper bound.
@@ -209,6 +216,7 @@ export function hallScroll(scene, bounds, objects, contentHeight, initial = 0, o
   const cleanup = () => {
     if (disposed) return;
     disposed = true;
+    unregisterTutorialScroll();
     scene.input.off('wheel', wheel).off('pointermove', move).off('pointerup', release).off('gameout', release);
     scene.game.events.off('blur', release);
     scene.events.off('shutdown', cleanup);

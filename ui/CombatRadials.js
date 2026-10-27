@@ -8,6 +8,7 @@ import { bindSelectionDetails, showSelectionDetails } from './SelectionDetails.j
 import { abilityCardDetails } from '../game/AbilityDescriptions.js';
 import { playUiSound, runUiAction } from '../services/UiAudioService.js';
 import HapticsService from '../services/HapticsService.js';
+import { tutorialGuidance } from '../game/TutorialGuidance.js';
 
 export const RADIAL_BEHAVIORS = ['clear', 'slowly-fade', 'sticky', 'memory'];
 export const RADIAL_BEHAVIOR_LABELS = ['Clear', 'Slowly Fade', 'Sticky', 'Memory'];
@@ -36,6 +37,7 @@ export default class CombatRadials {
       const control = this.circle(this.layout.radialX[index], this.layout.radialY, 72,
         kind, kind === 'SELECT' ? 'ALL' : kind === 'ACTION' ? 'ATTACK' : 'REGEN');
       this.centers[kind] = control;
+      control.hit.setName('battle-radial-' + kind);
       control.hit.on('pointerdown', (pointer, x, y, event) => {
         event.stopPropagation();
         if (scene.selectionDetailsClose || this.drag) return;
@@ -59,11 +61,19 @@ export default class CombatRadials {
     this.cancelDrag = () => { this.drag = null; };
     this.tick = () => this.update();
     scene.input.on('pointerup', this.release);
+    const unregisterGesture = tutorialGuidance(scene.game).register(scene, 'battle-radial-gesture', {
+      bounds: () => ({ x: Math.min(...Object.values(this.centers).map(c => c.hit.x)) - 260,
+        y: this.layout.radialY - 260,
+        width: Math.max(...Object.values(this.centers).map(c => c.hit.x))
+          - Math.min(...Object.values(this.centers).map(c => c.hit.x)) + 520, height: 350 }),
+      kinds: ['gesture'], receiver: this, handlers: { pointerup: this.release }
+    });
     scene.input.on('pointerupoutside', this.cancelDrag);
     scene.input.on('gameout', this.cancelDrag);
     scene.game.events.on('blur', this.cancelDrag);
     scene.events.on('update', this.tick);
     scene.events.once('shutdown', () => {
+      unregisterGesture();
       this.close(true);
       scene.input.off('pointerup', this.release);
       scene.input.off('pointerupoutside', this.cancelDrag);
@@ -131,6 +141,8 @@ export default class CombatRadials {
       const option = this.circle(center.hit.x + Math.cos(angle) * 184,
         center.hit.y + Math.sin(angle) * 184, 64, entry.name, entry.symbol ?? 'REGEN');
       Object.assign(option, entry);
+      option.hit.setName(kind === 'SELECT' ? 'battle-role-' + entry.value
+        : kind === 'ACTION' ? 'battle-command-' + entry.value : 'battle-ability-' + entry.value);
       if (entry.ability) {
         option.icon.destroy();
         option.objects = option.objects.filter(object => object !== option.icon);
@@ -174,6 +186,8 @@ export default class CombatRadials {
   }
 
   choose(option) {
+    if (!tutorialGuidance(this.scene.game).allowsAction(this.scene, option.hit.name)) return;
+    if (!tutorialGuidance(this.scene.game).allowsAction(this.scene, option.hit.name)) return;
     if (!this.openMenu || this.scene.selectionDetailsClose) return;
     const kind = this.openMenu;
     const scene = this.scene;

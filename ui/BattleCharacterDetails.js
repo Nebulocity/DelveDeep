@@ -1,3 +1,4 @@
+import { dialogFrame } from './DialogFrame.js';
 import { scrollbarSurface } from './Scrollbar.js';
 import { combatPanel as addStonePanel, combatButton as addStoneButton, combatText as stoneText } from './CombatHudTheme.js';
 import { classIcon, categoryIcon } from '../ui/IdentityIcons.js';
@@ -34,7 +35,7 @@ export function showBattleCharacterDetails(scene, unit) {
 
   const shade = scene.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7)
     .setDepth(depth).setInteractive();
-  const panel = addStonePanel(scene, width / 2, height / 2, panelWidth, panelHeight, depth + 1).setInteractive();
+  const panel = dialogFrame(scene, width / 2, height / 2, panelWidth, panelHeight, depth + 1).setInteractive();
   panel.on('pointerdown', (pointer, x, y, event) => event.stopPropagation());
   shade.on('pointerdown', (pointer, x, y, event) => {
     event.stopPropagation();
@@ -55,10 +56,10 @@ export function showBattleCharacterDetails(scene, unit) {
     level >= MAX_CHARACTER_LEVEL ? 'Maximum level' : `XP to Level: ${remainingXp.toLocaleString('en-US')}`, 30, depth + 2,
     { color: '#ffd166' }).setOrigin(1, 0.5));
   objects.push(stoneText(scene, left + 46, top + 149,
-    `Health: ${Math.floor(unit.hp)} / ${unit.maxHp}`, 30, depth + 2,
+    `Health: ${Math.floor(unit.hp)} / ${Math.round(unit.maxHp)}`, 30, depth + 2,
     { fontFamily: UI_FONT_FAMILIES.sans }).setOrigin(0, 0.5));
   if (unit.maxMana > 0) objects.push(stoneText(scene, left + 46, top + 187,
-    `Mana: ${Math.floor(unit.mana)} / ${unit.maxMana}`, 30, depth + 2,
+    `Mana: ${Math.floor(unit.mana)} / ${Math.round(unit.maxMana)}`, 30, depth + 2,
     { fontFamily: UI_FONT_FAMILIES.sans }).setOrigin(0, 0.5));
 
   const skills = Object.entries(unit.abilities ?? {})

@@ -5,6 +5,7 @@ import { characterDetails, bindSelectionDetails } from './SelectionDetails.js';
 import { serviceText, serviceCard } from './TownServiceTheme.js';
 import { featureList, featurePanel } from './TownFeatureUI.js';
 import HapticsService from '../services/HapticsService.js';
+import { emitGameplay, PLAYER_SOURCE } from '../game/GameplayEvents.js';
 
 // Only an ID is shared between screens; every display reads the live roster record.
 let selectedId = null;
@@ -34,6 +35,8 @@ export function characterSelector(scene, bounds, onSelect, { roleOrder } = {}) {
       bindSelectionDetails(scene, hit, () => characterDetails(getEquippedAdventurer(hero)), () => {
         HapticsService.tap();
         selectCharacter(hero.id);
+        emitGameplay(scene, 'selection.changed', { subjectIds: [hero.id], selectionId: hero.id,
+          selectionKind: 'adventurer' }, PLAYER_SOURCE);
         scene.characterOffset ??= 0;
         onSelect(hero);
       });

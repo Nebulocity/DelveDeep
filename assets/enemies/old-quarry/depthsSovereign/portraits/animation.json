@@ -1,0 +1,24 @@
+{
+  "id": "depthsSovereign",
+  "frameWidth": 256,
+  "frameHeight": 256,
+  "columns": 8,
+  "portrait": "portrait.png",
+  "clips": {
+    "idle": {
+      "file": "idle-sheet.png",
+      "frameCount": 8,
+      "frameDurationMs": 250,
+      "durationMs": 2000,
+      "loop": true
+    },
+    "snap": {
+      "file": "snap-sheet.png",
+      "frameCount": 16,
+      "frameDurationMs": 250,
+      "durationMs": 4000,
+      "loop": false,
+      "next": "idle"
+    }
+  }
+}

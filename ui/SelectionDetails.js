@@ -1,4 +1,6 @@
+import { dialogFrame } from './DialogFrame.js';
 import { expeditionPanel as addStonePanel, expeditionButton as addStoneButton, isExpeditionScene } from './ExpeditionTheme.js';
+import { statDisplayNumber as number, statDisplayText } from '../game/StatDisplay.js';
 import { showExpeditionDetails } from './ExpeditionDetails.js';
 import { showDelveDetails } from './DelveDetails.js';
 import { classIcon, titleIcon } from '../ui/IdentityIcons.js';
@@ -7,6 +9,7 @@ import { classIcon, titleIcon } from '../ui/IdentityIcons.js';
 // overlay cannot accidentally trigger the original selection underneath it.
 
 import { delveDropNames } from '../game/DelveDrops.js';
+import { pineshireProgression } from '../data/pineshireProgression.js';
 import HapticsService from '../services/HapticsService.js';
 import { addWoodenPanel, addWoodenNotice } from './WoodenPanel.js';
 import { addStoneOrnaments, stoneText, STONE } from './CarvedStone.js';
@@ -21,6 +24,7 @@ import { showShopDetails } from './ShopDetails.js';
 import { UI_FONT_SIZES, fontPx, UI_FONT_FAMILIES, UI_FONT_WEIGHTS } from '../config/uiTypography.js';
 import { abilitySummary } from '../game/AbilityDescriptions.js';
 import GameState from '../game/GameState.js';
+import { tutorialGuidance } from '../game/TutorialGuidance.js';
 import { abilityMeetsLevel } from '../data/abilityUnlocks.js';
 import { hallScroll } from './HallUI.js';
 import { showBattleCharacterDetails } from './BattleCharacterDetails.js';
@@ -74,8 +78,7 @@ function isTownMenu(scene) {
 // unit is the live combatant, with current resources and arena position.
 export function characterDetails(unit) {
   if (unit.isEnemy) {
-    const number = value => Number((value ?? 0).toFixed(2));
-    const percent = value => `${number((value ?? 0) * 100)}%`;
+    const percent = (value, stat) => statDisplayText(value, stat);
 
     // filter keeps entries whose callback returns true. It builds a new list and leaves
     // the original list in place. ?? uses the fallback only for null or undefined. A real
@@ -87,10 +90,10 @@ export function characterDetails(unit) {
       align: 'left',
       description: [
         `Level: ${unit.level} | Health: ${number(unit.hp)}/${number(unit.maxHp)} | Mana: ${number(unit.mana)}/${number(unit.maxMana)}`,
-        `Armor: ${number(unit.armor)} | Dodge: ${percent(unit.dodge)} | Block: ${percent(unit.block)} | Speed: ${number(unit.speed)}`,
+        `Armor: ${number(unit.armor)} | Dodge: ${percent(unit.dodge, 'dodge')} | Block: ${percent(unit.block, 'block')} | Speed: ${number(unit.speed)}`,
         `Strength: ${number(unit.strength)} | Agility: ${number(unit.agility)} | Constitution: ${number(unit.constitution)}`,
         `Intellect: ${number(unit.intellect)} | Wisdom: ${number(unit.wisdom)}`,
-        `Hit Chance: +${percent(unit.hitChance)} | Crit Chance: ${percent(unit.critChance)} | Crit Multiplier: ${number(unit.critMultiplier)}x`,
+        `Hit Chance: +${percent(unit.hitChance, 'hitChance')} | Crit Chance: ${percent(unit.critChance, 'critChance')} | Crit Multiplier: ${number(unit.critMultiplier, 'critMultiplier')}x`,
         `Attack Power: ${number(unit.attackPower)} | Spell Power: ${number(unit.spellPower ?? Math.max(unit.spellDamage ?? 0, unit.spellHealing ?? 0))}`,
         `Happiness: ${number(unit.happiness)}% | Delves Cleared: ${unit.delvesCompleted ?? 0}`,
         unit.description,
@@ -116,7 +119,7 @@ export function characterDetails(unit) {
     battleCharacter: unit, className: unit.className, classHeader: `${unit.shortName ?? unit.className} · Level ${level}`,
     align: 'left',
     description: [
-      `${unit.className ?? 'Monster'} | ${unit.role ?? 'Enemy'}${level ? ` | Level ${level}` : ''}\nHP: ${Math.floor(unit.hp ?? unit.maxHp)}/${unit.maxHp}${(unit.maxMana ?? 0) > 0 ? ` | Mana: ${Math.floor(unit.mana ?? unit.maxMana)}/${unit.maxMana}` : ''}`,
+      `${unit.className ?? 'Monster'} | ${unit.role ?? 'Enemy'}${level ? ` | Level ${level}` : ''}\nHP: ${Math.floor(unit.hp ?? unit.maxHp)}/${number(unit.maxHp)}${(unit.maxMana ?? 0) > 0 ? ` | Mana: ${Math.floor(unit.mana ?? unit.maxMana)}/${number(unit.maxMana)}` : ''}`,
       Object.entries(unit.abilities ?? {}).filter(([key, ability]) => abilityMeetsLevel(unit, ability)
         && (!unit.abilityRanks || unit.abilityRanks[key] > 0))
         .map(([, ability]) => abilitySummary(unit, ability)).join('\n\n') || 'No skills equipped.'
@@ -142,12 +145,15 @@ export function delveDetails(delve) {
   const skillAdvice = preparation?.spendSkillPoints
     ? `all ${preparation.abilityCount} ability slots equipped, with earned skill points spent on their ranks as costs and level limits allow`
     : `at least ${preparation?.abilityCount} equipped abilities at rank ${preparation?.abilityRank} or higher`;
-  const bossAdvice = preparation ? `\n\nBoss preparation per adventurer: Level ${preparation.level}, ${gearAdvice}, and ${skillAdvice}.\n\nDelve level cap: ${preparation.level}. Capped members earn no XP or Happiness and reduce shared Gold. When everyone is capped, farming earns materials only.` : '';
+  const campaign = pineshireProgression(delve);
+  const capAdvice = campaign
+    ? 'First clears keep their full Gold reward. Fallen party members still earn first-clear XP. Repeat farming reduces Gold at the level cap; capped heroes earn no XP.'
+    : 'Capped members earn no XP or Happiness and reduce shared Gold. When everyone is capped, farming earns materials only.';
+  const bossAdvice = preparation ? `\n\nBoss preparation per adventurer: Level ${preparation.level}, ${gearAdvice}, and ${skillAdvice}.\n\nDelve level cap: ${preparation.level}. ${capAdvice}` : '';
 
-  // Abyss needs preparation before its ordinary waves too. Keep this advice separate
-  // from the boss cap, because the first farm camp helps players earn their next level.
+  // Entry preparation is separate from the final boss level cap.
   const entry = delve.entryPreparation;
-  const entryAdvice = entry ? `\n\nProgression preparation: Level ${entry.level} or higher, your best available class-compatible gear with enchantments, all ${entry.abilityCount} ability slots equipped, and earned skill points spent on ranks. Buy as many Tactics as you can afford and equip up to five. Level ${entry.farmLevel} is recommended for farming; the early camp can help you reach it.` : '';
+  const entryAdvice = entry ? `\n\nProgression preparation: Level ${entry.level} or higher, your best available class-compatible gear with enchantments, all ${entry.abilityCount} ability slots equipped, and earned skill points spent on ranks. Buy as many Tactics as you can afford and equip up to five. ${campaign ? 'The camp after Wave 11 is your final preparation stop before the boss.' : `Level ${entry.farmLevel} is recommended for farming; the early camp can help you reach it.`}` : '';
 
   // map builds one output entry for each input entry, in the same order. The callback's
   // return value becomes that output entry. ?. only follows this link when the value
@@ -216,7 +222,7 @@ export function showSelectionDetails(scene, details) {
   const panelWidth = Math.min(details.panelWidth ?? (details.gear ? 1760 : 1100), messageBounds.width - 120);
   const hasImage = Boolean(details.image && scene.textures.exists(details.image));
   const bodyMargin = 65;
-  const imageColumn = hasImage ? 300 : 0;
+  const imageColumn = hasImage ? Math.min(details.imageColumn ?? 300, panelWidth * 0.4) : 0;
   const bodyWidth = panelWidth - bodyMargin * 2 - imageColumn;
   const bodyCenter = centerX + imageColumn / 2;
 
@@ -228,7 +234,7 @@ export function showSelectionDetails(scene, details) {
   const body = scene.add.text(bodyCenter, 0, bodyDescription, {
     fontFamily: UI_FONT_FAMILIES.sans, fontSize: `${UI_FONT_SIZES.detailBody}px`, color: details.descriptionColor ?? (stone ? STONE.text : warm ? '#f1dfca' : '#e2e8f0'),
     wordWrap: { width: bodyWidth }, fixedWidth: bodyWidth, align: details.align ?? 'center'
-  }).setOrigin(0.5, 0).setDepth(depth + 2);
+  }).setOrigin(0.5, 0).setDepth(depth + 2).setName('selection-details-body');
   const panelHeight = Math.min(height - 140, Math.max(hasImage ? 540 : regionMap ? 400 : 340,
     body.height + (details.gear ? 480 : regionMap ? 280 : 210)));
   const top = (height - panelHeight) / 2;
@@ -248,16 +254,16 @@ export function showSelectionDetails(scene, details) {
   // an object respond to a tap.
   const shade = scene.add.rectangle(width / 2, height / 2, width, height, 0x000000, regionMap ? 0.72 : 0.7)
     .setDepth(depth).setInteractive();
-  const panel = (stone ? addStonePanel : regionMap ? addRegionPanel : addWoodenPanel)(scene, centerX, height / 2, panelWidth + 36, panelHeight + 36, depth + 1);
+  const panel = dialogFrame(scene, centerX, height / 2, panelWidth + 36, panelHeight + 36, depth + 1);
 
   if (stone && scene.stoneTheme) objects.push(addStoneOrnaments(scene, centerX, top + 42, panelWidth, scene.stoneTheme, depth + 2));
   const conceptHeight = Math.min(368, panelHeight - 180);
   const conceptImage = hasImage
-    ? scene.add.image(centerX - panelWidth / 2 + 155, height / 2, details.image)
+    ? scene.add.image(centerX - panelWidth / 2 + imageColumn / 2 + 5, height / 2, details.image)
       .setDepth(depth + 2)
     : null;
 
-  if (conceptImage) conceptImage.setScale(Math.min(270 / conceptImage.width, conceptHeight / conceptImage.height)
+  if (conceptImage) conceptImage.setScale(Math.min((imageColumn - 30) / conceptImage.width, conceptHeight / conceptImage.height)
     * DESCRIPTION_ART_DISPLAY.general.sizeMultiplier);
   const panelHit = town
     ? scene.add.rectangle(centerX, height / 2, panelWidth, panelHeight, 0x000000, 0)
@@ -294,6 +300,7 @@ export function showSelectionDetails(scene, details) {
   const closeX = hasMapSelection ? centerX + 305 : centerX;
   const regionClose = regionMap ? addRegionButton(scene, closeX, buttonY, 300, 88, 'CLOSE', close, { depth: depth + 3 }) : null;
   const button = regionClose?.panel ?? (stone ? addStoneButton : addWoodenPanel)(scene, closeX, buttonY, 300, 72, depth + 3).setInteractive({ useHandCursor: true });
+  button.setName('selection-details-close');
   button.uiSound = 'dialogClose';
   if (regionClose) objects.push(regionClose.text);
   if (hasMapSelection) {
@@ -385,6 +392,7 @@ export function bindSelectionDetails(scene, target, getDetails, onTap, onDetails
     press = { id: pointer.id, x: pointer.x, y: pointer.y, held: false };
     timer = globalThis.setTimeout(() => {
       timer = null;
+      if (!tutorialGuidance(scene.game).allowsAction(scene, target.name)) return cancel();
       if (!press || !pointer.isDown || (scene.selectionDetailsClose && !allowWhileModal)) return;
 
       // Math.hypot calculates straight-line length from the x/y differences: square each,

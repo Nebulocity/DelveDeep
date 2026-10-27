@@ -10,6 +10,7 @@ const GameState = {
   recruitedIds: [],
   tutorial: { status: 'pending', step: 'recruit' },
   tutorialProgress: null,
+  storyProgress: { completed: [], activeId: null, lineId: null },
   gameplay: null,
   activeParty: [],
   activeBattle: null,
@@ -28,6 +29,7 @@ const GameState = {
 
   records: {},
   delveCheckpoints: {},
+  pineshireSettlements: {},
 
   everdeep: { schemaVersion: 2, runs: [], totals: { runsStarted: 0, chestsClaimed: 0 } },
 

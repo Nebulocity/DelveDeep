@@ -4,6 +4,7 @@
 // bonuses from changing the original item catalog or being added twice.
 
 import { unifiedSpellBonuses } from './SpellPower.js';
+import { statDisplayText } from './StatDisplay.js';
 import { ATTRIBUTE_STATS, CHANCE_STATS } from '../config/characterProgression.js';
 import GameState from './GameState.js';
 import { learnItemRecipes } from './RecipeKnowledge.js';
@@ -194,6 +195,7 @@ export function equipmentOwner(instanceId, state = GameState) {
 // Check slot and class compatibility for this particular character and item. hero is the
 // roster record, rather than the artwork that displays that character.
 export function canEquipItem(hero, item) {
+  const potion = item?.slot === 'potion' ? getPotionDefinition(item.itemId ?? item.id) : null;
 
   // The condition before ? chooses the first value when true and the value after : when
   // false. ?. only follows this link when the value exists; a missing optional value gives
@@ -201,8 +203,9 @@ export function canEquipItem(hero, item) {
   return hero && item && EQUIPMENT_SLOTS.includes(item.slot)
     && (hero.level ?? 1) >= itemMinimumLevel(item)
     && (item.slot === 'potion'
-      ? Number.isInteger(item.charges) && item.charges > 0 && item.charges <= 3
-        && (getPotionDefinition(item.itemId)?.effect.resource !== 'mana' || hero.maxMana > 0)
+      ? potion && Number.isInteger(item.charges) && item.charges > 0 && item.charges <= potion.uses
+        && (!potion.usableBy || potion.usableBy.includes('All') || potion.usableBy.includes(hero.className))
+        && (potion.effect.resource !== 'mana' || hero.maxMana > 0)
       : item.className === hero.className || item.usableBy?.includes('All') || item.usableBy?.includes(hero.className));
 }
 
@@ -310,14 +313,10 @@ export function equipmentStatsText(stats = {}) {
   // true. It builds a new list and leaves the original list in place. Object.entries turns
   // own fields into [key, value] pairs so we can visit or transform them.
   return Object.entries(unifiedSpellBonuses(stats)).filter(([, value]) => Number.isFinite(value)).map(([key, value]) => {
-    const chance = ['dodge', 'block', 'hitChance', 'critChance'].includes(key);
-
-    // The condition before ? chooses the first value when true and the value after : when
-    // false.
-    const display = Math.round((chance ? value * 100 : value) * 100) / 100;
+    const display = statDisplayText(value, key);
 
     // ?? uses the fallback only for null or undefined. A real zero or false stays intact.
-    return `+${display}${chance ? '%' : ''} ${labels[key] ?? key}`;
+    return `${parseFloat(display) > 0 ? '+' : ''}${display} ${labels[key] ?? key}`;
   }).join('  / ');
 }
 

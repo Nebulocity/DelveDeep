@@ -13,7 +13,11 @@ import { abilityEntries } from '../game/AdventurerAbilities.js';
 import { abilityUnlockLevel } from '../data/abilityUnlocks.js';
 import { abilityDescription } from '../game/AbilityDescriptions.js';
 import { isRecruited, recruitmentPreview, recruitAdventurer } from '../game/Recruitment.js';
-import { skipRecruitmentTutorial } from '../game/RecruitmentTutorial.js';
+import { emitGameplay, PLAYER_SOURCE } from '../game/GameplayEvents.js';
+import { tutorialEvidenceContext } from '../game/TutorialProgress.js';
+import { tutorialGuidance } from '../game/TutorialGuidance.js';
+import { CHARACTER_SPRITES } from '../data/characterSprites.js';
+import { characterArtworkBounds } from '../ui/CharacterSpriteDisplay.js';
 
 const ROLES = ['All', 'Tank', 'Healer', 'Melee DPS', 'Ranged DPS'];
 
@@ -87,7 +91,6 @@ export default class TavernScene extends TownFeatureScene {
           { name: `tavern-character-${hero.id}`, visuals: [face] });
       }, { stride: 162, offset: this.rosterOffset, onScroll: value => { this.rosterOffset = value; } });
 
-    if (tutorial) this.tutorialGuidance(bounds, preview);
     if (!entries.length) {
       const complete = adventurers.every(hero => isRecruited(hero.id));
       const message = complete ? 'Every adventurer has joined your cause!' : 'No adventurers available for recruitment.';
@@ -103,6 +106,21 @@ export default class TavernScene extends TownFeatureScene {
     const identityX = preview.x + preview.width * 0.22;
     serviceText(this, center, preview.y + 46, hero.name, 'heading48').setOrigin(0.5);
     const portrait = selectionCharacterPortrait(this, hero, identityX, preview.y + 275, 340, 'townDetails', true);
+    const clip = CHARACTER_SPRITES[hero.id]?.clips.idle.south;
+    const artwork = clip && characterArtworkBounds(this, clip);
+
+    // Highlight the visible drawing without turning it into a gameplay button.
+    tutorialGuidance(this.game).register(this, `tavern-preview-${hero.id}`, {
+      object: portrait, visualOnly: true,
+      ...(artwork ? { bounds: camera => {
+        const left = portrait.x + artwork.left * portrait.scaleX - camera.scrollX * portrait.scrollFactorX;
+        const top = portrait.y + artwork.top * portrait.scaleY - camera.scrollY * portrait.scrollFactorY;
+        const first = camera.matrix.transformPoint(left, top);
+        const last = camera.matrix.transformPoint(left + (artwork.right - artwork.left) * portrait.scaleX,
+          top + (artwork.bottom - artwork.top) * portrait.scaleY);
+        return { x: first.x, y: first.y, width: last.x - first.x, height: last.y - first.y };
+      } } : {})
+    });
     if (!globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
       this.tweens.add({ targets: portrait, alpha: { from: 0, to: 1 }, duration: 140 });
     }
@@ -124,36 +142,12 @@ export default class TavernScene extends TownFeatureScene {
         disabledReason: `You need ${cost - GameState.gold} more gold to hire ${hero.name}.` });
   }
 
-  tutorialGuidance(bounds, preview) {
-    const x = preview.x + preview.width + 28;
-    const width = this.scale.width - x - 52;
-    const recruit = !isRecruited('garrick');
-    featurePanel(this, { x, y: bounds.y + 150, width, height: 500 }).setAlpha(0.92);
-    serviceText(this, x + width / 2, bounds.y + 200, 'Your First Party', 'heading38',
-      { align: 'center', wordWrap: { width: width - 48 } }).setOrigin(0.5);
-    serviceText(this, x + 28, bounds.y + 255, recruit
-      ? 'Select Garrick in the roster. Inspect him, then confirm Hire for Free. We will wait until he joins.'
-      : 'Garrick has joined! Choose him and four companions, then save your party.', 'body32',
-      { wordWrap: { width: width - 56 } });
-    serviceButton(this, x + width / 2, bounds.y + 500, width - 48, 90,
-      recruit ? 'Focus Garrick' : 'Choose Party', () => {
-        if (recruit) {
-          this.role = 'Tank'; this.rosterOffset = 0;
-          this.selectAdventurer('garrick');
-        } else this.scene.start('PartySelectScene', { origin: 'town', returnScene: 'TownScene' });
-      }, { slot: 'body32', name: 'tutorial-continue' });
-    serviceButton(this, x + width / 2, bounds.y + 600, width - 48, 80, 'Exit Tutorial', () => {
-      const result = skipRecruitmentTutorial();
-      this.message = result.message;
-      playUiSound(this, result.ok ? 'success' : 'failure');
-      this.render();
-    }, { slot: 'body32', name: 'tutorial-skip' });
-  }
-
   // Stable control names and these actions are shared with tutorial guidance.
   selectAdventurer(id) {
+    if (!tutorialGuidance(this.game).allowsAction(this, `tavern-character-${id}`)) return;
     if (this.selectionDetailsClose || !this.availableRecruits().some(hero => hero.id === id)) return;
     this.selectedId = id;
+    emitGameplay(this, 'selection.changed', { subjectIds: [id], selectionId: id, selectionKind: 'adventurer' }, PLAYER_SOURCE);
     this.detailOffset = 0;
     playUiSound(this, 'click');
     this.render();
@@ -170,15 +164,23 @@ export default class TavernScene extends TownFeatureScene {
   }
 
   hire(id = this.selectedId) {
+    const guidance = tutorialGuidance(this.game);
+    if (!guidance.allowsAction(this, 'tavern-hire')) return;
     if (this.selectionDetailsClose || id !== this.selectedId || !this.availableRecruits().some(hero => hero.id === id)) return;
     const hero = recruitmentPreview(id), cost = RECRUITMENT_COSTS[id];
     if (!hero) return;
+    const tutorial = tutorialEvidenceContext(GameState);
+    const scope = guidance.controller.scope(this);
     showConfirmation(this, {
+      tutorialOwned: guidance.ownsInput(),
+      onCancel: () => scope.dispose(),
       title: `Recruit ${hero.name}?`, confirmLabel: 'HIRE',
       description: `${hero.name} · ${hero.className}\n\nCost: ${cost.toLocaleString()} Gold\nCurrent gold: ${GameState.gold.toLocaleString()}\nGold remaining: ${(GameState.gold - cost).toLocaleString()}\n\nThey join your roster. Choose your active party in Heroes.`,
       onConfirm: () => {
+        if (!scope.valid()) return;
         const index = this.availableRecruits().findIndex(entry => entry.id === id);
-        const result = recruitAdventurer(id);
+        const result = recruitAdventurer(id, { scene: this, tutorial });
+        scope.dispose();
         this.message = result.message;
         playUiSound(this, result.ok ? cost ? 'purchase' : 'success' : 'failure');
         if (result.ok) {

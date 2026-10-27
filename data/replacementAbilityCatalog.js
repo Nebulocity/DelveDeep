@@ -349,6 +349,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "id": "ability_v2_generic_magical_brand",
     "name": "Brand",
     "className": "Generic (Magical)",
+    "excludedClasses": ["Dawnpriest", "Grovekeeper", "Sanguinist"],
     "category": "Assault",
     "targetLabel": "Single enemy",
     "primary": {
@@ -5547,7 +5548,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "tickInterval": 0,
     "starterFor": [],
     "trigger": "When useful and ready; respects player orders.",
-    "limits": "Health costs use current HP, bypass mitigation, cannot critically hit, and cannot reduce the payer below 1 HP; skip when unsafe. Costs do not grow with rank. Once per encounter; cannot revive an ally barred from revival.",
+    "limits": "Health costs use current HP, bypass mitigation, cannot critically hit, and cannot reduce the payer below 1 HP; skip when unsafe. Costs do not grow with rank. Once per encounter.",
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally.",
     "minimumLevel": 10
   },
@@ -8298,7 +8299,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "tickInterval": 0,
     "starterFor": [],
     "trigger": "When useful and ready; respects player orders.",
-    "limits": "Once per encounter; cannot revive an ally barred from revival.",
+    "limits": "Once per encounter.",
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally.",
     "minimumLevel": 10
   },
@@ -8344,7 +8345,7 @@ export const REPLACEMENT_ABILITY_ROWS = [
     "tickInterval": 0,
     "starterFor": [],
     "trigger": "When useful and ready; respects player orders.",
-    "limits": "Once per encounter; cannot revive an ally barred from revival.",
+    "limits": "Once per encounter.",
     "secondaryArea": "Same resolved targets unless effect names the caster or an ally.",
     "minimumLevel": 10
   }

@@ -8,6 +8,7 @@ import { recordDelveCompletion } from './LeaderProgression.js';
 import { saveProfile } from './GameStorage.js';
 import { isOrdinaryDelve, delveRewardEligibility } from './DelveCheckpoints.js';
 import { ADVENTURER_XP_BANDS } from '../config/adventurerXp.js';
+import { pineshireWaveReward } from '../data/pineshireProgression.js';
 
 // This helper snapshots the run start so timing and retreat costs stay consistent.
 export function beginExpedition() {
@@ -21,7 +22,13 @@ export function beginExpedition() {
 // This helper applies a successful expedition to persistent progression. It awards party
 // experience and happiness, updates clear records and map discoveries, advances player
 // progression, and saves a summary for the reward screen.
-export function completeExpedition() {
+export function completeExpedition(settledBoss = null) {
+
+  // A repeated completion callback cannot replay the campaign's XP or morale reward.
+  if (pineshireWaveReward(GameState.currentDelve, (GameState.currentDelve?.rooms ?? 1) - 1)
+    && GameState.world.clearedDelves.includes(GameState.currentDelve.id)) {
+    return { adventurers: [], leaderResult: { levelsGained: 0, renownPointsEarned: 0 } };
+  }
 
   // Snapshot before party XP because a boss reward can also cross a character milestone.
   const previousRenown = GameState.leader?.level ?? 1;
@@ -37,11 +44,12 @@ export function completeExpedition() {
   const partyIds = new Set(GameState.activeParty.map((entry) => entry.id));
   const eligibility = delveRewardEligibility();
 
-  // Boss XP uses the final step into this Delve's cap, rounded to whole XP.
-  // It can advance every participant, including fallen allies, into the next bracket.
-  // At the final bracket, the existing global cap still applies.
-  const bossXp = Math.round(xpRequired(eligibility.cap - 1) * 1.75);
-  const bossXpCap = ADVENTURER_XP_BANDS.find(band => band.cap > eligibility.cap)?.cap ?? eligibility.cap;
+  // Pineshire bosses use their once-only campaign XP inside the local cap. Other
+  // encounters retain the existing bracket bonus, including XP for fallen participants.
+  const firstClear = pineshireWaveReward(GameState.currentDelve, (GameState.currentDelve?.rooms ?? 1) - 1);
+  const bossXp = firstClear ? settledBoss?.xp ?? 0 : Math.round(xpRequired(eligibility.cap - 1) * 1.75);
+  const bossXpCap = firstClear ? firstClear.cap
+    : ADVENTURER_XP_BANDS.find(band => band.cap > eligibility.cap)?.cap ?? eligibility.cap;
   const adventurerResults = [];
   GameState.roster.forEach((adventurer) => {
 

@@ -1,3 +1,4 @@
+import { emptyStoryProgress, validStoryProgress } from './StoryPresentation.js';
 // This connects our shared GameState to the device's localStorage. We save ordinary data,
 // then rebuild current stats and reconnect battle objects when loading. Stable IDs keep a
 // saved character or item attached to the right definition even if a list changes order.
@@ -62,6 +63,9 @@ export function loadProfile(baseRoster) {
   // Only matching current IDs restore progression; retired identities have no aliases.
   // Changing list order must not hand one character's progress to another.
   GameState.tutorialProgress = validTutorialProgress(saved?.tutorialProgress) ? saved.tutorialProgress : emptyTutorialProgress();
+  if (saved?.tutorialProgress && !validTutorialProgress(saved.tutorialProgress))
+    GameState.tutorialProgress.retryReason = 'unsupported-curriculum';
+  GameState.storyProgress = validStoryProgress(saved?.storyProgress) ? saved.storyProgress : emptyStoryProgress();
   GameState.gameplay = validGameplayState(saved?.gameplay) ? saved.gameplay : newGameplayState();
 
   reconcileTutorialOutcome(GameState);
@@ -138,6 +142,8 @@ export function loadProfile(baseRoster) {
   };
 
   GameState.records = saved?.records ?? {};
+  GameState.pineshireSettlements = Object.fromEntries(Object.entries(saved?.pineshireSettlements ?? {})
+    .filter(([key, value]) => /^[a-z-]+:\d+$/.test(key) && value === true));
   GameState.everdeep = restoreEverdeep(saved?.everdeep);
 
   // Object.fromEntries turns [key, value] pairs back into an object. A later pair with the
@@ -281,11 +287,13 @@ function writeProfile() {
     recruitedIds: GameState.recruitedIds,
     tutorial: GameState.tutorial,
     tutorialProgress: GameState.tutorialProgress,
+    storyProgress: GameState.storyProgress,
     gameplay: GameState.gameplay,
     preferences: GameState.preferences,
     inventory: GameState.inventory,
     records: GameState.records,
     delveCheckpoints: GameState.delveCheckpoints,
+    pineshireSettlements: GameState.pineshireSettlements,
     lastPartyIds: GameState.lastPartyIds,
     development: GameState.development,
     world: GameState.world,

@@ -2,10 +2,11 @@
 // items; inventory stores owned counts and individual gear copies. Recipe material keys
 // must match material IDs, and aliases preserve compatibility with old saves.
 import { AUTHORED_EQUIPMENT, AUTHORED_EQUIPMENT_RECIPES } from './equipmentCatalog.js';
+import { EARLY_POTIONS } from './earlyPotions.js';
 export { LEGACY_EVERDEEP_ITEM_IDS } from './equipmentCatalog.js';
 
 export const ITEM_RARITIES = {
-  common: { label: 'Common', color: '#d6d3d1', minimumLevel: 1 },
+  common: { label: 'Common', color: '#fff1d2', minimumLevel: 1 },
   uncommon: { label: 'Uncommon', color: '#4ade80', minimumLevel: 10 },
   rare: { label: 'Rare', color: '#60a5fa' },
   epic: { label: 'Epic', color: '#c084fc' },
@@ -1297,12 +1298,16 @@ export const POTION_ITEMS = [
     "rarity": "common",
     "uses": 3,
     "price": 60,
+    "minimumLevel": 1,
+    "cooldown": 15000,
     "effect": {
       "resource": "hp",
-      "fraction": 0.3
+      "fraction": 0.24,
+      "flat": 10,
+      "maxRestore": 140
     },
 
-    "description": "Restores 30% of maximum HP to its user."
+    "description": "A straightforward field remedy brewed from Pineshire herbs."
   },
 
   {
@@ -1312,13 +1317,18 @@ export const POTION_ITEMS = [
     "rarity": "common",
     "uses": 3,
     "price": 60,
+    "minimumLevel": 1,
+    "cooldown": 15000,
     "effect": {
       "resource": "mana",
-      "fraction": 0.3
+      "fraction": 0.24,
+      "flat": 10,
+      "maxRestore": 130
     },
 
-    "description": "Restores 30% of maximum mana to its user."
-  }
+    "description": "A clear herbal infusion prepared for long hours beneath the Reach."
+  },
+  ...EARLY_POTIONS
 ];
 
 export const POTION_BY_ID = Object.fromEntries(POTION_ITEMS.map(item => [item.id, item]));
@@ -2486,4 +2496,4 @@ export function getMaterialDefinition(id) {
 }
 
 // Find the matching definition across the supported item catalogs.
-export function getCatalogItemDefinition(id) { return CATALOG_ITEMS.find(item => item.id === id) ?? null; }
+export function getCatalogItemDefinition(id) { return CATALOG_ITEMS.find(item => item.id === id) ?? POTION_BY_ID[id] ?? null; }

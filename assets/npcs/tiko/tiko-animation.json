@@ -1,0 +1,22 @@
+{
+  "frameWidth": 256,
+  "frameHeight": 256,
+  "columns": 8,
+  "initial": "talk",
+  "clips": {
+    "talk": {
+      "file": "tiko-talk-sheet.png",
+      "frames": 24,
+      "frameMs": 125,
+      "durationMs": 3000,
+      "repeat": 0,
+      "next": "idle"
+    },
+    "idle": {
+      "file": "tiko-idle-sheet.png",
+      "frames": 8,
+      "frameMs": 250,
+      "repeat": -1
+    }
+  }
+}

@@ -15,7 +15,8 @@ export const BOOST_PRESETS = [
   { level: 10, gearLevel: 7, clears: 1, gold: 3000 },
   { level: 15, gearLevel: 12, clears: 2, gold: 6000 },
   { level: 20, gearLevel: 12, clears: 3, gold: 10000 },
-  { level: 25, gearLevel: 17, clears: 4, gold: 15000 },
+  // Both late-region presets open the Everdeep branch by including Sunken Watch.
+  { level: 25, gearLevel: 17, clears: 5, gold: 15000 },
   { level: 30, gearLevel: 17, clears: 5, gold: 22000 }
 ];
 const DELVES = ['slime-cave', 'thornbriar-hollow', 'dolmark-den', 'march-west-delves', 'verge-delves'];

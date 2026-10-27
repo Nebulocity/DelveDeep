@@ -1,6 +1,7 @@
 // Role categories are permissions, including for generic abilities. The roster, gear
 // and ability catalog use the same current playable class identities.
 
+import { CLASS_STARTER_KITS } from './classStarterKits.js';
 import { REPLACEMENT_ABILITY_ROWS } from './replacementAbilityCatalog.js';
 import { progressionProfile } from '../config/characterProgression.js';
 import { balancedHealingAbility } from '../config/healingBalance.js';
@@ -49,8 +50,8 @@ export function replacementAbilities(className, healingMultiplier) {
 
   const multiplier = healingMultiplier ?? progressionProfile(className)?.base.healingMultiplier ?? 1;
   const rows = REPLACEMENT_ABILITY_ROWS.filter(row => abilityAllowed(className, row)).map(row => balancedHealingAbility(row, multiplier)).map(withAbilityRankCurve);
-  const order = row => row.starterFor.includes(name)
-    ? row.className.startsWith('Generic') ? 2 : CLASS_ABILITY_RULES[name].slice(1).indexOf(row.category) : 3;
+  const starters = CLASS_STARTER_KITS[name] ?? [];
+  const order = row => starters.includes(row.id) ? starters.indexOf(row.id) : 3;
   rows.sort((a, b) => order(a) - order(b));
   return Object.fromEntries(rows.map(row => {
     const range = row.castRange === 'Anywhere' ? Infinity : row.castRange === 'Self' ? 0
@@ -60,7 +61,7 @@ export function replacementAbilities(className, healingMultiplier) {
     return [row.id, {
       ...row, minimumLevel: abilityUnlockLevel(row, name), replacement: true, effect: 'replacement', range, target,
       primary: { ...row.primary }, secondary: { ...row.secondary },
-      starter: abilityUnlockLevel(row) === 1, origin: row.className.startsWith('Generic') ? 'Generic' : 'Class',
+      starter: starters.includes(row.id), origin: row.className.startsWith('Generic') ? 'Generic' : 'Class',
       power: row.primary.potency * 100, powerUnit: row.primary.unit,
       description: row.primary.text + (row.secondary.text === 'None' ? '' : ' ' + row.secondary.text),
       zone: row.shape === 'Circle' && row.anchor !== 'Caster' ? row.radius / 100 : undefined,

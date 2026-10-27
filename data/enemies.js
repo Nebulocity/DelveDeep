@@ -118,7 +118,7 @@ const enemies = {
   },
 
   silvanarkTheForestLord: {
-    id: 'silvanark-the-forest-lord', name: 'Silvanark the Forest Lord', boss: true,
+    id: 'silvanark-the-forest-lord', name: 'Gravemaw, the Buried King', boss: true,
     maxHp: 2600, bodyRadius: 68, moveSpeed: 75,
     attackPower: 17, attackRange: 104, attackCooldown: 1500, attackWindup: 440,
     critChance: 0.08, critMultiplier: 1.6, color: 0x476b36,

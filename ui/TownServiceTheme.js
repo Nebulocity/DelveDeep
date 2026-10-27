@@ -122,6 +122,7 @@ export function serviceButton(scene, x, y, width, height, label, onTap, options 
   hit.setInteractive({ useHandCursor: true });
   hit.pressVisuals = visuals;
   hit.uiSound = enabled ? options.sound ?? 'click' : 'failure';
+  hit.tutorialEnabled = enabled;
   bindButtonPress(scene, hit, [], () => {
     if (!enabled) {
       HapticsService.tap();

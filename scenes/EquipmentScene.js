@@ -5,7 +5,7 @@ import { hallScroll } from '../ui/HallUI.js';
 import { ownedEquipment, equippedItem, equipmentOwner, canEquipItem, equipItem, unequipItem } from '../game/Equipment.js';
 import { equipmentDetails } from '../game/EquipmentDescriptions.js';
 import { ITEM_RARITIES } from '../data/items.js';
-import { CHANCE_STATS } from '../config/characterProgression.js';
+import { statDisplayText } from '../game/StatDisplay.js';
 import { unifiedSpellBonuses } from '../game/SpellPower.js';
 import { showSelectionDetails } from '../ui/SelectionDetails.js';
 
@@ -69,9 +69,9 @@ export default class EquipmentScene extends TownFeatureScene {
     const before = unifiedSpellBonuses(current?.stats), after = unifiedSpellBonuses(candidate.stats);
     const deltas = [...new Set([...Object.keys(before), ...Object.keys(after)])].map(key => {
       const difference = (after[key] ?? 0) - (before[key] ?? 0);
-      const scale = CHANCE_STATS.includes(key) ? 100 : 1;
-      const format = value => `${Math.round(value * scale * 100) / 100}${scale === 100 ? '%' : ''}`;
-      return { text: `${key.replace(/([A-Z])/g, ' $1')}\n${format(before[key] ?? 0)} → ${format(after[key] ?? 0)} (${difference > 0 ? '+' : ''}${format(difference)})`, difference };
+      const format = value => statDisplayText(value, key);
+      const displayedDifference = parseFloat(format(difference));
+      return { text: `${key.replace(/([A-Z])/g, ' $1')}\n${format(before[key] ?? 0)} → ${format(after[key] ?? 0)} (${displayedDifference > 0 ? '+' : ''}${format(difference)})`, difference: displayedDifference };
     });
     const information = equipmentDetails(candidate, hero);
     const retained = new Set(this.children.list);

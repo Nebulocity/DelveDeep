@@ -1,5 +1,6 @@
 import { isMageClass } from '../config/characterProgression.js';
 import GameState from './GameState.js';
+import { flushProfileSave } from './GameStorage.js';
 import { newGameplayState, reconcileTutorialOutcome, tutorialEvidenceContext } from './TutorialProgress.js';
 
 const listeners = new Set();
@@ -31,17 +32,22 @@ function freeze(value) {
   return value;
 }
 
-export function emitGameplay(scene, type, details = {}, source = SYSTEM_SOURCE) {
-  if (!scene.gameplayContext) beginGameplayEncounter(scene);
-  const context = scene.gameplayContext;
-  const event = freeze(structuredClone({ version: 1, type, ...details, source,
-    sceneSessionId: scene.gameplayObserverSessionId,
+function gameplayEnvelope(scene, type, details, source) {
+  if (type.startsWith('combat.') && !scene.gameplayContext) beginGameplayEncounter(scene);
+  if (scene) scene.gameplayObserverSessionId ??= crypto.randomUUID();
+  const context = type.startsWith('combat.') ? scene.gameplayContext : null;
+  return freeze(structuredClone({ version: 1, type, ...details, source,
+    sceneSessionId: scene?.gameplayObserverSessionId ?? null,
+    sceneId: scene?.scene?.key ?? null,
     tutorial: Object.hasOwn(details, 'tutorial') ? details.tutorial : tutorialEvidenceContext(GameState),
     eventId: gameplayId('event'), profileEpoch: GameState.gameplay.epoch,
-    encounterId: context.encounterId, mode: context.mode,
-    waveId: context.encounterId + ':wave:' + context.waveSerial,
-    waveIndex: scene.currentWaveIndex, combatTimeMs: scene.time?.now ?? 0,
+    encounterId: context?.encounterId ?? null, mode: context?.mode ?? 'campaign',
+    waveId: context ? context.encounterId + ':wave:' + context.waveSerial : null,
+    waveIndex: context ? scene.currentWaveIndex : null, combatTimeMs: context ? scene.time?.now ?? 0 : null,
     sequence: GameState.gameplay.serial }));
+}
+
+function deliverGameplay(event) {
   if (listeners.size) {
     deliveries.push({ event, recipients: [...listeners] });
     if (!deliveryScheduled) {
@@ -56,6 +62,21 @@ export function emitGameplay(scene, type, details = {}, source = SYSTEM_SOURCE) 
     }
   }
   return event;
+}
+
+export function emitGameplay(scene, type, details = {}, source = SYSTEM_SOURCE) {
+  return deliverGameplay(gameplayEnvelope(scene, type, details, source));
+}
+
+// Persist the successful fact in the SAME profile write as the gameplay transaction.
+// The caller restores its gameplay fields on failure. A later checkpoint write cannot
+// erase this bounded journal, allowing fresh scopes to reconcile without another hire.
+export function persistGameplayFact(scene, type, details, source = PLAYER_SOURCE) {
+  const event = gameplayEnvelope(scene, type, { ...details, phase: 'committed' }, source);
+  const state = GameState.gameplay, previous = state.transactions ?? [];
+  state.transactions = [...previous, event].slice(-16);
+  if (!flushProfileSave()) { state.transactions = previous; return null; }
+  return deliverGameplay(event);
 }
 
 export function requestOrder(scene, command, units = [], details = {}) {
@@ -129,7 +150,8 @@ export function warningStarted(scene, warning) {
     geometry: { shape: 'circle', x: warning.arenaX, y: warning.arenaY, radius: warning.radius },
     candidates: scene.partyUnits.filter(u => u.alive && inside(u)).map(u => ({ actorId: u.id,
       movementSerial: u.manualMovementSerial ?? 0 })) };
-  emitGameplay(scene, 'combat.mechanic.warning', { actorId: warning.attacker.id, ...action.warningEvidence });
+  emitGameplay(scene, 'combat.mechanic.warning', { actorId: warning.attacker.id,
+    critical: !!warning.attacker.isBoss, ...action.warningEvidence });
 }
 
 export function warningResolved(scene, action) {

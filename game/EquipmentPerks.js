@@ -1,5 +1,7 @@
 // Equipment perks read live combat conditions at resolution. Percentages are fractions,
 // so 0.05 adds five percentage points of chance or multiplies an amount by 1.05.
+import { statDisplayNumber } from './StatDisplay.js';
+
 const descriptions = {
   runic_refrain: amount => `Using an ability empowers your next landed basic attack. A spectral blade echoes ${amount}% of its actual damage. The echo cannot trigger itself.`,
   bring_home_supper: (amount, threshold) => `+${amount}% critical hit chance against enemies below ${threshold}% Health.`,
@@ -20,8 +22,8 @@ const descriptions = {
 export function equipmentPerkDescription(perk) {
   const describe = descriptions[perk?.id];
   if (!describe) return '';
-  const percent = value => Number(((value ?? 0) * 100).toFixed(2));
-  return `${perk.name}: ${describe(percent(perk.amount), percent(perk.threshold))}`;
+  const amountStat = perk.id === 'bring_home_supper' ? 'critChance' : undefined;
+  return `${perk.name}: ${describe(statDisplayNumber((perk.amount ?? 0) * 100, amountStat), statDisplayNumber((perk.threshold ?? 0) * 100))}`;
 }
 
 // Old battle snapshots omit equipmentPerks and therefore receive no new effects.

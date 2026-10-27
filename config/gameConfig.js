@@ -27,6 +27,8 @@ import FacilityScene from '../scenes/FacilityScene.js';
 import BlacksmithScene from '../scenes/BlacksmithScene.js';
 import EncounterSummaryScene from '../scenes/EncounterSummaryScene.js';
 import EverdeepScene from '../scenes/EverdeepScene.js';
+import TutorialOverlayScene from '../scenes/TutorialOverlayScene.js';
+import TutorialScenePlugin from '../ui/TutorialScenePlugin.js';
 
 const gameConfig = {
   type: Phaser.AUTO,
@@ -34,6 +36,9 @@ const gameConfig = {
   width: 2400,
   height: 1080,
   backgroundColor: '#10131a',
+
+  // Keep the plugin property distinct from TavernScene's recruitment panel method.
+  plugins: { scene: [{ key: 'TutorialScenePlugin', plugin: TutorialScenePlugin, mapping: 'tutorialScenePlugin' }] },
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH
@@ -59,7 +64,8 @@ const gameConfig = {
     BattleScene,
     RewardScene,
     EncounterSummaryScene,
-    EverdeepScene
+    EverdeepScene,
+    TutorialOverlayScene
   ]
 };
 

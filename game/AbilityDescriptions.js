@@ -1,4 +1,5 @@
 import { isMageClass } from '../config/characterProgression.js';
+import { coordinatedTacticDamage } from '../data/leaderTactics.js';
 // We turn ability data into the held details a player can read. Use current ranked values
 // and gear-adjusted power here so the explanation matches the chosen adventurer. Displayed
 // base damage still precedes random critical hits and the target's mitigation.
@@ -6,9 +7,10 @@ import { isMageClass } from '../config/characterProgression.js';
 import { abilityPower, linkedHealing } from './CharacterStats.js';
 import { ARENA_RANGE, rangeLabel } from '../config/combatRanges.js';
 import { replacementDescription } from './ReplacementAbilityDescriptions.js';
+import { statDisplayNumber } from './StatDisplay.js';
 
 const number = value => Number((value ?? 0).toFixed(2));
-const percent = value => `${number(value * 100)}%`;
+const percent = value => `${statDisplayNumber(value * 100)}%`;
 const seconds = value => `${number(value / 1000)} seconds`;
 
 // One pace is the game's Adjacent reach (100 logical arena units). Ability data already
@@ -100,19 +102,19 @@ export function abilityDescription(unit, ability, { compact = false } = {}) {
   } else if (a.effect === 'heal') {
     lines.push(`Restore ${amounts} Health to ${targets}.`);
     if (a.lowHealthPower || a.lowHealthBoost) lines.push('Restores the higher amount when you are below half Health.');
-    if (a.selfDamage) lines.push(`Healing another ally costs you ${a.selfDamage} Health. Healing yourself has no Health cost.`);
+    if (a.selfDamage) lines.push(`Healing another ally costs you ${statDisplayNumber(a.selfDamage)} Health. Healing yourself has no Health cost.`);
 
     if (a.retaliation) lines.push(`The recipient retaliates against the next attacker for ${Math.round(abilityPower(unit, { ...a, damageType: 'nature' }, a.retaliation))} nature damage.`);
-    if (a.temporaryHp) lines.push(`A successful heal grants ${a.temporaryHp} extra shield Health.`);
+    if (a.temporaryHp) lines.push(`A successful heal grants ${statDisplayNumber(a.temporaryHp)} extra shield Health.`);
   } else if (a.effect === 'protect') {
-    if (a.powerUnit === 'shield HP') lines.push(`Grant ${targets} a shield that absorbs ${number(a.power)} damage for ${duration}.`);
-    else if (a.powerUnit.includes('dodge')) lines.push(`Grant ${targets} a ${number(Math.min(75, a.power))}% chance to evade ${a.rangedOnlyDodge ? 'ranged' : 'incoming'} hits for ${duration}.`);
-    else lines.push(`Reduce incoming damage to ${targets} by ${number(Math.min(75, a.power))}% for ${duration}.`);
+    if (a.powerUnit === 'shield HP') lines.push(`Grant ${targets} a shield that absorbs ${statDisplayNumber(a.power)} damage for ${duration}.`);
+    else if (a.powerUnit.includes('dodge')) lines.push(`Grant ${targets} a ${statDisplayNumber(Math.min(75, a.power))}% chance to evade ${a.rangedOnlyDodge ? 'ranged' : 'incoming'} hits for ${duration}.`);
+    else lines.push(`Reduce incoming damage to ${targets} by ${statDisplayNumber(Math.min(75, a.power))}% for ${duration}.`);
 
     if (a.intercept) lines.push('When used on an ally, redirect their next hit to you.');
   } else if (a.effect === 'prepare') {
-    const value = `${number(a.power)}%`;
     const unitName = a.powerUnit ?? '';
+    const value = `${statDisplayNumber(a.power, unitName.includes('critical') ? 'critChance' : undefined)}%`;
     if (unitName.includes('heal')) lines.push(`Your next heal restores ${value} more Health.`);
     else if (unitName.includes('windup')) lines.push(`Reduce the windup of your next ${a.protectiveOnlyWindup ? 'protective spell' : 'spell'} by ${value}.`);
     else if (unitName.includes('critical')) lines.push(`Gain ${value} critical chance for ${duration}${a.nextCritOnly ? ', ending after your next attack' : ''}.`);
@@ -186,7 +188,7 @@ export function abilityDescription(unit, ability, { compact = false } = {}) {
     ? `Range: ${compact ? 'Anywhere' : 'Anywhere in the arena'}.` : `Range: ${rangeLabel(a.range)} (${distance(a.range)}).`);
 
   if (a.cooldown) lines.push(`Cooldown: ${seconds(a.cooldown)}.`);
-  if (a.manaCost) lines.push(`Costs ${a.manaCost} Mana.`);
+  if (a.manaCost) lines.push(`Costs ${statDisplayNumber(a.manaCost)} Mana.`);
   return lines.join(compact ? ' ' : '\n\n');
 }
 
@@ -248,14 +250,14 @@ export function leaderAbilityDescription(ability, party = []) {
     // reduce carries an accumulated result from one entry to the next. The callback
     // returns the accumulator for the next step; the final argument supplies its starting
     // value.
-    const damage = attackers.reduce((total, hero) => total + hero.attackPower, 0) * 3;
+    const damage = coordinatedTacticDamage(ability, attackers);
     return `Melee damage dealers focus one enemy anywhere in the arena, dealing ${amountRange(damage)} physical damage and rooting it for 6 seconds. Requires a living melee damage dealer. Once per encounter.`;
   }
 
   if (ability.id === 'lunarAssault') {
     const attackers = party.filter(hero => hero.alive !== false && isMageClass(hero.className));
     if (!attackers.length) return `${ability.description} Range: Anywhere in the arena. Requires a living mage; affected enemies must be engaged.`;
-    const damage = attackers.reduce((total, hero) => total + (hero.spellPower ?? hero.spellDamage), 0) * 3;
+    const damage = coordinatedTacticDamage(ability, attackers);
 
     return `Mages deal ${amountRange(damage)} spell damage to enemies within ${distance(4)} of a target anywhere in the arena and root them for 8 seconds. Requires a living mage; affected enemies must be engaged. Once per encounter.`;
   }

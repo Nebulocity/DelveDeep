@@ -1,3 +1,4 @@
+import { dialogFrame } from './DialogFrame.js';
 import { usableByIcons } from '../ui/IdentityIcons.js';
 // Shop inspection uses a facility-themed temporary details panel. Text wraps inside its
 // inset and long content scrolls rather than shrinking to an unreadable size. Closing
@@ -82,7 +83,7 @@ export function showShopDetails(scene, details) {
   // an object respond to a tap.
   const shade = scene.add.rectangle(x, height / 2, width, height, 0x000000, 0.7)
     .setName('shop-details-shade').setDepth(depth).setInteractive();
-  const panel = serviceFrame(scene, x, height / 2, panelWidth, panelHeight, 'panel');
+  const panel = dialogFrame(scene, x, height / 2, panelWidth, panelHeight);
   panel.setName('shop-details-panel').setDepth(depth + 1);
   const blocker = scene.add.rectangle(x, height / 2, panelWidth, panelHeight, 0, 0)
     .setDepth(depth + 2).setInteractive();

@@ -92,7 +92,7 @@ export default class TownFeatureScene extends Phaser.Scene {
     image.setScale(Math.max(width / image.width, height / image.height));
     const town = pois.find(poi => poi.id === GameState.world.currentLocation && poi.type === 'town');
     serviceFrame(this, width / 2, 68, width - 104, 126, 'bar');
-    serviceButton(this, 267, 68, 398, 96, 'Back to Town', () => this.backToTown(), { icon: 'town-hub-world-map' });
+    serviceButton(this, 267, 68, 398, 96, 'Back to Town', () => this.backToTown(), { icon: 'town-hub-world-map', name: 'feature-back' });
     serviceIcon(this, `town-hub-${icon}`, width / 2 - 290, 68, 86);
     serviceText(this, width / 2, 26, town?.name ?? 'Town', 'support28', { color: '#dfbf7a' }).setOrigin(0.5);
     serviceText(this, width / 2, 79, title, 'display54').setOrigin(0.5);

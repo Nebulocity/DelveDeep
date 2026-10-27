@@ -801,6 +801,15 @@ export default class BattleUnit {
     // A depleted Prism Shield bursts even when it absorbed the whole incoming hit.
     // Resolve this here so periodic and triggered damage follow the same rule.
     if (absorbed > 0) this.scene?.classAbilitySystem?.replacement?.shieldDamaged?.(this);
+
+    // Potion barriers expire on the combat clock and stay separate from class shields.
+    // The plain status record is included in the existing unit snapshot.
+    const ward = this.status.potionWard;
+    if (ward && ward.until > now) {
+      const wardAbsorbed = Math.min(adjusted, ward.amount);
+      ward.amount -= wardAbsorbed;
+      adjusted -= wardAbsorbed;
+    } else if (ward) delete this.status.potionWard;
     adjusted = this.scene?.classAbilitySystem?.replacement?.preventLethal(this, adjusted) ?? adjusted;
 
     // These are hit reactions, not periodic threat or forced taunts. A real block

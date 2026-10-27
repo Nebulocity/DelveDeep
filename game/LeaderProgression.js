@@ -4,6 +4,8 @@
 
 import { LEADER_STORAGE_KEY } from './BuildSave.js';
 import { MAX_RENOWN_LEVEL, CHARACTER_RENOWN_INTERVAL, LEADERSHIP_RARITIES } from '../config/renown.js';
+import { ADDITIONAL_LEADER_TACTICS } from '../data/leaderTactics.js';
+import { leaderTacticEffectDescription } from './LeaderTacticDescriptions.js';
 
 const STORAGE_KEY = LEADER_STORAGE_KEY;
 
@@ -28,9 +30,10 @@ export const leaderAbilities = [
     name: 'Coordinated Attack!',
     shortName: 'COORDINATE',
     branch: 'Command',
-    description: 'Melee damage dealers strike one enemy and root it for 6 seconds. Once per encounter.',
+    description: 'Melee damage dealers strike one enemy for 350% of their combined Attack Power and root it for 6 seconds. Once per encounter.',
     rarity: 'uncommon',
-    cost: 15,
+    cost: 6,
+    damageMultiplier: 3.5,
     oncePerEncounter: true
   },
 
@@ -42,9 +45,10 @@ export const leaderAbilities = [
     name: 'Lunar Assault!',
     shortName: 'LUNAR',
     branch: 'Command',
-    description: 'Mages damage enemies within 4 paces of the target and root them for 8 seconds. Once per encounter.',
+    description: 'Mages deal 200% of their combined Spell Power to enemies within 4 paces of the target and root them for 8 seconds. Once per encounter.',
     rarity: 'uncommon',
-    cost: 18,
+    cost: 6,
+    damageMultiplier: 2,
     oncePerEncounter: true
   },
 
@@ -84,7 +88,7 @@ export const leaderAbilities = [
     branch: 'Survival',
     description: 'Tank characters gain 20% Block for 10 seconds.',
     rarity: 'common',
-    cost: 4,
+    cost: 3,
     cooldown: 60000,
     duration: 10000,
     blockBonus: 0.2
@@ -98,7 +102,7 @@ export const leaderAbilities = [
     branch: 'Survival',
     description: 'Restore all fallen characters to life at full health and mana. Once per encounter.',
     rarity: 'rare',
-    cost: 35,
+    cost: 10,
     oncePerEncounter: true,
     healthFraction: 1,
     manaFraction: 1
@@ -112,7 +116,7 @@ export const leaderAbilities = [
     branch: 'Morale',
     description: 'Restore all mana to every mana-using character. Once per encounter.',
     rarity: 'uncommon',
-    cost: 20,
+    cost: 6,
     oncePerEncounter: true
   },
 
@@ -137,7 +141,7 @@ export const leaderAbilities = [
     branch: 'Morale',
     description: 'Restore 100 health to all living allies every 3 seconds for 12 seconds.',
     rarity: 'common',
-    cost: 4,
+    cost: 3,
     cooldown: 45000,
     duration: 12000,
     healAmount: 100,
@@ -152,7 +156,7 @@ export const leaderAbilities = [
     branch: 'Preparation',
     description: 'Restore all uses in every equipped potion pack. Once per encounter.',
     rarity: 'common',
-    cost: 5,
+    cost: 3,
     oncePerEncounter: true
   },
 
@@ -182,6 +186,9 @@ export const leaderAbilities = [
     manaFraction: 1
   }
 ];
+
+leaderAbilities.push(...ADDITIONAL_LEADER_TACTICS.map(ability => ({ ...ability,
+  description: leaderTacticEffectDescription(ability) })));
 
 // A fresh leader has one point to choose a first tactic in town. Unlocks and the
 // five-slot equipped list are separate, so buying never silently replaces a loadout.

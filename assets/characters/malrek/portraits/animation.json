@@ -1,0 +1,24 @@
+{
+  "id": "malrek",
+  "frameWidth": 256,
+  "frameHeight": 256,
+  "columns": 8,
+  "portrait": "portrait.png",
+  "clips": {
+    "idle": {
+      "file": "idle-sheet.png",
+      "frameCount": 8,
+      "frameDurationMs": 250,
+      "loop": true,
+      "durationMs": 2000
+    },
+    "speak": {
+      "file": "speak-sheet.png",
+      "frameCount": 24,
+      "frameDurationMs": 125,
+      "loop": false,
+      "durationMs": 3000,
+      "next": "idle"
+    }
+  }
+}

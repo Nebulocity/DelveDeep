@@ -1,3 +1,4 @@
+import { dialogFrame } from './DialogFrame.js';
 import { categoryIcon, titleIcon, usableByIcons, abilityClasses } from './IdentityIcons.js';
 // Hall details use temporary parchment and framed controls above the main screen. Text is
 // measured and wrapped within the paper inset, leaving room for the close control. Cleanup
@@ -20,6 +21,7 @@ import { rankedAbility } from '../game/AdventurerAbilities.js';
 import { getEquippedAdventurer } from '../game/Equipment.js';
 import { addEnchantmentScroll } from './EnchantmentScroll.js';
 import { rankComparisonText } from './RankComparisonText.js';
+import { tutorialGuidance } from '../game/TutorialGuidance.js';
 
 // Build styled text at the requested position using this screen's shared text defaults.
 function text(scene, x, y, value, size, options = {}) {
@@ -87,6 +89,7 @@ function start(scene, title, width, height, label, preserveEquipment = false, en
   };
 
   scene.selectionDetailsClose = close;
+  close.tutorialBounds = { x: x - width / 2, y: top, width, height };
 
   // once registers a callback that removes itself after the first matching event.
   scene.events.once('shutdown', close);
@@ -98,7 +101,7 @@ function start(scene, title, width, height, label, preserveEquipment = false, en
   // an object respond to a tap. Depth is drawing order, not distance or size. Higher-depth
   // objects draw on top of lower-depth objects.
   const shade = scene.add.rectangle(x, y, screenWidth, screenHeight, 0x0c0805, 0.8).setDepth(depth).setInteractive();
-  const panel = guildSurface(scene, x, y, width, height, 'panel').setDepth(depth + 1);
+  const panel = dialogFrame(scene, x, y, width, height, depth + 1);
   const blocker = scene.add.rectangle(x, y, width, height, 0, 0).setDepth(depth + 2).setInteractive();
   const stop = (pointer, px, py, event) => event?.stopPropagation?.();
 
@@ -170,7 +173,7 @@ export function showGuildDetails(scene, details) {
     // filter keeps entries whose callback returns true. It builds a new list and leaves
     // the original list in place.
     const effective = getEquippedAdventurer(hero);
-    const stats = `Health: ${effective.maxHp}${effective.maxMana ? ` · Mana: ${effective.maxMana}` : ''}`;
+    const stats = `Health: ${Math.round(effective.maxHp)}${effective.maxMana ? ` · Mana: ${Math.round(effective.maxMana)}` : ''}`;
     text(scene, columnX, top + 309, stats, UI_FONT_SIZES.body36, { align: 'center', wordWrap: { width: 970 } }).setDepth(depth + 5);
     guildRule(scene, columnX, top + 365, 880).setDepth(depth + 5);
     text(scene, columnX, top + 409, 'Equipped Abilities', UI_FONT_SIZES.body35, { fontFamily: UI_FONT_FAMILIES.serif }).setDepth(depth + 5);
@@ -227,14 +230,14 @@ export function showGuildDetails(scene, details) {
 
   button(scene, x, top + height - 87, 380, 'CLOSE', () => {
     playUiSound(scene, 'dialogClose'); modal.close();
-  }, depth + 6);
+  }, depth + 6).setName('selection-details-close');
   modal.finish(body, bodyScroll?.container);
   return modal.close;
 }
 
 // Open a Hall-themed confirm/cancel decision above the existing workspace. scene is the
 // Phaser screen that owns the objects, clock and input used here.
-export function showGuildConfirmation(scene, { title, description, category, usableBy, confirmLabel = 'CONFIRM', onConfirm, onCancel }) {
+export function showGuildConfirmation(scene, { title, description, category, usableBy, confirmLabel = 'CONFIRM', onConfirm, onCancel, tutorialOwned = false }) {
 
   // Math.min chooses the smallest value; pairing it with Math.max can keep a result inside
   // both a lower and an upper bound.
@@ -244,6 +247,19 @@ export function showGuildConfirmation(scene, { title, description, category, usa
     : text(scene, 0, 0, description, UI_FONT_SIZES.body36, { align: 'center', wordWrap: { width: width - 190 }, lineSpacing: 9 });
   const height = Math.min(scene.scale.height - 90, Math.max(640, body.height + 430 + (usableBy?.length ? 88 : 0)));
   const modal = start(scene, title, width, height, 'GUILD LEDGER');
+  const guidance = tutorialGuidance(scene.game);
+  const scope = tutorialOwned ? guidance.controller.scope(scene) : null;
+  const release = tutorialOwned ? guidance.confirm(scene, ['tutorial-dialog-confirm', 'tutorial-dialog-cancel']) : () => {};
+  const closed = modal.close;
+  modal.close = () => {
+    release(); scope?.dispose();
+    scene.events.off('shutdown', modal.close);
+    closed();
+    if (scene.selectionDetailsClose === modal.close) scene.selectionDetailsClose = null;
+  };
+  scene.events.off('shutdown', closed);
+  scene.events.once('shutdown', modal.close);
+  scene.selectionDetailsClose = modal.close;
   titleIcon(scene, modal.titleText, { category }, 56, modal.depth + 5);
 
   // The braces pull named fields into local variables. This reads those fields without
@@ -263,14 +279,16 @@ export function showGuildConfirmation(scene, { title, description, category, usa
     (owner, sx, sy, sw, sh, style) => guildSurface(owner, sx, sy, sw, sh, style).setDepth(depth + 5), () => false);
   scroll.container.setDepth(depth + 5);
   button(scene, x - width / 4, top + height - 87, width / 2 - 100, 'CANCEL', () => {
+    const valid = !scope || scope.valid();
     playUiSound(scene, 'dialogClose');
     modal.close();
-    onCancel?.();
-  }, depth + 6);
+    if (valid) onCancel?.();
+  }, depth + 6).setName('tutorial-dialog-cancel');
   button(scene, x + width / 4, top + height - 87, width / 2 - 100, confirmLabel, () => {
+    const valid = !scope || scope.valid();
     modal.close();
-    return onConfirm();
-  }, depth + 6);
+    if (valid) return onConfirm();
+  }, depth + 6).setName('tutorial-dialog-confirm');
   modal.finish(scroll.container);
 
   return modal.close;

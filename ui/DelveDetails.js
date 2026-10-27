@@ -1,6 +1,7 @@
+import { dialogFrame } from './DialogFrame.js';
 import { scrollbarSurface } from './Scrollbar.js';
 import { combatPanel, combatText } from './CombatHudTheme.js';
-import { addRegionPanel, addRegionButton } from './RegionMapTheme.js';
+import { addRegionButton } from './RegionMapTheme.js';
 import { syncRegionMapCameras } from './RegionMapUI.js';
 import { addDelveBestiary } from './DelveBestiary.js';
 import { hallScroll } from './HallUI.js';
@@ -43,7 +44,7 @@ export function showDelveDetails(scene, details) {
     HapticsService.tap();
     close();
   });
-  const panel = addRegionPanel(scene, centerX, height / 2, w, h, depth + 1)
+  const panel = dialogFrame(scene, centerX, height / 2, w, h, depth + 1).setScrollFactor(0)
     .setInteractive().on('pointerdown', stop).on('pointerup', stop);
   objects.push(shade, panel, combatText(scene, centerX, top + 52, details.title,
     UI_FONT_SIZES.heading44, depth + 2, { wordWrap: { width: w - 120 }, align: 'center' }));

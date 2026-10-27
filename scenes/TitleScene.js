@@ -1,3 +1,4 @@
+import { dialogFrame } from '../ui/DialogFrame.js';
 // This is the region map entry screen. It connects the illustrated world, destination
 // controls, travel and player settings to the saved world state.
 
@@ -129,7 +130,7 @@ export default class TitleScene extends Phaser.Scene {
     const objects = [shade];
     const contentObjects = [];
     const closeY = panelTop + panelHeight - 88;
-    const panel = addRegionPanel(this, width / 2, height / 2, panelWidth, panelHeight, depth + 1);
+    const panel = dialogFrame(this, width / 2, height / 2, panelWidth, panelHeight, depth + 1);
     const stop = (pointer, x, y, event) => event?.stopPropagation?.();
     shade.on('pointerdown', stop).on('pointerup', stop);
     panel.setInteractive().on('pointerdown', stop).on('pointerup', stop);

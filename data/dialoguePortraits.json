@@ -1,0 +1,163 @@
+[
+  {
+    "id": "sakura",
+    "name": "Sakura",
+    "kind": "npc",
+    "role": "Enchanter",
+    "directory": "assets/npcs/sakura"
+  },
+  {
+    "id": "zohsu",
+    "name": "Zohsu",
+    "kind": "npc",
+    "role": "Alchemist",
+    "directory": "assets/npcs/zohsu"
+  },
+  {
+    "id": "vesha",
+    "name": "Vesha Embervein",
+    "kind": "npc",
+    "role": "Blacksmith",
+    "directory": "assets/npcs/vesha"
+  },
+  {
+    "id": "garrick",
+    "name": "Garrick",
+    "kind": "hero",
+    "role": "Gladiator",
+    "directory": "assets/characters/garrick/portraits"
+  },
+  {
+    "id": "zareth",
+    "name": "Zareth",
+    "kind": "hero",
+    "role": "Umbramancer",
+    "directory": "assets/characters/zareth/portraits"
+  },
+  {
+    "id": "nadira",
+    "name": "Nadira",
+    "kind": "hero",
+    "role": "Arcanist",
+    "directory": "assets/characters/nadira/portraits"
+  },
+  {
+    "id": "aldren",
+    "name": "Aldren",
+    "kind": "hero",
+    "role": "Oathwarden",
+    "directory": "assets/characters/aldren/portraits"
+  },
+  {
+    "id": "elyra",
+    "name": "Vaeloria",
+    "kind": "hero",
+    "role": "Dawnwarden",
+    "directory": "assets/characters/vaeloria/portraits"
+  },
+  {
+    "id": "chaska",
+    "name": "Chaska",
+    "kind": "hero",
+    "role": "Barbarian",
+    "directory": "assets/characters/chaska/portraits"
+  },
+  {
+    "id": "durgrim",
+    "name": "Durgrim",
+    "kind": "hero",
+    "role": "Barbarian",
+    "directory": "assets/characters/durgrim/portraits"
+  },
+  {
+    "id": "yasmin",
+    "name": "Yasmin",
+    "kind": "hero",
+    "role": "Scoundrel",
+    "directory": "assets/characters/yasmin/portraits"
+  },
+  {
+    "id": "zahra",
+    "name": "Zahra",
+    "kind": "hero",
+    "role": "Barmaid",
+    "directory": "assets/characters/zahra/portraits"
+  },
+  {
+    "id": "orwen",
+    "name": "Orwen",
+    "kind": "hero",
+    "role": "Ranger",
+    "directory": "assets/characters/orwen/portraits"
+  },
+  {
+    "id": "valtheris",
+    "name": "Valtheris",
+    "kind": "hero",
+    "role": "Spellbinder",
+    "directory": "assets/characters/valtheris/portraits"
+  },
+  {
+    "id": "sylva",
+    "name": "Sylva",
+    "kind": "hero",
+    "role": "Grovekeeper",
+    "directory": "assets/characters/sylva/portraits"
+  },
+  {
+    "id": "selenne",
+    "name": "Selenne",
+    "kind": "hero",
+    "role": "Dawnpriest",
+    "directory": "assets/characters/selenne/portraits"
+  },
+  {
+    "id": "malrek",
+    "name": "Malrek",
+    "kind": "hero",
+    "role": "Sanguinist",
+    "directory": "assets/characters/malrek/portraits"
+  },
+  {
+    "id": "alhanna",
+    "name": "Alhanna",
+    "kind": "hero",
+    "role": "Runedancer",
+    "directory": "assets/characters/alhanna/portraits"
+  },
+  {
+    "id": "slimeSovereign",
+    "name": "Slime Sovereign",
+    "kind": "boss",
+    "role": "Slime boss",
+    "directory": "assets/enemies/slime-cave/slimeSovereign/portraits"
+  },
+  {
+    "id": "rongarTheCrusher",
+    "name": "Rongar the Crusher",
+    "kind": "boss",
+    "role": "Barbarian boss",
+    "directory": "assets/enemies/thornbriar-hollow/rongarTheCrusher/portraits"
+  },
+  {
+    "id": "depthsSovereign",
+    "name": "The Depths Sovereign",
+    "kind": "boss",
+    "role": "Two-headed boss",
+    "directory": "assets/enemies/old-quarry/depthsSovereign/portraits"
+  },
+  {
+    "id": "earthsinker",
+    "name": "Earthsinker",
+    "kind": "boss",
+    "role": "Elemental boss",
+    "directory": "assets/enemies/sunken-watch/earthsinker/portraits"
+  },
+  {
+    "id": "silvanarkTheForestLord",
+    "name": "Gravemaw, the Buried King",
+    "kind": "boss",
+    "role": "Dolmark boss",
+    "directory": "assets/enemies/dolmark-den/silvanarkTheForestLord/portraits"
+  }
+]

@@ -3,6 +3,7 @@ import { serviceFrame, serviceCard } from './TownServiceTheme.js';
 import { bindButtonPress } from './ButtonPress.js';
 import HapticsService from '../services/HapticsService.js';
 import { showFeatureToast } from './FeatureToast.js';
+import { dialogFrame } from './DialogFrame.js';
 
 export function regionMessageBounds(scene, scope = 'ui') {
   const camera = scope === 'map' && scene.mapUiCamera ? scene.cameras.main : null;
@@ -18,7 +19,8 @@ export function regionMessageBounds(scene, scope = 'ui') {
 // cards. Decorative art never takes input or changes camera ownership.
 export function addRegionPanel(scene, x, y, width, height, depth = 1000, state = 'normal', fixed = true, kind) {
   const compact = height < 110 || width < 110;
-  const art = (kind === 'card' ? serviceCard(scene, x, y, width, height, { selected: state === 'selected' })
+  const art = (kind === 'destination' ? destinationFrame(scene, x, y, width, height)
+    : kind === 'card' ? serviceCard(scene, x, y, width, height, { selected: state === 'selected' })
     : kind === 'control' ? regionControl(scene, x, y, width, height, 'selected', true)
     : kind ? regionControl(scene, x, y, width, height, kind)
     : compact ? serviceCard(scene, x, y, width, height, { selected: state === 'selected' })
@@ -33,6 +35,21 @@ export function addRegionPanel(scene, x, y, width, height, depth = 1000, state =
   hit.once('destroy', () => art.destroy());
   setRegionPanelState(scene, hit, state);
   return hit;
+}
+
+// Destination cards share dialog carvings without changing their touch rectangles.
+// A warm inset and short rule mark selection without another rectangular border.
+function destinationFrame(scene, x, y, width, height) {
+  const frame = dialogFrame(scene, x, y, width, height, 0, { compact: true });
+  const accent = scene.add.graphics();
+  frame.add(accent);
+  frame.setRegionState = state => {
+    accent.clear();
+    if (state !== 'selected') return;
+    accent.fillStyle(0xffdb86, 0.06).fillRect(-width / 2 + 24, -height / 2 + 24, width - 48, height - 48);
+    accent.lineStyle(2, 0xffdb86, 0.9).lineBetween(-width / 2 + 32, height / 2 - 12, width / 2 - 32, height / 2 - 12);
+  };
+  return frame;
 }
 
 // Dense controls reuse Town's smaller painted corners, with one restrained state

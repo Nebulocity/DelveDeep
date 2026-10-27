@@ -1,9 +1,10 @@
+import { dialogFrame } from './DialogFrame.js';
 import { worldMapParty, resolveWorldMapCharacter } from '../game/WorldMapCharacter.js';
 import { CHARACTER_SPRITES } from '../data/characterSprites.js';
 import { characterDisplayMetrics } from './CharacterSpriteDisplay.js';
 import { bindSelectedCharacterIdle } from './SelectedCharacterIdle.js';
 import { chooseWorldMapCharacter } from './WorldMapCharacterSelection.js';
-import { addRegionPanel, addRegionButton } from './RegionMapTheme.js';
+import { addRegionButton } from './RegionMapTheme.js';
 import { hallScroll } from './HallUI.js';
 import { serviceScrollSurface } from './TownServiceTheme.js';
 import { fontPx, UI_FONT_FAMILIES } from '../config/uiTypography.js';
@@ -49,7 +50,7 @@ export function showWorldMapCharacterGallery(scene, onBack) {
   scene.events.once('shutdown', close);
   const shade = scene.add.rectangle(width / 2, height / 2, width, height, 0, 0.72)
     .setDepth(depth).setScrollFactor(0).setInteractive();
-  const panel = addRegionPanel(scene, width / 2, height / 2, w, h, depth + 1).setInteractive();
+  const panel = dialogFrame(scene, width / 2, height / 2, w, h, depth + 1).setScrollFactor(0).setInteractive();
   const stop = (_pointer, _x, _y, event) => event.stopPropagation();
   shade.on('pointerdown', stop).on('pointerup', stop);
   panel.on('pointerdown', stop).on('pointerup', stop);
